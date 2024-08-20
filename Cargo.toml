@@ -1,0 +1,18 @@
+[package]
+name = "stackl"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+
+[[bin]]
+name="stackl"
+path="src/bin/stackl/main.rs"
+
+[[bin]]
+name="stackl-as"
+path="src/bin/stackl-as/main.rs"
+
+[[bin]]
+name="stackl-ln"
+path="src/bin/stackl-ln/main.rs"
