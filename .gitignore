@@ -1,0 +1,11 @@
+/target
+Cargo.lock
+*.pdf
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.gz
+*.out
+*.toc
+machine_reference.docx

@@ -1,0 +1,60 @@
+[package]
+name = "stackl"
+version = "0.0.0"
+edition = "2024"
+authors = ["Jonathan A. Thomason"]
+license = "MIT"
+publish = false
+build = "build.rs"
+
+[lib]
+name = "stackl"
+path = "src/lib/mod.rs"
+
+[[bin]]
+name="stackl-vm"
+path="src/bin/stackl-vm/main.rs"
+
+[[bin]]
+name="stackl-as"
+path="src/bin/stackl-as/main.rs"
+
+[[bin]]
+name="stackl-ld"
+path="src/bin/stackl-ld/main.rs"
+
+[[bin]]
+name="stackl-im"
+path="src/bin/stackl-im/main.rs"
+
+[[bin]]
+name="stackl-cc"
+path="src/bin/stackl-cc/main.rs"
+
+[[bin]]
+name="stackl-ir"
+path="src/bin/stackl-ir/main.rs"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
+all-features = true
+
+[package.metadata.deb]
+maintainer = "Jonathan A. Thomason <jonathan.a.thomason@gmail.com>"
+copyright = "2024-2026, Jonathan A. Thomason"
+license-file = ["LICENSE", "5"]
+
+[build-dependencies]
+clap = { version = "^4.5", features = ["derive", "cargo"] }
+clap_mangen = "^0.2"
+lalrpop = "^0.22"
+
+[dependencies]
+logos = "^0.15"
+lalrpop-util = "^0.22"
+clap = { version = "^4.5", features = ["derive", "cargo"] }
+bimap = "^0.6"
+bitflags = "^2.9"
+chrono = "^0.4"
+ptree = "0.5"

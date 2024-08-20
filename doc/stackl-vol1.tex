@@ -1,0 +1,131 @@
+\documentclass[11pt,a4paper,oneside]{book}
+
+% ---- Page Layout ----
+\usepackage[margin=1in]{geometry}
+
+\usepackage{booktabs}
+
+% Better PDF links
+\usepackage[hidelinks]{hyperref}
+
+% ---- Fonts ----
+\usepackage{palatino}
+
+% Fix tables drifting to bottom
+\usepackage{float}
+\restylefloat{table}
+
+
+\makeatletter
+\renewcommand{\maketitle}{%
+  \vspace*{2cm} % Add some space from the top
+  \begin{center}
+    \begingroup
+      \hrule height 2pt % Optional: Thick line above the title
+      \vspace{0.5\baselineskip}
+      {\Huge \bfseries \@title \par}% Title is large and bold
+      \vspace{0.5\baselineskip}
+      \hrule height 1pt % Optional: Thin line below the title
+    \endgroup
+    \par
+  \end{center}
+  \vfill % Push everything below this point to the bottom of the page
+  % --- Author and Date at Bottom ---
+  \begin{center}
+    \begingroup
+      \footnotesize
+      \hrule height 0.5pt % Thin separator line
+      \vspace{0.5em}
+      \@author \quad $\cdot$ \quad \@date % Print Author and Date separated by a dot
+      \vspace{0.5em}
+    \endgroup
+  \end{center}
+}
+\makeatother
+
+
+
+\title{
+	STACKL Architecture\\
+	Programmer's Manual\\
+	\large Volume 1: Basic Architecture
+}
+
+\author{Jonathan Thomason}
+
+\begin{document}
+
+\frontmatter
+\thispagestyle{empty}
+\maketitle
+
+\setcounter{page}{0}
+\tableofcontents
+
+\chapter{Preface}
+
+\section{About This Book}
+This book is part of a multivolume work entitled the \textit{STACKL Architecture
+Programmer's Manual}. This table lists each volume in the series.
+
+\begin{table}[H]
+\centering
+	\begin{tabular}{l}
+		STACKL Architecture Programmer's Manual Volume 1: Basic Architecture\\
+		STACKL Architecture Programmer's Manual Volume 2: Instruction Set Reference\\
+		STACKL Architecture Programmer's Manual Volume 3: System Programming Guide\\
+	\end{tabular}
+\end{table}
+
+\section{Audience}
+This volume is intended for system architects, hardware implementers,
+interpreter developers, and others requiring a precise understanding of
+the STACKL architectural model.
+
+\section{Scope of This Volume}
+This volume describes the architectural state visible to software running on
+STACKL, including the organization of its stacks, registers, program counter,
+and condition flags.
+
+It defines the execution model, memory address space, and interrupt vector
+mechanism, establishing the foundation for software development on the
+STACKL virtual machine.
+
+Details of instruction encoding and semantics are covered in *Volume 2:
+Instruction Set Reference*, while system-level programming conventions and
+runtime environment are described in *Volume 3: System Programming Guide*.
+
+\mainmatter
+% your content goes here
+
+\chapter{Registers}
+Overview of registers and their usage.
+
+\chapter{Program Counter}
+Explanation of how the program counter operates.
+
+\chapter{Condition Flags}
+Description and use cases for condition flags.
+
+\chapter{Execution Model}
+Detailed explanation of the execution process.
+
+\chapter{Memory Model}
+
+\chapter{Procedure Calls}
+
+\chapter{Interrupts}
+
+\chapter{Machine Checks}
+
+\chapter{Control Transfers}
+
+\chapter{Input/Output}
+
+\chapter{Overview of the CPU Instruction Set}
+
+\chapter{Overview of the FPU Instruction Set}
+
+\chapter{Instruction Bit Encodings}
+
+\end{document}

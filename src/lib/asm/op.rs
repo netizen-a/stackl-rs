@@ -1,0 +1,64 @@
+// Copyright (c) 2024-2026 Jonathan A. Thomason
+
+pub const NOP: i32 = 0;
+pub const ADD: i32 = 1;
+pub const SUB: i32 = 2;
+pub const MUL: i32 = 3;
+pub const DIV: i32 = 4;
+pub const MOD: i32 = 5;
+pub const EQ: i32 = 6;
+pub const NE: i32 = 7;
+pub const GT: i32 = 8;
+pub const LT: i32 = 9;
+pub const GE: i32 = 10;
+pub const LE: i32 = 11;
+pub const AND: i32 = 12;
+pub const OR: i32 = 13;
+pub const NOT: i32 = 14;
+pub const SWAP: i32 = 15;
+pub const DUP: i32 = 16;
+pub const HALT: i32 = 17;
+pub const POP: i32 = 18;
+pub const RET: i32 = 19;
+pub const RETV: i32 = 20;
+pub const NEG: i32 = 21;
+pub const PUSHCVARIND: i32 = 22;
+pub const OUTS: i32 = 23;
+pub const INP: i32 = 24;
+pub const PUSHFP: i32 = 25;
+pub const JMPUSER: i32 = 26;
+pub const TRAP: i32 = 27;
+pub const RTI: i32 = 28;
+pub const CALLI: i32 = 29;
+pub const PUSHREG: i32 = 30;
+pub const POPREG: i32 = 31;
+pub const BAND: i32 = 32;
+pub const BOR: i32 = 33;
+pub const BXOR: i32 = 34;
+pub const SHIFT_LEFT: i32 = 35;
+pub const SHIFT_RIGHT: i32 = 36;
+pub const PUSHVARIND: i32 = 37;
+pub const POPCVARIND: i32 = 38;
+pub const POPVARIND: i32 = 39;
+pub const COMP: i32 = 40;
+pub const PUSH: i32 = 41;
+pub const JMP: i32 = 42;
+pub const JZ: i32 = 43;
+pub const PUSHVAR: i32 = 44;
+pub const POPVAR: i32 = 45;
+pub const ADJSP: i32 = 46;
+pub const POPARGS: i32 = 47;
+pub const CALL: i32 = 48;
+pub const PUSHCVAR: i32 = 49;
+pub const POPCVAR: i32 = 50;
+pub const SET_TRACE: i32 = 51;
+pub const CLR_TRACE: i32 = 52;
+pub const CLR_INT_DIS: i32 = 53;
+pub const SET_INT_DIS: i32 = 54;
+pub const ROTATE_LEFT: i32 = 55;
+pub const ROTATE_RIGHT: i32 = 56;
+pub const ILLEGAL: i32 = 57;
+
+// TODO: new opcodes
+// add with carry: a + b + in-carry => c, out-carry
+// pub const ADC: i32;

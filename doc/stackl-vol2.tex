@@ -1,0 +1,621 @@
+\documentclass[11pt,a4paper,oneside]{book}
+
+% ---- Page Layout ----
+\usepackage[margin=1in]{geometry}
+
+% ---- Graphics ----
+\usepackage{graphicx}
+
+% ---- Tables ----
+\usepackage{booktabs}
+\usepackage{float}
+\restylefloat{table}
+
+% ---- Fonts ----
+\usepackage{palatino}
+
+% ---- Section Formatting ----
+\usepackage[explicit]{titlesec}
+
+% Clean + stable chapter formatting
+\titleformat{\chapter}[hang]
+  {\normalfont\huge\bfseries}
+  {\thechapter}
+  {1em}
+  {#1} % print title text
+  [\vskip 4pt \hrule height 1pt \vskip 4pt]
+
+% Reduce top spacing safely (no negatives)
+\titlespacing*{\chapter}{0pt}{12pt}{12pt}
+
+% ---- Hyperref ----
+\usepackage[hidelinks]{hyperref}
+
+
+\makeatletter
+\renewcommand{\maketitle}{%
+  \vspace*{2cm} % Add some space from the top
+  \begin{center}
+    \begingroup
+      \hrule height 2pt % Optional: Thick line above the title
+      \vspace{0.5\baselineskip}
+      {\Huge \bfseries \@title \par}% Title is large and bold
+      \vspace{0.5\baselineskip}
+      \hrule height 1pt % Optional: Thin line below the title
+    \endgroup
+    \par
+  \end{center}
+  \vfill % Push everything below this point to the bottom of the page
+  % --- Author and Date at Bottom ---
+  \begin{center}
+    \begingroup
+      \footnotesize
+      \hrule height 0.5pt % Thin separator line
+      \vspace{0.5em}
+      \@author \quad $\cdot$ \quad \@date % Print Author and Date separated by a dot
+      \vspace{0.5em}
+    \endgroup
+  \end{center}
+}
+\makeatother
+
+
+% ---- Document Metadata ----
+\title{
+    STACKL Architecture\\
+    Programmer's Manual\\
+    \large Volume 2: Instruction Set Reference
+}
+\author{Jonathan Thomason}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\frontmatter
+\thispagestyle{empty}
+\maketitle
+
+\setcounter{page}{0}
+\tableofcontents
+
+
+\chapter{Preface}
+
+\section{About This Book}
+This book is part of a multivolume work entitled the \textit{STACKL Architecture
+Programmer's Manual}. This table lists each volume in the series.
+
+\begin{table}[H]
+\centering
+	\begin{tabular}{l}
+		STACKL Architecture Programmer's Manual Volume 1: Basic Architecture\\
+		STACKL Architecture Programmer's Manual Volume 2: Instruction Set Reference\\
+		STACKL Architecture Programmer's Manual Volume 3: System Programming Guide\\
+	\end{tabular}
+\end{table}
+
+\mainmatter
+
+\chapter{General-Purpose Instruction Reference}
+
+\pagebreak
+\section[ADD]{\texorpdfstring{ADD \hfill Add}{ADD -- Add}}
+This opcode performs an addition. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] + Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[ADJSP]{\texorpdfstring{ADJSP \hfill Adjust Stack Pointer}{ADJSP -- Adjust Stack Pointer}}
+This opcode is used to adjust the stack pointer. This opcode has the following effect:
+\begin{verbatim}
+SP += <amount>
+IP += 2
+\end{verbatim}
+The \verb|<amount>| can be a positive or negative number. The \verb|<amount>| is in bytes, not
+words. If \verb|<amount>| is not a multiple of the word size, the machine behavior will be
+undefined following this instruction.
+
+\pagebreak
+\section[AND]{\texorpdfstring{AND \hfill Logical And}{AND -- Logical And}}
+This opcode performs a logical AND. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] && Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[BAND]{\texorpdfstring{BAND \hfill Bitwise And}{BAND -- Bitwise And}}
+This opcode performs a binary AND. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] & Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[BOR]{\texorpdfstring{BOR \hfill Bitwise Or}{BOR -- Bitwise Or}}
+This opcode performs a binary OR. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] | Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[BXOR]{\texorpdfstring{BXOR \hfill Bitwise Exclusive Or}{BXOR -- Bitwise Exclusive Or}}
+This opcode performs a binary XOR. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] ^ Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[CALL]{\texorpdfstring{CALL \hfill Call}{CALL -- Call}}
+This opcode is used for making function calls. This opcode has the following effect:
+\begin{verbatim}
+Memory[SP] = IP+1    // return address
+Memory[SP+1] = FP
+SP += 2
+FP = SP
+IP = <addr>
+\end{verbatim}
+
+\pagebreak
+\section[CALLI]{\texorpdfstring{CALLI \hfill Call Indirect}{CALLI -- Call Indirect}}
+This opcode is used for making function calls. The address of the called function is taken off the stack. This opcode has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+SP -= 1
+Memory[SP] = IP+1    // return address
+Memory[SP+1] = FP
+SP += 2
+FP = SP
+IP = temp
+\end{verbatim}
+
+\pagebreak
+\section[CLR\_TRACE]{\texorpdfstring{CLR\_TRACE \hfill Clear Trace}{CLR\_TRACE -- Clear Trace}}
+This opcode clears the trace flag. This instruction has the following effect:
+\begin{verbatim}
+FLAG &= ~FL_TRACE
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[COMP]{\texorpdfstring{COMP \hfill Complement}{COMP -- Complement}}
+This opcode complements the value at the top of the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-1] = ~Memory[SP-1]
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[DIV]{\texorpdfstring{DIV \hfill Divide}{DIV -- Divide}}
+This opcode performs a divide. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] / Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[DUP]{\texorpdfstring{DUP \hfill Duplicate}{DUP -- Duplicate}}
+This opcode duplicates the value at the top of the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP] = Memory[SP-1]
+SP++
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[EQ]{\texorpdfstring{EQ \hfill Equivalence}{EQ -- Equivalence}}
+This opcode performs an equivalence check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] == Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[GE]{\texorpdfstring{GE \hfill Greater or Equal}{GE -- Greater or Equal}}
+This opcode performs a greater than or equal to check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] >= Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[GT]{\texorpdfstring{GT \hfill Greater Than}{GT -- Greater Than}}
+This opcode performs a greater than check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] > Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[ILLEGAL]{\texorpdfstring{ILLEGAL \hfill Illegal}{ILLEGAL -- Illegal}}
+This opcode is used to indicate an illegal instruction. This instruction has the following effect:
+\begin{verbatim}
+HALT
+\end{verbatim}
+
+\pagebreak
+\section[JMP]{\texorpdfstring{JMP \hfill Unconditional Jump}{JMP -- Unconditional Jump}}
+This is the jump instruction. It has the following effect:
+\begin{verbatim}
+IP = <dest>
+\end{verbatim}
+
+\pagebreak
+\section[JZ]{\texorpdfstring{JZ \hfill Conditional Jump}{JZ -- Conditional Jump}}
+This is the conditional jump instruction. It will jump if the value on the top of the stack is equal to zero. It has the following effect:
+\begin{verbatim}
+SP--
+val = Memory[SP]
+if (val == 0)
+   IP = <dest>
+else
+   IP += 2
+\end{verbatim}
+
+\pagebreak
+\section[LE]{\texorpdfstring{LE \hfill Less or Equal}{LE -- Less or Equal}}
+This opcode performs a less than or equal to check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] <= Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[LT]{\texorpdfstring{LT \hfill Less Than}{LT -- Less Than}}
+This opcode performs a less than check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] < Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[MOD]{\texorpdfstring{MOD \hfill Modulo}{MOD -- Modulo}}
+This opcode performs a modulo operation. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] % Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[MUL]{\texorpdfstring{MUL \hfill Multiply}{MUL -- Multiply}}
+This opcode performs a multiplication. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] * Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[NE]{\texorpdfstring{NE \hfill Not Equal}{NE -- Not Equal}}
+This opcode performs a not equal check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] != Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[NOP]{\texorpdfstring{NOP \hfill No Operation}{NOP -- No Operation}}
+This opcode does nothing. It has the following effect:
+\begin{verbatim}
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[NEG]{\texorpdfstring{NEG \hfill Negate}{NEG -- Negate}}
+This opcode negates the value at the top of the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-1] = -Memory[SP-1]
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[NOT]{\texorpdfstring{NOT \hfill Logical Not}{NOT -- Logical Not}}
+This opcode performs a logical NOT. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-1] = !Memory[SP-1]
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[OR]{\texorpdfstring{OR \hfill Logical Or}{OR -- Logical Or}}
+This opcode performs a logical OR. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] || Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[OUTS]{\texorpdfstring{OUTS \hfill Output String}{OUTS -- Output String}}
+This opcode sends output to the console. The value at the top of the stack is assumed to be the
+address of a NULL terminated string. The string at that address will be sent to the console. This is
+a blocking operation. The CPU will not execute another instruction until after the IO is complete.
+
+\pagebreak
+\section[POP]{\texorpdfstring{POP \hfill Pop}{POP -- Pop}}
+This opcode pops the top value from the stack. This instruction has the following effect:
+\begin{verbatim}
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[POPARGS]{\texorpdfstring{POPARGS \hfill Pop Arguments}{POPARGS -- Pop Arguments}}
+This opcode pops the arguments from the stack. This instruction has the following effect:
+\begin{verbatim}
+  SP -= <num_args>
+  IP++
+\end{verbatim}
+
+\pagebreak
+\section[POPCVAR]{\texorpdfstring{POPCVAR \hfill Pop Constant Variable}{POPCVAR -- Pop Constant Variable}}
+This opcode pops the value of a constant variable onto the stack. This instruction has the following effect:
+\begin{verbatim}
+  temp = Memory[SP-1]
+  Memory[temp] = Memory[SP-2]
+  SP -= 2
+  IP++
+\end{verbatim}
+
+\pagebreak
+\section[POPCVARIND]{\texorpdfstring{POPCVARIND \hfill Pop Constant Variable Indirect}{POPCVARIND -- Pop Constant Variable Indirect}}
+This opcode pops the value of a constant variable indirectly. This instruction has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+Memory[temp] = Memory[SP-2]
+SP -= 2
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[POPVAR]{\texorpdfstring{POPVAR \hfill Pop Variable}{POPVAR -- Pop Variable}}
+This opcode pops the value of a variable onto the stack. This instruction has the following effect:
+\begin{verbatim}
+  temp = Memory[SP-1]
+  Memory[temp] = Memory[SP-2]
+  SP -= 2
+  IP++
+\end{verbatim}
+
+\pagebreak
+\section[POPVARIND]{\texorpdfstring{POPVARIND \hfill Pop Variable Indirect}{POPVARIND -- Pop Variable Indirect}}
+This opcode pops the value of a variable indirectly. This instruction has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+Memory[temp] = Memory[SP-2]
+SP -= 2
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[PUSH]{\texorpdfstring{PUSH \hfill Push}{PUSH -- Push}}
+This opcode pushes a value onto the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP] = <value>
+SP++
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[PUSHCVAR]{\texorpdfstring{PUSHCVAR \hfill Push Constant Variable}{PUSHCVAR -- Push Constant Variable}}
+This opcode pushes the value of a constant variable onto the stack. This instruction has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+Memory[SP] = Memory[temp]
+SP++
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[PUSHCVARIND]{\texorpdfstring{PUSHCVARIND \hfill Push Constant Variable Indirect}{PUSHCVARIND -- Push Constant Variable Indirect}}
+This opcode pushes the value of a constant variable indirectly. This instruction has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+Memory[SP-1] = Memory[temp]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[PUSHFP]{\texorpdfstring{PUSHFP \hfill Push Frame Pointer}{PUSHFP -- Push Frame Pointer}}
+This opcode pushes the current frame pointer onto the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP] = FP
+SP++
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[PUSHREG]{\texorpdfstring{PUSHREG \hfill Push Register}{PUSHREG -- Push Register}}
+This opcode pushes the value of a specified register onto the stack. The registers are numbered as follows:
+0 BP register
+1 LP register
+2 IP register
+3 SP register
+4 FP register
+5 FLAG register
+\begin{verbatim}
+Memory[SP] = <register>
+SP++
+IP += 2
+\end{verbatim}
+
+\pagebreak
+\section[PUSHVAR]{\texorpdfstring{PUSHVAR \hfill Push Variable}{PUSHVAR -- Push Variable}}
+This opcode pushes the value of a variable onto the stack. This instruction has the following effect:
+\begin{verbatim}
+  temp = Memory[SP-1]
+  Memory[SP] = Memory[temp]
+  SP++
+  IP++
+\end{verbatim}
+
+\pagebreak
+\section[PUSHVARIND]{\texorpdfstring{PUSHVARIND \hfill Push Variable Indirect}{PUSHVARIND -- Push Variable Indirect}}
+This opcode pushes the value of a variable indirectly. This instruction has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+Memory[SP-1] = Memory[temp]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[RET]{\texorpdfstring{RET \hfill Return}{RET -- Return}}
+This opcode returns from a function call. This instruction has the following effect:
+\begin{verbatim}
+SP -= 2
+FP = Memory[SP]
+IP = Memory[SP+1]
+\end{verbatim}
+
+\pagebreak
+\section[RETV]{\texorpdfstring{RETV \hfill Return Value}{RETV -- Return Value}}
+This opcode returns a value from a function call. This instruction has the following effect:
+\begin{verbatim}
+SP -= 2
+FP = Memory[SP]
+IP = Memory[SP+1]
+\end{verbatim}
+
+\pagebreak
+\section[ROL]{\texorpdfstring{ROL \hfill Rotate Left}{ROL -- Rotate Left}}
+This opcode performs a left rotate operation.
+
+\pagebreak
+\section[ROR]{\texorpdfstring{ROR \hfill Rotate Right}{ROR -- Rotate Right}}
+This opcode performs a right rotate operation.
+
+\pagebreak
+\section[SET\_TRACE]{\texorpdfstring{SET\_TRACE \hfill Set Trace}{SET\_TRACE -- Set Trace}}
+This opcode sets the trace flag. This instruction has the following effect:
+\begin{verbatim}
+FLAG |= FL_TRACE
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[SHL]{\texorpdfstring{SHL \hfill Shift Left}{SHL -- Shift Left}}
+This opcode performs a left shift operation. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] << Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[SHR]{\texorpdfstring{SHR \hfill Shift Right}{SHR -- Shift Right}}
+This opcode performs a right shift operation. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] >> Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[SUB]{\texorpdfstring{SUB \hfill Subtract}{SUB -- Subtract}}
+This opcode performs a subtraction. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] - Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[SWAP]{\texorpdfstring{SWAP \hfill Swap}{SWAP -- Swap}}
+This opcode swaps the top two values on the stack. This instruction has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+Memory[SP-1] = Memory[SP-2]
+Memory[SP-2] = temp
+IP++
+\end{verbatim}
+
+\chapter{System Instruction Reference}
+
+\pagebreak
+\section[CLID]{\texorpdfstring{CLID \hfill Clear Interrupt Disable}{CLID -- Clear Interrupt Disable}}
+This opcode is used to clear the interrupt disable bit in the FLAG register. The current value of
+the flag is left on the top of the stack. This opcode has the following effect:
+\begin{verbatim}
+Memory[SP] = FLAG & FL_INT_DIS
+FLAG &= ~FL_INT_DIS
+SP++
+IP++
+\end{verbatim}
+Following this instruction, interrupts will be enabled (meaning that if an interrupt occurs, the
+interrupt service routine will be called).
+
+\pagebreak
+\section[HALT]{\texorpdfstring{HALT \hfill Halt}{HALT -- Halt}}
+Causes the virtual machine to enter the HALT state. Entering the HALT state terminates
+the simulator process.
+
+\pagebreak
+\section[INP]{\texorpdfstring{INP \hfill Input}{INP -- Input}}
+This opcode reads input from the console. The value at the top of the stack is assumed to be the
+address of a buffer. The input will be stored at that address. This is a blocking operation. The CPU will not execute another instruction until after the IO is complete.
+
+\pagebreak
+\section[JMPUSER]{\texorpdfstring{JMPUSER \hfill Jump User}{JMPUSER -- Jump User}}
+This opcode causes the processor state to switch to user mode and then jump to an address in the user mode address space (defined by the BP and LP registers). This instruction has the following effect:
+\begin{verbatim}
+FL_USER_MODE bit is set in FLAG register
+IP = <dest>
+\end{verbatim}
+
+\pagebreak
+\section[POPREG]{\texorpdfstring{POPREG \hfill Pop Register}{POPREG -- Pop Register}}
+This opcode pops the value from the top of the stack into the specified register. The registers are numbered as follows:
+0 BP register
+1 LP register
+2 IP register
+3 SP register
+4 FP register
+5 FLAG register
+\begin{verbatim}
+<register> = Memory[SP]
+SP--
+IP += 2
+\end{verbatim}
+
+\pagebreak
+\section[RTI]{\texorpdfstring{RTI \hfill Return From Interrupt}{RTI -- Return From Interrupt}}
+This opcode is used to return from interrupt mode. Both the interrupt and systrap functions should use this opcode to return. See the Interrupt section for more details.
+
+\pagebreak
+\section[SEID]{\texorpdfstring{SEID \hfill Set Interrupt Disable}{SEID -- Set Interrupt Disable}}
+This opcode is used to set the interrupt disable bit in the FLAG register. The current value of
+the flag is left on the top of the stack. This opcode has the following effect:
+\begin{verbatim}
+Memory[SP] = FLAG & ~FL_INT_DIS
+FLAG |= FL_INT_DIS
+SP++
+IP++
+\end{verbatim}
+Following this instruction, interrupts will be disabled (meaning that if an interrupt occurs, the
+interrupt service routine will not be called).
+
+\pagebreak
+\section[TRAP]{\texorpdfstring{TRAP \hfill Software Interrupt}{TRAP -- Software Interrupt}}
+Transfers control to a fixed entry point in an operating system.
+
+\end{document}

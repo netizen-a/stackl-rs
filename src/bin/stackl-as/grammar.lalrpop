@@ -1,0 +1,313 @@
+// Copyright (c) 2024-2026 Jonathan A. Thomason
+
+use stackl::asm::ast::*;
+use crate::tok::*;
+use lalrpop_util::ParseError;
+use lalrpop_util::ErrorRecovery;
+use std::str::FromStr;
+
+grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token, LexicalError>>);
+
+pub Program: Vec<Stmt> = "\n"* <v:Stmts> "\n"* => v;
+
+Stmts: Vec<Stmt> = {
+    Stmt => vec![<>],
+    <mut v:Stmts> "\n"+ <s:Stmt> => {
+        v.push(s);
+        v
+    },
+    ! => {errors.push(<>); Vec::new()}
+}
+
+LabelList: Vec<String> = {
+    <l:Label> => vec![l],
+    <mut v:LabelList> "\n"+ <s:Label> => {
+        v.push(s);
+        v
+    },
+}
+
+Labels: Vec<String> = <l:LabelList> "\n"* => l;
+
+Num: i32 = {
+    <start: @L> <i: INTEGER> <end: @R> =>? {
+        if let Some(deci) = i.strip_prefix("0x") {
+            // Convert hex to u32 then force convert to i32
+            u32::from_str_radix(deci, 16)
+                .map_err(|e| ParseError::User {
+                    error: LexicalError::InvalidInteger(start, e, end),
+                })
+                .map(|x| x as i32)
+        } else {
+          i32::from_str(&i)
+              .map_err(|e| ParseError::User {
+                  error: LexicalError::InvalidInteger(start, e, end),
+              })
+        }
+    }
+};
+
+Atom: Atom = {
+    STR => Atom::String(<>),
+    Num => Atom::Int(<>),
+    Label => Atom::Label(<>)
+}
+
+ParList: Vec<Atom> = "(" <v:ValueList> ")" => v;
+DupList: Vec<Atom> = DUP <n:Num> <mut val:Value> => {
+    let val_size = val.len();
+    assert!(n > 0, "Cannot duplicate <1 times");
+    for _ in 0..(n-1) {
+        val.extend_from_within(0..val_size);
+    }
+    val
+};
+
+List: Vec<Atom> = {
+    DupList => <>,
+    ParList => <>,
+}
+
+Value: Vec<Atom> = {
+    Atom => vec![<>],
+    List => <>,
+}
+
+ValueList: Vec<Atom> = {
+    Value => <>,
+    <mut v:ValueList> "," <mut s:Value> => {
+        v.append(&mut s);
+        v
+    },
+}
+
+ValueListStmt: Vec<Atom> = <v: ValueList> ","? => v;
+
+Stmt: Stmt = <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m);
+Label: String = <label:IDENT> ":"?  => label.to_string();
+
+DataDecl: Inst = {
+    DB <v:ValueListStmt> => Inst::DataDecl8(v),
+    DD <v:ValueListStmt> => Inst::DataDecl32(v),
+}
+
+Inst: Inst = {
+    Mnemonic => Inst::Mnemonic(<>),
+    "[" <d: Directive> <v:DirectiveArgs> "]" => Inst::Directive(d, v),
+    DataDecl => <>
+}
+
+DirectiveArgs: Vec<String> = {
+    Arg => vec![<>],
+    <mut v:DirectiveArgs> "," <s:Arg> => {
+        v.push(s);
+        v
+    },
+}
+
+Arg: String = {
+    IDENT => <>,
+    INP => "inp".to_string(),
+};
+
+Directive: Directive = {
+    <start: @L> <i:IDENT> <end: @R> =>? match i.to_lowercase().as_ref() {
+        "segment" | "section" => Ok(Directive::Segment),
+        "extern" => Ok(Directive::Extern),
+        "global" => Ok(Directive::Global),
+        "interrupt" => Ok(Directive::Interrupt),
+        "systrap" => Ok(Directive::Systrap),
+        "feature" => Ok(Directive::Feature),
+        _ => Err(ParseError::UnrecognizedToken {
+            token: (start, Token::Identifier(i), end),
+            expected: vec![
+              "segment".to_string(), "section".to_string(),
+              "extern".to_string(), "global".to_string(),
+              "interrupt".to_string(), "systrap".to_string(),
+            ],
+        })
+    },
+}
+
+Operand: Operand = {
+    Num => Operand::Int(<>),
+    IDENT => Operand::Label(<>),
+}
+
+Reg: Reg = {
+    <start: @L> <i:Num> <end: @R> =>? match i {
+        0 => Ok(Reg::BP),
+        1 => Ok(Reg::LP),
+        2 => Ok(Reg::IP),
+        3 => Ok(Reg::SP),
+        4 => Ok(Reg::FP),
+        5 => Ok(Reg::Flag),
+        6 => Ok(Reg::IVec),
+        _ => Err(ParseError::UnrecognizedToken {
+            token: (start, Token::Integer(i.to_string()), end),
+            expected: vec![
+              "0".to_string(), "1".to_string(),
+              "2".to_string(), "3".to_string(),
+              "4".to_string(), "5".to_string(),
+              "6".to_string()
+            ],
+        })
+    },
+    <start: @L> <i:IDENT> <end: @R> =>? match i.to_lowercase().as_ref() {
+        "bp" => Ok(Reg::BP),
+        "lp" => Ok(Reg::LP),
+        "ip" => Ok(Reg::IP),
+        "sp" => Ok(Reg::SP),
+        "fp" => Ok(Reg::FP),
+        "flag" => Ok(Reg::Flag),
+        "ivec" => Ok(Reg::IVec),
+        _ => Err(ParseError::UnrecognizedToken {
+            token: (start, Token::Identifier(i), end),
+            expected: vec![
+                "BP".to_string(), "LP".to_string(),
+                "IP".to_string(), "SP".to_string(),
+                "FP".to_string(), "FLAG".to_string(),
+                "IVEC".to_string()
+            ],
+        })
+    },
+}
+
+Mnemonic: Opcode = {
+    NOP => Opcode::Nop,
+    ADD => Opcode::Add,
+    SUB => Opcode::Sub,
+    MUL => Opcode::Mul,
+    DIV => Opcode::Div,
+    MOD => Opcode::Mod,
+    EQ => Opcode::Eq,
+    NE => Opcode::Ne,
+    GT => Opcode::Gt,
+    LT => Opcode::Lt,
+    GE => Opcode::Ge,
+    LE => Opcode::Le,
+    AND => Opcode::And,
+    OR => Opcode::Or,
+    NOT => Opcode::Not,
+    SWAP => Opcode::Swap,
+    DUP => Opcode::Dup,
+    HALT => Opcode::Halt,
+    POP => Opcode::Pop,
+    RET => Opcode::Ret,
+    RETV => Opcode::Retv,
+    NEG => Opcode::Neg,
+    PUSHCVARIND => Opcode::PushCVarInd,
+    OUTS => Opcode::Outs,
+    INP => Opcode::Inp,
+    PUSHFP => Opcode::PushFP,
+    JMPUSER <addr:Operand> => Opcode::JmpUser(addr),
+    TRAP => Opcode::Trap,
+    RTI => Opcode::Rti,
+    CALLI => Opcode::Calli,
+    PUSHREG <reg:Reg> => Opcode::PushReg(reg),
+    POPREG <reg:Reg> => Opcode::PopReg(reg),
+    BAND => Opcode::BAnd,
+    BOR => Opcode::BOr,
+    BXOR => Opcode::BXOr,
+    SHIFT_LEFT => Opcode::ShiftLeft,
+    SHIFT_RIGHT => Opcode::ShiftRight,
+    PUSHVARIND => Opcode::PushVarInd,
+    POPCVARIND => Opcode::PopCVarInd,
+    POPVARIND => Opcode::PopVarInd,
+    COMP => Opcode::Comp,
+    PUSH <i:Operand> => Opcode::Push(i),
+    JMP <addr:Operand> => Opcode::Jmp(addr),
+    JZ <addr:Operand> => Opcode::Jz(addr),
+    PUSHVAR <i:Operand> => Opcode::PushVar(i),
+    POPVAR <i:Operand> => Opcode::PopVar(i),
+    ADJSP <amount:Operand> => Opcode::AdjSP(amount),
+    POPARGS <i:Operand> => Opcode::PopArgs(i),
+    CALL <addr:Operand> => Opcode::Call(addr),
+    PUSHCVAR <i:Operand> => Opcode::PushCVar(i),
+    POPCVAR <i:Operand> => Opcode::PopCVar(i),
+    SET_TRACE => Opcode::SetTrace,
+    CLR_TRACE => Opcode::ClrTrace,
+    CLID => Opcode::ClrIntDis,
+    SEID => Opcode::SetIntDis,
+    ROTATE_LEFT => Opcode::RotateLeft,
+    ROTATE_RIGHT => Opcode::RotateRight,
+    ILLEGAL => Opcode::Illegal,
+};
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum Token {
+        "\n" => Token::Newline,
+        "[" => Token::DirectiveStart,
+        "]" => Token::DirectiveEnd,
+        "(" => Token::ParLeft,
+        ")" => Token::ParRight,
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        IDENT => Token::Identifier(<String>),
+        INTEGER => Token::Integer(<String>),
+        STR => Token::String(<String>),
+        NOP => Token::OpNop,
+        ADD => Token::OpAdd,
+        SUB => Token::OpSub,
+        MUL => Token::OpMul,
+        DIV => Token::OpDiv,
+        MOD => Token::OpMod,
+        EQ => Token::OpEq,
+        NE => Token::OpNe,
+        GT => Token::OpGt,
+        LT => Token::OpLt,
+        GE => Token::OpGe,
+        LE => Token::OpLe,
+        AND => Token::OpAnd,
+        OR => Token::OpOr,
+        NOT => Token::OpNot,
+        SWAP => Token::OpSwap,
+        DUP => Token::OpDup,
+        HALT => Token::OpHalt,
+        POP => Token::OpPop,
+        RET => Token::OpRet,
+        RETV => Token::OpRetv,
+        NEG => Token::OpNeg,
+        PUSHCVARIND => Token::OpPushCVarInd,
+        OUTS => Token::OpOuts,
+        INP => Token::OpInp,
+        PUSHFP => Token::OpPushFP,
+        JMPUSER => Token::OpJmpUser,
+        TRAP => Token::OpTrap,
+        RTI => Token::OpRti,
+        CALLI => Token::OpCalli,
+        PUSHREG => Token::OpPushReg,
+        POPREG => Token::OpPopReg,
+        BAND => Token::OpBAnd,
+        BOR => Token::OpBOr,
+        BXOR => Token::OpBXOr,
+        SHIFT_LEFT => Token::OpShiftLeft,
+        SHIFT_RIGHT => Token::OpShiftRight,
+        PUSHVARIND => Token::OpPushVarInd,
+        POPCVARIND => Token::OpPopCVarInd,
+        POPVARIND => Token::OpPopVarInd,
+        COMP => Token::OpComp,
+        PUSH => Token::OpPush,
+        JMP => Token::OpJmp,
+        JZ => Token::OpJz,
+        PUSHVAR => Token::OpPushVar,
+        POPVAR => Token::OpPopVar,
+        ADJSP => Token::OpAdjSP,
+        POPARGS => Token::OpPopArgs,
+        CALL => Token::OpCall,
+        PUSHCVAR => Token::OpPushCVar,
+        POPCVAR => Token::OpPopCVar,
+        SET_TRACE => Token::OpSetTrace,
+        CLR_TRACE => Token::OpClrTrace,
+        CLID => Token::OpCLID,
+        SEID => Token::OpSEID,
+        ROTATE_LEFT => Token::OpRotateLeft,
+        ROTATE_RIGHT => Token::OpRotateRight,
+        ILLEGAL => Token::OpIllegal,
+        DB => Token::OpDB,
+        DD => Token::OpDD,
+    }
+}

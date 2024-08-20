@@ -1,0 +1,83 @@
+\documentclass[11pt,a4paper,oneside]{book}
+
+% ---- Page Layout ----
+\usepackage[margin=1in]{geometry}
+
+\usepackage{booktabs}
+
+% Better PDF links
+\usepackage[hidelinks]{hyperref}
+
+% ---- Fonts ----
+\usepackage{palatino}
+
+% Fix tables drifting to bottom
+\usepackage{float}
+\restylefloat{table}
+
+
+\makeatletter
+\renewcommand{\maketitle}{%
+  \vspace*{2cm} % Add some space from the top
+  \begin{center}
+    \begingroup
+      \hrule height 2pt % Optional: Thick line above the title
+      \vspace{0.5\baselineskip}
+      {\Huge \bfseries \@title \par}% Title is large and bold
+      \vspace{0.5\baselineskip}
+      \hrule height 1pt % Optional: Thin line below the title
+    \endgroup
+    \par
+  \end{center}
+  \vfill % Push everything below this point to the bottom of the page
+  % --- Author and Date at Bottom ---
+  \begin{center}
+    \begingroup
+      \footnotesize
+      \hrule height 0.5pt % Thin separator line
+      \vspace{0.5em}
+      \@author \quad $\cdot$ \quad \@date % Print Author and Date separated by a dot
+      \vspace{0.5em}
+    \endgroup
+  \end{center}
+}
+\makeatother
+
+
+
+\title{
+	STACKL Architecture\\
+	Programmer's Manual\\
+	\large Volume 3: System Programming Guide
+}
+
+\author{Jonathan Thomason}
+
+\begin{document}
+
+\frontmatter
+\thispagestyle{empty}
+\maketitle
+
+\setcounter{page}{0}
+\tableofcontents
+
+\chapter{Preface}
+
+\section{About This Book}
+This book is part of a multivolume work entitled the \textit{STACKL Architecture
+Programmer's Manual}. This table lists each volume in the series.
+
+\begin{table}[H]
+\centering
+	\begin{tabular}{l}
+		STACKL Architecture Programmer's Manual Volume 1: Basic Architecture\\
+		STACKL Architecture Programmer's Manual Volume 2: Instruction Set Reference\\
+		STACKL Architecture Programmer's Manual Volume 3: System Programming Guide\\
+	\end{tabular}
+\end{table}
+
+\mainmatter
+% your content goes here
+
+\end{document}

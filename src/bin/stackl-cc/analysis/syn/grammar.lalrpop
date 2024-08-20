@@ -1,0 +1,1025 @@
+// Copyright (c) 2024-2026 Jonathan A. Thomason
+
+use std::cell::RefCell;
+use std::rc::Rc;
+use crate::analysis::syn::*;
+use crate::analysis::tok;
+use crate::diagnostics as diag;
+use lalrpop_util as lalr;
+use crate::diagnostics::ToSpan;
+use crate::cli;
+
+grammar<'a>(
+	diagnostics: &mut diag::DiagnosticEngine,
+	opt_lvl: &cli::OptLevel,
+);
+
+
+Pragma: tok::Pragma = <pragma:PRAGMA> ";" => pragma.kind.unwrap_pragma();
+
+// A.1.3 Identifiers
+
+Identifier: Identifier = IDENTIFIER => Identifier::try_from(<>).unwrap();
+
+
+// A.1.5 Constants
+
+Constant: Constant = CONSTANT => Constant::try_from(<>).unwrap();
+
+EnumerationConstant: Identifier = Identifier;
+
+
+// A.1.6 String literals
+
+StringLiteral: StringLiteral = <v:STRING_LITERAL+> => string_concat(v.into_boxed_slice());
+
+
+// A.2.1 Expressions
+
+PrimaryExpr: Expr = {
+	Identifier => Expr::Ident(<>),
+	Constant => Expr::Const(<>),
+	StringLiteral => Expr::StrLit(<>),
+	"(" <expr:Expr> ")" => Expr::Paren(Box::new(expr)),
+};
+
+PostfixExpr: Expr = {
+	PrimaryExpr,
+	<expr:PostfixExpr> <lsqr:"["> <arr:Expr> "]" => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Array(Box::new(arr)), span: lsqr.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <lparen:"("> <args:ArgumentExprList?> ")" => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::ArgExprList(args.unwrap_or_default()), span: lparen.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <dot:"."> <ident:Identifier> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Dot(ident), span: dot.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <arrow:"->"> <ident:Identifier> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Arrow(ident), span: arrow.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <inc:"++"> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Inc, span: inc.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <dec:"--"> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Dec, span: dec.to_span() },
+		expr
+	),
+	"(" <ty:TypeName> ")" <lsqr:"{"> <list:InitializerList> ","? "}" => Expr::CompoundLiteral(
+		ty,
+		InitializerList{
+			span: lsqr.to_span(),
+			list: list.into_boxed_slice(),
+		}
+	),
+};
+
+ArgumentExprList: Vec<Expr> = {
+	AssignmentExpr => vec![<>],
+	<mut list:ArgumentExprList> "," <expr:AssignmentExpr> => {
+		list.push(expr);
+		list
+	},
+};
+
+UnaryExpr: Expr = {
+	PostfixExpr,
+	<inc:"++"> <expr:UnaryExpr> => Expr::with_prefix(
+		Prefix{ kind: PrefixKind::Inc, span: inc.to_span() },
+		expr
+	),
+	<dec:"--"> <expr:UnaryExpr> => Expr::with_prefix(
+		Prefix{ kind: PrefixKind::Dec, span: dec.to_span() },
+		expr
+	),
+	<prefix:UnaryOperator> <expr:CastExpr> => Expr::with_prefix(prefix,expr),
+	<kw:"sizeof"> <expr:UnaryExpr> => Expr::with_prefix(
+		Prefix{ kind: PrefixKind::Sizeof, span: kw.to_span() },
+		expr
+	),
+	"sizeof" "(" <ty:TypeName> ")" => Expr::Sizeof(ty),
+};
+
+UnaryOperator: Prefix = {
+	<prefix:"&"> => Prefix{ kind: PrefixKind::Amp, span: prefix.to_span() },
+	<prefix:"*"> => Prefix{ kind: PrefixKind::Star, span: prefix.to_span() },
+	<prefix:"+"> => Prefix{ kind: PrefixKind::Plus, span: prefix.to_span() },
+	<prefix:"-"> => Prefix{ kind: PrefixKind::Minus, span: prefix.to_span() },
+	<prefix:"~"> => Prefix{ kind: PrefixKind::Comp, span: prefix.to_span() },
+	<prefix:"!"> => Prefix{ kind: PrefixKind::Neg, span: prefix.to_span() },
+};
+
+CastExpr: Expr = {
+	UnaryExpr,
+	<lparen:"("> <ty:TypeName> ")" <expr:CastExpr> => Expr::Cast(ExprCast {
+		span: lparen.to_span(),
+		kind: CastKind::Explicit(ty),
+		expr: Box::new(expr),
+	}),
+};
+
+MultiplicativeExpr: Expr = {
+	CastExpr,
+	<lhs:MultiplicativeExpr> <lo:@L> <op:"*"> <hi:@R> <rhs:CastExpr> => {
+		let bin_op = BinOp{
+			span: op.to_span(),
+			kind: BinOpKind::Mul,
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:MultiplicativeExpr> <lo:@L> <op:"/"> <hi:@R> <rhs:CastExpr> => {
+		let bin_op = BinOp{
+			span: op.to_span(),
+			kind: BinOpKind::Div,
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:MultiplicativeExpr> <lo:@L> <op:"%"> <hi:@R> <rhs:CastExpr> => {
+		let bin_op = BinOp{
+			span: op.to_span(),
+			kind: BinOpKind::Rem,
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+AdditiveExpr: Expr = {
+	MultiplicativeExpr,
+	<lhs:AdditiveExpr> <lo:@L> <op:"+"> <hi:@R> <rhs:MultiplicativeExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Add
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:AdditiveExpr> <lo:@L> <op:"-"> <hi:@R> <rhs:MultiplicativeExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Sub
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+ShiftExpr: Expr = {
+	AdditiveExpr,
+	<lhs:ShiftExpr> <lo:@L> <op:"<<"> <hi:@R> <rhs:AdditiveExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Shl
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:ShiftExpr> <lo:@L> <op:">>"> <hi:@R> <rhs:AdditiveExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Shr
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+RelationalExpr: Expr = {
+	ShiftExpr,
+	<lhs:RelationalExpr> <lo:@L> <op:"<"> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Less
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:RelationalExpr> <lo:@L> <op:">"> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Great
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:RelationalExpr> <lo:@L> <op:"<="> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::LessEqual
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:RelationalExpr> <lo:@L> <op:">="> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::GreatEqual
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+EqualityExpr: Expr = {
+	RelationalExpr,
+	<lhs:EqualityExpr> <lo:@L> <op:"=="> <hi:@R> <rhs:RelationalExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Equal
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+	<lhs:EqualityExpr> <lo:@L> <op:"!="> <hi:@R> <rhs:RelationalExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::NotEqual
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+AndExpr: Expr = {
+	EqualityExpr,
+	<lhs:AndExpr> <lo:@L> <op:"&"> <hi:@R> <rhs:EqualityExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::And
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+ExclusiveOrExpr: Expr = {
+	AndExpr,
+	<lhs:ExclusiveOrExpr> <lo:@L> <op:"^"> <hi:@R> <rhs:AndExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::XOr
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+InclusiveOrExpr: Expr = {
+	ExclusiveOrExpr,
+	<lhs:InclusiveOrExpr> <lo:@L> <op:"|"> <hi:@R> <rhs:ExclusiveOrExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Or
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+LogicalAndExpr: Expr = {
+	InclusiveOrExpr,
+	<lhs:LogicalAndExpr> <lo:@L> <op:"&&"> <hi:@R> <rhs:InclusiveOrExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::LogicalAnd
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+LogicalOrExpr: Expr = {
+	LogicalAndExpr,
+	<lhs:LogicalOrExpr> <lo:@L> <op:"||"> <hi:@R> <rhs:LogicalAndExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::XOr
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+ConditionalExpr: Expr = {
+	LogicalOrExpr,
+	<cond_expr:LogicalOrExpr> <cond:"?"> <then_expr:Expr> <then:":"> <else_expr:ConditionalExpr> => {
+		Expr::with_ternary(cond_expr, cond.to_span(), then_expr, then.to_span(), else_expr)
+	},
+};
+
+AssignmentExpr: Expr = {
+	ConditionalExpr,
+	<lhs:UnaryExpr> <bin_op:AssignmentOperator> <rhs:AssignmentExpr> => Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false),
+};
+
+AssignmentOperator: BinOp = {
+	<op:"=">   => BinOp{span: op.to_span(), kind: BinOpKind::Assign      },
+	<op:"*=">  => BinOp{span: op.to_span(), kind: BinOpKind::MulAssign   },
+	<op:"/=">  => BinOp{span: op.to_span(), kind: BinOpKind::DivAssign   },
+	<op:"%=">  => BinOp{span: op.to_span(), kind: BinOpKind::RemAssign   },
+	<op:"+=">  => BinOp{span: op.to_span(), kind: BinOpKind::AddAssign   },
+	<op:"-=">  => BinOp{span: op.to_span(), kind: BinOpKind::SubAssign   },
+	<op:"<<="> => BinOp{span: op.to_span(), kind: BinOpKind::LShiftAssign},
+	<op:">>="> => BinOp{span: op.to_span(),	kind: BinOpKind::RShiftAssign},
+	<op:"&=">  => BinOp{span: op.to_span(), kind: BinOpKind::AmpAssign   },
+	<op:"^=">  => BinOp{span: op.to_span(), kind: BinOpKind::XOrAssign   },
+	<op:"|=">  => BinOp{span: op.to_span(), kind: BinOpKind::OrAssign    },
+};
+
+Expr: Expr = {
+	AssignmentExpr,
+	<lhs:Expr> <op:","> <rhs:AssignmentExpr> => {
+		let bin_op = BinOp {
+			span: op.to_span(),
+			kind: BinOpKind::Comma,
+		};
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
+	},
+};
+
+ConstantExpr = ConditionalExpr;
+
+
+
+// A.2.2 Declarations
+
+Declaration: Declaration = {
+	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
+		Declaration {
+			specifiers: Specifiers::from(kind_list),
+			init_declarator_list: init_list.unwrap_or_default().into_boxed_slice(),
+		}
+	},
+};
+
+DeclarationSpecifier: SpecifierKind = {
+	StorageClassSpecifier => SpecifierKind::StorageClassSpecifier(<>),
+	TypeSpecifier => SpecifierKind::TypeSpecifier(<>),
+	TypeQualifier => SpecifierKind::TypeQualifier(<>),
+	<lo:@L> <kw:"inline"> <hi:@R> => SpecifierKind::Inline(kw.to_span()),
+};
+
+InitDeclaratorList: Vec<InitDeclarator> = {
+	InitDeclarator => vec![<>],
+	<mut lhs:InitDeclaratorList> "," <rhs:InitDeclarator> => {
+		lhs.push(rhs);
+		lhs
+	},
+};
+
+InitDeclarator: InitDeclarator = {
+	<decl:Declarator> => InitDeclarator {
+		identifier: decl.0,
+		declarator: decl.1.into_boxed_slice(),
+		initializer: None,
+	},
+	<decl:Declarator> "=" <init:Initializer> => InitDeclarator {
+		identifier: decl.0,
+		declarator: decl.1.into_boxed_slice(),
+		initializer: Some(init)
+	},
+};
+
+StorageClassSpecifier: StorageClassSpecifier = {
+	<kw:"typedef"> => StorageClassSpecifier {
+		span: kw.to_span(),
+		kind: StorageClass::Typedef,
+	},
+	<kw:"extern"> => StorageClassSpecifier {
+		span: kw.to_span(),
+		kind: StorageClass::Extern,
+	},
+	<kw:"static"> => StorageClassSpecifier {
+		span: kw.to_span(),
+		kind: StorageClass::Static,
+	},
+	<kw:"auto"> => StorageClassSpecifier {
+		span: kw.to_span(),
+		kind: StorageClass::Auto,
+	},
+	<kw:"register"> => StorageClassSpecifier {
+		span: kw.to_span(),
+		kind: StorageClass::Register,
+	},
+}
+
+TypeSpecifier: TypeSpecifier = {
+	<kw:"void"> => TypeSpecifier::Void(kw.to_span()),
+	<kw:"char"> => TypeSpecifier::Char(kw.to_span()),
+	<kw:"short"> => TypeSpecifier::Short(kw.to_span()),
+	<kw:"int"> => TypeSpecifier::Int(kw.to_span()),
+	<kw:"long"> => TypeSpecifier::Long(kw.to_span()),
+	<kw:"float"> => TypeSpecifier::Float(kw.to_span()),
+	<kw:"double"> => TypeSpecifier::Double(kw.to_span()),
+	<kw:"signed"> => TypeSpecifier::Signed(kw.to_span()),
+	<kw:"unsigned"> => TypeSpecifier::Unsigned(kw.to_span()),
+	<kw:"_Bool"> => TypeSpecifier::Bool(kw.to_span()),
+	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
+	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
+	<type_name:TYPE_NAME> => TypeSpecifier::TypedefName(Identifier::try_from(type_name).unwrap()),
+};
+
+StructOrUnionSpecifier: StructOrUnionSpecifier = {
+	<prefix:StructOrUnion> <ident:Identifier?> "{" <list:StructDeclaration+> "}" => StructOrUnionSpecifier {
+		struct_or_union: prefix,
+		ident,
+		struct_declaration_list: list.into_boxed_slice(),
+	},
+	<prefix:StructOrUnion> <ident:Identifier> => StructOrUnionSpecifier {
+		struct_or_union: prefix,
+		ident: Some(ident),
+		struct_declaration_list: Box::new([]),
+	},
+};
+
+StructOrUnion: StructOrUnion = {
+	<lo:@L> <kw:"struct"> <hi:@R> => StructOrUnion{
+		span: kw.to_span(),
+		kind: StructOrUnionKind::Struct,
+	},
+	<lo:@L> <kw:"union"> <hi:@R> => StructOrUnion{
+		span: kw.to_span(),
+		kind: StructOrUnionKind::Union,
+	},
+};
+
+StructDeclaration: StructDeclaration = {
+	<list0:SpecifierQualifierList> <list1:StructDeclaratorList> ";" => StructDeclaration {
+		specifiers: Specifiers::from(list0),
+		struct_declarator_list: list1.into_boxed_slice(),
+	}
+};
+
+SpecifierQualifierList: Vec<SpecifierKind> = SpecifierQualifier+;
+
+SpecifierQualifier: SpecifierKind = {
+	TypeSpecifier => SpecifierKind::TypeSpecifier(<>),
+	TypeQualifier => SpecifierKind::TypeQualifier(<>),
+};
+
+StructDeclaratorList: Vec<StructDeclarator> = {
+	StructDeclarator => vec![<>],
+	<mut list:StructDeclaratorList> "," <elem:StructDeclarator> => {
+		list.push(elem);
+		list
+	},
+};
+
+StructDeclarator: StructDeclarator = {
+	<decl:Declarator> => StructDeclarator {
+		ident: Some(decl.0),
+		declarators: decl.1.into_boxed_slice(),
+		const_expr: None,
+	},
+	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
+		ident: decl.clone().map(|inner| inner.0),
+		declarators: decl.map(|inner| inner.1).unwrap_or_default().into_boxed_slice(),
+		const_expr: Some(expr),
+	},
+};
+
+EnumSpecifier: EnumSpecifier = {
+	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier?> "{" <list:EnumeratorList> ","? "}" => {
+		EnumSpecifier {
+			tag_span: kw.to_span(),
+			identifier: id,
+			enumerator_list: list.into_boxed_slice(),
+		}
+	},
+	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier> => EnumSpecifier{
+		tag_span: kw.to_span(),
+		identifier: Some(id),
+		enumerator_list: Box::new([]),
+	},
+};
+
+EnumeratorList: Vec<Enumerator> = {
+	Enumerator => vec![<>],
+	<mut list:EnumeratorList> "," <elem:Enumerator> => {
+		list.push(elem);
+		list
+	},
+};
+
+Enumerator: Enumerator = {
+	<ident:EnumerationConstant> => Enumerator {
+		enumeration_constant: ident,
+		constant_expr: None,
+	},
+	<ident:EnumerationConstant> "=" <expr:ConstantExpr> => Enumerator {
+		enumeration_constant: ident,
+		constant_expr: Some(expr),
+	},
+};
+
+TypeQualifier: TypeQualifier = {
+	<lo:@L> <kw:"const"> <hi:@R>    => TypeQualifier{
+		span: kw.to_span(),
+		kind: TypeQualifierKind::Const,
+	},
+	<lo:@L> <kw:"restrict"> <hi:@R> => TypeQualifier{
+		span: kw.to_span(),
+		kind: TypeQualifierKind::Restrict,
+	},
+	<lo:@L> <kw:"volatile"> <hi:@R> => TypeQualifier{
+		span: kw.to_span(),
+		kind: TypeQualifierKind::Volatile,
+	},
+};
+
+Declarator: (Identifier, Vec<Declarator>) = {
+	<ptr:Pointer?> <mut dd_list:DirectDeclaratorList> => {
+		let mut ptr_list: Vec<Declarator> = ptr
+			.unwrap_or_default()
+			.into_iter()
+			.map(Declarator::Pointer)
+			.collect();
+		dd_list.1.append(&mut ptr_list);
+		dd_list
+	},
+};
+
+DirectDeclaratorList: (Identifier, Vec<Declarator>) = {
+	<mut ident:Identifier> => (ident, vec![]),
+	"(" <decl:Declarator> ")" => decl,
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: expr,
+			has_static: false,
+			has_star: false,
+		};
+		dd_list.1.push(Declarator::Array(array));
+		dd_list
+	},
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+			has_star: false,
+		};
+		dd_list.1.push(Declarator::Array(array));
+		dd_list
+	},
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+			has_star: false,
+		};
+		dd_list.1.push(Declarator::Array(array));
+		dd_list
+	},
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> "*" "]" => {
+		let array = ArrayDecl {
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: None,
+			has_static: false,
+			has_star: true,
+		};
+		dd_list.1.push(Declarator::Array(array));
+		dd_list
+	},
+	<mut dd_list:DirectDeclaratorList> <lo: @L> <lparen:"("> <hi:@R> <mut param_list: ParameterTypeList> ")" => {
+		dd_list.1.push(Declarator::ParamList(param_list));
+		dd_list
+	},
+	<mut dd_list:DirectDeclaratorList> <lo: @L> <lparen:"("> <hi:@R> <ident_list:IdentifierList?> ")" => {
+		let mut ident_list = IdentList {
+			span: lparen.to_span(),
+			ident_list: ident_list.unwrap_or_default(),
+		};
+		dd_list.1.push(Declarator::IdentList(ident_list));
+		dd_list
+	},
+};
+
+Pointer: Vec<PtrDecl> = {
+	"*" <type_qualifier_list:TypeQualifier*> => vec![PtrDecl::from(type_qualifier_list.as_slice())],
+	"*" <type_qualifier_list:TypeQualifier*> <mut v:Pointer> => {
+		v.push(PtrDecl::from(type_qualifier_list.as_slice()));
+		v
+	},
+};
+ParameterTypeList: ParamList = {
+	<params:ParameterList> => ParamList {
+		param_list: params,
+		is_variadic: false,
+	},
+	<params:ParameterList> "," "..." => ParamList {
+		param_list: params,
+		is_variadic: true,
+	},
+};
+
+ParameterList: Vec<ParameterDeclaration> = {
+	ParameterDeclaration => vec![<>],
+	<mut v:ParameterList> "," <elem:ParameterDeclaration> => {
+		v.push(elem);
+		v
+	},
+};
+
+ParameterDeclaration: ParameterDeclaration = {
+	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
+		let specifiers = Specifiers::from(kind_list);
+		ParameterDeclaration {
+			ident: decl.0,
+			specifiers,
+			declarators: decl.1.into(),
+		}
+	},
+};
+
+ParameterDeclarator: (Option<Identifier>,Vec<Declarator>) = {
+	Declarator => (Some(<>.0), <>.1),
+	<decl:AbstractDeclarator?> => (None, decl.unwrap_or_default()),
+}
+
+IdentifierList: Vec<Identifier> = {
+	Identifier => vec![<>],
+	<mut v:IdentifierList> "," <elem:Identifier> => {
+		v.push(elem);
+		v
+	},
+};
+
+TypeName: TypeName = {
+	<spec:SpecifierQualifierList> <decl:AbstractDeclarator?> => TypeName {
+		specifiers: Specifiers::from(spec),
+		declarators: decl.unwrap_or_default(),
+	},
+};
+
+AbstractDeclarator: Vec<Declarator> = {
+	<ptr:Pointer> => {
+		ptr.into_iter()
+			.map(Declarator::Pointer)
+			.collect()
+	},
+	<ptr:Pointer?> <mut direct_abstract_list:DirectAbstractDeclarator> => {
+		let mut ptr_list: Vec<Declarator> = ptr
+			.unwrap_or_default()
+			.into_iter()
+			.map(Declarator::Pointer)
+			.collect();
+		direct_abstract_list.append(&mut ptr_list);
+		direct_abstract_list
+	},
+};
+
+
+DirectAbstractDeclarator: Vec<Declarator> = {
+	"(" <abstract_decl:AbstractDeclarator> ")" => abstract_decl,
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: expr,
+			has_static: false,
+			has_star: false,
+		};
+		let value = Declarator::Array(array);
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+			has_star: false,
+		};
+		let value = Declarator::Array(array);
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+			has_star: false,
+		};
+		let value = Declarator::Array(array);
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> "*" "]" => {
+		let array = ArrayDecl{
+			span: lsqr.to_span(),
+			type_qualifiers: vec![],
+			assignment_expr: None,
+			has_static: false,
+			has_star: true,
+		};
+		let value = Declarator::Array(array);
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lparen:"("> <hi:@R> <params:ParameterTypeList?> ")" => {
+		let value = if let Some(params) = params {
+			Declarator::ParamList(params)
+		} else {
+			let params = ParamList {
+				param_list: vec![],
+				is_variadic: false,
+			};
+			Declarator::ParamList(params)
+		};
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+};
+
+Initializer: Initializer = {
+	AssignmentExpr => Initializer::Expr(<>),
+	<lsqr:"{"> <init_list:InitializerList> ","? "}" => Initializer::InitializerList(
+		InitializerList{
+			span: lsqr.to_span(),
+			list: init_list.into_boxed_slice()
+		}
+	),
+};
+
+InitializerList: Vec<(Box<[Designator]>, Initializer)> = {
+	<desig:Designation?> <init:Initializer> => {
+		vec![(desig.unwrap_or_default().into_boxed_slice(), init)]
+	},
+	<mut init_list:InitializerList> "," <desig:Designation?> <init:Initializer> => {
+		init_list.push((desig.unwrap_or_default().into_boxed_slice(), init));
+		init_list
+	},
+};
+
+Designation: Vec<Designator> = {
+	<desig:Designator+> "=" => desig,
+};
+
+Designator: Designator = {
+	"[" <expr:ConstantExpr> "]" => Designator::ConstExpr(expr),
+	"." <ident:Identifier> => Designator::Dot(ident),
+};
+
+
+// A.2.3 Statements
+
+Statement: Stmt = { Unmatched, Matched };
+
+Unmatched: Stmt = {
+	"if" "(" <cond:Expr> ")" <stmt:Statement> => Stmt::Select(SelectStmt::If{
+		stmt_cond: cond,
+		stmt_then: Box::new(stmt),
+		stmt_else: None,
+	}),
+	"if" "(" Expr ")" Matched "else" Unmatched => todo!("opened-if-else"),
+	"switch" "(" <expr:Expr> ")" <stmt:Unmatched> => Stmt::Select(SelectStmt::Switch{
+		expr,
+		stmt: Box::new(stmt),
+	}),
+	UnmatchedLabeledStatement => Stmt::Label(<>),
+	UnmatchedIterationStatement => Stmt::Iter(<>),
+};
+
+Matched: Stmt = {
+	SimpleStatement,
+	"if" "(" <cond:Expr> ")" <stmt_then:Matched> "else" <stmt_else:Matched> => Stmt::Select(SelectStmt::If{
+		stmt_cond: cond,
+		stmt_then: Box::new(stmt_then),
+		stmt_else: Some(Box::new(stmt_else)),
+	}),
+	"switch" "(" <expr:Expr> ")" <stmt:Matched> => Stmt::Select(SelectStmt::Switch{
+		expr,
+		stmt: Box::new(stmt),
+	}),
+	MatchedLabeledStatement => Stmt::Label(<>),
+	MatchedIterationStatement => Stmt::Iter(<>),
+};
+
+SimpleStatement: Stmt = {
+	ExprStatement => Stmt::Expr(<>),
+	JumpStatement => Stmt::Jump(<>),
+	AsmStatement => Stmt::Asm(<>),
+	CompoundStatement => Stmt::Compound(<>),
+	<ident:Identifier> ":" Declaration => {
+		let error = diag::Diagnostic::error(diag::DiagKind::LabeledDeclaration, ident.to_span());
+		diagnostics.push(error);
+		Stmt::Error
+	},
+};
+
+
+UnmatchedLabeledStatement: LabeledStmt = {
+	<ident:Identifier> ":" <stmt:Unmatched> => LabeledStmt::Label(ident, Box::new(stmt)),
+	"case" <expr:ConstantExpr> ":" <stmt:Unmatched> => LabeledStmt::Case(expr, Box::new(stmt)),
+	"default" ":" <stmt:Unmatched> => LabeledStmt::Default(Box::new(stmt)),
+};
+
+MatchedLabeledStatement: LabeledStmt = {
+	<ident:Identifier> ":" <stmt:Matched> => LabeledStmt::Label(ident, Box::new(stmt)),
+	"case" <expr:ConstantExpr> ":" <stmt:Matched> => LabeledStmt::Case(expr, Box::new(stmt)),
+	"default" ":" <stmt:Matched> => LabeledStmt::Default(Box::new(stmt)),
+};
+
+
+CompoundStatement: CompoundStmt = {
+	<lcurly:LeftCurly> <blocks:BlockItem*> <rcurly:RightCurly> => CompoundStmt{
+		lcurly,
+		blocks,
+		rcurly,
+	},
+	<lcurly:LeftCurly> <blocks:BlockItem*> <ident:Identifier> ":" <rcurly:RightCurly> => {
+		let error = diag::Diagnostic::error(diag::DiagKind::LabeledCompoundEnd, ident.to_span());
+		diagnostics.push(error);
+		CompoundStmt{
+			lcurly,
+			blocks,
+			rcurly,
+		}
+	},
+};
+
+LeftCurly: diag::Span = <lo:@L> <lcurly:"{"> <hi:@R> => {
+	lcurly.to_span()
+};
+
+RightCurly: diag::Span = <lo:@L> <rcurly:"}"> <hi:@R> => {
+	rcurly.to_span()
+};
+
+
+BlockItem: BlockItem = {
+	Declaration => BlockItem::Declaration(<>),
+	Statement => BlockItem::Statement(<>),
+	Pragma => BlockItem::Pragma(<>),
+	! => { diagnostics.push_syntax_error(<>.error); BlockItem::Error },
+};
+
+ExprStatement: ExprStmt = <expr:Expr?> ";" => ExprStmt(expr);
+
+MatchedIterationStatement: IterStmt = {
+	"while" "(" Expr ")" Matched => todo!(),
+	"do" Matched "while" "(" Expr ")" ";"
+	"for" "(" Expr? ";" Expr? ";" Expr? ")" Matched => todo!(),
+	"for" "(" Declaration Expr? ";" Expr? ")" Matched => todo!(),
+};
+UnmatchedIterationStatement: IterStmt = {
+	"while" "(" Expr ")" Unmatched => todo!(),
+	"do" Unmatched "while" "(" Expr ")" ";"
+	"for" "(" Expr? ";" Expr? ";" Expr? ")" Unmatched => todo!(),
+	"for" "(" Declaration Expr? ";" Expr? ")" Unmatched => todo!(),
+};
+
+JumpStatement: JumpStmt = {
+	"goto" <ident:Identifier> ";" => JumpStmt::Goto(ident),
+	"continue" ";" => JumpStmt::Continue,
+	"break" ";" => JumpStmt::Break,
+	"return" <expr:Expr?> ";" => JumpStmt::Return(expr),
+};
+
+AsmStatement: AsmStmt = "asm" "(" <template:StringLiteral> ")" ";" => AsmStmt(template);
+
+StringLiteralList: Vec<StringLiteral> = {
+	StringLiteral => vec![<>],
+	<mut v:StringLiteralList> "," <s:StringLiteral> => {
+		v.push(s);
+		v
+	},
+};
+
+
+// A.2.4 External definitions
+
+pub Syntax: TranslationUnit = ExternalDeclaration+;
+
+ExternalDeclaration: ExternalDeclaration = {
+	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
+	Declaration => ExternalDeclaration::Declaration(<>),
+	Pragma => ExternalDeclaration::Pragma(<>),
+	! => { diagnostics.push_syntax_error(<>.error); ExternalDeclaration::Error },
+};
+
+FunctionDefinition: FunctionDefinition = {
+	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:CompoundStatement> => {
+		FunctionDefinition {
+			specifiers: Specifiers::from(kind_list),
+			ident: decl.0,
+			declarators: decl.1.into(),
+			declaration_list: list.into_boxed_slice(),
+			compound_stmt: compound,
+		}
+	},
+};
+
+extern {
+	type Location = usize;
+	type Error = diag::Diagnostic;
+
+	enum tok::Token {
+		IDENTIFIER => tok::Token{kind: tok::TokenKind::Ident(tok::Ident{is_type:false, ..}), ..},
+		TYPE_NAME => tok::Token{kind: tok::TokenKind::Ident(tok::Ident{is_type:true, ..}), ..},
+		CONSTANT => tok::Token{kind: tok::TokenKind::Const(_), ..},
+		STRING_LITERAL => tok::Token{kind: tok::TokenKind::StrLit(_), ..},
+		PRAGMA => tok::Token{kind: tok::TokenKind::Pragma(_), ..},
+
+		"typedef" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Typedef), ..},
+		"extern" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Extern), ..},
+		"static" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Static), ..},
+		"auto" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Auto), ..},
+		"register" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Register), ..},
+		"void" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Void), ..},
+		"char" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Char), ..},
+		"short" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Short), ..},
+		"int" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Int), ..},
+		"long" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Long), ..},
+		"float" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Float), ..},
+		"double" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Double), ..},
+		"signed" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Signed), ..},
+		"unsigned" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Unsigned), ..},
+		"_Bool" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Bool), ..},
+		"const" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Const), ..},
+		"restrict" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Restrict), ..},
+		"volatile" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Volatile), ..},
+		"enum" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Enum), ..},
+		"struct" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Struct), ..},
+		"sizeof" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Sizeof), ..},
+		"union" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Union), ..},
+		"inline" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Inline), ..},
+		"case" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Case), ..},
+		"default" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Default), ..},
+		"if" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::If), ..},
+		"switch" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Switch), ..},
+		"while" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::While), ..},
+		"do" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Do), ..},
+		"for" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::For), ..},
+		"goto" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Goto), ..},
+		"continue" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Continue), ..},
+		"break" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Break), ..},
+		"return" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Return), ..},
+		"else" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Else), ..},
+		"asm" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Asm), ..},
+
+		"." => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Dot), ..},
+		"..." => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Ellipsis), ..},
+		"," => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Comma), ..},
+		"=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Equal), ..},
+		"*" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Star), ..},
+		"+" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Plus), ..},
+		"-" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Minus), ..},
+		"~" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Tilde), ..},
+		";" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::SemiColon), ..},
+		"{" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LCurly), ..},
+		"}" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RCurly), ..},
+		"(" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LParen), ..},
+		")" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RParen), ..},
+		"[" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LSquare), ..},
+		"]" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RSquare), ..},
+		"->" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Arrow), ..},
+		"++" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::PlusPlus), ..},
+		"--" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::MinusMinus), ..},
+		"&" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Amp), ..},
+		"!" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Bang), ..},
+		"/" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::FSlash), ..},
+		"%" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Percent), ..},
+		"<<" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LessLess), ..},
+		">>" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::GreatGreat), ..},
+		"<" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Less), ..},
+		">" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Great), ..},
+		"<=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LessEqual), ..},
+		">=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::GreatEqual), ..},
+		"==" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::EqualEqual), ..},
+		"!=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::BangEqual), ..},
+		"^" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Caret), ..},
+		"|" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::VBar), ..},
+		"&&" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::AmpAmp), ..},
+		"||" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::VBarVBar), ..},
+		"?" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::QMark), ..},
+		":" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Colon), ..},
+		"*=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::StarEqual), ..},
+		"/=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::FSlashEqual), ..},
+		"%=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::PercentEqual), ..},
+		"+=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::PlusEqual), ..},
+		"-=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::MinusEqual), ..},
+		"<<=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LessLessEqual), ..},
+		">>=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::GreatGreatEqual), ..},
+		"&=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::AmpEqual), ..},
+		"^=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::CaretEqual), ..},
+		"|=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::VBarEqual), ..},
+	}
+}
