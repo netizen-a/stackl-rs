@@ -6,8 +6,18 @@ authors = ["Jonathan Thomason"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/jonathan-a-thomason/stackl-rs.git"
 publish = false
+build = "build.rs"
+
+[build-dependencies]
+lalrpop = "0.20.2"
 
 [dependencies]
+logos = "0.14.1"
+lalrpop-util = "0.20"
+
+[lib]
+name = "stackl"
+path = "src/lib/mod.rs"
 
 [[bin]]
 name="stackl"

@@ -1,0 +1,252 @@
+use crate::{tok::*, ast::*};
+use lalrpop_util::ParseError;
+
+grammar;
+
+pub Program: Vec<Stmt> = "\n"* <v:Stmts> "\n"* => v;
+
+Stmts: Vec<Stmt> = {
+  Stmt => vec![<>],
+  <mut v:Stmts> "\n"+ <s:Stmt> => {
+    v.push(s);
+    v
+  },
+}
+
+Labels: Vec<String> = {
+  Label => vec![<>],
+  <mut v:Labels> "\n"+ <s:Label> => {
+    v.push(s);
+    v
+  },
+}
+
+ValueList: Vec<Data> = {
+  Value => vec![<>],
+  <mut v:ValueList> "," <s:Value> => {
+    v.push(s);
+    v
+  },
+}
+
+Value: Data = {
+  STR => Data::String(<>),
+  INTEGER => Data::Int(<>),
+}
+
+Stmt: Stmt = {
+  <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m),
+}
+
+Label: String = {
+  <label:IDENT> ":"? => label.to_string(),
+}
+
+Inst: Inst = {
+  Mnemonic => Inst::Mnemonic(<>),
+  "[" <d: Directive> <v:DirectiveArgs> "]" => Inst::Directive(d, v),
+  DataDecl => Inst::DataDecl(<>)
+}
+
+DirectiveArgs: Vec<String> = {
+  Arg => vec![<>],
+  <mut v:DirectiveArgs> "," <s:Arg> => {
+    v.push(s);
+    v
+  },
+}
+
+Arg: String = IDENT => <>;
+
+Directive: Directive = {
+  <start: @L> <i:IDENT> <end: @R> =>? match i.to_lowercase().as_ref() {
+    "segment" | "section" => Ok(Directive::Segment),
+    "extern" => Ok(Directive::Extern),
+    "global" => Ok(Directive::Global),
+    _ => Err(ParseError::UnrecognizedToken {
+      token: (start, Token::Identifier(i), end),
+      expected: vec![
+        "segment".to_string(), "section".to_string(),
+        "extern".to_string(), "global".to_string()
+      ],
+    })
+  },
+}
+
+Addr: Addr = {
+  INTEGER => Addr::Offset(<>),
+  IDENT => Addr::Label(<>),
+}
+
+Reg: Reg = {
+  <start: @L> <i:INTEGER> <end: @R> =>? match i {
+    0 => Ok(Reg::BP),
+    1 => Ok(Reg::LP),
+    2 => Ok(Reg::IP),
+    3 => Ok(Reg::SP),
+    4 => Ok(Reg::FP),
+    5 => Ok(Reg::Flag),
+    _ => Err(ParseError::UnrecognizedToken {
+      token: (start, Token::Integer(i), end),
+      expected: vec![
+        "0".to_string(), "1".to_string(),
+        "2".to_string(), "3".to_string(),
+        "4".to_string(), "5".to_string()
+      ],
+    })
+  },
+  <start: @L> <i:IDENT> <end: @R> =>? match i.to_lowercase().as_ref() {
+    "bp" => Ok(Reg::BP),
+    "lp" => Ok(Reg::LP),
+    "ip" => Ok(Reg::IP),
+    "sp" => Ok(Reg::SP),
+    "fp" => Ok(Reg::FP),
+    "flag" => Ok(Reg::Flag),
+    _ => Err(ParseError::UnrecognizedToken {
+      token: (start, Token::Identifier(i), end),
+      expected: vec![
+        "BP".to_string(), "LP".to_string(),
+        "IP".to_string(), "SP".to_string(),
+        "FP".to_string(), "FLAG".to_string()
+      ],
+    })
+  },
+}
+
+DataDecl: Vec<Data> = {
+  DB <v:ValueList> => v,
+  DD <v:ValueList> => v,
+}
+
+Mnemonic: Opcode = {
+  NOP => Opcode::Nop,
+  PLUS => Opcode::Plus,
+  MINUS => Opcode::Minus,
+  TIMES => Opcode::Times,
+  DIVIDE => Opcode::Divide,
+  MOD => Opcode::Mod,
+  EQ => Opcode::Eq,
+  NE => Opcode::Ne,
+  GT => Opcode::Gt,
+  LT => Opcode::Lt,
+  GE => Opcode::Ge,
+  LE => Opcode::Le,
+  AND => Opcode::And,
+  OR => Opcode::Or,
+  NOT => Opcode::Not,
+  SWAP => Opcode::Swap,
+  DUP => Opcode::Dup,
+  HALT => Opcode::Halt,
+  POP => Opcode::Pop,
+  RETURN => Opcode::Return,
+  RETURNV => Opcode::Returnv,
+  NEG => Opcode::Neg,
+  PUSHCVARIND => Opcode::PushCVarInd,
+  OUTS => Opcode::Outs,
+  INP => Opcode::Inp,
+  PUSHFP => Opcode::PushFP,
+  JMPUSER <addr:Addr> => Opcode::JmpUser(addr),
+  TRAP => Opcode::Trap,
+  RTI => Opcode::Rti,
+  CALLI => Opcode::Calli,
+  PUSHREG <reg:Reg> => Opcode::PushReg(reg),
+  POPREG <reg:Reg> => Opcode::PopReg(reg),
+  BAND => Opcode::BAnd,
+  BOR => Opcode::BOr,
+  BXOR => Opcode::BXOr,
+  SHIFTL => Opcode::Shiftl,
+  SHIFTR => Opcode::Shiftr,
+  PUSHVARIND => Opcode::PushVarInd,
+  POPCVARIND => Opcode::PopCVarInd,
+  POPVARIND => Opcode::PopVarInd,
+  COMP => Opcode::Comp,
+  PUSH <i:INTEGER> => Opcode::Push(i),
+  JUMP <addr:Addr> => Opcode::Jump(addr),
+  JUMPE <addr:Addr> => Opcode::Jumpe(addr),
+  PUSHVAR <i:INTEGER> => Opcode::PushVar(i),
+  POPVAR <i:INTEGER> => Opcode::PopVar(i),
+  ADJSP <amount:INTEGER> => Opcode::AdjSP(amount),
+  POPARGS <i:INTEGER> => Opcode::PopArgs(i),
+  CALL <addr:Addr> => Opcode::Call(addr),
+  PUSHCVAR <i:INTEGER> => Opcode::PushCVar(i),
+  POPCVAR <i:INTEGER> => Opcode::PopCVar(i),
+  TRACE_ON => Opcode::TraceOn,
+  TRACE_OFF => Opcode::TraceOff,
+  CLID => Opcode::ClearIntDis,
+  SEID => Opcode::SetIntDis,
+  ILLEGAL => Opcode::Illegal,
+};
+
+extern {
+  type Location = usize;
+  type Error = LexicalError;
+
+  enum Token {
+    "\n" => Token::Newline,
+    "[" => Token::DirectiveStart,
+    "]" => Token::DirectiveEnd,
+    ":" => Token::Colon,
+    "," => Token::Comma,
+    IDENT => Token::Identifier(<String>),
+    INTEGER => Token::Integer(<i32>),
+    STR => Token::String(<String>),
+    NOP => Token::OpNop,
+    PLUS => Token::OpPlus,
+    MINUS => Token::OpMinus,
+    TIMES => Token::OpTimes,
+    DIVIDE => Token::OpDivide,
+    MOD => Token::OpMod,
+    EQ => Token::OpEq,
+    NE => Token::OpNe,
+    GT => Token::OpGt,
+    LT => Token::OpLt,
+    GE => Token::OpGe,
+    LE => Token::OpLe,
+    AND => Token::OpAnd,
+    OR => Token::OpOr,
+    NOT => Token::OpNot,
+    SWAP => Token::OpSwap,
+    DUP => Token::OpDup,
+    HALT => Token::OpHalt,
+    POP => Token::OpPop,
+    RETURN => Token::OpReturn,
+    RETURNV => Token::OpReturnv,
+    NEG => Token::OpNeg,
+    PUSHCVARIND => Token::OpPushCVarInd,
+    OUTS => Token::OpOuts,
+    INP => Token::OpInp,
+    PUSHFP => Token::OpPushFP,
+    JMPUSER => Token::OpJmpUser,
+    TRAP => Token::OpTrap,
+    RTI => Token::OpRti,
+    CALLI => Token::OpCalli,
+    PUSHREG => Token::OpPushReg,
+    POPREG => Token::OpPopReg,
+    BAND => Token::OpBAnd,
+    BOR => Token::OpBOr,
+    BXOR => Token::OpBXOr,
+    SHIFTL => Token::OpShiftl,
+    SHIFTR => Token::OpShiftr,
+    PUSHVARIND => Token::OpPushVarInd,
+    POPCVARIND => Token::OpPopCVarInd,
+    POPVARIND => Token::OpPopVarInd,
+    COMP => Token::OpComp,
+    PUSH => Token::OpPush,
+    JUMP => Token::OpJump,
+    JUMPE => Token::OpJumpe,
+    PUSHVAR => Token::OpPushVar,
+    POPVAR => Token::OpPopVar,
+    ADJSP => Token::OpAdjSP,
+    POPARGS => Token::OpPopArgs,
+    CALL => Token::OpCall,
+    PUSHCVAR => Token::OpPushCVar,
+    POPCVAR => Token::OpPopCVar,
+    TRACE_ON => Token::OpTraceOn,
+    TRACE_OFF => Token::OpTraceOff,
+    CLID => Token::OpCLID,
+    SEID => Token::OpSEID,
+    ILLEGAL => Token::OpIllegal,
+    DB => Token::OpDB,
+    DD => Token::OpDD,
+  }
+}
