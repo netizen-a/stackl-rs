@@ -1,7 +1,8 @@
 use crate::{tok::*, ast::*};
 use lalrpop_util::ParseError;
+use lalrpop_util::ErrorRecovery;
 
-grammar;
+grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token, LexicalError>>);
 
 pub Program: Vec<Stmt> = "\n"* <v:Stmts> "\n"* => v;
 
@@ -11,11 +12,12 @@ Stmts: Vec<Stmt> = {
     v.push(s);
     v
   },
+  ! => {errors.push(<>); Vec::new()}
 }
 
 Labels: Vec<String> = {
-  Label => vec![<>],
-  <mut v:Labels> "\n"+ <s:Label> => {
+  <l:Label> "\n"* => vec![l],
+  <mut v:Labels> <s:Label> => {
     v.push(s);
     v
   },

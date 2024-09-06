@@ -5,7 +5,6 @@ pub struct Stmt {
 }
 
 impl Stmt {
-    #[allow(dead_code)]
     pub fn new(inst: Inst) -> Self {
         Self {
             labels: Vec::new(),
@@ -121,17 +120,15 @@ pub enum Opcode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grammar::ProgramParser;
-    use crate::lex::Lexer;
+    use crate::parse_grammar;
 
     #[test]
     fn directives() {
         let source = "[section abc]\n
-                [segment a,b]\n
-                [extern foo]\n
-                [global bar]";
-        let lexer = Lexer::new(source);
-        let ast = ProgramParser::new().parse(lexer).unwrap();
+            [segment a,b]\n
+            [extern foo]\n
+            [global bar]";
+        let ast = parse_grammar(source).unwrap();
         assert_eq!(
             ast,
             vec![
@@ -148,12 +145,11 @@ mod tests {
     #[test]
     fn opcodes() {
         let source = "nop\n
-                pushreg sp\n
-                popreg 4\n
-                push 34\n
-                JMPUSER 8\n";
-        let lexer = Lexer::new(source);
-        let ast = ProgramParser::new().parse(lexer).unwrap();
+            pushreg sp\n
+            popreg 4\n
+            push 34\n
+            JMPUSER 8\n";
+        let ast = parse_grammar(source).unwrap();
         assert_eq!(
             ast,
             vec![
@@ -169,11 +165,10 @@ mod tests {
     #[test]
     fn labels() {
         let source = "label1 [section abc]\n
-                label2\n
-                label3: nop\n
-                label4 nop";
-        let lexer = Lexer::new(source);
-        let ast = ProgramParser::new().parse(lexer).unwrap();
+            label2\nlabel3: nop\n
+            label4 nop\n
+            label5\nnop";
+        let ast = parse_grammar(source).unwrap();
         assert_eq!(
             ast,
             vec![
@@ -186,6 +181,7 @@ mod tests {
                     Inst::Mnemonic(Opcode::Nop)
                 ),
                 Stmt::with_labels(vec!["label4".to_string()], Inst::Mnemonic(Opcode::Nop)),
+                Stmt::with_labels(vec!["label5".to_string()], Inst::Mnemonic(Opcode::Nop)),
             ]
         );
     }
@@ -193,11 +189,10 @@ mod tests {
     #[test]
     fn datadecls() {
         let source = "label db 'this is a string'\n
-                dd `another string`\n
-                db \"\\tstring with unicode\\n\"\n
-                db 'a','b','c'";
-        let lexer = Lexer::new(source);
-        let ast = ProgramParser::new().parse(lexer).unwrap();
+            dd `another string`\n
+            db \"\\tstring with unicode\\n\"\n
+            db 'a','b','c'";
+        let ast = parse_grammar(source).unwrap();
         assert_eq!(
             ast,
             vec![
