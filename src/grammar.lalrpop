@@ -47,7 +47,8 @@ Label: String = {
 Inst: Inst = {
   Mnemonic => Inst::Mnemonic(<>),
   "[" <d: Directive> <v:DirectiveArgs> "]" => Inst::Directive(d, v),
-  DataDecl => Inst::DataDecl(<>)
+  DB <v:ValueList> => Inst::DataDecl8(v),
+  DD <v:ValueList> => Inst::DataDecl32(v),
 }
 
 DirectiveArgs: Vec<String> = {
@@ -113,11 +114,6 @@ Reg: Reg = {
       ],
     })
   },
-}
-
-DataDecl: Vec<Data> = {
-  DB <v:ValueList> => v,
-  DD <v:ValueList> => v,
 }
 
 Mnemonic: Opcode = {

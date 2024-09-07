@@ -1,9 +1,10 @@
 use lalrpop_util::lalrpop_mod;
-use tok::{LexicalError, Token};
 use lalrpop_util::ErrorRecovery;
+use tok::{LexicalError, Token};
 
-mod lex;
 pub mod ast;
+mod lex;
+pub mod sym;
 pub mod tok;
 
 lalrpop_mod! {
@@ -11,7 +12,9 @@ lalrpop_mod! {
     grammar
 }
 
-pub fn parse_grammar(input: &str) -> Result<Vec<ast::Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
+pub fn parse_grammar(
+    input: &str,
+) -> Result<Vec<ast::Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
     let tokens = lex::Lexer::new(input);
     let mut errors = Vec::new();
     let ast = match grammar::ProgramParser::new().parse(&mut errors, tokens) {

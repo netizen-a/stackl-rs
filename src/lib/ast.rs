@@ -22,7 +22,8 @@ impl Stmt {
 pub enum Inst {
     Mnemonic(Opcode),
     Directive(Directive, Vec<String>),
-    DataDecl(Vec<Data>),
+    DataDecl8(Vec<Data>),
+    DataDecl32(Vec<Data>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -198,15 +199,15 @@ mod tests {
             vec![
                 Stmt::with_labels(
                     vec!["label".to_string()],
-                    Inst::DataDecl(vec![Data::String("this is a string".to_string())])
+                    Inst::DataDecl8(vec![Data::String("this is a string".to_string())])
                 ),
-                Stmt::new(Inst::DataDecl(vec![Data::String(
+                Stmt::new(Inst::DataDecl32(vec![Data::String(
                     "another string".to_string()
                 )])),
-                Stmt::new(Inst::DataDecl(vec![Data::String(
+                Stmt::new(Inst::DataDecl8(vec![Data::String(
                     "\tstring with unicode\n".to_string()
                 )])),
-                Stmt::new(Inst::DataDecl(vec![
+                Stmt::new(Inst::DataDecl8(vec![
                     Data::String("a".to_string()),
                     Data::String("b".to_string()),
                     Data::String("c".to_string())

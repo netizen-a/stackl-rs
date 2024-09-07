@@ -23,13 +23,15 @@ fn main() -> ExitCode {
         }
     };
 
-    let _ast = match stackl::parse_grammar(&source) {
+    let ast = match stackl::parse_grammar(&source) {
         Ok(ast) => ast,
         Err(err) => {
             eprintln!("{:?}", err);
             return ExitCode::FAILURE;
         }
     };
+
+    let _symtab = stackl::sym::build_symtab(&ast);
 
     ExitCode::SUCCESS
 }
