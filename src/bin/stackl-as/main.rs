@@ -23,7 +23,7 @@ fn main() -> ExitCode {
         }
     };
 
-    let ast = match stackl::parse_grammar(&source) {
+    let mut ast = match stackl::ast::parse_grammar(&source) {
         Ok(ast) => ast,
         Err(err) => {
             eprintln!("{:?}", err);
@@ -31,9 +31,17 @@ fn main() -> ExitCode {
         }
     };
 
+    stackl::ast::fixup_start(&mut ast);
+
     let symtab = stackl::sym::build_symtab(&ast).unwrap();
 
-    let _code = stackl::gen::code_gen(ast, symtab);
+    let code = stackl::gen::code_gen(ast, symtab);
+
+    let outfile = args
+        .asmfile
+        .with_extension("stackl");
+    let outfile = outfile.file_name().unwrap();
+    fs::write(outfile, Vec::from(code)).unwrap();
 
     ExitCode::SUCCESS
 }

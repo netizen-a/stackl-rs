@@ -1,17 +1,10 @@
 use std::collections::HashMap;
 
-use crate::ast::{Addr, Data, Inst, Opcode, Stmt};
+use crate::ast::{Addr, Data, Directive, Inst, Opcode, Stmt};
 
-pub struct StacklFormat {
-    pub magic: [u8; 4],
-    pub version: u32,
-    /// Must be set to zero.
-    pub reserved: u32,
-    pub text: Vec<u8>,
-}
-
-pub fn code_gen(ast: Vec<Stmt>, symtab: HashMap<String, usize>) -> StacklFormat {
+pub fn code_gen(ast: Vec<Stmt>, symtab: HashMap<String, usize>) -> crate::StacklFormat {
     let mut text = Vec::<u8>::new();
+    let mut is_start_global = false;
     for stmt in ast {
         let data: Vec<u8> = match stmt.inst {
             Inst::Mnemonic(op) => convert_op(&op, &symtab),
@@ -41,24 +34,44 @@ pub fn code_gen(ast: Vec<Stmt>, symtab: HashMap<String, usize>) -> StacklFormat 
                                 bytes
                             } else {
                                 let len = 4 - (bytes.len() % 4);
-                                bytes.extend(vec![0;len]);
+                                bytes.extend(vec![0; len]);
                                 bytes
                             }
-                        },
+                        }
                     };
                     data_list.extend(vec);
                 }
                 data_list
             }
-            _ => vec![],
+            Inst::Directive(Directive::Extern, _) => panic!("binary does not support extern directive"),
+            Inst::Directive(Directive::Segment, _) => {
+                if text.len() % 4 != 0 {
+                    vec![0; 4 - (text.len() % 4)]
+                } else {
+                    vec![]
+                }
+            }
+            Inst::Directive(Directive::Global, sym) => {
+                if !is_start_global {
+                    is_start_global = sym.contains(&"_start".to_string());
+                }
+                vec![]
+            }
         };
-        text.extend(data);
+        if !data.is_empty() {
+            println!("{:?}{:?}", stmt.labels, data);
+            text.extend(data);
+        }
     }
 
-    StacklFormat {
+    if !is_start_global {
+        panic!("Symbol _start not global");
+    }
+
+    crate::StacklFormat {
         magic: [b's', b'l', 0, 0],
         version: 0,
-        reserved: 0,
+        _reserved: 0,
         text,
     }
 }
@@ -94,7 +107,7 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::JmpUser(addr) => match addr {
             Addr::Offset(offset) => vec![26, *offset as _],
             Addr::Label(label) => vec![26, symtab[label].try_into().unwrap()],
-        }
+        },
         Opcode::Trap => vec![27],
         Opcode::Rti => vec![28],
         Opcode::Calli => vec![29],
@@ -113,7 +126,7 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::Jump(addr) => match addr {
             Addr::Offset(offset) => vec![42, *offset as _],
             Addr::Label(label) => vec![42, symtab[label].try_into().unwrap()],
-        }
+        },
         Opcode::Jumpe(addr) => match addr {
             Addr::Offset(offset) => vec![43, *offset as _],
             Addr::Label(label) => vec![43, symtab[label].try_into().unwrap()],
@@ -125,7 +138,7 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::Call(addr) => match addr {
             Addr::Offset(offset) => vec![48, *offset as _],
             Addr::Label(label) => vec![48, symtab[label].try_into().unwrap()],
-        }
+        },
         Opcode::PushCVar(value) => vec![49, *value as _],
         Opcode::PopCVar(value) => vec![50, *value as _],
         Opcode::TraceOn => vec![51],

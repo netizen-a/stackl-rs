@@ -1,6 +1,4 @@
 use lalrpop_util::lalrpop_mod;
-use lalrpop_util::ErrorRecovery;
-use tok::{LexicalError, Token};
 
 pub mod ast;
 pub mod gen;
@@ -13,18 +11,22 @@ lalrpop_mod! {
     grammar
 }
 
-pub fn parse_grammar(
-    input: &str,
-) -> Result<Vec<ast::Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
-    let tokens = lex::Lexer::new(input);
-    let mut errors = Vec::new();
-    let ast = match grammar::ProgramParser::new().parse(&mut errors, tokens) {
-        Ok(v) => v,
-        Err(_) => return Err(errors),
-    };
-    if errors.is_empty() {
-        Ok(ast)
-    } else {
-        Err(errors)
+#[derive(Debug)]
+pub struct StacklFormat {
+    pub magic: [u8; 4],
+    pub version: u32,
+    /// Must be set to zero.
+    _reserved: u32,
+    pub text: Vec<u8>,
+}
+
+impl From<StacklFormat> for Vec<u8> {
+    fn from(value: StacklFormat) -> Self {
+        let mut ret = Vec::from(value.magic);
+        ret.extend(&value.version.to_le_bytes());
+        ret.extend(value._reserved.to_le_bytes());
+        ret.extend((value.text.len() as u32).to_le_bytes());
+        ret.extend(value.text);
+        ret
     }
 }

@@ -1,4 +1,12 @@
-#[derive(Debug, PartialEq)]
+use lalrpop_util::ErrorRecovery;
+
+use crate::{
+    grammar::ProgramParser,
+    lex,
+    tok::{LexicalError, Token},
+};
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Stmt {
     pub labels: Vec<String>,
     pub inst: Inst,
@@ -17,7 +25,7 @@ impl Stmt {
 }
 
 // Instructions
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
 pub enum Inst {
     Mnemonic(Opcode),
@@ -26,14 +34,14 @@ pub enum Inst {
     DataDecl32(Vec<Data>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Data {
     String(String),
     Int(i32),
 }
 
 // Primitive Directives
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[non_exhaustive]
 pub enum Directive {
     Segment,
@@ -41,7 +49,7 @@ pub enum Directive {
     Global,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Addr {
     Offset(i32),
     Label(String),
@@ -57,7 +65,7 @@ pub enum Reg {
     Flag = 5,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
 pub enum Opcode {
     Nop,
@@ -118,10 +126,33 @@ pub enum Opcode {
     Illegal,
 }
 
+pub fn parse_grammar(
+    input: &str,
+) -> Result<Vec<Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
+    let tokens = lex::Lexer::new(input);
+    let mut errors = Vec::new();
+    let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
+        Ok(v) => v,
+        Err(_) => return Err(errors),
+    };
+    // prepend .text directive in case fixup rotates vector
+    ast.insert(0, Stmt::new(Inst::Directive(Directive::Segment, vec![".text".to_string()])));
+    if errors.is_empty() {
+        Ok(ast)
+    } else {
+        Err(errors)
+    }
+}
+
+pub fn fixup_start(ast: &mut Vec<Stmt>) {
+    let start = "_start".to_string();
+    let mid = ast.iter().position(|stmt| stmt.labels.contains(&start)).unwrap();
+    ast.rotate_left(mid);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parse_grammar;
 
     #[test]
     fn directives() {
