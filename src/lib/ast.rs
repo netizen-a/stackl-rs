@@ -47,7 +47,7 @@ pub enum Addr {
     Label(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Reg {
     BP = 0,
     LP = 1,

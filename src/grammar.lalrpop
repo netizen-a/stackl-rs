@@ -15,13 +15,15 @@ Stmts: Vec<Stmt> = {
   ! => {errors.push(<>); Vec::new()}
 }
 
-Labels: Vec<String> = {
-  <l:Label> "\n"* => vec![l],
-  <mut v:Labels> <s:Label> => {
+LabelList: Vec<String> = {
+  <l:Label> => vec![l],
+  <mut v:LabelList> "\n"+ <s:Label> => {
     v.push(s);
     v
   },
 }
+
+Labels: Vec<String> = <l:LabelList> "\n"? => l;
 
 ValueList: Vec<Data> = {
   Value => vec![<>],
@@ -36,19 +38,21 @@ Value: Data = {
   INTEGER => Data::Int(<>),
 }
 
+Values: Vec<Data> = <v: ValueList> ","? => v;
+
 Stmt: Stmt = {
   <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m),
 }
 
 Label: String = {
-  <label:IDENT> ":"? => label.to_string(),
+  <label:IDENT> ":"?  => label.to_string(),
 }
 
 Inst: Inst = {
   Mnemonic => Inst::Mnemonic(<>),
   "[" <d: Directive> <v:DirectiveArgs> "]" => Inst::Directive(d, v),
-  DB <v:ValueList> => Inst::DataDecl8(v),
-  DD <v:ValueList> => Inst::DataDecl32(v),
+  DB <v:Values> => Inst::DataDecl8(v),
+  DD <v:Values> => Inst::DataDecl32(v),
 }
 
 DirectiveArgs: Vec<String> = {

@@ -3,6 +3,7 @@ use lalrpop_util::ErrorRecovery;
 use tok::{LexicalError, Token};
 
 pub mod ast;
+pub mod gen;
 mod lex;
 pub mod sym;
 pub mod tok;

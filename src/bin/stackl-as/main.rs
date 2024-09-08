@@ -31,7 +31,9 @@ fn main() -> ExitCode {
         }
     };
 
-    let _symtab = stackl::sym::build_symtab(&ast);
+    let symtab = stackl::sym::build_symtab(&ast).unwrap();
+
+    let _code = stackl::gen::code_gen(ast, symtab);
 
     ExitCode::SUCCESS
 }

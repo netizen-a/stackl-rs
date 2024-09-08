@@ -96,7 +96,7 @@ fn get_inst_size(inst: &Inst) -> usize {
                         if len % 4 == 0 {
                             len
                         } else {
-                            len + (4 - len % 4)
+                            len + 4 - (len % 4)
                         }
                     }
                 }
