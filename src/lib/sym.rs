@@ -4,13 +4,13 @@ use crate::ast::{self, Addr, Data, Inst, Opcode};
 
 #[derive(Debug)]
 pub struct SymTabError {
-    pub mis_labels: HashSet<String>,
-    pub dup_labels: HashSet<String>,
+    _mis_labels: HashSet<String>,
+    _dup_labels: HashSet<String>,
 }
 
 /// On success returns symbol table with corresponding offsets.
 /// On failure returns `SymTabError`.
-pub fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, SymTabError> {
+pub(crate) fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, SymTabError> {
     // Associate symbol names and offsets
     let mut symtab: HashMap<String, usize> = HashMap::new();
     // set for missing labels
@@ -50,8 +50,8 @@ pub fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, SymTabE
 
     if !mis_labels.is_empty() {
         return Err(SymTabError {
-            mis_labels,
-            dup_labels,
+            _mis_labels: mis_labels,
+            _dup_labels: dup_labels,
         });
     }
     Ok(symtab)

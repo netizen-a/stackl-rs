@@ -136,7 +136,13 @@ pub fn parse_grammar(
         Err(_) => return Err(errors),
     };
     // prepend .text directive in case fixup rotates vector
-    ast.insert(0, Stmt::new(Inst::Directive(Directive::Segment, vec![".text".to_string()])));
+    ast.insert(
+        0,
+        Stmt::new(Inst::Directive(
+            Directive::Segment,
+            vec![".text".to_string()],
+        )),
+    );
     if errors.is_empty() {
         Ok(ast)
     } else {
@@ -144,9 +150,24 @@ pub fn parse_grammar(
     }
 }
 
-pub fn fixup_start(ast: &mut Vec<Stmt>) {
+// move labels to opcodes.
+// must be done before fixup_start
+pub fn fixup_labels(ast: &mut Vec<Stmt>) {
+    let mut labels = Vec::<String>::new();
+    for stmt in ast {
+        match stmt.inst {
+            Inst::Directive(_, _) => labels.append(&mut stmt.labels),
+            _ => stmt.labels.append(&mut labels),
+        }
+    }
+}
+
+pub fn fixup_start(ast: &mut [Stmt]) {
     let start = "_start".to_string();
-    let mid = ast.iter().position(|stmt| stmt.labels.contains(&start)).unwrap();
+    let mid = ast
+        .iter()
+        .position(|stmt| stmt.labels.contains(&start))
+        .unwrap();
     ast.rotate_left(mid);
 }
 

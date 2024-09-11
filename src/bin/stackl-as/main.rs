@@ -31,15 +31,11 @@ fn main() -> ExitCode {
         }
     };
 
+    stackl::ast::fixup_labels(&mut ast);
     stackl::ast::fixup_start(&mut ast);
 
-    let symtab = stackl::sym::build_symtab(&ast).unwrap();
-
-    let code = stackl::gen::code_gen(ast, symtab);
-
-    let outfile = args
-        .asmfile
-        .with_extension("stackl");
+    let code = stackl::StacklFormat::from(ast);
+    let outfile = args.asmfile.with_extension("stackl");
     let outfile = outfile.file_name().unwrap();
     fs::write(outfile, Vec::from(code)).unwrap();
 

@@ -1,78 +1,83 @@
 use std::collections::HashMap;
 
-use crate::ast::{Addr, Data, Directive, Inst, Opcode, Stmt};
+use crate::{ast::*, sym, StacklFormat};
 
-pub fn code_gen(ast: Vec<Stmt>, symtab: HashMap<String, usize>) -> crate::StacklFormat {
-    let mut text = Vec::<u8>::new();
-    let mut is_start_global = false;
-    for stmt in ast {
-        let data: Vec<u8> = match stmt.inst {
-            Inst::Mnemonic(op) => convert_op(&op, &symtab),
-            Inst::DataDecl8(list) => {
-                let mut data_list = Vec::<u8>::new();
-                for data in list {
-                    let vec: Vec<u8> = match data {
-                        // convert i32 to u8
-                        Data::Int(value) => vec![value.try_into().unwrap()],
-                        // convert String to [u8]
-                        Data::String(s) => s.as_bytes().to_vec(),
-                    };
-                    data_list.extend(vec);
+// TODO: refactor `From` trait to `TryFrom`
+impl From<Vec<Stmt>> for StacklFormat {
+    fn from(ast: Vec<Stmt>) -> crate::StacklFormat {
+        let symtab: HashMap<String, usize> = sym::build_symtab(&ast).unwrap();
+        let mut text = Vec::<u8>::new();
+        let mut is_start_global = false;
+        for stmt in ast {
+            let data: Vec<u8> = match stmt.inst {
+                Inst::Mnemonic(op) => convert_op(&op, &symtab),
+                Inst::DataDecl8(list) => {
+                    let mut data_list = Vec::<u8>::new();
+                    for data in list {
+                        let vec: Vec<u8> = match data {
+                            // convert i32 to u8
+                            Data::Int(value) => vec![value.try_into().unwrap()],
+                            // convert String to [u8]
+                            Data::String(s) => s.as_bytes().to_vec(),
+                        };
+                        data_list.extend(vec);
+                    }
+                    data_list
                 }
-                data_list
-            }
-            Inst::DataDecl32(list) => {
-                let mut data_list = Vec::<u8>::new();
-                for data in list {
-                    let vec: Vec<u8> = match data {
-                        // convert i32 to [u8]
-                        Data::Int(value) => Vec::from(value.to_le_bytes()),
-                        // convert String to [u8]
-                        Data::String(s) => {
-                            let mut bytes = s.as_bytes().to_vec();
-                            if bytes.len() % 4 == 0 {
-                                bytes
-                            } else {
-                                let len = 4 - (bytes.len() % 4);
-                                bytes.extend(vec![0; len]);
-                                bytes
+                Inst::DataDecl32(list) => {
+                    let mut data_list = Vec::<u8>::new();
+                    for data in list {
+                        let vec: Vec<u8> = match data {
+                            // convert i32 to [u8]
+                            Data::Int(value) => Vec::from(value.to_le_bytes()),
+                            // convert String to [u8]
+                            Data::String(s) => {
+                                let mut bytes = s.as_bytes().to_vec();
+                                if bytes.len() % 4 == 0 {
+                                    bytes
+                                } else {
+                                    let len = 4 - (bytes.len() % 4);
+                                    bytes.extend(vec![0; len]);
+                                    bytes
+                                }
                             }
-                        }
-                    };
-                    data_list.extend(vec);
+                        };
+                        data_list.extend(vec);
+                    }
+                    data_list
                 }
-                data_list
-            }
-            Inst::Directive(Directive::Extern, _) => panic!("binary does not support extern directive"),
-            Inst::Directive(Directive::Segment, _) => {
-                if text.len() % 4 != 0 {
-                    vec![0; 4 - (text.len() % 4)]
-                } else {
+                Inst::Directive(Directive::Extern, _) => {
+                    panic!("binary does not support extern directive")
+                }
+                Inst::Directive(Directive::Segment, _) => {
+                    if text.len() % 4 != 0 {
+                        vec![0; 4 - (text.len() % 4)]
+                    } else {
+                        vec![]
+                    }
+                }
+                Inst::Directive(Directive::Global, sym) => {
+                    if !is_start_global {
+                        is_start_global = sym.contains(&"_start".to_string());
+                    }
                     vec![]
                 }
+            };
+            if !data.is_empty() {
+                text.extend(data);
             }
-            Inst::Directive(Directive::Global, sym) => {
-                if !is_start_global {
-                    is_start_global = sym.contains(&"_start".to_string());
-                }
-                vec![]
-            }
-        };
-        if !data.is_empty() {
-            println!("{:?}{:?}", stmt.labels, data);
-            text.extend(data);
         }
-    }
 
-    if !is_start_global {
-        panic!("Symbol _start not global");
-    }
+        if !is_start_global {
+            panic!("Symbol _start not global");
+        }
 
-    crate::StacklFormat {
-        magic: [b's', b'l', 0, 0],
-        version: 0,
-        _reserved: 0,
-        text,
+        crate::StacklFormat {
+            magic: [b's', b'l', 0, 0],
+            version: 0,
+            _reserved: 0,
+            text,
+        }
     }
 }
 
