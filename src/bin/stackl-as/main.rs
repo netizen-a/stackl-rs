@@ -37,7 +37,7 @@ fn main() -> ExitCode {
     let code = stackl::StacklFormat::from(ast);
     let outfile = args.asmfile.with_extension("stackl");
     let outfile = outfile.file_name().unwrap();
-    fs::write(outfile, Vec::from(code)).unwrap();
+    fs::write(outfile, code.to_vec()).unwrap();
 
     ExitCode::SUCCESS
 }

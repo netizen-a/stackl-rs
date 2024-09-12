@@ -75,7 +75,7 @@ impl From<Vec<Stmt>> for StacklFormat {
         crate::StacklFormat {
             magic: [b's', b'l', 0, 0],
             version: 0,
-            _reserved: 0,
+            flags: 0,
             text,
         }
     }

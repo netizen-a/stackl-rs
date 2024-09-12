@@ -13,20 +13,20 @@ lalrpop_mod! {
 
 #[derive(Debug)]
 pub struct StacklFormat {
-    pub magic: [u8; 4],
-    pub version: u32,
-    /// Must be set to zero.
-    _reserved: u32,
+    magic: [u8; 4],
+    version: u32,
+    /// Reserved. Must be set to zero.
+    flags: u32,
     pub text: Vec<u8>,
 }
 
-impl From<StacklFormat> for Vec<u8> {
-    fn from(value: StacklFormat) -> Self {
-        let mut ret = Vec::from(value.magic);
-        ret.extend(&value.version.to_le_bytes());
-        ret.extend(value._reserved.to_le_bytes());
-        ret.extend((value.text.len() as u32).to_le_bytes());
-        ret.extend(value.text);
+impl StacklFormat {
+    pub fn to_vec(self) -> Vec<u8> {
+        let mut ret = Vec::from(self.magic);
+        ret.extend(&self.version.to_le_bytes());
+        ret.extend(self.flags.to_le_bytes());
+        ret.extend((self.text.len() as u32).to_le_bytes());
+        ret.extend(self.text);
         ret
     }
 }
@@ -46,7 +46,7 @@ impl TryFrom<&[u8]> for StacklFormat {
         }
         let magic: [u8; 4] = value[..=3].try_into().unwrap();
         let version: u32 = u32::from_le_bytes(value[4..=7].try_into().unwrap());
-        let _reserved = u32::from_le_bytes(value[8..=11].try_into().unwrap());
+        let flags = u32::from_le_bytes(value[8..=11].try_into().unwrap());
         let text_size = u32::from_le_bytes(value[12..=15].try_into().unwrap());
 
         if magic != [b's', b'l', 0, 0] {
@@ -61,7 +61,7 @@ impl TryFrom<&[u8]> for StacklFormat {
         Ok(StacklFormat {
             magic,
             version,
-            _reserved,
+            flags,
             text,
         })
     }
