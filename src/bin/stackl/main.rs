@@ -5,7 +5,7 @@ use clap::Parser;
 use stackl::StacklFormat;
 
 mod mach;
-mod op;
+mod ram;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -15,8 +15,15 @@ fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
-    let machine = mach::MachineState::new(500000);
-    machine.store(&data.text, 0);
+    println!("{:?}", data);
+    let mut machine = mach::MachineState::new(500000);
+    machine.ram.store_slice(&data.text, 0);
+    let sp_addr = if data.text.len() % 2 != 0 {
+        data.text.len() + 2 - (data.text.len() % 2)
+    } else {
+        data.text.len()
+    };
+    machine.set_sp(sp_addr.try_into().unwrap());
     machine.execute();
     ExitCode::SUCCESS
 }

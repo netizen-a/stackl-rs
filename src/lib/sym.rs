@@ -33,8 +33,8 @@ pub(crate) fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, 
         if let Inst::Mnemonic(op) = &stmt.inst {
             let some_label = match op {
                 Opcode::JmpUser(Addr::Label(label))
-                | Opcode::Jump(Addr::Label(label))
-                | Opcode::Jumpe(Addr::Label(label))
+                | Opcode::Jmp(Addr::Label(label))
+                | Opcode::Jz(Addr::Label(label))
                 | Opcode::Call(Addr::Label(label)) => {
                     (!symtab.contains_key(label)).then_some(label.to_string())
                 }
@@ -65,16 +65,16 @@ fn get_inst_size(inst: &Inst) -> usize {
             | Opcode::PushReg(_)
             | Opcode::PopReg(_)
             | Opcode::Push(_)
-            | Opcode::Jump(_)
-            | Opcode::Jumpe(_)
+            | Opcode::Jmp(_)
+            | Opcode::Jz(_)
             | Opcode::PushVar(_)
             | Opcode::PopVar(_)
             | Opcode::AdjSP(_)
             | Opcode::PopArgs(_)
             | Opcode::Call(_)
             | Opcode::PushCVar(_)
-            | Opcode::PopCVar(_) => 8,
-            _ => 4,
+            | Opcode::PopCVar(_) => 6,
+            _ => 2,
         },
         Inst::DataDecl8(list) => {
             let mut total = 0;

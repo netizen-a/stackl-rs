@@ -1,6 +1,6 @@
-use std::sync::Mutex;
+use crate::ram;
+use stackl::op;
 
-use crate::op;
 pub struct MachineState {
     bp: i32,
     lp: i32,
@@ -10,7 +10,7 @@ pub struct MachineState {
     flag: i32,
     ivec: i32,
     vmem: i32,
-    ram: Mutex<Vec<u8>>,
+    pub ram: ram::Memory,
 }
 
 impl MachineState {
@@ -24,42 +24,61 @@ impl MachineState {
             flag: 0,
             ivec: 0,
             vmem: 0,
-            ram: Mutex::new(vec![0x79; mem_size.try_into().unwrap()]),
+            ram: ram::Memory::new(mem_size.try_into().unwrap()),
         }
     }
-    // returns true if success, else false
-    pub fn store(&self, val: &[u8], offset: usize) -> bool {
-        let mut ram = self.ram.lock().unwrap();
-        if ram.len() > val.len() + offset {
-            let count = val.len();
-            unsafe {
-                ram.as_mut_ptr()
-                    .add(offset)
-                    .copy_from_nonoverlapping(val.as_ptr(), count);
-            }
-            true
-        } else {
-            false
-        }
+
+    pub fn set_sp(&mut self, addr: i32) {
+        self.sp = addr;
     }
     pub fn execute(mut self) {
+        let sp_low = self.sp;
         loop {
-            let ip: usize = self.ip.try_into().unwrap();
-            let ram = self.ram.lock().unwrap();
-            let op: u32 = u32::from_le_bytes(ram[ip..=(ip + 3)].try_into().unwrap());
+            assert!(sp_low <= self.sp);
+            let op: i16 = self.ram.load_i16(self.ip.try_into().unwrap()).unwrap();
+
             match op {
-                op::NOP => {}
-                op::PUSH => {
-                    println!("push");
-                    self.ip += 4;
+                op::NOP => {println!("{:2}: nop ; {}", self.ip, op)}
+                op::POP => {
+                    println!("{:2}: pop", self.ip);
+                    self.sp -= 4;
                 }
-                op::POP => {println!("pop")}
+                op::PUSH => {
+                    let operand = 2 + self.ip;
+                    let val = self.ram.load_i32(operand.try_into().unwrap()).unwrap();
+                    let result=self.ram.store_i32(val, self.sp.try_into().unwrap());
+                    assert!(result);
+
+                    println!("{:2}: push {val}", self.ip);
+
+                    self.ip += 6;
+                    self.sp += 4;
+                    continue;
+                }
+                op::JMP => {
+                    println!("{:2}: jmp", self.ip);
+                    self.ip += 2;
+                    self.ip = self.ram.load_i32(self.ip.try_into().unwrap()).unwrap();
+                    continue;
+                }
+                op::JZ => {
+                    println!("{:2}: jz", self.ip);
+                    self.sp -= 4;
+                    let val = self.ram.load_i32(self.sp.try_into().unwrap()).unwrap();
+                    let operand = 2 + self.ip;
+                    if val == 0 {
+                        self.ip = self.ram.load_i32(operand.try_into().unwrap()).unwrap();
+                    }
+                    continue;
+                }
                 op::HALT => {
+                    println!("{:2}: halt", self.ip);
                     return;
                 }
                 k => unimplemented!("opcode {k}"),
             }
-            self.ip += 4;
+            self.ip += 2;
+            // println!("next ip: {}", self.ip);
         }
     }
 }

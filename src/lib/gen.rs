@@ -82,7 +82,7 @@ impl From<Vec<Stmt>> for StacklFormat {
 }
 
 fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
-    let code: Vec<u32> = match op {
+    let text: Vec<u32> = match op {
         Opcode::Nop => vec![0],
         Opcode::Plus => vec![1],
         Opcode::Minus => vec![2],
@@ -128,11 +128,11 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::PopVarInd => vec![39],
         Opcode::Comp => vec![40],
         Opcode::Push(value) => vec![41, *value as _],
-        Opcode::Jump(addr) => match addr {
+        Opcode::Jmp(addr) => match addr {
             Addr::Offset(offset) => vec![42, *offset as _],
             Addr::Label(label) => vec![42, symtab[label].try_into().unwrap()],
         },
-        Opcode::Jumpe(addr) => match addr {
+        Opcode::Jz(addr) => match addr {
             Addr::Offset(offset) => vec![43, *offset as _],
             Addr::Label(label) => vec![43, symtab[label].try_into().unwrap()],
         },
@@ -152,9 +152,12 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::SetIntDis => vec![54],
         Opcode::Illegal => vec![55],
     };
+
     let mut ret = Vec::new();
-    for dword in code {
-        ret.extend_from_slice(&dword.to_le_bytes());
+    let op: u16 = text[0] as u16;
+    ret.extend_from_slice(&op.to_le_bytes());
+    if text.len() == 2 {
+        ret.extend_from_slice(&text[1].to_le_bytes());
     }
     ret
 }

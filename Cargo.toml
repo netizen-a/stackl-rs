@@ -34,4 +34,4 @@ path="src/bin/stackl-ln/main.rs"
 
 [[bin]]
 name="stackl-img"
-path="src/bin/stackl-ln/main.rs"
+path="src/bin/stackl-img/main.rs"

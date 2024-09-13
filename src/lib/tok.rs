@@ -51,6 +51,7 @@ pub enum Token {
     #[regex("[_a-zA-Z.?$][_0-9a-zA-Z.?$]*", |lex| lex.slice().to_string())]
     Identifier(String),
     #[regex("-?[1-9][0-9]*", |lex| lex.slice().parse())]
+    #[regex("0", |_|0)]
     Integer(i32),
     #[regex("'[^'\n]*'", str_callback)]
     #[regex("`[^`\n]*`", str_callback)]
@@ -141,10 +142,10 @@ pub enum Token {
     OpComp,
     #[token("PUSH", ignore(ascii_case))]
     OpPush,
-    #[token("JUMP", ignore(ascii_case))]
-    OpJump,
-    #[token("JUMPE", ignore(ascii_case))]
-    OpJumpe,
+    #[token("JMP", ignore(ascii_case))]
+    OpJmp,
+    #[token("JZ", ignore(ascii_case))]
+    OpJz,
     #[token("PUSHVAR", ignore(ascii_case))]
     OpPushVar,
     #[token("POPVAR", ignore(ascii_case))]

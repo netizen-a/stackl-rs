@@ -1,6 +1,7 @@
 use lalrpop_util::lalrpop_mod;
 
 pub mod ast;
+pub mod op;
 mod gen;
 mod lex;
 mod sym;
