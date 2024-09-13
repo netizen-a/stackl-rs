@@ -24,11 +24,6 @@ impl Memory {
             false
         }
     }
-    pub fn load_i16(&self, offset: usize) -> Option<i16> {
-        let mem = self.inner.read().unwrap();
-        let bytes = &mem[offset..=(offset + 1)];
-        bytes.try_into().map(i16::from_le_bytes).ok()
-    }
     pub fn load_i32(&self, offset: usize) -> Option<i32> {
         let mem = self.inner.read().unwrap();
         let bytes = &mem[offset..=(offset + 3)];

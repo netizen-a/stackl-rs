@@ -36,7 +36,7 @@ impl MachineState {
         let sp_low = self.sp;
         loop {
             assert!(sp_low <= self.sp);
-            let op: i16 = self.ram.load_i16(self.ip.try_into().unwrap()).unwrap();
+            let op: i32 = self.ram.load_i32(self.ip.try_into().unwrap()).unwrap();
 
             match op {
                 op::NOP => {println!("{:2}: nop ; {}", self.ip, op)}
@@ -45,44 +45,52 @@ impl MachineState {
                     self.sp -= 4;
                 }
                 op::PUSH => {
-                    let operand = 2 + self.ip;
-                    let val = self.ram.load_i32(operand.try_into().unwrap()).unwrap();
+                    self.ip += 4;
+                    let val = self.ram.load_i32(self.ip as _).unwrap();
                     let result=self.ram.store_i32(val, self.sp.try_into().unwrap());
                     assert!(result);
-
                     println!("{:2}: push {val}", self.ip);
-
-                    self.ip += 6;
+                    self.ip += 4;
                     self.sp += 4;
                     continue;
                 }
                 op::PLUS => {
                     print!("{:2}: plus ; ", self.ip);
                     self.sp -= 4;
-                    let lhs = self.ram.load_i32(self.sp.try_into().unwrap()).unwrap();
+                    let lhs = self.ram.load_i32(self.sp as _).unwrap();
                     self.sp -= 4;
-                    let rhs = self.ram.load_i32(self.sp.try_into().unwrap()).unwrap();
+                    let rhs = self.ram.load_i32(self.sp as _).unwrap();
                     let result = lhs + rhs;
-                    let status = self.ram.store_i32(result, self.sp.try_into().unwrap());
+                    let status = self.ram.store_i32(result, self.sp as _);
                     assert!(status);
                     self.sp += 4;
                     println!("{lhs} + {rhs} = {result}");
                 }
                 op::JMP => {
                     println!("{:2}: jmp", self.ip);
-                    self.ip += 2;
-                    self.ip = self.ram.load_i32(self.ip.try_into().unwrap()).unwrap();
+                    self.ip += 4;
+                    self.ip = self.ram.load_i32(self.ip as _).unwrap();
                     continue;
                 }
                 op::JZ => {
                     println!("{:2}: jz", self.ip);
                     self.sp -= 4;
-                    let val = self.ram.load_i32(self.sp.try_into().unwrap()).unwrap();
-                    let operand = 2 + self.ip;
+                    let val = self.ram.load_i32(self.sp as _).unwrap();
                     if val == 0 {
-                        self.ip = self.ram.load_i32(operand.try_into().unwrap()).unwrap();
+                        self.ip += 4;
+                        self.ip = self.ram.load_i32(self.ip as _).unwrap();
+                    } else {
+                        self.ip += 8;
                     }
                     continue;
+                }
+                op::DUP => {
+                    let val = self.ram.load_i32(self.sp as _).unwrap();
+                    self.sp += 4;
+                    let result=self.ram.store_i32(val, self.sp as _);
+                    assert!(result);
+
+                    println!("{:2}: dup ; sp = {}", self.ip, self.sp);
                 }
                 op::HALT => {
                     println!("{:2}: halt", self.ip);
@@ -90,8 +98,7 @@ impl MachineState {
                 }
                 k => unimplemented!("opcode {k}"),
             }
-            self.ip += 2;
-            // println!("next ip: {}", self.ip);
+            self.ip += 4;
         }
     }
 }

@@ -154,10 +154,8 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
     };
 
     let mut ret = Vec::new();
-    let op: u16 = text[0] as u16;
-    ret.extend_from_slice(&op.to_le_bytes());
-    if text.len() == 2 {
-        ret.extend_from_slice(&text[1].to_le_bytes());
+    for word in text {
+        ret.extend_from_slice(&word.to_le_bytes());
     }
     ret
 }

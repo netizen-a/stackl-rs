@@ -73,8 +73,8 @@ fn get_inst_size(inst: &Inst) -> usize {
             | Opcode::PopArgs(_)
             | Opcode::Call(_)
             | Opcode::PushCVar(_)
-            | Opcode::PopCVar(_) => 6,
-            _ => 2,
+            | Opcode::PopCVar(_) => 8,
+            _ => 4,
         },
         Inst::DataDecl8(list) => {
             let mut total = 0;
