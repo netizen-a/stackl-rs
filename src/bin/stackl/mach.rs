@@ -1,6 +1,7 @@
 use crate::ram;
 use stackl::op;
 
+#[allow(dead_code)]
 pub struct MachineState {
     bp: i32,
     lp: i32,
@@ -54,6 +55,18 @@ impl MachineState {
                     self.ip += 6;
                     self.sp += 4;
                     continue;
+                }
+                op::PLUS => {
+                    print!("{:2}: plus ; ", self.ip);
+                    self.sp -= 4;
+                    let lhs = self.ram.load_i32(self.sp.try_into().unwrap()).unwrap();
+                    self.sp -= 4;
+                    let rhs = self.ram.load_i32(self.sp.try_into().unwrap()).unwrap();
+                    let result = lhs + rhs;
+                    let status = self.ram.store_i32(result, self.sp.try_into().unwrap());
+                    assert!(status);
+                    self.sp += 4;
+                    println!("{lhs} + {rhs} = {result}");
                 }
                 op::JMP => {
                     println!("{:2}: jmp", self.ip);
