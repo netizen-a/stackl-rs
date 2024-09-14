@@ -1,9 +1,9 @@
 use lalrpop_util::lalrpop_mod;
 
 pub mod ast;
-pub mod op;
 mod gen;
 mod lex;
+pub mod op;
 mod sym;
 mod tok;
 

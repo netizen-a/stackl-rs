@@ -30,14 +30,15 @@ impl Stmt {
 pub enum Inst {
     Mnemonic(Opcode),
     Directive(Directive, Vec<String>),
-    DataDecl8(Vec<Data>),
-    DataDecl32(Vec<Data>),
+    DataDecl8(Vec<Value>),
+    DataDecl32(Vec<Value>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Data {
+pub enum Value {
     String(String),
     Int(i32),
+    Label(String),
 }
 
 // Primitive Directives
@@ -50,8 +51,8 @@ pub enum Directive {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Addr {
-    Offset(i32),
+pub enum Operand {
+    Int(i32),
     Label(String),
 }
 
@@ -94,7 +95,7 @@ pub enum Opcode {
     Outs,
     Inp,
     PushFP,
-    JmpUser(Addr),
+    JmpUser(Operand),
     Trap,
     Rti,
     Calli,
@@ -109,16 +110,16 @@ pub enum Opcode {
     PopCVarInd,
     PopVarInd,
     Comp,
-    Push(i32),
-    Jmp(Addr),
-    Jz(Addr),
-    PushVar(i32),
-    PopVar(i32),
-    AdjSP(i32),
-    PopArgs(i32),
-    Call(Addr),
-    PushCVar(i32),
-    PopCVar(i32),
+    Push(Operand),
+    Jmp(Operand),
+    Jz(Operand),
+    PushVar(Operand),
+    PopVar(Operand),
+    AdjSP(Operand),
+    PopArgs(Operand),
+    Call(Operand),
+    PushCVar(Operand),
+    PopCVar(Operand),
     TraceOn,
     TraceOff,
     ClearIntDis,
@@ -209,8 +210,8 @@ mod tests {
                 Stmt::new(Inst::Mnemonic(Opcode::Nop)),
                 Stmt::new(Inst::Mnemonic(Opcode::PushReg(Reg::SP))),
                 Stmt::new(Inst::Mnemonic(Opcode::PopReg(Reg::FP))),
-                Stmt::new(Inst::Mnemonic(Opcode::Push(34))),
-                Stmt::new(Inst::Mnemonic(Opcode::JmpUser(Addr::Offset(8)))),
+                Stmt::new(Inst::Mnemonic(Opcode::Push(Operand::Int(34)))),
+                Stmt::new(Inst::Mnemonic(Opcode::JmpUser(Operand::Int(8)))),
             ]
         );
     }
@@ -251,18 +252,18 @@ mod tests {
             vec![
                 Stmt::with_labels(
                     vec!["label".to_string()],
-                    Inst::DataDecl8(vec![Data::String("this is a string".to_string())])
+                    Inst::DataDecl8(vec![Value::String("this is a string".to_string())])
                 ),
-                Stmt::new(Inst::DataDecl32(vec![Data::String(
+                Stmt::new(Inst::DataDecl32(vec![Value::String(
                     "another string".to_string()
                 )])),
-                Stmt::new(Inst::DataDecl8(vec![Data::String(
+                Stmt::new(Inst::DataDecl8(vec![Value::String(
                     "\tstring with unicode\n".to_string()
                 )])),
                 Stmt::new(Inst::DataDecl8(vec![
-                    Data::String("a".to_string()),
-                    Data::String("b".to_string()),
-                    Data::String("c".to_string())
+                    Value::String("a".to_string()),
+                    Value::String("b".to_string()),
+                    Value::String("c".to_string())
                 ])),
             ]
         );

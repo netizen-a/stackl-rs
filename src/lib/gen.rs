@@ -16,9 +16,10 @@ impl From<Vec<Stmt>> for StacklFormat {
                     for data in list {
                         let vec: Vec<u8> = match data {
                             // convert i32 to u8
-                            Data::Int(value) => vec![value.try_into().unwrap()],
+                            Value::Int(value) => vec![value.try_into().unwrap()],
                             // convert String to [u8]
-                            Data::String(s) => s.as_bytes().to_vec(),
+                            Value::String(s) => s.as_bytes().to_vec(),
+                            _ => unimplemented!(),
                         };
                         data_list.extend(vec);
                     }
@@ -29,9 +30,9 @@ impl From<Vec<Stmt>> for StacklFormat {
                     for data in list {
                         let vec: Vec<u8> = match data {
                             // convert i32 to [u8]
-                            Data::Int(value) => Vec::from(value.to_le_bytes()),
+                            Value::Int(value) => Vec::from(value.to_le_bytes()),
                             // convert String to [u8]
-                            Data::String(s) => {
+                            Value::String(s) => {
                                 let mut bytes = s.as_bytes().to_vec();
                                 if bytes.len() % 4 == 0 {
                                     bytes
@@ -41,6 +42,7 @@ impl From<Vec<Stmt>> for StacklFormat {
                                     bytes
                                 }
                             }
+                            _ => unimplemented!(),
                         };
                         data_list.extend(vec);
                     }
@@ -109,9 +111,9 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::Outs => vec![23],
         Opcode::Inp => vec![24],
         Opcode::PushFP => vec![25],
-        Opcode::JmpUser(addr) => match addr {
-            Addr::Offset(offset) => vec![26, *offset as _],
-            Addr::Label(label) => vec![26, symtab[label].try_into().unwrap()],
+        Opcode::JmpUser(operand) => match operand {
+            &Operand::Int(offset) => vec![26, offset as _],
+            Operand::Label(label) => vec![26, symtab[label].try_into().unwrap()],
         },
         Opcode::Trap => vec![27],
         Opcode::Rti => vec![28],
@@ -127,25 +129,46 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::PopCVarInd => vec![38],
         Opcode::PopVarInd => vec![39],
         Opcode::Comp => vec![40],
-        Opcode::Push(value) => vec![41, *value as _],
-        Opcode::Jmp(addr) => match addr {
-            Addr::Offset(offset) => vec![42, *offset as _],
-            Addr::Label(label) => vec![42, symtab[label].try_into().unwrap()],
+        Opcode::Push(operand) => match operand {
+            &Operand::Int(value) => vec![41, value as _],
+            Operand::Label(label) => vec![41, symtab[label].try_into().unwrap()],
         },
-        Opcode::Jz(addr) => match addr {
-            Addr::Offset(offset) => vec![43, *offset as _],
-            Addr::Label(label) => vec![43, symtab[label].try_into().unwrap()],
+        Opcode::Jmp(operand) => match operand {
+            &Operand::Int(value) => vec![42, value as _],
+            Operand::Label(label) => vec![42, symtab[label].try_into().unwrap()],
         },
-        Opcode::PushVar(value) => vec![44, *value as _],
-        Opcode::PopVar(value) => vec![45, *value as _],
-        Opcode::AdjSP(value) => vec![46, *value as _],
-        Opcode::PopArgs(value) => vec![47, *value as _],
+        Opcode::Jz(operand) => match operand {
+            &Operand::Int(value) => vec![43, value as _],
+            Operand::Label(label) => vec![43, symtab[label].try_into().unwrap()],
+        },
+        Opcode::PushVar(operand) => match operand {
+            &Operand::Int(value) => vec![44, value as _],
+            Operand::Label(label) => vec![44, symtab[label].try_into().unwrap()],
+        },
+        Opcode::PopVar(operand) => match operand {
+            &Operand::Int(value) => vec![45, value as _],
+            Operand::Label(label) => vec![45, symtab[label].try_into().unwrap()],
+        },
+        Opcode::AdjSP(operand) => match operand {
+            &Operand::Int(value) => vec![46, value as _],
+            Operand::Label(label) => vec![46, symtab[label].try_into().unwrap()],
+        },
+        Opcode::PopArgs(operand) => match operand {
+            &Operand::Int(value) => vec![47, value as _],
+            Operand::Label(label) => vec![47, symtab[label].try_into().unwrap()],
+        },
         Opcode::Call(addr) => match addr {
-            Addr::Offset(offset) => vec![48, *offset as _],
-            Addr::Label(label) => vec![48, symtab[label].try_into().unwrap()],
+            &Operand::Int(value) => vec![48, value as _],
+            Operand::Label(label) => vec![48, symtab[label].try_into().unwrap()],
         },
-        Opcode::PushCVar(value) => vec![49, *value as _],
-        Opcode::PopCVar(value) => vec![50, *value as _],
+        Opcode::PushCVar(operand) => match operand {
+            &Operand::Int(value) => vec![49, value as _],
+            Operand::Label(label) => vec![49, symtab[label].try_into().unwrap()],
+        },
+        Opcode::PopCVar(operand) => match operand {
+            &Operand::Int(value) => vec![50, value as _],
+            Operand::Label(label) => vec![50, symtab[label].try_into().unwrap()],
+        },
         Opcode::TraceOn => vec![51],
         Opcode::TraceOff => vec![52],
         Opcode::ClearIntDis => vec![53],

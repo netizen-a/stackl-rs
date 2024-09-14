@@ -25,7 +25,7 @@ LabelList: Vec<String> = {
 
 Labels: Vec<String> = <l:LabelList> "\n"? => l;
 
-ValueList: Vec<Data> = {
+ValueList: Vec<Value> = {
   Value => vec![<>],
   <mut v:ValueList> "," <s:Value> => {
     v.push(s);
@@ -33,12 +33,12 @@ ValueList: Vec<Data> = {
   },
 }
 
-Value: Data = {
-  STR => Data::String(<>),
-  INTEGER => Data::Int(<>),
+Value: Value = {
+  STR => Value::String(<>),
+  INTEGER => Value::Int(<>),
 }
 
-Values: Vec<Data> = <v: ValueList> ","? => v;
+Values: Vec<Value> = <v: ValueList> ","? => v;
 
 Stmt: Stmt = {
   <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m),
@@ -80,9 +80,9 @@ Directive: Directive = {
   },
 }
 
-Addr: Addr = {
-  INTEGER => Addr::Offset(<>),
-  IDENT => Addr::Label(<>),
+Operand: Operand = {
+  INTEGER => Operand::Int(<>),
+  IDENT => Operand::Label(<>),
 }
 
 Reg: Reg = {
@@ -147,7 +147,7 @@ Mnemonic: Opcode = {
   OUTS => Opcode::Outs,
   INP => Opcode::Inp,
   PUSHFP => Opcode::PushFP,
-  JMPUSER <addr:Addr> => Opcode::JmpUser(addr),
+  JMPUSER <addr:Operand> => Opcode::JmpUser(addr),
   TRAP => Opcode::Trap,
   RTI => Opcode::Rti,
   CALLI => Opcode::Calli,
@@ -162,16 +162,16 @@ Mnemonic: Opcode = {
   POPCVARIND => Opcode::PopCVarInd,
   POPVARIND => Opcode::PopVarInd,
   COMP => Opcode::Comp,
-  PUSH <i:INTEGER> => Opcode::Push(i),
-  JMP <addr:Addr> => Opcode::Jmp(addr),
-  JZ <addr:Addr> => Opcode::Jz(addr),
-  PUSHVAR <i:INTEGER> => Opcode::PushVar(i),
-  POPVAR <i:INTEGER> => Opcode::PopVar(i),
-  ADJSP <amount:INTEGER> => Opcode::AdjSP(amount),
-  POPARGS <i:INTEGER> => Opcode::PopArgs(i),
-  CALL <addr:Addr> => Opcode::Call(addr),
-  PUSHCVAR <i:INTEGER> => Opcode::PushCVar(i),
-  POPCVAR <i:INTEGER> => Opcode::PopCVar(i),
+  PUSH <i:Operand> => Opcode::Push(i),
+  JMP <addr:Operand> => Opcode::Jmp(addr),
+  JZ <addr:Operand> => Opcode::Jz(addr),
+  PUSHVAR <i:Operand> => Opcode::PushVar(i),
+  POPVAR <i:Operand> => Opcode::PopVar(i),
+  ADJSP <amount:Operand> => Opcode::AdjSP(amount),
+  POPARGS <i:Operand> => Opcode::PopArgs(i),
+  CALL <addr:Operand> => Opcode::Call(addr),
+  PUSHCVAR <i:Operand> => Opcode::PushCVar(i),
+  POPCVAR <i:Operand> => Opcode::PopCVar(i),
   TRACE_ON => Opcode::TraceOn,
   TRACE_OFF => Opcode::TraceOff,
   CLID => Opcode::ClearIntDis,

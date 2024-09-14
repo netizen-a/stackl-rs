@@ -1,4 +1,7 @@
+use std::io::{stdout, Write};
+
 use crate::ram;
+use bitflags::bitflags;
 use stackl::op;
 
 #[allow(dead_code)]
@@ -8,7 +11,7 @@ pub struct MachineState {
     ip: i32,
     sp: i32,
     fp: i32,
-    flag: i32,
+    flag: MachineFlag,
     ivec: i32,
     vmem: i32,
     pub ram: ram::Memory,
@@ -22,7 +25,7 @@ impl MachineState {
             ip: 0,
             sp: 0,
             fp: 0,
-            flag: 0,
+            flag: MachineFlag::empty(),
             ivec: 0,
             vmem: 0,
             ram: ram::Memory::new(mem_size.try_into().unwrap()),
@@ -32,73 +35,101 @@ impl MachineState {
     pub fn set_sp(&mut self, addr: i32) {
         self.sp = addr;
     }
-    pub fn execute(mut self) {
+    pub fn run(mut self) {
         let sp_low = self.sp;
         loop {
-            assert!(sp_low <= self.sp);
-            let op: i32 = self.ram.load_i32(self.ip.try_into().unwrap()).unwrap();
-
-            match op {
-                op::NOP => {println!("{:2}: nop ; {}", self.ip, op)}
-                op::POP => {
-                    println!("{:2}: pop", self.ip);
-                    self.sp -= 4;
-                }
-                op::PUSH => {
-                    self.ip += 4;
-                    let val = self.ram.load_i32(self.ip as _).unwrap();
-                    let result=self.ram.store_i32(val, self.sp.try_into().unwrap());
-                    assert!(result);
-                    println!("{:2}: push {val}", self.ip);
-                    self.ip += 4;
-                    self.sp += 4;
-                    continue;
-                }
-                op::PLUS => {
-                    print!("{:2}: plus ; ", self.ip);
-                    self.sp -= 4;
-                    let lhs = self.ram.load_i32(self.sp as _).unwrap();
-                    self.sp -= 4;
-                    let rhs = self.ram.load_i32(self.sp as _).unwrap();
-                    let result = lhs + rhs;
-                    let status = self.ram.store_i32(result, self.sp as _);
-                    assert!(status);
-                    self.sp += 4;
-                    println!("{lhs} + {rhs} = {result}");
-                }
-                op::JMP => {
-                    println!("{:2}: jmp", self.ip);
-                    self.ip += 4;
-                    self.ip = self.ram.load_i32(self.ip as _).unwrap();
-                    continue;
-                }
-                op::JZ => {
-                    println!("{:2}: jz", self.ip);
-                    self.sp -= 4;
-                    let val = self.ram.load_i32(self.sp as _).unwrap();
-                    if val == 0 {
-                        self.ip += 4;
-                        self.ip = self.ram.load_i32(self.ip as _).unwrap();
-                    } else {
-                        self.ip += 8;
-                    }
-                    continue;
-                }
-                op::DUP => {
-                    let val = self.ram.load_i32(self.sp as _).unwrap();
-                    self.sp += 4;
-                    let result=self.ram.store_i32(val, self.sp as _);
-                    assert!(result);
-
-                    println!("{:2}: dup ; sp = {}", self.ip, self.sp);
-                }
-                op::HALT => {
-                    println!("{:2}: halt", self.ip);
-                    return;
-                }
-                k => unimplemented!("opcode {k}"),
+            if self.flag.contains(MachineFlag::HALTED) {
+                return;
             }
-            self.ip += 4;
+            assert!(sp_low <= self.sp);
+            execute_inst(&mut self);
         }
     }
+}
+
+bitflags! {
+    struct MachineFlag: i32 {
+        const HALTED    = 0x01;
+        const USER_MODE = 0x02;
+        const INT_MODE  = 0x04;
+        const INT_DIS   = 0x08;
+        const VMEM      = 0x10;
+    }
+}
+
+fn execute_inst(state: &mut MachineState) {
+    let ram = &state.ram;
+    let op: i32 = ram.load_i32(state.ip.try_into().unwrap()).unwrap();
+
+    match op {
+        op::NOP => {
+            // println!("{:2}: nop ; {}", self.ip, op)
+        }
+        op::POP => {
+            // println!("{:2}: pop", self.ip);
+            state.sp -= 4;
+        }
+        op::PUSH => {
+            state.ip += 4;
+            let val = ram.load_i32(state.ip as _).unwrap();
+            let result = ram.store_i32(val, state.sp.try_into().unwrap());
+            assert!(result);
+            // println!("{:2}: push {val}", state.ip);
+            state.ip += 4;
+            state.sp += 4;
+            return;
+        }
+        op::PLUS => {
+            // print!("{:2}: plus ; ", state.ip);
+            state.sp -= 4;
+            let lhs = ram.load_i32(state.sp as _).unwrap();
+            let rhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let result = lhs + rhs;
+            let status = ram.store_i32(result, (state.sp - 4) as _);
+            assert!(status);
+            println!("{lhs} + {rhs} = {result}");
+        }
+        op::JMP => {
+            // println!("{:2}: jmp", state.ip);
+            state.ip += 4;
+            state.ip = ram.load_i32(state.ip as _).unwrap();
+            return;
+        }
+        op::JZ => {
+            // println!("{:2}: jz", state.ip);
+            state.sp -= 4;
+            let val = ram.load_i32(state.sp as _).unwrap();
+            if val == 0 {
+                state.ip += 4;
+                state.ip = ram.load_i32(state.ip as _).unwrap();
+            } else {
+                state.ip += 8;
+            }
+            return;
+        }
+        op::DUP => {
+            let val = ram.load_i32(state.sp as _).unwrap();
+            state.sp += 4;
+            let result = ram.store_i32(val, state.sp as _);
+            assert!(result);
+
+            // println!("{:2}: dup ; sp = {}", state.ip, state.sp);
+        }
+        op::HALT => {
+            // println!("{:2}: halt", state.ip);
+            state.flag.set(MachineFlag::HALTED, true);
+            return;
+        }
+        op::OUTS => {
+            // println!("{:2}: outs", state.ip);
+            let offset = ram.load_i32((state.sp - 4) as _).unwrap();
+            let buf = ram.load_cstr(offset as _).unwrap();
+            let stdout = stdout();
+            let mut guard = stdout.lock();
+            guard.write_all(buf.as_bytes()).unwrap();
+            guard.flush().unwrap();
+        }
+        k => unimplemented!("opcode {k}"),
+    }
+    state.ip += 4;
 }

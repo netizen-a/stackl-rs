@@ -1,4 +1,7 @@
-use std::sync;
+use std::{
+    ffi::{CStr, CString},
+    sync,
+};
 pub struct Memory {
     inner: sync::RwLock<Vec<u8>>,
 }
@@ -32,5 +35,13 @@ impl Memory {
     pub fn store_i32(&self, val: i32, offset: usize) -> bool {
         let bytes = i32::to_le_bytes(val);
         self.store_slice(&bytes, offset)
+    }
+    pub fn load_cstr(&self, offset: usize) -> Option<CString> {
+        let mem = self.inner.read().unwrap();
+        assert!(offset <= mem.len(), "offset={offset}");
+        match mem.split_at_checked(offset) {
+            Some((_, bytes)) => CStr::from_bytes_until_nul(bytes).ok().map(|s| s.to_owned()),
+            None => None,
+        }
     }
 }

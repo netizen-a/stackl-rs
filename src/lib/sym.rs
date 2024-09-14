@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{self, Addr, Data, Inst, Opcode};
+use crate::ast::{self, Inst, Opcode, Operand, Value};
 
 #[derive(Debug)]
 pub struct SymTabError {
@@ -32,10 +32,10 @@ pub(crate) fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, 
 
         if let Inst::Mnemonic(op) = &stmt.inst {
             let some_label = match op {
-                Opcode::JmpUser(Addr::Label(label))
-                | Opcode::Jmp(Addr::Label(label))
-                | Opcode::Jz(Addr::Label(label))
-                | Opcode::Call(Addr::Label(label)) => {
+                Opcode::JmpUser(Operand::Label(label))
+                | Opcode::Jmp(Operand::Label(label))
+                | Opcode::Jz(Operand::Label(label))
+                | Opcode::Call(Operand::Label(label)) => {
                     (!symtab.contains_key(label)).then_some(label.to_string())
                 }
                 _ => None,
@@ -80,8 +80,9 @@ fn get_inst_size(inst: &Inst) -> usize {
             let mut total = 0;
             for data in list {
                 total += match data {
-                    Data::Int(_) => 1,
-                    Data::String(s) => s.as_bytes().len(),
+                    Value::Int(_) => 1,
+                    Value::String(s) => s.as_bytes().len(),
+                    _ => unimplemented!(),
                 }
             }
             total
@@ -90,8 +91,8 @@ fn get_inst_size(inst: &Inst) -> usize {
             let mut total = 0;
             for data in list {
                 total += match data {
-                    Data::Int(_) => 4,
-                    Data::String(s) => {
+                    Value::Int(_) => 4,
+                    Value::String(s) => {
                         let len = s.as_bytes().len();
                         if len % 4 == 0 {
                             len
@@ -99,6 +100,7 @@ fn get_inst_size(inst: &Inst) -> usize {
                             len + 4 - (len % 4)
                         }
                     }
+                    _ => unimplemented!(),
                 }
             }
             total
