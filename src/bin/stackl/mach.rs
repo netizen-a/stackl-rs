@@ -1,5 +1,3 @@
-use std::io::{stdout, Write};
-
 use crate::ram;
 use bitflags::bitflags;
 use stackl::op;
@@ -123,11 +121,11 @@ fn execute_inst(state: &mut MachineState) {
         op::OUTS => {
             // println!("{:2}: outs", state.ip);
             let offset = ram.load_i32((state.sp - 4) as _).unwrap();
-            let buf = ram.load_cstr(offset as _).unwrap();
-            let stdout = stdout();
-            let mut guard = stdout.lock();
-            guard.write_all(buf.as_bytes()).unwrap();
-            guard.flush().unwrap();
+            let check = ram.print_str(offset as _);
+            if let Err(check) = check {
+                println!("{:?}", check);
+                state.flag.set(MachineFlag::HALTED, true);
+            }
         }
         k => unimplemented!("opcode {k}"),
     }
