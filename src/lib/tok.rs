@@ -15,9 +15,10 @@ impl From<ParseIntError> for LexicalError {
     }
 }
 
+// TODO: fix unicode error handling
 fn str_callback(lex: &mut Lexer<Token>) -> Option<String> {
     let slice = lex.slice();
-    let s = slice[1..slice.len() - 1]
+    let mut s = slice[1..slice.len() - 1]
         .replace(r"\'", "'")
         .replace("\\\"", "\"")
         .replace(r"\`", "`")
@@ -30,6 +31,33 @@ fn str_callback(lex: &mut Lexer<Token>) -> Option<String> {
         .replace(r"\f", "\x0c")
         .replace(r"\r", "\r")
         .replace(r"\e", "\x1b");
+    let v: Vec<usize> = s.match_indices(r"\u").map(|(i, _)| i).collect();
+    for i in v {
+        let number = s.get(i + 2..i + 6);
+        if let Some(number) = number {
+            let u_char = u32::from_str_radix(number, 16)
+                .ok()
+                .and_then(char::from_u32);
+            let u_str = u_char.unwrap().to_string();
+            s.replace_range(i..i+6, &u_str);
+        } else {
+            println!("error");
+        }
+    }
+    let v: Vec<usize> = s.match_indices(r"\U").map(|(i, _)| i).collect();
+    for i in v {
+        let number = s.get(i + 2..i + 10);
+        assert!(number.unwrap().len() == 8);
+        if let Some(number) = number {
+            let u_char = u32::from_str_radix(number, 16)
+                .ok()
+                .and_then(char::from_u32);
+            let u_str = u_char.unwrap().to_string();
+            s.replace_range(i..i+10, &u_str);
+        } else {
+            println!("error");
+        }
+    }
     Some(s.to_string())
 }
 

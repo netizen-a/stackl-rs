@@ -34,12 +34,10 @@ impl MachineState {
         self.sp = addr;
     }
     pub fn run(mut self) {
-        let sp_low = self.sp;
         loop {
             if self.flag.contains(MachineFlag::HALTED) {
                 return;
             }
-            assert!(sp_low <= self.sp);
             execute_inst(&mut self);
         }
     }
