@@ -88,14 +88,14 @@ pub enum Token {
     // Opcodes
     #[token("NOP", ignore(ascii_case))]
     OpNop,
-    #[token("PLUS", ignore(ascii_case))]
-    OpPlus,
-    #[token("MINUS", ignore(ascii_case))]
-    OpMinus,
-    #[token("TIMES", ignore(ascii_case))]
-    OpTimes,
-    #[token("DIVIDE", ignore(ascii_case))]
-    OpDivide,
+    #[token("ADD", ignore(ascii_case))]
+    OpAdd,
+    #[token("SUB", ignore(ascii_case))]
+    OpSub,
+    #[token("MUL", ignore(ascii_case))]
+    OpMul,
+    #[token("DIV", ignore(ascii_case))]
+    OpDiv,
     #[token("MOD", ignore(ascii_case))]
     OpMod,
     #[token("EQ", ignore(ascii_case))]

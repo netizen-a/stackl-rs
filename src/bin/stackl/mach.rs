@@ -61,29 +61,112 @@ fn execute_inst(state: &mut MachineState) {
         op::NOP => {
             // println!("{:2}: nop ; {}", self.ip, op)
         }
-        op::POP => {
-            // println!("{:2}: pop", self.ip);
+        op::ADD => {
+            // print!("{:2}: add ; ", state.ip);
             state.sp -= 4;
-        }
-        op::PUSH => {
-            state.ip += 4;
-            let val = ram.load_i32(state.ip as _).unwrap();
-            let result = ram.store_i32(val, state.sp.try_into().unwrap());
-            assert!(result);
-            // println!("{:2}: push {val}", state.ip);
-            state.ip += 4;
-            state.sp += 4;
-            return;
-        }
-        op::PLUS => {
-            // print!("{:2}: plus ; ", state.ip);
-            state.sp -= 4;
-            let lhs = ram.load_i32(state.sp as _).unwrap();
-            let rhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let rhs = ram.load_i32(state.sp as _).unwrap();
             let result = lhs + rhs;
             let status = ram.store_i32(result, (state.sp - 4) as _);
             assert!(status);
             println!("{lhs} + {rhs} = {result}");
+        }
+        op::SUB => {
+            state.sp -= 4;
+            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let rhs = ram.load_i32(state.sp as _).unwrap();
+            let result = lhs - rhs;
+            let status = ram.store_i32(result, (state.sp - 4) as _);
+            assert!(status);
+            println!("{lhs} - {rhs} = {result}");
+        }
+        op::MUL => {
+            state.sp -= 4;
+            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let rhs = ram.load_i32(state.sp as _).unwrap();
+            let result = lhs * rhs;
+            let status = ram.store_i32(result, (state.sp - 4) as _);
+            assert!(status);
+            println!("{lhs} * {rhs} = {result}");
+        }
+        op::DIV => {
+            state.sp -= 4;
+            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let rhs = ram.load_i32(state.sp as _).unwrap();
+            if let Some(result) = lhs.checked_div(rhs) {
+                let status = ram.store_i32(result, (state.sp - 4) as _);
+                assert!(status);
+                println!("{lhs} / {rhs} = {result}");
+            } else {
+                println!("Machine Check: Div error");
+                state.flag.set(MachineFlag::HALTED, true);
+            }
+        }
+        op::MOD => {
+            state.sp -= 4;
+            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
+            let rhs = ram.load_i32(state.sp as _).unwrap();
+            if let Some(result) = lhs.checked_rem(rhs) {
+                let status = ram.store_i32(result, (state.sp - 4) as _);
+                assert!(status);
+                println!("{lhs} % {rhs} = {result}");
+            } else {
+                println!("Machine Check: Mod error");
+                state.flag.set(MachineFlag::HALTED, true);
+            }
+        }
+        op::DUP => {
+            let val = ram.load_i32(state.sp as _).unwrap();
+            state.sp += 4;
+            let result = ram.store_i32(val, state.sp as _);
+            assert!(result);
+            // println!("{:2}: dup ; sp = {}", state.ip, state.sp);
+        }
+        op::HALT => {
+            // println!("{:2}: halt", state.ip);
+            state.flag.set(MachineFlag::HALTED, true);
+            return;
+        }
+        op::POP => {
+            // println!("{:2}: pop", self.ip);
+            state.sp -= 4;
+        }
+        op::OUTS => {
+            // println!("{:2}: outs", state.ip);
+            let offset = ram.load_i32((state.sp - 4) as _).unwrap();
+            let check = ram.print_str(offset as _);
+            if let Err(check) = check {
+                println!("{:?}", check);
+                state.flag.set(MachineFlag::HALTED, true);
+            }
+        }
+        op::JMPUSER => {
+            state.ip += 4;
+            state.ip = ram.load_i32(state.ip as _).unwrap();
+            state.flag.set(MachineFlag::USER_MODE, true);
+        }
+        op::PUSHREG => {
+            let reg = ram.load_i32((state.ip + 4) as _).unwrap();
+            let status = match reg {
+                0 => ram.store_i32(state.bp, state.sp as _),
+                1 => ram.store_i32(state.lp, state.sp as _),
+                2 => ram.store_i32(state.ip, state.sp as _),
+                3 => ram.store_i32(state.sp, state.sp as _),
+                4 => ram.store_i32(state.fp, state.sp as _),
+                5 => ram.store_i32(state.flag.bits(), state.sp as _),
+                _ => panic!("Machine check"),
+            };
+            assert!(status);
+            state.sp += 4;
+            state.ip += 4;
+        }
+        op::PUSH => {
+            state.ip += 4;
+            let val = ram.load_i32(state.ip as _).unwrap();
+            let result = ram.store_i32(val, state.sp as _);
+            assert!(result);
+            // println!("{:2}: push {val}", state.ip);
+            state.sp += 4;
         }
         op::JMP => {
             // println!("{:2}: jmp", state.ip);
@@ -102,28 +185,6 @@ fn execute_inst(state: &mut MachineState) {
                 state.ip += 8;
             }
             return;
-        }
-        op::DUP => {
-            let val = ram.load_i32(state.sp as _).unwrap();
-            state.sp += 4;
-            let result = ram.store_i32(val, state.sp as _);
-            assert!(result);
-
-            // println!("{:2}: dup ; sp = {}", state.ip, state.sp);
-        }
-        op::HALT => {
-            // println!("{:2}: halt", state.ip);
-            state.flag.set(MachineFlag::HALTED, true);
-            return;
-        }
-        op::OUTS => {
-            // println!("{:2}: outs", state.ip);
-            let offset = ram.load_i32((state.sp - 4) as _).unwrap();
-            let check = ram.print_str(offset as _);
-            if let Err(check) = check {
-                println!("{:?}", check);
-                state.flag.set(MachineFlag::HALTED, true);
-            }
         }
         k => unimplemented!("opcode {k}"),
     }

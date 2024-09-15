@@ -86,10 +86,10 @@ impl From<Vec<Stmt>> for StacklFormat {
 fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
     let text: Vec<u32> = match op {
         Opcode::Nop => vec![0],
-        Opcode::Plus => vec![1],
-        Opcode::Minus => vec![2],
-        Opcode::Times => vec![3],
-        Opcode::Divide => vec![4],
+        Opcode::Add => vec![1],
+        Opcode::Sub => vec![2],
+        Opcode::Mul => vec![3],
+        Opcode::Div => vec![4],
         Opcode::Mod => vec![5],
         Opcode::Eq => vec![6],
         Opcode::Ne => vec![7],

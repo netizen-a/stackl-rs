@@ -1,8 +1,8 @@
 pub const NOP: i32 = 0;
-pub const PLUS: i32 = 1;
-pub const MINUS: i32 = 2;
-pub const TIMES: i32 = 3;
-pub const DIVIDE: i32 = 4;
+pub const ADD: i32 = 1;
+pub const SUB: i32 = 2;
+pub const MUL: i32 = 3;
+pub const DIV: i32 = 4;
 pub const MOD: i32 = 5;
 pub const EQ: i32 = 6;
 pub const NE: i32 = 7;

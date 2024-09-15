@@ -70,10 +70,10 @@ pub enum Reg {
 #[non_exhaustive]
 pub enum Opcode {
     Nop,
-    Plus,
-    Minus,
-    Times,
-    Divide,
+    Add,
+    Sub,
+    Mul,
+    Div,
     Mod,
     Eq,
     Ne,
