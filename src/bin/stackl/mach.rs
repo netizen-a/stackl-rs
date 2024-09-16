@@ -62,8 +62,7 @@ bitflags! {
 }
 
 fn execute_inst(state: &mut MachineState) {
-    let ram = &state.ram;
-    let op: i32 = ram.load_i32(state.ip.try_into().unwrap()).unwrap();
+    let op: i32 = state.ram.load_i32(state.ip.try_into().unwrap()).unwrap();
 
     match op {
         op::NOP => {
@@ -72,10 +71,10 @@ fn execute_inst(state: &mut MachineState) {
         op::ADD => {
             // print!("{:2}: add ; ", state.ip);
             state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
+            let lhs = state.ram.load_i32((state.sp - 4) as _).unwrap();
+            let rhs = state.ram.load_i32(state.sp as _).unwrap();
             let result = lhs + rhs;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
+            let status = state.ram.store_i32(result, (state.sp - 4) as _);
             assert!(status);
             println!("{lhs} + {rhs} = {result}");
         }
@@ -85,123 +84,77 @@ fn execute_inst(state: &mut MachineState) {
             state.push_i32(lhs - rhs);
         }
         op::MUL => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = lhs * rhs;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} * {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs * rhs);
         }
         op::DIV => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
             if let Some(result) = lhs.checked_div(rhs) {
-                let status = ram.store_i32(result, (state.sp - 4) as _);
-                assert!(status);
-                println!("{lhs} / {rhs} = {result}");
+                state.push_i32(result);
             } else {
                 println!("Machine Check: Div error");
                 state.flag.set(MachineFlag::HALTED, true);
             }
         }
         op::MOD => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
             if let Some(result) = lhs.checked_rem_euclid(rhs) {
-                let status = ram.store_i32(result, (state.sp - 4) as _);
-                assert!(status);
-                println!("{lhs} % {rhs} = {result}");
+                state.push_i32(result);
             } else {
                 println!("Machine Check: Mod error");
                 state.flag.set(MachineFlag::HALTED, true);
             }
         }
         op::EQ => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs == rhs) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} == {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs == rhs) as i32);
         }
         op::NE => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs != rhs) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} != {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs != rhs) as i32);
         }
         op::GT => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs > rhs) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} > {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs > rhs) as i32);
         }
         op::LT => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs < rhs) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} < {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs < rhs) as i32);
         }
         op::GE => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs >= rhs) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} >= {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs >= rhs) as i32);
         }
         op::LE => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs <= rhs) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} <= {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs <= rhs) as i32);
         }
         op::AND => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs != 0 && rhs != 0) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} /\\ {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs != 0 && rhs != 0) as i32);
         }
         op::OR => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = (lhs != 0 || rhs != 0) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} \\/ {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32((lhs != 0 || rhs != 0) as i32);
         }
         op::NOT => {
-            state.sp -= 4;
-            let val = ram.load_i32(state.sp as _).unwrap();
-            let result = (!(val != 0)) as i32;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("!{val} = {result}");
+            let val = state.pop_i32().unwrap();
+            state.push_i32((!(val != 0)) as i32);
         }
         op::DUP => {
-            let val = ram.load_i32((state.sp - 4) as _).unwrap();
-            let result = ram.store_i32(val, state.sp as _);
+            let val = state.ram.load_i32((state.sp - 4) as _).unwrap();
+            let result = state.ram.store_i32(val, state.sp as _);
             assert!(result);
             // println!("{:2}: dup {val} ; sp = {}", state.ip, state.sp);
             state.sp += 4;
@@ -217,8 +170,8 @@ fn execute_inst(state: &mut MachineState) {
         }
         op::OUTS => {
             // println!("{:2}: outs", state.ip);
-            let offset = ram.load_i32((state.sp - 4) as _).unwrap();
-            let check = ram.print_str(offset as _);
+            let offset = state.ram.load_i32((state.sp - 4) as _).unwrap();
+            let check = state.ram.print_str(offset as _);
             if let Err(check) = check {
                 println!("{:?}", check);
                 state.flag.set(MachineFlag::HALTED, true);
@@ -226,18 +179,18 @@ fn execute_inst(state: &mut MachineState) {
         }
         op::JMPUSER => {
             state.ip += 4;
-            state.ip = ram.load_i32(state.ip as _).unwrap();
+            state.ip = state.ram.load_i32(state.ip as _).unwrap();
             state.flag.set(MachineFlag::USER_MODE, true);
         }
         op::PUSHREG => {
-            let reg = ram.load_i32((state.ip + 4) as _).unwrap();
+            let reg = state.ram.load_i32((state.ip + 4) as _).unwrap();
             let status = match reg {
-                0 => ram.store_i32(state.bp, state.sp as _),
-                1 => ram.store_i32(state.lp, state.sp as _),
-                2 => ram.store_i32(state.ip, state.sp as _),
-                3 => ram.store_i32(state.sp, state.sp as _),
-                4 => ram.store_i32(state.fp, state.sp as _),
-                5 => ram.store_i32(state.flag.bits(), state.sp as _),
+                0 => state.ram.store_i32(state.bp, state.sp as _),
+                1 => state.ram.store_i32(state.lp, state.sp as _),
+                2 => state.ram.store_i32(state.ip, state.sp as _),
+                3 => state.ram.store_i32(state.sp, state.sp as _),
+                4 => state.ram.store_i32(state.fp, state.sp as _),
+                5 => state.ram.store_i32(state.flag.bits(), state.sp as _),
                 _ => panic!("Machine check"),
             };
             assert!(status);
@@ -246,23 +199,21 @@ fn execute_inst(state: &mut MachineState) {
         }
         op::PUSH => {
             state.ip += 4;
-            let val = ram.load_i32(state.ip as _).unwrap();
+            let val = state.ram.load_i32(state.ip as _).unwrap();
             state.push_i32(val);
             // println!("{:2}: push {val}", state.ip);
         }
         op::JMP => {
             // println!("{:2}: jmp", state.ip);
             state.ip += 4;
-            state.ip = ram.load_i32(state.ip as _).unwrap();
+            state.ip = state.ram.load_i32(state.ip as _).unwrap();
             return;
         }
         op::JZ => {
-            // println!("{:2}: jz", state.ip);
-            state.sp -= 4;
-            let val = ram.load_i32(state.sp as _).unwrap();
+            let val = state.pop_i32().unwrap();
             if val == 0 {
                 state.ip += 4;
-                state.ip = ram.load_i32(state.ip as _).unwrap();
+                state.ip = state.ram.load_i32(state.ip as _).unwrap();
             } else {
                 state.ip += 8;
             }
