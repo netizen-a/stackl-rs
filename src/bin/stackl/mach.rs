@@ -29,7 +29,15 @@ impl MachineState {
             ram: ram::Memory::new(mem_size.try_into().unwrap()),
         }
     }
-
+    fn push_i32(&mut self, val: i32) {
+        let result = self.ram.store_i32(val, self.sp as _);
+        assert!(result);
+        self.sp += 4;
+    }
+    fn pop_i32(&mut self) -> Option<i32> {
+        self.sp -= 4;
+        self.ram.load_i32(self.sp as _)
+    }
     pub fn set_sp(&mut self, addr: i32) {
         self.sp = addr;
     }
@@ -72,13 +80,9 @@ fn execute_inst(state: &mut MachineState) {
             println!("{lhs} + {rhs} = {result}");
         }
         op::SUB => {
-            state.sp -= 4;
-            let lhs = ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = ram.load_i32(state.sp as _).unwrap();
-            let result = lhs - rhs;
-            let status = ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} - {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs - rhs);
         }
         op::MUL => {
             state.sp -= 4;
@@ -243,10 +247,8 @@ fn execute_inst(state: &mut MachineState) {
         op::PUSH => {
             state.ip += 4;
             let val = ram.load_i32(state.ip as _).unwrap();
-            let result = ram.store_i32(val, state.sp as _);
-            assert!(result);
+            state.push_i32(val);
             // println!("{:2}: push {val}", state.ip);
-            state.sp += 4;
         }
         op::JMP => {
             // println!("{:2}: jmp", state.ip);

@@ -14,12 +14,7 @@ impl Memory {
     pub fn store_slice(&self, val: &[u8], offset: usize) -> bool {
         let mut ram = self.inner.write().unwrap();
         if ram.len() > val.len() + offset {
-            let count = val.len();
-            unsafe {
-                ram.as_mut_ptr()
-                    .add(offset)
-                    .copy_from_nonoverlapping(val.as_ptr(), count);
-            }
+            ram[offset..offset + val.len()].clone_from_slice(val);
             true
         } else {
             false
