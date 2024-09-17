@@ -26,7 +26,7 @@ pub struct StacklFormat {
 impl StacklFormat {
     pub fn to_vec(self) -> Vec<u8> {
         let mut ret = Vec::from(self.magic);
-        ret.extend(&self.version.to_le_bytes());
+        ret.extend(self.version.to_le_bytes());
         ret.extend(self.flags.to_le_bytes());
         ret.extend(self.int_vec.to_le_bytes());
         ret.extend(self.trap_vec.to_le_bytes());

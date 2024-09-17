@@ -65,18 +65,11 @@ fn execute_inst(state: &mut MachineState) {
     let op: i32 = state.ram.load_i32(state.ip.try_into().unwrap()).unwrap();
 
     match op {
-        op::NOP => {
-            // println!("{:2}: nop ; {}", self.ip, op)
-        }
+        op::NOP => {}
         op::ADD => {
-            // print!("{:2}: add ; ", state.ip);
-            state.sp -= 4;
-            let lhs = state.ram.load_i32((state.sp - 4) as _).unwrap();
-            let rhs = state.ram.load_i32(state.sp as _).unwrap();
-            let result = lhs + rhs;
-            let status = state.ram.store_i32(result, (state.sp - 4) as _);
-            assert!(status);
-            println!("{lhs} + {rhs} = {result}");
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs + rhs);
         }
         op::SUB => {
             let rhs = state.pop_i32().unwrap();
@@ -168,6 +161,10 @@ fn execute_inst(state: &mut MachineState) {
             // println!("{:2}: pop", self.ip);
             state.sp -= 4;
         }
+        op::NEG => {
+            let val = state.pop_i32().unwrap();
+            state.push_i32(-val);
+        }
         op::OUTS => {
             // println!("{:2}: outs", state.ip);
             let offset = state.ram.load_i32((state.sp - 4) as _).unwrap();
@@ -183,25 +180,51 @@ fn execute_inst(state: &mut MachineState) {
             state.flag.set(MachineFlag::USER_MODE, true);
         }
         op::PUSHREG => {
-            let reg = state.ram.load_i32((state.ip + 4) as _).unwrap();
-            let status = match reg {
-                0 => state.ram.store_i32(state.bp, state.sp as _),
-                1 => state.ram.store_i32(state.lp, state.sp as _),
-                2 => state.ram.store_i32(state.ip, state.sp as _),
-                3 => state.ram.store_i32(state.sp, state.sp as _),
-                4 => state.ram.store_i32(state.fp, state.sp as _),
-                5 => state.ram.store_i32(state.flag.bits(), state.sp as _),
-                _ => panic!("Machine check"),
-            };
-            assert!(status);
-            state.sp += 4;
             state.ip += 4;
+            let reg = state.ram.load_i32(state.ip as _).unwrap();
+            match reg {
+                0 => state.push_i32(state.bp),
+                1 => state.push_i32(state.lp),
+                2 => state.push_i32(state.ip),
+                3 => state.push_i32(state.sp),
+                4 => state.push_i32(state.fp),
+                5 => state.push_i32(state.flag.bits()),
+                _ => panic!("Machine check"),
+            }
+        }
+        op::BAND => {
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs & rhs);
+        }
+        op::BOR => {
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs | rhs);
+        }
+        op::BXOR => {
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs ^ rhs);
+        }
+        op::SHIFTL => {
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs << rhs);
+        }
+        op::SHIFTR => {
+            let rhs = state.pop_i32().unwrap();
+            let lhs = state.pop_i32().unwrap();
+            state.push_i32(lhs >> rhs);
+        }
+        op::COMP => {
+            let val = state.pop_i32().unwrap();
+            state.push_i32(!val);
         }
         op::PUSH => {
             state.ip += 4;
             let val = state.ram.load_i32(state.ip as _).unwrap();
             state.push_i32(val);
-            // println!("{:2}: push {val}", state.ip);
         }
         op::JMP => {
             // println!("{:2}: jmp", state.ip);
