@@ -78,6 +78,8 @@ impl From<Vec<Stmt>> for StacklFormat {
             magic: [b's', b'l', 0, 0],
             version: 0,
             flags: 0,
+            int_vec: -1,
+            trap_vec: -1,
             text,
         }
     }
