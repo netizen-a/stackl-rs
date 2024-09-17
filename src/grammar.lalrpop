@@ -70,11 +70,14 @@ Directive: Directive = {
     "segment" | "section" => Ok(Directive::Segment),
     "extern" => Ok(Directive::Extern),
     "global" => Ok(Directive::Global),
+    "interrupt" => Ok(Directive::Interrupt),
+    "systrap" => Ok(Directive::Systrap),
     _ => Err(ParseError::UnrecognizedToken {
       token: (start, Token::Identifier(i), end),
       expected: vec![
         "segment".to_string(), "section".to_string(),
-        "extern".to_string(), "global".to_string()
+        "extern".to_string(), "global".to_string(),
+        "interrupt".to_string(), "systrap".to_string(),
       ],
     })
   },

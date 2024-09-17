@@ -34,7 +34,7 @@ fn main() -> ExitCode {
     stackl::ast::fixup_labels(&mut ast);
     stackl::ast::fixup_start(&mut ast);
 
-    let code = stackl::StacklFormat::from(ast);
+    let code = stackl::StacklFormat::try_from(ast).unwrap();
     let outfile = args.asmfile.with_extension("stackl");
     let outfile = outfile.file_name().unwrap();
     fs::write(outfile, code.to_vec()).unwrap();

@@ -48,6 +48,8 @@ pub enum Directive {
     Segment,
     Extern,
     Global,
+    Interrupt,
+    Systrap,
 }
 
 #[derive(Debug, PartialEq, Clone)]

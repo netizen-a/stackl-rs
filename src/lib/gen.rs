@@ -1,13 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, error::Error};
 
 use crate::{ast::*, sym, StacklFormat};
 
-// TODO: refactor `From` trait to `TryFrom`
-impl From<Vec<Stmt>> for StacklFormat {
-    fn from(ast: Vec<Stmt>) -> crate::StacklFormat {
+impl TryFrom<Vec<Stmt>> for StacklFormat {
+    type Error = Box<dyn Error>;
+    fn try_from(ast: Vec<Stmt>) -> Result<crate::StacklFormat, Self::Error> {
         let symtab: HashMap<String, usize> = sym::build_symtab(&ast).unwrap();
         let mut text = Vec::<u8>::new();
         let mut is_start_global = false;
+        let mut int_vec = -1;
+        let mut trap_vec = -1;
         for stmt in ast {
             let data: Vec<u8> = match stmt.inst {
                 Inst::Mnemonic(op) => convert_op(&op, &symtab),
@@ -64,6 +66,20 @@ impl From<Vec<Stmt>> for StacklFormat {
                     }
                     vec![]
                 }
+                Inst::Directive(Directive::Interrupt, sym) =>  {
+                    if sym.len() != 1 {
+                        panic!("invalid directive args");
+                    }
+                    int_vec = symtab[&sym[0]].try_into().unwrap();
+                    vec![]
+                }
+                Inst::Directive(Directive::Systrap, sym) =>  {
+                    if sym.len() != 1 {
+                        panic!("invalid directive args");
+                    }
+                    trap_vec = symtab[&sym[0]].try_into().unwrap();
+                    vec![]
+                }
             };
             if !data.is_empty() {
                 text.extend(data);
@@ -74,14 +90,14 @@ impl From<Vec<Stmt>> for StacklFormat {
             panic!("Symbol _start not global");
         }
 
-        crate::StacklFormat {
+        Ok(crate::StacklFormat {
             magic: [b's', b'l', 0, 0],
             version: 0,
             flags: 0,
-            int_vec: -1,
-            trap_vec: -1,
+            int_vec,
+            trap_vec,
             text,
-        }
+        })
     }
 }
 
