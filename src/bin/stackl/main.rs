@@ -8,8 +8,11 @@ mod mach;
 mod ram;
 
 #[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
 struct Args {
     file: path::PathBuf,
+    #[arg(long, default_value_t = false)]
+    trace: bool,
 }
 fn main() -> ExitCode {
     let args = Args::parse();
@@ -25,6 +28,7 @@ fn main() -> ExitCode {
         data.text.len()
     };
     machine.set_sp(sp_addr.try_into().unwrap());
+    machine.set_trace(args.trace);
     machine.run();
     ExitCode::SUCCESS
 }

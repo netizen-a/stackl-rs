@@ -41,8 +41,17 @@ impl MachineState {
     pub fn set_sp(&mut self, addr: i32) {
         self.sp = addr;
     }
+    pub fn set_trace(&mut self, value: bool) {
+        self.flag.set(MachineFlag::TRACE, value);
+    }
     pub fn run(mut self) {
         loop {
+            if self.flag.contains(MachineFlag::TRACE) {
+                eprintln!("{:08x} {:6} {:6} {:6} {:6} {:6} {}",
+                    self.flag.bits(), self.bp, self.lp, self.ip, self.sp, self.fp,
+                    self.ram.load_i32(self.ip as _).unwrap()
+                );
+            }
             if self.flag.contains(MachineFlag::HALTED) {
                 return;
             }
@@ -58,6 +67,7 @@ bitflags! {
         const INT_MODE  = 0x04;
         const INT_DIS   = 0x08;
         const VMEM      = 0x10;
+        const TRACE    = 0x20;
     }
 }
 
@@ -201,7 +211,7 @@ fn execute_inst(state: &mut MachineState) {
                 2 => {
                     state.ip = state.pop_i32().unwrap();
                     return;
-                },
+                }
                 3 => state.sp = state.pop_i32().unwrap(),
                 4 => state.fp = state.pop_i32().unwrap(),
                 5 => state.flag = MachineFlag::from_bits(state.pop_i32().unwrap()).unwrap(),
@@ -257,6 +267,14 @@ fn execute_inst(state: &mut MachineState) {
                 state.ip += 8;
             }
             return;
+        }
+        op::TRACEON => {
+            eprintln!("\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
+                "Flag", "BP", "LP", "IP", "SP", "FP");
+            state.set_trace(true);
+        }
+        op::TRACEOFF => {
+            state.set_trace(false);
         }
         k => unimplemented!("opcode {k}"),
     }
