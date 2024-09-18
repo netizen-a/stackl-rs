@@ -122,9 +122,9 @@ pub enum Opcode {
     Call(Operand),
     PushCVar(Operand),
     PopCVar(Operand),
-    TraceOn,
-    TraceOff,
-    ClearIntDis,
+    SetTrace,
+    ClrTrace,
+    ClrIntDis,
     SetIntDis,
     Illegal,
 }

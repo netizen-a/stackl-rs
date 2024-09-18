@@ -187,9 +187,9 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
             &Operand::Int(value) => vec![50, value as _],
             Operand::Label(label) => vec![50, symtab[label].try_into().unwrap()],
         },
-        Opcode::TraceOn => vec![51],
-        Opcode::TraceOff => vec![52],
-        Opcode::ClearIntDis => vec![53],
+        Opcode::SetTrace => vec![51],
+        Opcode::ClrTrace => vec![52],
+        Opcode::ClrIntDis => vec![53],
         Opcode::SetIntDis => vec![54],
         Opcode::Illegal => vec![55],
     };

@@ -188,10 +188,10 @@ pub enum Token {
     OpPushCVar,
     #[token("POPCVAR", ignore(ascii_case))]
     OpPopCVar,
-    #[token("TRACE_ON", ignore(ascii_case))]
-    OpTraceOn,
-    #[token("TRACE_OFF", ignore(ascii_case))]
-    OpTraceOff,
+    #[token("SET_TRACE", ignore(ascii_case))]
+    OpSetTrace,
+    #[token("CLR_TRACE", ignore(ascii_case))]
+    OpClrTrace,
     #[token("CLID", ignore(ascii_case))]
     OpCLID,
     #[token("SEID", ignore(ascii_case))]

@@ -43,17 +43,21 @@ impl MachineState {
     }
     pub fn set_trace(&mut self, value: bool) {
         self.flag.set(MachineFlag::TRACE, value);
+        if value {
+            eprintln!("\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
+                "Flag", "BP", "LP", "IP", "SP", "FP");
+        }
     }
     pub fn run(mut self) {
         loop {
+            if self.flag.contains(MachineFlag::HALTED) {
+                return;
+            }
             if self.flag.contains(MachineFlag::TRACE) {
                 eprintln!("{:08x} {:6} {:6} {:6} {:6} {:6} {}",
                     self.flag.bits(), self.bp, self.lp, self.ip, self.sp, self.fp,
                     self.ram.load_i32(self.ip as _).unwrap()
                 );
-            }
-            if self.flag.contains(MachineFlag::HALTED) {
-                return;
             }
             execute_inst(&mut self);
         }
@@ -268,12 +272,10 @@ fn execute_inst(state: &mut MachineState) {
             }
             return;
         }
-        op::TRACEON => {
-            eprintln!("\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
-                "Flag", "BP", "LP", "IP", "SP", "FP");
+        op::SET_TRACE => {
             state.set_trace(true);
         }
-        op::TRACEOFF => {
+        op::CLR_TRACE => {
             state.set_trace(false);
         }
         k => unimplemented!("opcode {k}"),
