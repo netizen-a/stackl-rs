@@ -163,24 +163,26 @@ fn execute_inst(state: &mut MachineState) {
             let val = state.ram.load_i32((state.sp - 4) as _).unwrap();
             let result = state.ram.store_i32(val, state.sp as _);
             assert!(result);
-            // println!("{:2}: dup {val} ; sp = {}", state.ip, state.sp);
             state.sp += 4;
         }
         op::HALT => {
-            // println!("{:2}: halt", state.ip);
             state.flag.set(MachineFlag::HALTED, true);
             return;
         }
         op::POP => {
-            // println!("{:2}: pop", self.ip);
             state.sp -= 4;
+        }
+        op::RETURN => {
+            state.sp = state.fp - 4;
+            state.ip = state.ram.load_i32((state.fp - 8) as _).unwrap();
+            state.fp = state.ram.load_i32((state.fp - 4) as _).unwrap();
+            return;
         }
         op::NEG => {
             let val = state.pop_i32().unwrap();
             state.push_i32(-val);
         }
         op::OUTS => {
-            // println!("{:2}: outs", state.ip);
             let offset = state.ram.load_i32((state.sp - 4) as _).unwrap();
             let check = state.ram.print_str(offset as _);
             if let Err(check) = check {
@@ -257,7 +259,6 @@ fn execute_inst(state: &mut MachineState) {
             state.push_i32(val);
         }
         op::JMP => {
-            // println!("{:2}: jmp", state.ip);
             state.ip += 4;
             state.ip = state.ram.load_i32(state.ip as _).unwrap();
             return;
@@ -272,11 +273,24 @@ fn execute_inst(state: &mut MachineState) {
             }
             return;
         }
+        op::CALL => {
+            state.push_i32(state.ip + 4);
+            state.push_i32(state.fp);
+            state.fp = state.sp;
+            state.ip = state.ram.load_i32((state.ip + 4) as _).unwrap();
+            return;
+        }
         op::SET_TRACE => {
             state.set_trace(true);
         }
         op::CLR_TRACE => {
             state.set_trace(false);
+        }
+        op::CLR_INT_DIS => {
+            state.flag.set(MachineFlag::INT_DIS, false);
+        }
+        op::SET_INT_DIS => {
+            state.flag.set(MachineFlag::INT_DIS, true);
         }
         k => unimplemented!("opcode {k}"),
     }
