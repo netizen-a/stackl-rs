@@ -33,16 +33,16 @@ pub(crate) fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, 
         if let Inst::Mnemonic(op) = &stmt.inst {
             let some_label = match op {
                 Opcode::JmpUser(Operand::Label(label))
-                    | Opcode::Push(Operand::Label(label))
-                    | Opcode::Jmp(Operand::Label(label))
-                    | Opcode::Jz(Operand::Label(label))
-                    | Opcode::PushVar(Operand::Label(label))
-                    | Opcode::PopVar(Operand::Label(label))
-                    | Opcode::AdjSP(Operand::Label(label))
-                    | Opcode::PopArgs(Operand::Label(label))
-                    | Opcode::Call(Operand::Label(label))
-                    | Opcode::PushCVar(Operand::Label(label))
-                    | Opcode::PopCVar(Operand::Label(label)) => {
+                | Opcode::Push(Operand::Label(label))
+                | Opcode::Jmp(Operand::Label(label))
+                | Opcode::Jz(Operand::Label(label))
+                | Opcode::PushVar(Operand::Label(label))
+                | Opcode::PopVar(Operand::Label(label))
+                | Opcode::AdjSP(Operand::Label(label))
+                | Opcode::PopArgs(Operand::Label(label))
+                | Opcode::Call(Operand::Label(label))
+                | Opcode::PushCVar(Operand::Label(label))
+                | Opcode::PopCVar(Operand::Label(label)) => {
                     (!symtab.contains_key(label)).then_some(label.to_string())
                 }
                 _ => None,

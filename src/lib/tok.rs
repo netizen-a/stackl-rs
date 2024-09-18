@@ -39,7 +39,7 @@ fn str_callback(lex: &mut Lexer<Token>) -> Option<String> {
                 .ok()
                 .and_then(char::from_u32);
             let u_str = u_char.unwrap().to_string();
-            s.replace_range(i..i+6, &u_str);
+            s.replace_range(i..i + 6, &u_str);
         } else {
             println!("error");
         }
@@ -53,7 +53,7 @@ fn str_callback(lex: &mut Lexer<Token>) -> Option<String> {
                 .ok()
                 .and_then(char::from_u32);
             let u_str = u_char.unwrap().to_string();
-            s.replace_range(i..i+10, &u_str);
+            s.replace_range(i..i + 10, &u_str);
         } else {
             println!("error");
         }

@@ -192,6 +192,22 @@ fn execute_inst(state: &mut MachineState) {
                 _ => panic!("Machine check"),
             }
         }
+        op::POPREG => {
+            state.ip += 4;
+            let reg = state.ram.load_i32(state.ip as _).unwrap();
+            match reg {
+                0 => state.bp = state.pop_i32().unwrap(),
+                1 => state.lp = state.pop_i32().unwrap(),
+                2 => {
+                    state.ip = state.pop_i32().unwrap();
+                    return;
+                },
+                3 => state.sp = state.pop_i32().unwrap(),
+                4 => state.fp = state.pop_i32().unwrap(),
+                5 => state.flag = MachineFlag::from_bits(state.pop_i32().unwrap()).unwrap(),
+                _ => panic!("Machine check"),
+            }
+        }
         op::BAND => {
             let rhs = state.pop_i32().unwrap();
             let lhs = state.pop_i32().unwrap();

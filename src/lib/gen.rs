@@ -66,14 +66,14 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                     }
                     vec![]
                 }
-                Inst::Directive(Directive::Interrupt, sym) =>  {
+                Inst::Directive(Directive::Interrupt, sym) => {
                     if sym.len() != 1 {
                         panic!("invalid directive args");
                     }
                     int_vec = symtab[&sym[0]].try_into().unwrap();
                     vec![]
                 }
-                Inst::Directive(Directive::Systrap, sym) =>  {
+                Inst::Directive(Directive::Systrap, sym) => {
                     if sym.len() != 1 {
                         panic!("invalid directive args");
                     }
