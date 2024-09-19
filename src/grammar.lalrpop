@@ -23,7 +23,7 @@ LabelList: Vec<String> = {
   },
 }
 
-Labels: Vec<String> = <l:LabelList> "\n"? => l;
+Labels: Vec<String> = <l:LabelList> "\n"* => l;
 
 ValueList: Vec<Value> = {
   Value => vec![<>],

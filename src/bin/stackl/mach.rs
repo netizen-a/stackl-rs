@@ -275,12 +275,18 @@ fn execute_inst(state: &mut MachineState) {
             }
             return;
         }
+        op::PUSHVAR => {
+            state.ip += 4;
+            let offset = state.ram.load_i32(state.ip as _).unwrap();
+            let val = state.ram.load_i32((state.fp + offset) as _).unwrap();
+            state.push_i32(val);
+        }
         op::ADJSP => {
             state.ip += 4;
             state.sp += state.ram.load_i32(state.ip as _).unwrap();
         }
         op::CALL => {
-            state.push_i32(state.ip + 4);
+            state.push_i32(state.ip + 8);
             state.push_i32(state.fp);
             state.fp = state.sp;
             state.ip = state.ram.load_i32((state.ip + 4) as _).unwrap();
