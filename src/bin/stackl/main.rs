@@ -18,8 +18,6 @@ fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
-    // println!("{:?}", data.text);
-    // println!("text.len() = {}", data.text.len());
     let mut machine = mach::MachineState::new(1000);
     machine.ram.store_slice(&data.text, 0);
     let sp_addr = if data.text.len() % 2 != 0 {

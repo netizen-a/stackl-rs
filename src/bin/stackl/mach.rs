@@ -66,12 +66,14 @@ impl MachineState {
 
 bitflags! {
     struct MachineFlag: i32 {
-        const HALTED    = 0x01;
-        const USER_MODE = 0x02;
-        const INT_MODE  = 0x04;
-        const INT_DIS   = 0x08;
-        const VMEM      = 0x10;
-        const TRACE    = 0x20;
+        const HALTED    = 0x00001;
+        const USER_MODE = 0x00002;
+        const INT_MODE  = 0x00004;
+        const INT_DIS   = 0x00008;
+        const VMEM      = 0x00010;
+        const TRACE     = 0x00020;
+        const I_MACH    = 0x10000;
+        const I_TRAP    = 0x20000;
     }
 }
 
@@ -272,6 +274,10 @@ fn execute_inst(state: &mut MachineState) {
                 state.ip += 8;
             }
             return;
+        }
+        op::ADJSP => {
+            state.ip += 4;
+            state.sp += state.ram.load_i32(state.ip as _).unwrap();
         }
         op::CALL => {
             state.push_i32(state.ip + 4);
