@@ -77,234 +77,234 @@ bitflags! {
     }
 }
 
-fn execute_inst(state: &mut MachineState) {
-    let op: i32 = state.ram.load_i32(state.ip.try_into().unwrap()).unwrap();
+fn execute_inst(cpu: &mut MachineState) {
+    let op: i32 = cpu.ram.load_i32(cpu.ip.try_into().unwrap()).unwrap();
 
     match op {
         op::NOP => {}
         op::ADD => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs + rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs + rhs);
         }
         op::SUB => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs - rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs - rhs);
         }
         op::MUL => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs * rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs * rhs);
         }
         op::DIV => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
             if let Some(result) = lhs.checked_div(rhs) {
-                state.push_i32(result);
+                cpu.push_i32(result);
             } else {
                 println!("Machine Check: Div error");
-                state.flag.set(MachineFlag::HALTED, true);
+                cpu.flag.set(MachineFlag::HALTED, true);
             }
         }
         op::MOD => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
             if let Some(result) = lhs.checked_rem_euclid(rhs) {
-                state.push_i32(result);
+                cpu.push_i32(result);
             } else {
                 println!("Machine Check: Mod error");
-                state.flag.set(MachineFlag::HALTED, true);
+                cpu.flag.set(MachineFlag::HALTED, true);
             }
         }
         op::EQ => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs == rhs) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs == rhs) as i32);
         }
         op::NE => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs != rhs) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs != rhs) as i32);
         }
         op::GT => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs > rhs) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs > rhs) as i32);
         }
         op::LT => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs < rhs) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs < rhs) as i32);
         }
         op::GE => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs >= rhs) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs >= rhs) as i32);
         }
         op::LE => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs <= rhs) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs <= rhs) as i32);
         }
         op::AND => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs != 0 && rhs != 0) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs != 0 && rhs != 0) as i32);
         }
         op::OR => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32((lhs != 0 || rhs != 0) as i32);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32((lhs != 0 || rhs != 0) as i32);
         }
         op::NOT => {
-            let val = state.pop_i32().unwrap();
-            state.push_i32((!(val != 0)) as i32);
+            let val = cpu.pop_i32().unwrap();
+            cpu.push_i32((!(val != 0)) as i32);
         }
         op::DUP => {
-            let val = state.ram.load_i32((state.sp - 4) as _).unwrap();
-            let result = state.ram.store_i32(val, state.sp as _);
+            let val = cpu.ram.load_i32((cpu.sp - 4) as _).unwrap();
+            let result = cpu.ram.store_i32(val, cpu.sp as _);
             assert!(result);
-            state.sp += 4;
+            cpu.sp += 4;
         }
         op::HALT => {
-            state.flag.set(MachineFlag::HALTED, true);
+            cpu.flag.set(MachineFlag::HALTED, true);
             return;
         }
         op::POP => {
-            state.sp -= 4;
+            cpu.sp -= 4;
         }
         op::RETURN => {
-            state.sp = state.fp - 4;
-            state.ip = state.ram.load_i32((state.fp - 8) as _).unwrap();
-            state.fp = state.ram.load_i32((state.fp - 4) as _).unwrap();
+            cpu.sp = cpu.fp - 4;
+            cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _).unwrap();
+            cpu.fp = cpu.ram.load_i32((cpu.fp - 4) as _).unwrap();
             return;
         }
         op::NEG => {
-            let val = state.pop_i32().unwrap();
-            state.push_i32(-val);
+            let val = cpu.pop_i32().unwrap();
+            cpu.push_i32(-val);
         }
         op::OUTS => {
-            let offset = state.ram.load_i32((state.sp - 4) as _).unwrap();
-            let check = state.ram.print_str(offset as _);
+            let offset = cpu.ram.load_i32((cpu.sp - 4) as _).unwrap();
+            let check = cpu.ram.print_str(offset as _);
             if let Err(check) = check {
                 println!("{:?}", check);
-                state.flag.set(MachineFlag::HALTED, true);
+                cpu.flag.set(MachineFlag::HALTED, true);
             }
         }
         op::JMPUSER => {
-            state.ip += 4;
-            state.ip = state.ram.load_i32(state.ip as _).unwrap();
-            state.flag.set(MachineFlag::USER_MODE, true);
+            cpu.ip += 4;
+            cpu.ip = cpu.ram.load_i32(cpu.ip as _).unwrap();
+            cpu.flag.set(MachineFlag::USER_MODE, true);
         }
         op::PUSHREG => {
-            state.ip += 4;
-            let reg = state.ram.load_i32(state.ip as _).unwrap();
+            cpu.ip += 4;
+            let reg = cpu.ram.load_i32(cpu.ip as _).unwrap();
             match reg {
-                0 => state.push_i32(state.bp),
-                1 => state.push_i32(state.lp),
-                2 => state.push_i32(state.ip),
-                3 => state.push_i32(state.sp),
-                4 => state.push_i32(state.fp),
-                5 => state.push_i32(state.flag.bits()),
+                0 => cpu.push_i32(cpu.bp),
+                1 => cpu.push_i32(cpu.lp),
+                2 => cpu.push_i32(cpu.ip),
+                3 => cpu.push_i32(cpu.sp),
+                4 => cpu.push_i32(cpu.fp),
+                5 => cpu.push_i32(cpu.flag.bits()),
                 _ => panic!("Machine check"),
             }
         }
         op::POPREG => {
-            state.ip += 4;
-            let reg = state.ram.load_i32(state.ip as _).unwrap();
+            cpu.ip += 4;
+            let reg = cpu.ram.load_i32(cpu.ip as _).unwrap();
             match reg {
-                0 => state.bp = state.pop_i32().unwrap(),
-                1 => state.lp = state.pop_i32().unwrap(),
+                0 => cpu.bp = cpu.pop_i32().unwrap(),
+                1 => cpu.lp = cpu.pop_i32().unwrap(),
                 2 => {
-                    state.ip = state.pop_i32().unwrap();
+                    cpu.ip = cpu.pop_i32().unwrap();
                     return;
                 }
-                3 => state.sp = state.pop_i32().unwrap(),
-                4 => state.fp = state.pop_i32().unwrap(),
-                5 => state.flag = MachineFlag::from_bits(state.pop_i32().unwrap()).unwrap(),
+                3 => cpu.sp = cpu.pop_i32().unwrap(),
+                4 => cpu.fp = cpu.pop_i32().unwrap(),
+                5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32().unwrap()).unwrap(),
                 _ => panic!("Machine check"),
             }
         }
         op::BAND => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs & rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs & rhs);
         }
         op::BOR => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs | rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs | rhs);
         }
         op::BXOR => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs ^ rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs ^ rhs);
         }
         op::SHIFTL => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs << rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs << rhs);
         }
         op::SHIFTR => {
-            let rhs = state.pop_i32().unwrap();
-            let lhs = state.pop_i32().unwrap();
-            state.push_i32(lhs >> rhs);
+            let rhs = cpu.pop_i32().unwrap();
+            let lhs = cpu.pop_i32().unwrap();
+            cpu.push_i32(lhs >> rhs);
         }
         op::COMP => {
-            let val = state.pop_i32().unwrap();
-            state.push_i32(!val);
+            let val = cpu.pop_i32().unwrap();
+            cpu.push_i32(!val);
         }
         op::PUSH => {
-            state.ip += 4;
-            let val = state.ram.load_i32(state.ip as _).unwrap();
-            state.push_i32(val);
+            cpu.ip += 4;
+            let val = cpu.ram.load_i32(cpu.ip as _).unwrap();
+            cpu.push_i32(val);
         }
         op::JMP => {
-            state.ip += 4;
-            state.ip = state.ram.load_i32(state.ip as _).unwrap();
+            cpu.ip += 4;
+            cpu.ip = cpu.ram.load_i32(cpu.ip as _).unwrap();
             return;
         }
         op::JZ => {
-            let val = state.pop_i32().unwrap();
+            let val = cpu.pop_i32().unwrap();
             if val == 0 {
-                state.ip += 4;
-                state.ip = state.ram.load_i32(state.ip as _).unwrap();
+                cpu.ip += 4;
+                cpu.ip = cpu.ram.load_i32(cpu.ip as _).unwrap();
             } else {
-                state.ip += 8;
+                cpu.ip += 8;
             }
             return;
         }
         op::PUSHVAR => {
-            state.ip += 4;
-            let offset = state.ram.load_i32(state.ip as _).unwrap();
-            let val = state.ram.load_i32((state.fp + offset) as _).unwrap();
-            state.push_i32(val);
+            cpu.ip += 4;
+            let offset = cpu.ram.load_i32(cpu.ip as _).unwrap();
+            let val = cpu.ram.load_i32((cpu.fp + offset) as _).unwrap();
+            cpu.push_i32(val);
         }
         op::ADJSP => {
-            state.ip += 4;
-            state.sp += state.ram.load_i32(state.ip as _).unwrap();
+            cpu.ip += 4;
+            cpu.sp += cpu.ram.load_i32(cpu.ip as _).unwrap();
         }
         op::CALL => {
-            state.push_i32(state.ip + 8);
-            state.push_i32(state.fp);
-            state.fp = state.sp;
-            state.ip = state.ram.load_i32((state.ip + 4) as _).unwrap();
+            cpu.push_i32(cpu.ip + 8);
+            cpu.push_i32(cpu.fp);
+            cpu.fp = cpu.sp;
+            cpu.ip = cpu.ram.load_i32((cpu.ip + 4) as _).unwrap();
             return;
         }
         op::SET_TRACE => {
-            state.set_trace(true);
+            cpu.set_trace(true);
         }
         op::CLR_TRACE => {
-            state.set_trace(false);
+            cpu.set_trace(false);
         }
         op::CLR_INT_DIS => {
-            state.flag.set(MachineFlag::INT_DIS, false);
+            cpu.flag.set(MachineFlag::INT_DIS, false);
         }
         op::SET_INT_DIS => {
-            state.flag.set(MachineFlag::INT_DIS, true);
+            cpu.flag.set(MachineFlag::INT_DIS, true);
         }
         k => unimplemented!("opcode {k}"),
     }
-    state.ip += 4;
+    cpu.ip += 4;
 }
