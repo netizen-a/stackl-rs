@@ -34,6 +34,12 @@ impl MachineState {
         assert!(result);
         self.sp += 4;
     }
+    fn replace_i32(&mut self, val: i32) -> Option<i32> {
+        let offset = (self.sp - 4) as _;
+        let tmp = self.ram.load_i32(offset)?;
+        self.ram.store_i32(val, offset);
+        Some(tmp)
+    }
     fn pop_i32(&mut self) -> Option<i32> {
         self.sp -= 4;
         self.ram.load_i32(self.sp as _)
@@ -160,6 +166,11 @@ fn execute_inst(cpu: &mut MachineState) {
         op::NOT => {
             let val = cpu.pop_i32().unwrap();
             cpu.push_i32((!(val != 0)) as i32);
+        }
+        op::SWAP => {
+            let tmp = cpu.pop_i32().unwrap();
+            let s1 = cpu.replace_i32(tmp).unwrap();
+            cpu.push_i32(s1);
         }
         op::DUP => {
             let val = cpu.ram.load_i32((cpu.sp - 4) as _).unwrap();
