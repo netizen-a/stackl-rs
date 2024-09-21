@@ -300,6 +300,13 @@ fn execute_inst(cpu: &mut MachineState) {
             let val = cpu.ram.load_i32((cpu.fp + offset) as _).unwrap();
             cpu.push_i32(val);
         }
+        op::POPVAR => {
+            cpu.ip += 4;
+            let offset = cpu.ram.load_i32(cpu.ip as _).unwrap();
+            let val = cpu.pop_i32().unwrap();
+            let result = cpu.ram.store_i32(val, (cpu.fp + offset) as _);
+            assert!(result);
+        }
         op::ADJSP => {
             cpu.ip += 4;
             cpu.sp += cpu.ram.load_i32(cpu.ip as _).unwrap();
