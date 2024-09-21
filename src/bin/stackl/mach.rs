@@ -165,7 +165,7 @@ fn execute_inst(cpu: &mut MachineState) {
         }
         op::NOT => {
             let val = cpu.pop_i32().unwrap();
-            cpu.push_i32((!(val != 0)) as i32);
+            cpu.push_i32((val == 0) as i32);
         }
         op::SWAP => {
             let tmp = cpu.pop_i32().unwrap();
@@ -189,6 +189,14 @@ fn execute_inst(cpu: &mut MachineState) {
             cpu.sp = cpu.fp - 4;
             cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _).unwrap();
             cpu.fp = cpu.ram.load_i32((cpu.fp - 4) as _).unwrap();
+            return;
+        }
+        op::RETURNV => {
+            let tmp = cpu.ram.load_i32((cpu.sp - 4) as _).unwrap();
+            cpu.sp = cpu.fp - 4;
+            cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _).unwrap();
+            cpu.fp = cpu.ram.load_i32((cpu.fp - 4) as _).unwrap();
+            cpu.ram.store_i32(tmp, (cpu.sp - 4) as _);
             return;
         }
         op::NEG => {
@@ -302,6 +310,12 @@ fn execute_inst(cpu: &mut MachineState) {
             cpu.fp = cpu.sp;
             cpu.ip = cpu.ram.load_i32((cpu.ip + 4) as _).unwrap();
             return;
+        }
+        op::PUSHCVAR => {
+            cpu.ip += 4;
+            let offset = cpu.ram.load_i32(cpu.ip as _).unwrap();
+            let val = cpu.ram.load_u8((cpu.fp + offset) as _).unwrap();
+            cpu.push_i32(val.into());
         }
         op::SET_TRACE => {
             cpu.set_trace(true);

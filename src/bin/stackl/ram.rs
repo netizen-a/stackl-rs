@@ -29,6 +29,10 @@ impl Memory {
         let bytes = i32::to_le_bytes(val);
         self.store_slice(&bytes, offset)
     }
+    pub fn load_u8(&self, offset: usize) -> Option<u8> {
+        let mem = self.inner.read().unwrap();
+        mem.get(offset).copied()
+    }
     pub fn print_str(&self, offset: usize) -> Result<(), MachineCheck> {
         let mem = self.inner.read().unwrap();
         match mem.split_at_checked(offset) {
