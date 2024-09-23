@@ -50,8 +50,10 @@ impl MachineState {
     pub fn set_trace(&mut self, value: bool) {
         self.flag.set(MachineFlag::TRACE, value);
         if value {
-            eprintln!("\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
-                "Flag", "BP", "LP", "IP", "SP", "FP");
+            eprintln!(
+                "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
+                "Flag", "BP", "LP", "IP", "SP", "FP"
+            );
         }
     }
     pub fn run(mut self) {
@@ -60,8 +62,14 @@ impl MachineState {
                 return;
             }
             if self.flag.contains(MachineFlag::TRACE) {
-                eprintln!("{:08x} {:6} {:6} {:6} {:6} {:6} {}",
-                    self.flag.bits(), self.bp, self.lp, self.ip, self.sp, self.fp,
+                eprintln!(
+                    "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
+                    self.flag.bits(),
+                    self.bp,
+                    self.lp,
+                    self.ip,
+                    self.sp,
+                    self.fp,
                     self.ram.load_i32(self.ip as _).unwrap()
                 );
             }
@@ -203,6 +211,9 @@ fn execute_inst(cpu: &mut MachineState) {
             let val = cpu.pop_i32().unwrap();
             cpu.push_i32(-val);
         }
+        op::PUSHCVARIND => {
+            unimplemented!("pushcvarind");
+        }
         op::OUTS => {
             let offset = cpu.ram.load_i32((cpu.sp - 4) as _).unwrap();
             let check = cpu.ram.print_str(offset as _);
@@ -211,10 +222,25 @@ fn execute_inst(cpu: &mut MachineState) {
                 cpu.flag.set(MachineFlag::HALTED, true);
             }
         }
+        op::INP => {
+            unimplemented!("inp");
+        }
+        op::PUSHFP => {
+            unimplemented!("pushfp");
+        }
         op::JMPUSER => {
             cpu.ip += 4;
             cpu.ip = cpu.ram.load_i32(cpu.ip as _).unwrap();
             cpu.flag.set(MachineFlag::USER_MODE, true);
+        }
+        op::TRAP => {
+            unimplemented!("trap");
+        }
+        op::RTI => {
+            unimplemented!("rti");
+        }
+        op::CALLI => {
+            unimplemented!("calli");
         }
         op::PUSHREG => {
             cpu.ip += 4;
@@ -270,6 +296,15 @@ fn execute_inst(cpu: &mut MachineState) {
             let lhs = cpu.pop_i32().unwrap();
             cpu.push_i32(lhs >> rhs);
         }
+        op::PUSHVARIND => {
+            unimplemented!("pushvarind");
+        }
+        op::POPCVARIND => {
+            unimplemented!("popcvarind");
+        }
+        op::POPVARIND => {
+            unimplemented!("popvarind");
+        }
         op::COMP => {
             let val = cpu.pop_i32().unwrap();
             cpu.push_i32(!val);
@@ -311,6 +346,9 @@ fn execute_inst(cpu: &mut MachineState) {
             cpu.ip += 4;
             cpu.sp += cpu.ram.load_i32(cpu.ip as _).unwrap();
         }
+        op::POPARGS => {
+            unimplemented!("popargs");
+        }
         op::CALL => {
             cpu.push_i32(cpu.ip + 8);
             cpu.push_i32(cpu.fp);
@@ -324,6 +362,9 @@ fn execute_inst(cpu: &mut MachineState) {
             let val = cpu.ram.load_u8((cpu.fp + offset) as _).unwrap();
             cpu.push_i32(val.into());
         }
+        op::POPCVAR => {
+            unimplemented!("popcvar");
+        }
         op::SET_TRACE => {
             cpu.set_trace(true);
         }
@@ -336,7 +377,9 @@ fn execute_inst(cpu: &mut MachineState) {
         op::SET_INT_DIS => {
             cpu.flag.set(MachineFlag::INT_DIS, true);
         }
-        k => unimplemented!("opcode {k}"),
+        55..=i32::MAX | i32::MIN..0 => {
+            unimplemented!("illegal");
+        }
     }
     cpu.ip += 4;
 }
