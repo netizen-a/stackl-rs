@@ -212,7 +212,9 @@ fn execute_inst(cpu: &mut MachineState) {
             cpu.push_i32(-val);
         }
         op::PUSHCVARIND => {
-            unimplemented!("pushcvarind");
+            let offset = cpu.pop_i32().unwrap();
+            let val = cpu.ram.load_u8(offset as _).unwrap();
+            cpu.push_i32(val as _);
         }
         op::OUTS => {
             let offset = cpu.ram.load_i32((cpu.sp - 4) as _).unwrap();
@@ -297,13 +299,17 @@ fn execute_inst(cpu: &mut MachineState) {
             cpu.push_i32(lhs >> rhs);
         }
         op::PUSHVARIND => {
-            unimplemented!("pushvarind");
+            let offset = cpu.pop_i32().unwrap();
+            let val = cpu.ram.load_i32(offset as _).unwrap();
+            cpu.push_i32(val);
         }
         op::POPCVARIND => {
             unimplemented!("popcvarind");
         }
         op::POPVARIND => {
-            unimplemented!("popvarind");
+            let offset = cpu.pop_i32().unwrap();
+            let val = cpu.pop_i32().unwrap();
+            cpu.ram.store_i32(val, offset as _);
         }
         op::COMP => {
             let val = cpu.pop_i32().unwrap();
