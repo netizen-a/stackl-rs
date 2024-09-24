@@ -353,7 +353,10 @@ fn execute_inst(cpu: &mut MachineState) {
             cpu.sp += cpu.ram.load_i32(cpu.ip as _).unwrap();
         }
         op::POPARGS => {
-            unimplemented!("popargs");
+            let tmp = cpu.pop_i32().unwrap();
+            cpu.ip += 4;
+            cpu.sp -= cpu.ram.load_i32(cpu.ip as _).unwrap();
+            cpu.push_i32(tmp);
         }
         op::CALL => {
             cpu.push_i32(cpu.ip + 8);
