@@ -193,13 +193,13 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         op::POP => {
             cpu.sp -= 4;
         }
-        op::RETURN => {
+        op::RET => {
             cpu.sp = cpu.fp - 4;
             cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _)?;
             cpu.fp = cpu.ram.load_i32((cpu.fp - 4) as _)?;
             return Ok(());
         }
-        op::RETURNV => {
+        op::RETV => {
             let tmp = cpu.ram.load_i32((cpu.sp - 4) as _)?;
             cpu.sp = cpu.fp - 4;
             cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _)?;
@@ -230,6 +230,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.ip += 4;
             cpu.ip = cpu.ram.load_i32(cpu.ip as _)?;
             cpu.flag.set(MachineFlag::USER_MODE, true);
+            return Ok(())
         }
         op::TRAP => {
             unimplemented!("trap");

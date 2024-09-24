@@ -124,10 +124,10 @@ pub enum Token {
     OpHalt,
     #[token("POP", ignore(ascii_case))]
     OpPop,
-    #[token("RETURN", ignore(ascii_case))]
-    OpReturn,
-    #[token("RETURNV", ignore(ascii_case))]
-    OpReturnv,
+    #[token("RET", ignore(ascii_case))]
+    OpRet,
+    #[token("RETV", ignore(ascii_case))]
+    OpRetv,
     #[token("NEG", ignore(ascii_case))]
     OpNeg,
     #[token("PUSHCVARIND", ignore(ascii_case))]
