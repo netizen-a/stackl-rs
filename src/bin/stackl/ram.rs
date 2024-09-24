@@ -1,3 +1,4 @@
+use crate::chk;
 use std::io::Write;
 use std::{io, sync};
 pub struct Memory {
@@ -11,38 +12,49 @@ impl Memory {
         }
     }
     // returns true if success, else false
-    pub fn store_slice(&self, val: &[u8], offset: usize) -> bool {
+    pub fn store_slice(&self, val: &[u8], offset: usize) -> Result<(), chk::MachineCheck> {
         let mut ram = self.inner.write().unwrap();
         if ram.len() > val.len() + offset {
             ram[offset..offset + val.len()].clone_from_slice(val);
-            true
+            Ok(())
         } else {
-            false
+            Err(chk::MachineCheck {
+                error: "failed to write slice".to_string(),
+            })
         }
     }
-    pub fn load_i32(&self, offset: usize) -> Option<i32> {
+    pub fn load_i32(&self, offset: usize) -> Result<i32, chk::MachineCheck> {
         let mem = self.inner.read().unwrap();
         let bytes = &mem[offset..=(offset + 3)];
-        bytes.try_into().map(i32::from_le_bytes).ok()
+        bytes
+            .try_into()
+            .map(i32::from_le_bytes)
+            .or(Err(chk::MachineCheck {
+                error: "failed to load bytes".to_string(),
+            }))
     }
-    pub fn store_i32(&self, val: i32, offset: usize) -> bool {
+    pub fn store_i32(&self, val: i32, offset: usize) -> Result<(), chk::MachineCheck> {
         let bytes = i32::to_le_bytes(val);
         self.store_slice(&bytes, offset)
     }
-    pub fn load_u8(&self, offset: usize) -> Option<u8> {
+    pub fn load_u8(&self, offset: usize) -> Result<u8, chk::MachineCheck> {
         let mem = self.inner.read().unwrap();
-        mem.get(offset).copied()
+        mem.get(offset).copied().ok_or(chk::MachineCheck {
+            error: String::from("out of bounds"),
+        })
     }
-    pub fn store_u8(&self, val: u8, offset: usize) -> bool {
+    pub fn store_u8(&self, val: u8, offset: usize) -> Result<(), chk::MachineCheck> {
         let mut mem = self.inner.write().unwrap();
         if let Some(byte) = mem.get_mut(offset) {
             *byte = val;
-            true
+            Ok(())
         } else {
-            false
+            Err(chk::MachineCheck {
+                error: "failed to write byte".to_string(),
+            })
         }
     }
-    pub fn print_str(&self, offset: usize) -> Result<(), MachineCheck> {
+    pub fn print_str(&self, offset: usize) -> Result<(), chk::MachineCheck> {
         let mem = self.inner.read().unwrap();
         match mem.split_at_checked(offset) {
             Some((_, bytes)) => {
@@ -60,19 +72,13 @@ impl Memory {
                     }
                 }
                 io::stdout().flush().unwrap();
-                Err(MachineCheck {
+                Err(chk::MachineCheck {
                     error: String::from("cannot print outside ram"),
                 })
             }
-            None => Err(MachineCheck {
+            None => Err(chk::MachineCheck {
                 error: String::from("out of bounds"),
             }),
         }
     }
-}
-
-#[derive(Debug)]
-pub struct MachineCheck {
-    #[allow(dead_code)]
-    pub error: String,
 }

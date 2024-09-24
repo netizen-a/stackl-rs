@@ -6,6 +6,7 @@ use stackl::StacklFormat;
 
 mod mach;
 mod ram;
+mod chk;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,7 +20,7 @@ fn main() -> ExitCode {
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
     let mut machine = mach::MachineState::new(1000);
-    machine.ram.store_slice(&data.text, 0);
+    machine.ram.store_slice(&data.text, 0).unwrap();
     let sp_addr = if data.text.len() % 2 != 0 {
         data.text.len() + 2 - (data.text.len() % 2)
     } else {
