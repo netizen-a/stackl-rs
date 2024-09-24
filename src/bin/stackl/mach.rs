@@ -90,10 +90,10 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.ip,
             cpu.sp,
             cpu.fp,
-            cpu.ram.load_i32(cpu.ip as _).unwrap()
+            cpu.ram.load_i32(cpu.ip as _)?
         );
     }
-    let op: i32 = cpu.ram.load_i32(cpu.ip.try_into().unwrap()).unwrap();
+    let op: i32 = cpu.ram.load_i32(cpu.ip.try_into().unwrap())?;
 
     match op {
         op::NOP => {}
