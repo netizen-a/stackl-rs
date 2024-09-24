@@ -33,6 +33,15 @@ impl Memory {
         let mem = self.inner.read().unwrap();
         mem.get(offset).copied()
     }
+    pub fn store_u8(&self, val: u8, offset: usize) -> bool {
+        let mut mem = self.inner.write().unwrap();
+        if let Some(byte) = mem.get_mut(offset) {
+            *byte = val;
+            true
+        } else {
+            false
+        }
+    }
     pub fn print_str(&self, offset: usize) -> Result<(), MachineCheck> {
         let mem = self.inner.read().unwrap();
         match mem.split_at_checked(offset) {

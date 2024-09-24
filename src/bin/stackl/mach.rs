@@ -309,7 +309,9 @@ fn execute_op(cpu: &mut MachineState) {
             cpu.push_i32(val);
         }
         op::POPCVARIND => {
-            unimplemented!("popcvarind");
+            let offset = cpu.pop_i32().unwrap();
+            let val = cpu.pop_i32().unwrap();
+            cpu.ram.store_u8(val as u8, offset as _);
         }
         op::POPVARIND => {
             let offset = cpu.pop_i32().unwrap();
@@ -377,7 +379,11 @@ fn execute_op(cpu: &mut MachineState) {
             cpu.push_i32(val.into());
         }
         op::POPCVAR => {
-            unimplemented!("popcvar");
+            cpu.ip += 4;
+            let offset = cpu.ram.load_i32(cpu.ip as _).unwrap();
+            let val = cpu.pop_i32().unwrap();
+            let result = cpu.ram.store_u8(val as _, (cpu.fp + offset) as _);
+            assert!(result);
         }
         op::SET_TRACE => {
             cpu.set_trace(true);
