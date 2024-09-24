@@ -73,7 +73,7 @@ impl MachineState {
                     self.ram.load_i32(self.ip as _).unwrap()
                 );
             }
-            execute_inst(&mut self);
+            execute_op(&mut self);
         }
     }
 }
@@ -91,7 +91,7 @@ bitflags! {
     }
 }
 
-fn execute_inst(cpu: &mut MachineState) {
+fn execute_op(cpu: &mut MachineState) {
     let op: i32 = cpu.ram.load_i32(cpu.ip.try_into().unwrap()).unwrap();
 
     match op {
@@ -228,7 +228,7 @@ fn execute_inst(cpu: &mut MachineState) {
             unimplemented!("inp");
         }
         op::PUSHFP => {
-            unimplemented!("pushfp");
+            cpu.push_i32(cpu.fp);
         }
         op::JMPUSER => {
             cpu.ip += 4;
@@ -242,7 +242,12 @@ fn execute_inst(cpu: &mut MachineState) {
             unimplemented!("rti");
         }
         op::CALLI => {
-            unimplemented!("calli");
+            let tmp = cpu.pop_i32().unwrap();
+            cpu.push_i32(cpu.ip + 4);
+            cpu.push_i32(cpu.fp);
+            cpu.fp = cpu.sp;
+            cpu.ip = tmp;
+            return;
         }
         op::PUSHREG => {
             cpu.ip += 4;
