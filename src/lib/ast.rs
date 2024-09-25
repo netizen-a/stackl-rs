@@ -106,8 +106,8 @@ pub enum Opcode {
     BAnd,
     BOr,
     BXOr,
-    Shiftl,
-    Shiftr,
+    ShiftLeft,
+    ShiftRight,
     PushVarInd,
     PopCVarInd,
     PopVarInd,
@@ -126,6 +126,8 @@ pub enum Opcode {
     ClrTrace,
     ClrIntDis,
     SetIntDis,
+    RotateLeft,
+    RotateRight,
     Illegal,
 }
 

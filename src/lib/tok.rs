@@ -156,10 +156,10 @@ pub enum Token {
     OpBOr,
     #[token("BXOR", ignore(ascii_case))]
     OpBXOr,
-    #[token("SHIFTL", ignore(ascii_case))]
-    OpShiftl,
-    #[token("SHIFTR", ignore(ascii_case))]
-    OpShiftr,
+    #[token("SHL", ignore(ascii_case))]
+    OpShiftLeft,
+    #[token("SHR", ignore(ascii_case))]
+    OpShiftRight,
     #[token("PUSHVARIND", ignore(ascii_case))]
     OpPushVarInd,
     #[token("POPCVARIND", ignore(ascii_case))]
@@ -196,6 +196,10 @@ pub enum Token {
     OpCLID,
     #[token("SEID", ignore(ascii_case))]
     OpSEID,
+    #[token("ROL", ignore(ascii_case))]
+    OpRotateLeft,
+    #[token("ROR", ignore(ascii_case))]
+    OpRotateRight,
     #[token("ILLEGAL", ignore(ascii_case))]
     OpIllegal,
     // Pseudo Opcodes

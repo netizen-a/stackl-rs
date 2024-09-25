@@ -14,12 +14,14 @@ struct Args {
     file: path::PathBuf,
     #[arg(long, default_value_t = false)]
     trace: bool,
+    #[arg(short, long, default_value_t = 500000)]
+    memory: usize,
 }
 fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
-    let mut machine = mach::MachineState::new(1000);
+    let mut machine = mach::MachineState::new(args.memory);
     machine.ram.store_slice(&data.text, 0).unwrap();
     let sp_addr = if data.text.len() % 2 != 0 {
         data.text.len() + 2 - (data.text.len() % 2)

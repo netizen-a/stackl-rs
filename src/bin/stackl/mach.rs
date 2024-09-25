@@ -18,10 +18,10 @@ pub struct MachineState {
 }
 
 impl MachineState {
-    pub fn new(mem_size: i32) -> MachineState {
+    pub fn new(mem_size: usize) -> MachineState {
         MachineState {
             bp: 0,
-            lp: mem_size,
+            lp: mem_size.try_into().unwrap(),
             ip: 0,
             sp: 0,
             fp: 0,
@@ -104,17 +104,17 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         op::ADD => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs + rhs)?;
+            cpu.push_i32(lhs.wrapping_add(rhs))?;
         }
         op::SUB => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs - rhs)?;
+            cpu.push_i32(lhs.wrapping_sub(rhs))?;
         }
         op::MUL => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs * rhs)?;
+            cpu.push_i32(lhs.wrapping_mul(rhs))?;
         }
         op::DIV => {
             let rhs = cpu.pop_i32()?;
@@ -123,7 +123,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 cpu.push_i32(result)?;
             } else {
                 return Err(MachineCheck::new(
-                    chk::MachineCode::IllegalInst,
+                    chk::MachineCode::IllegalOp,
                     "Divide by Zero",
                 ));
             }
@@ -135,7 +135,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 cpu.push_i32(result)?;
             } else {
                 return Err(MachineCheck::new(
-                    chk::MachineCode::IllegalInst,
+                    chk::MachineCode::IllegalOp,
                     "Divide by Zero",
                 ));
             }
@@ -284,7 +284,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 5 => cpu.push_i32(cpu.flag.bits())?,
                 _ => {
                     return Err(chk::MachineCheck::new(
-                        chk::MachineCode::IllegalInst,
+                        chk::MachineCode::IllegalOp,
                         "invalid reg",
                     ))
                 }
@@ -311,7 +311,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32()?).unwrap(),
                 _ => {
                     return Err(chk::MachineCheck::new(
-                        chk::MachineCode::IllegalInst,
+                        chk::MachineCode::IllegalOp,
                         "invalid register",
                     ))
                 }
@@ -332,15 +332,15 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             let lhs = cpu.pop_i32()?;
             cpu.push_i32(lhs ^ rhs)?;
         }
-        op::SHIFTL => {
+        op::SHIFT_LEFT => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs << rhs)?;
+            cpu.push_i32(lhs.wrapping_shl(rhs as _))?;
         }
-        op::SHIFTR => {
+        op::SHIFT_RIGHT => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs >> rhs)?;
+            cpu.push_i32(lhs.wrapping_shr(rhs as _))?;
         }
         op::PUSHVARIND => {
             let offset = cpu.pop_i32()?;
@@ -446,7 +446,17 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             }
             cpu.flag.set(MachineFlag::INT_DIS, true);
         }
-        55..=i32::MAX | i32::MIN..0 => {
+        op::ROTATE_LEFT => {
+            let rhs = cpu.pop_i32()?;
+            let lhs = cpu.pop_i32()?;
+            cpu.push_i32(lhs.rotate_left(rhs as _))?;
+        }
+        op::ROTATE_RIGHT => {
+            let rhs = cpu.pop_i32()?;
+            let lhs = cpu.pop_i32()?;
+            cpu.push_i32(lhs.rotate_right(rhs as _))?;
+        }
+        57..=i32::MAX | i32::MIN..0 => {
             return Err(chk::MachineCheck::new(
                 chk::MachineCode::IllegalInst,
                 "illegal instruction",

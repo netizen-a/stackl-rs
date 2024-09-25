@@ -141,8 +141,8 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::BAnd => vec![op::BAND],
         Opcode::BOr => vec![op::BOR],
         Opcode::BXOr => vec![op::BXOR],
-        Opcode::Shiftl => vec![op::SHIFTL],
-        Opcode::Shiftr => vec![op::SHIFTR],
+        Opcode::ShiftLeft => vec![op::SHIFT_LEFT],
+        Opcode::ShiftRight => vec![op::SHIFT_RIGHT],
         Opcode::PushVarInd => vec![op::PUSHVARIND],
         Opcode::PopCVarInd => vec![op::POPCVARIND],
         Opcode::PopVarInd => vec![op::POPVARIND],
@@ -191,6 +191,8 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::ClrTrace => vec![op::CLR_TRACE],
         Opcode::ClrIntDis => vec![op::CLR_INT_DIS],
         Opcode::SetIntDis => vec![op::SET_INT_DIS],
+        Opcode::RotateLeft => vec![op::ROTATE_LEFT],
+        Opcode::RotateRight => vec![op::ROTATE_RIGHT],
         Opcode::Illegal => vec![op::ILLEGAL],
     };
 
