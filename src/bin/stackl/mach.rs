@@ -1,4 +1,5 @@
 use crate::chk;
+use crate::chk::MachineCheck;
 use crate::ram;
 use bitflags::bitflags;
 use stackl::op;
@@ -56,6 +57,9 @@ impl MachineState {
                 "Flag", "BP", "LP", "IP", "SP", "FP"
             );
         }
+    }
+    pub const fn is_user_mode(&self) -> bool {
+        self.flag.contains(MachineFlag::USER_MODE)
     }
     pub fn run(mut self) {
         loop {
@@ -217,6 +221,9 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.push_i32(val as _)?;
         }
         op::OUTS => {
+            if cpu.is_user_mode() {
+                return Err(MachineCheck::new(chk::MachineCode::ProtInst, "protected instruction"))
+            }
             let offset = cpu.ram.load_i32((cpu.sp - 4) as _)?;
             cpu.ram.print_str(offset as _)?;
         }
@@ -257,9 +264,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 4 => cpu.push_i32(cpu.fp)?,
                 5 => cpu.push_i32(cpu.flag.bits())?,
                 _ => {
-                    return Err(chk::MachineCheck {
-                        error: "invalid reg".to_string(),
-                    })
+                    return Err(chk::MachineCheck::new(chk::MachineCode::IllegalInst, "invalid reg"))
                 }
             }
         }
@@ -277,9 +282,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 4 => cpu.fp = cpu.pop_i32()?,
                 5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32()?).unwrap(),
                 _ => {
-                    return Err(chk::MachineCheck {
-                        error: "invalid register".to_string(),
-                    })
+                    return Err(chk::MachineCheck::new(chk::MachineCode::IllegalInst, "invalid register"))
                 }
             }
         }
@@ -401,9 +404,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.flag.set(MachineFlag::INT_DIS, true);
         }
         55..=i32::MAX | i32::MIN..0 => {
-            return Err(chk::MachineCheck {
-                error: "illegal instruction".to_string(),
-            })
+            return Err(chk::MachineCheck::new(chk::MachineCode::IllegalInst, "illegal instruction"))
         }
     }
     cpu.ip += 4;
