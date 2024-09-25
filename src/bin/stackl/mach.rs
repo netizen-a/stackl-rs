@@ -234,6 +234,9 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.push_i32(cpu.fp)?;
         }
         op::JMPUSER => {
+            if cpu.is_user_mode() {
+                return Err(MachineCheck::new(chk::MachineCode::ProtInst, "protected instruction"))
+            }
             cpu.ip += 4;
             cpu.ip = cpu.ram.load_i32(cpu.ip as _)?;
             cpu.flag.set(MachineFlag::USER_MODE, true);
