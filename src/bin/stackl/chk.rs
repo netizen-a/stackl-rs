@@ -3,10 +3,10 @@ pub enum MachineCode {
     IllegalInst = 0x00000001,
     IllegalAddr = 0x00000002,
     #[allow(dead_code)]
-    HwFailure   = 0x00000004,
+    HwFailure = 0x00000004,
     #[allow(dead_code)]
-    HwWarning   = 0x00000008,
-    ProtInst    = 0x00000010,
+    HwWarning = 0x00000008,
+    ProtInst = 0x00000010,
 }
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ impl MachineCheck {
     pub fn new<S: ToString>(code: MachineCode, msg: S) -> MachineCheck {
         MachineCheck {
             code,
-            msg: msg.to_string()
+            msg: msg.to_string(),
         }
     }
 }

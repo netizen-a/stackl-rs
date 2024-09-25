@@ -18,7 +18,10 @@ impl Memory {
             ram[offset..offset + val.len()].clone_from_slice(val);
             Ok(())
         } else {
-            Err(chk::MachineCheck::new(chk::MachineCode::IllegalAddr, "failed to write slice"))
+            Err(chk::MachineCheck::new(
+                chk::MachineCode::IllegalAddr,
+                "failed to write slice",
+            ))
         }
     }
     pub fn load_i32(&self, offset: usize) -> Result<i32, chk::MachineCheck> {
@@ -27,7 +30,10 @@ impl Memory {
         bytes
             .try_into()
             .map(i32::from_le_bytes)
-            .or(Err(chk::MachineCheck::new(chk::MachineCode::IllegalAddr, "failed to load bytes")))
+            .or(Err(chk::MachineCheck::new(
+                chk::MachineCode::IllegalAddr,
+                "failed to load bytes",
+            )))
     }
     pub fn store_i32(&self, val: i32, offset: usize) -> Result<(), chk::MachineCheck> {
         let bytes = i32::to_le_bytes(val);
@@ -35,7 +41,10 @@ impl Memory {
     }
     pub fn load_u8(&self, offset: usize) -> Result<u8, chk::MachineCheck> {
         let mem = self.inner.read().unwrap();
-        mem.get(offset).copied().ok_or(chk::MachineCheck::new(chk::MachineCode::IllegalAddr,"out of bounds"))
+        mem.get(offset).copied().ok_or(chk::MachineCheck::new(
+            chk::MachineCode::IllegalAddr,
+            "out of bounds",
+        ))
     }
     pub fn store_u8(&self, val: u8, offset: usize) -> Result<(), chk::MachineCheck> {
         let mut mem = self.inner.write().unwrap();
@@ -43,7 +52,10 @@ impl Memory {
             *byte = val;
             Ok(())
         } else {
-            Err(chk::MachineCheck::new(chk::MachineCode::IllegalAddr,"failed to write byte"))
+            Err(chk::MachineCheck::new(
+                chk::MachineCode::IllegalAddr,
+                "failed to write byte",
+            ))
         }
     }
     pub fn print_str(&self, offset: usize) -> Result<(), chk::MachineCheck> {
@@ -64,9 +76,15 @@ impl Memory {
                     }
                 }
                 io::stdout().flush().unwrap();
-                Err(chk::MachineCheck::new(chk::MachineCode::IllegalAddr, "cannot print outside ram"))
+                Err(chk::MachineCheck::new(
+                    chk::MachineCode::IllegalAddr,
+                    "cannot print outside ram",
+                ))
             }
-            None => Err(chk::MachineCheck::new(chk::MachineCode::IllegalAddr, "out of bounds")),
+            None => Err(chk::MachineCheck::new(
+                chk::MachineCode::IllegalAddr,
+                "out of bounds",
+            )),
         }
     }
 }

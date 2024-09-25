@@ -122,8 +122,10 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             if let Some(result) = lhs.checked_div(rhs) {
                 cpu.push_i32(result)?;
             } else {
-                println!("Machine Check: Div error");
-                cpu.flag.set(MachineFlag::HALTED, true);
+                return Err(MachineCheck::new(
+                    chk::MachineCode::IllegalInst,
+                    "Divide by Zero",
+                ));
             }
         }
         op::MOD => {
@@ -132,8 +134,10 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             if let Some(result) = lhs.checked_rem_euclid(rhs) {
                 cpu.push_i32(result)?;
             } else {
-                println!("Machine Check: Mod error");
-                cpu.flag.set(MachineFlag::HALTED, true);
+                return Err(MachineCheck::new(
+                    chk::MachineCode::IllegalInst,
+                    "Divide by Zero",
+                ));
             }
         }
         op::EQ => {
@@ -191,6 +195,12 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.sp += 4;
         }
         op::HALT => {
+            if cpu.is_user_mode() {
+                return Err(MachineCheck::new(
+                    chk::MachineCode::ProtInst,
+                    "protected instruction",
+                ));
+            }
             cpu.flag.set(MachineFlag::HALTED, true);
             return Ok(());
         }
@@ -222,7 +232,10 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::OUTS => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(chk::MachineCode::ProtInst, "protected instruction"))
+                return Err(MachineCheck::new(
+                    chk::MachineCode::ProtInst,
+                    "protected instruction",
+                ));
             }
             let offset = cpu.ram.load_i32((cpu.sp - 4) as _)?;
             cpu.ram.print_str(offset as _)?;
@@ -235,12 +248,15 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::JMPUSER => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(chk::MachineCode::ProtInst, "protected instruction"))
+                return Err(MachineCheck::new(
+                    chk::MachineCode::ProtInst,
+                    "protected instruction",
+                ));
             }
             cpu.ip += 4;
             cpu.ip = cpu.ram.load_i32(cpu.ip as _)?;
             cpu.flag.set(MachineFlag::USER_MODE, true);
-            return Ok(())
+            return Ok(());
         }
         op::TRAP => {
             unimplemented!("trap");
@@ -267,11 +283,20 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 4 => cpu.push_i32(cpu.fp)?,
                 5 => cpu.push_i32(cpu.flag.bits())?,
                 _ => {
-                    return Err(chk::MachineCheck::new(chk::MachineCode::IllegalInst, "invalid reg"))
+                    return Err(chk::MachineCheck::new(
+                        chk::MachineCode::IllegalInst,
+                        "invalid reg",
+                    ))
                 }
             }
         }
         op::POPREG => {
+            if cpu.is_user_mode() {
+                return Err(MachineCheck::new(
+                    chk::MachineCode::ProtInst,
+                    "protected instruction",
+                ));
+            }
             cpu.ip += 4;
             let reg = cpu.ram.load_i32(cpu.ip as _)?;
             match reg {
@@ -285,7 +310,10 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 4 => cpu.fp = cpu.pop_i32()?,
                 5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32()?).unwrap(),
                 _ => {
-                    return Err(chk::MachineCheck::new(chk::MachineCode::IllegalInst, "invalid register"))
+                    return Err(chk::MachineCheck::new(
+                        chk::MachineCode::IllegalInst,
+                        "invalid register",
+                    ))
                 }
             }
         }
@@ -401,13 +429,28 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.set_trace(false);
         }
         op::CLR_INT_DIS => {
+            if cpu.is_user_mode() {
+                return Err(MachineCheck::new(
+                    chk::MachineCode::ProtInst,
+                    "protected instruction",
+                ));
+            }
             cpu.flag.set(MachineFlag::INT_DIS, false);
         }
         op::SET_INT_DIS => {
+            if cpu.is_user_mode() {
+                return Err(MachineCheck::new(
+                    chk::MachineCode::ProtInst,
+                    "protected instruction",
+                ));
+            }
             cpu.flag.set(MachineFlag::INT_DIS, true);
         }
         55..=i32::MAX | i32::MIN..0 => {
-            return Err(chk::MachineCheck::new(chk::MachineCode::IllegalInst, "illegal instruction"))
+            return Err(chk::MachineCheck::new(
+                chk::MachineCode::IllegalInst,
+                "illegal instruction",
+            ))
         }
     }
     cpu.ip += 4;

@@ -4,9 +4,9 @@ use std::{fs, path};
 use clap::Parser;
 use stackl::StacklFormat;
 
+mod chk;
 mod mach;
 mod ram;
-mod chk;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
