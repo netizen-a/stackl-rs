@@ -335,12 +335,12 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         op::SHIFT_LEFT => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs.wrapping_shl(rhs as _))?;
+            cpu.push_i32(lhs.wrapping_shl(rhs as u32))?;
         }
         op::SHIFT_RIGHT => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs.wrapping_shr(rhs as _))?;
+            cpu.push_i32(lhs.wrapping_shr(rhs as u32))?;
         }
         op::PUSHVARIND => {
             let offset = cpu.pop_i32()?;
@@ -449,12 +449,12 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         op::ROTATE_LEFT => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs.rotate_left(rhs as _))?;
+            cpu.push_i32(lhs.rotate_left(rhs as u32))?;
         }
         op::ROTATE_RIGHT => {
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
-            cpu.push_i32(lhs.rotate_right(rhs as _))?;
+            cpu.push_i32(lhs.rotate_right(rhs as u32))?;
         }
         57..=i32::MAX | i32::MIN..0 => {
             return Err(chk::MachineCheck::new(
