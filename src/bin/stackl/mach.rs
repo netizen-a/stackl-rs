@@ -72,15 +72,13 @@ impl MachineState {
 }
 
 bitflags! {
-    struct MachineFlag: i32 {
+    struct MachineFlag: u32 {
         const HALTED    = 0x00001;
         const USER_MODE = 0x00002;
         const INT_MODE  = 0x00004;
         const INT_DIS   = 0x00008;
         const VMEM      = 0x00010;
         const TRACE     = 0x00020;
-        const I_MACH    = 0x10000;
-        const I_TRAP    = 0x20000;
     }
 }
 
@@ -272,7 +270,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 2 => cpu.push_i32(cpu.ip)?,
                 3 => cpu.push_i32(cpu.sp)?,
                 4 => cpu.push_i32(cpu.fp)?,
-                5 => cpu.push_i32(cpu.flag.bits())?,
+                5 => cpu.push_i32(cpu.flag.bits() as i32)?,
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
@@ -296,7 +294,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 }
                 3 => cpu.sp = cpu.pop_i32()?,
                 4 => cpu.fp = cpu.pop_i32()?,
-                5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32()?).unwrap(),
+                5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32()? as u32).unwrap(),
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
