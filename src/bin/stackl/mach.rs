@@ -32,19 +32,19 @@ impl MachineState {
         }
     }
     fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
-        self.ram.store_i32(val, self.sp as _)?;
+        self.ram.store_i32(val, self.sp)?;
         self.sp += 4;
         Ok(())
     }
     fn replace_i32(&mut self, val: i32) -> Result<i32, chk::MachineCheck> {
-        let offset = (self.sp - 4) as _;
+        let offset = self.sp - 4;
         let tmp = self.ram.load_i32(offset)?;
         self.ram.store_i32(val, offset)?;
         Ok(tmp)
     }
     fn pop_i32(&mut self) -> Result<i32, chk::MachineCheck> {
         self.sp -= 4;
-        self.ram.load_i32(self.sp as _)
+        self.ram.load_i32(self.sp)
     }
     pub fn set_sp(&mut self, addr: i32) {
         self.sp = addr;
@@ -94,7 +94,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.ip,
             cpu.sp,
             cpu.fp,
-            cpu.ram.load_i32(cpu.ip as _)?
+            cpu.ram.load_i32(cpu.ip)?
         );
     }
     let op: i32 = cpu.ram.load_i32(cpu.ip.try_into().unwrap())?;
@@ -123,7 +123,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 cpu.push_i32(result)?;
             } else {
                 return Err(MachineCheck::new(
-                    chk::MachineCode::IllegalOp,
+                    chk::CheckKind::IllegalOp,
                     "Divide by Zero",
                 ));
             }
@@ -135,7 +135,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 cpu.push_i32(result)?;
             } else {
                 return Err(MachineCheck::new(
-                    chk::MachineCode::IllegalOp,
+                    chk::CheckKind::IllegalOp,
                     "Divide by Zero",
                 ));
             }
@@ -190,16 +190,13 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             cpu.push_i32(s1)?;
         }
         op::DUP => {
-            let val = cpu.ram.load_i32((cpu.sp - 4) as _)?;
-            cpu.ram.store_i32(val, cpu.sp as _)?;
+            let val = cpu.ram.load_i32(cpu.sp - 4)?;
+            cpu.ram.store_i32(val, cpu.sp)?;
             cpu.sp += 4;
         }
         op::HALT => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(
-                    chk::MachineCode::ProtInst,
-                    "protected instruction",
-                ));
+                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.flag.set(MachineFlag::HALTED, true);
             return Ok(());
@@ -209,16 +206,16 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::RET => {
             cpu.sp = cpu.fp - 4;
-            cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _)?;
-            cpu.fp = cpu.ram.load_i32((cpu.fp - 4) as _)?;
+            cpu.ip = cpu.ram.load_i32(cpu.fp - 8)?;
+            cpu.fp = cpu.ram.load_i32(cpu.fp - 4)?;
             return Ok(());
         }
         op::RETV => {
-            let tmp = cpu.ram.load_i32((cpu.sp - 4) as _)?;
+            let tmp = cpu.ram.load_i32(cpu.sp - 4)?;
             cpu.sp = cpu.fp - 4;
-            cpu.ip = cpu.ram.load_i32((cpu.fp - 8) as _)?;
-            cpu.fp = cpu.ram.load_i32((cpu.fp - 4) as _)?;
-            cpu.ram.store_i32(tmp, (cpu.sp - 4) as _)?;
+            cpu.ip = cpu.ram.load_i32(cpu.fp - 8)?;
+            cpu.fp = cpu.ram.load_i32(cpu.fp - 4)?;
+            cpu.ram.store_i32(tmp, cpu.sp - 4)?;
             return Ok(());
         }
         op::NEG => {
@@ -227,18 +224,15 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::PUSHCVARIND => {
             let offset = cpu.pop_i32()?;
-            let val = cpu.ram.load_u8(offset as _)?;
-            cpu.push_i32(val as _)?;
+            let val = cpu.ram.load_u8(offset)?;
+            cpu.push_i32(val as i32)?;
         }
         op::OUTS => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(
-                    chk::MachineCode::ProtInst,
-                    "protected instruction",
-                ));
+                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            let offset = cpu.ram.load_i32((cpu.sp - 4) as _)?;
-            cpu.ram.print_str(offset as _)?;
+            let offset = cpu.ram.load_i32(cpu.sp - 4)?;
+            cpu.ram.print_str(offset)?;
         }
         op::INP => {
             unimplemented!("inp");
@@ -248,13 +242,10 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::JMPUSER => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(
-                    chk::MachineCode::ProtInst,
-                    "protected instruction",
-                ));
+                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.ip += 4;
-            cpu.ip = cpu.ram.load_i32(cpu.ip as _)?;
+            cpu.ip = cpu.ram.load_i32(cpu.ip)?;
             cpu.flag.set(MachineFlag::USER_MODE, true);
             return Ok(());
         }
@@ -274,7 +265,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::PUSHREG => {
             cpu.ip += 4;
-            let reg = cpu.ram.load_i32(cpu.ip as _)?;
+            let reg = cpu.ram.load_i32(cpu.ip)?;
             match reg {
                 0 => cpu.push_i32(cpu.bp)?,
                 1 => cpu.push_i32(cpu.lp)?,
@@ -284,21 +275,18 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 5 => cpu.push_i32(cpu.flag.bits())?,
                 _ => {
                     return Err(chk::MachineCheck::new(
-                        chk::MachineCode::IllegalOp,
-                        "invalid reg",
+                        chk::CheckKind::IllegalOp,
+                        "Invalid Register",
                     ))
                 }
             }
         }
         op::POPREG => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(
-                    chk::MachineCode::ProtInst,
-                    "protected instruction",
-                ));
+                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.ip += 4;
-            let reg = cpu.ram.load_i32(cpu.ip as _)?;
+            let reg = cpu.ram.load_i32(cpu.ip)?;
             match reg {
                 0 => cpu.bp = cpu.pop_i32()?,
                 1 => cpu.lp = cpu.pop_i32()?,
@@ -311,7 +299,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 5 => cpu.flag = MachineFlag::from_bits(cpu.pop_i32()?).unwrap(),
                 _ => {
                     return Err(chk::MachineCheck::new(
-                        chk::MachineCode::IllegalOp,
+                        chk::CheckKind::IllegalOp,
                         "invalid register",
                     ))
                 }
@@ -344,18 +332,18 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::PUSHVARIND => {
             let offset = cpu.pop_i32()?;
-            let val = cpu.ram.load_i32(offset as _)?;
+            let val = cpu.ram.load_i32(offset)?;
             cpu.push_i32(val)?;
         }
         op::POPCVARIND => {
             let offset = cpu.pop_i32()?;
             let val = cpu.pop_i32()?;
-            cpu.ram.store_u8(val as u8, offset as _)?;
+            cpu.ram.store_u8(val as u8, offset)?;
         }
         op::POPVARIND => {
             let offset = cpu.pop_i32()?;
             let val = cpu.pop_i32()?;
-            cpu.ram.store_i32(val, offset as _)?;
+            cpu.ram.store_i32(val, offset)?;
         }
         op::COMP => {
             let val = cpu.pop_i32()?;
@@ -363,19 +351,19 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::PUSH => {
             cpu.ip += 4;
-            let val = cpu.ram.load_i32(cpu.ip as _)?;
+            let val = cpu.ram.load_i32(cpu.ip)?;
             cpu.push_i32(val)?;
         }
         op::JMP => {
             cpu.ip += 4;
-            cpu.ip = cpu.ram.load_i32(cpu.ip as _)?;
+            cpu.ip = cpu.ram.load_i32(cpu.ip)?;
             return Ok(());
         }
         op::JZ => {
             let val = cpu.pop_i32()?;
             if val == 0 {
                 cpu.ip += 4;
-                cpu.ip = cpu.ram.load_i32(cpu.ip as _)?;
+                cpu.ip = cpu.ram.load_i32(cpu.ip)?;
             } else {
                 cpu.ip += 8;
             }
@@ -383,44 +371,44 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::PUSHVAR => {
             cpu.ip += 4;
-            let offset = cpu.ram.load_i32(cpu.ip as _)?;
-            let val = cpu.ram.load_i32((cpu.fp + offset) as _)?;
+            let offset = cpu.ram.load_i32(cpu.ip)?;
+            let val = cpu.ram.load_i32(cpu.fp + offset)?;
             cpu.push_i32(val)?;
         }
         op::POPVAR => {
             cpu.ip += 4;
-            let offset = cpu.ram.load_i32(cpu.ip as _)?;
+            let offset = cpu.ram.load_i32(cpu.ip)?;
             let val = cpu.pop_i32()?;
-            cpu.ram.store_i32(val, (cpu.fp + offset) as _)?;
+            cpu.ram.store_i32(val, cpu.fp + offset)?;
         }
         op::ADJSP => {
             cpu.ip += 4;
-            cpu.sp += cpu.ram.load_i32(cpu.ip as _)?;
+            cpu.sp += cpu.ram.load_i32(cpu.ip)?;
         }
         op::POPARGS => {
             let tmp = cpu.pop_i32()?;
             cpu.ip += 4;
-            cpu.sp -= cpu.ram.load_i32(cpu.ip as _)?;
+            cpu.sp -= cpu.ram.load_i32(cpu.ip)?;
             cpu.push_i32(tmp)?;
         }
         op::CALL => {
             cpu.push_i32(cpu.ip + 8)?;
             cpu.push_i32(cpu.fp)?;
             cpu.fp = cpu.sp;
-            cpu.ip = cpu.ram.load_i32((cpu.ip + 4) as _)?;
+            cpu.ip = cpu.ram.load_i32(cpu.ip + 4)?;
             return Ok(());
         }
         op::PUSHCVAR => {
             cpu.ip += 4;
-            let offset = cpu.ram.load_i32(cpu.ip as _)?;
-            let val = cpu.ram.load_u8((cpu.fp + offset) as _)?;
+            let offset = cpu.ram.load_i32(cpu.ip)?;
+            let val = cpu.ram.load_u8(cpu.fp + offset)?;
             cpu.push_i32(val.into())?;
         }
         op::POPCVAR => {
             cpu.ip += 4;
-            let offset = cpu.ram.load_i32(cpu.ip as _)?;
+            let offset = cpu.ram.load_i32(cpu.ip)?;
             let val = cpu.pop_i32()?;
-            cpu.ram.store_u8(val as _, (cpu.fp + offset) as _)?;
+            cpu.ram.store_u8(val as u8, cpu.fp + offset)?;
         }
         op::SET_TRACE => {
             cpu.set_trace(true);
@@ -430,19 +418,13 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
         }
         op::CLR_INT_DIS => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(
-                    chk::MachineCode::ProtInst,
-                    "protected instruction",
-                ));
+                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.flag.set(MachineFlag::INT_DIS, false);
         }
         op::SET_INT_DIS => {
             if cpu.is_user_mode() {
-                return Err(MachineCheck::new(
-                    chk::MachineCode::ProtInst,
-                    "protected instruction",
-                ));
+                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.flag.set(MachineFlag::INT_DIS, true);
         }
@@ -456,12 +438,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             let lhs = cpu.pop_i32()?;
             cpu.push_i32(lhs.rotate_right(rhs as u32))?;
         }
-        57..=i32::MAX | i32::MIN..0 => {
-            return Err(chk::MachineCheck::new(
-                chk::MachineCode::IllegalInst,
-                "illegal instruction",
-            ))
-        }
+        57..=i32::MAX | i32::MIN..0 => return Err(MachineCheck::from(chk::CheckKind::IllegalInst)),
     }
     cpu.ip += 4;
     Ok(())

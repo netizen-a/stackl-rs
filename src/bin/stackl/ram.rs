@@ -19,10 +19,7 @@ impl Memory {
             ram.clone_from_slice(val);
             Ok(())
         } else {
-            Err(chk::MachineCheck::new(
-                chk::MachineCode::IllegalAddr,
-                "failed to write slice",
-            ))
+            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
@@ -31,15 +28,9 @@ impl Memory {
         if let Some(mem) = lock.get(offset..=(offset + 3)) {
             mem.try_into()
                 .map(i32::from_le_bytes)
-                .or(Err(chk::MachineCheck::new(
-                    chk::MachineCode::IllegalAddr,
-                    "failed to load bytes",
-                )))
+                .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))
         } else {
-            Err(chk::MachineCheck::new(
-                chk::MachineCode::IllegalAddr,
-                "out of range",
-            ))
+            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
     pub fn store_i32(&self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
@@ -47,12 +38,11 @@ impl Memory {
         self.store_slice(&bytes, offset)
     }
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
-        let mem = self.inner.read().unwrap();
+        let lock = self.inner.read().unwrap();
         let offset = i32_to_offset(offset)?;
-        mem.get(offset).copied().ok_or(chk::MachineCheck::new(
-            chk::MachineCode::IllegalAddr,
-            "out of bounds",
-        ))
+        lock.get(offset)
+            .copied()
+            .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
     }
     pub fn store_u8(&self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
         let mut mem = self.inner.write().unwrap();
@@ -61,10 +51,7 @@ impl Memory {
             *byte = val;
             Ok(())
         } else {
-            Err(chk::MachineCheck::new(
-                chk::MachineCode::IllegalAddr,
-                "failed to write byte",
-            ))
+            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
     pub fn print_str(&self, offset: i32) -> Result<(), chk::MachineCheck> {
@@ -85,22 +72,14 @@ impl Memory {
                 }
             }
             io::stdout().flush().unwrap();
-            Err(chk::MachineCheck::new(
-                chk::MachineCode::IllegalAddr,
-                "cannot print outside ram",
-            ))
+            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         } else {
-            Err(chk::MachineCheck::new(
-                chk::MachineCode::IllegalAddr,
-                "out of bounds",
-            ))
+            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
 }
 
 fn i32_to_offset(val: i32) -> Result<usize, chk::MachineCheck> {
-    val.try_into().or(Err(chk::MachineCheck::new(
-        chk::MachineCode::IllegalAddr,
-        "Invalid Address",
-    )))
+    val.try_into()
+        .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))
 }

@@ -1,5 +1,6 @@
 #[derive(Debug)]
-pub enum MachineCode {
+#[non_exhaustive]
+pub enum CheckKind {
     /// Illegal Instruction
     IllegalInst = 0x00000001,
     /// Illegal Address
@@ -14,21 +15,61 @@ pub enum MachineCode {
     ProtInst = 0x00000010,
     /// Illegal Operation
     IllegalOp = 0x00000020,
+    Other,
 }
 
 #[derive(Debug)]
 pub struct MachineCheck {
     #[allow(dead_code)]
-    code: MachineCode,
+    kind: CheckKind,
     #[allow(dead_code)]
     msg: String,
 }
 
 impl MachineCheck {
-    pub fn new<S: ToString>(code: MachineCode, msg: S) -> MachineCheck {
-        MachineCheck {
-            code,
+    pub fn new<E>(kind: CheckKind, msg: E) -> Self
+    where
+        E: ToString,
+    {
+        Self {
+            kind,
             msg: msg.to_string(),
+        }
+    }
+}
+
+impl From<CheckKind> for MachineCheck {
+    fn from(kind: CheckKind) -> Self {
+        use CheckKind::*;
+        match kind {
+            IllegalInst => Self {
+                kind,
+                msg: "Illegal Instruction".to_string(),
+            },
+            IllegalAddr => Self {
+                kind,
+                msg: "Illegal Address".to_string(),
+            },
+            HwFailure => Self {
+                kind,
+                msg: "Hardware Failure".to_string(),
+            },
+            HwWarning => Self {
+                kind,
+                msg: "Hardware Warning".to_string(),
+            },
+            ProtInst => Self {
+                kind,
+                msg: "Protected Instruction".to_string(),
+            },
+            IllegalOp => Self {
+                kind,
+                msg: "Illegal Operation".to_string(),
+            },
+            _ => Self {
+                kind: Other,
+                msg: "Other".to_string(),
+            },
         }
     }
 }
