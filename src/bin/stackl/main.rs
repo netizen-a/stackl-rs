@@ -7,6 +7,7 @@ use stackl::StacklFormat;
 mod chk;
 mod mach;
 mod ram;
+mod flag;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -28,7 +29,7 @@ fn main() -> ExitCode {
     } else {
         data.text.len()
     };
-    machine.set_sp(sp_addr.try_into().unwrap());
+    machine.sp = sp_addr.try_into().unwrap();
     machine.set_trace(args.trace);
     machine.run();
     ExitCode::SUCCESS
