@@ -89,7 +89,7 @@ fn get_inst_size(inst: &Inst) -> usize {
                 total += match data {
                     Value::Int(_) => 1,
                     Value::String(s) => s.as_bytes().len(),
-                    _ => todo!("label"),
+                    _ => panic!("label cannot fit in target declaration"),
                 }
             }
             total
@@ -107,7 +107,7 @@ fn get_inst_size(inst: &Inst) -> usize {
                             len + 4 - (len % 4)
                         }
                     }
-                    _ => todo!("label"),
+                    Value::Label(_) => 4,
                 }
             }
             total

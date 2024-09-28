@@ -36,6 +36,7 @@ ValueList: Vec<Value> = {
 Value: Value = {
   STR => Value::String(<>),
   INTEGER => Value::Int(<>),
+  Label => Value::Label(<>)
 }
 
 Values: Vec<Value> = <v: ValueList> ","? => v;

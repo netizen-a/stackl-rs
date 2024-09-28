@@ -32,7 +32,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                     for data in list {
                         let vec: Vec<u8> = match data {
                             // convert i32 to [u8]
-                            Value::Int(value) => Vec::from(value.to_le_bytes()),
+                            Value::Int(value) => value.to_le_bytes().to_vec(),
                             // convert String to [u8]
                             Value::String(s) => {
                                 let mut bytes = s.as_bytes().to_vec();
@@ -44,7 +44,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                                     bytes
                                 }
                             }
-                            _ => unimplemented!(),
+                            Value::Label(label) => (symtab[&label] as u32).to_le_bytes().to_vec(),
                         };
                         data_list.extend(vec);
                     }

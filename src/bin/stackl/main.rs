@@ -3,6 +3,7 @@ use std::sync::mpsc::channel;
 use std::thread::scope;
 use std::{fs, path};
 
+use chk::{CheckKind, MachineCheck};
 use clap::Parser;
 use stackl::StacklFormat;
 
@@ -26,7 +27,11 @@ fn main() -> ExitCode {
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
     let mut machine = mach::MachineState::new(args.memory);
-    machine.ram.store_slice(&data.text, 0).unwrap();
+    {
+        let mut ram_lock = ram::VM_MEM.write().unwrap();
+        ram_lock.resize(args.memory, 0x79);
+        ram_lock.store_slice(&data.text, 0).unwrap();
+    }
     let sp_addr = if data.text.len() % 2 != 0 {
         data.text.len() + 2 - (data.text.len() % 2)
     } else {
@@ -42,8 +47,17 @@ fn main() -> ExitCode {
         });
         f.spawn(|| {
             for recv in request_recv {
-                println!("recv runtime: {recv:?}");
-                if let Err(_) = response_send.send(msg::MachineResponse::Test) {
+                let response: msg::MachineResponse = match recv {
+                    msg::MachineRequest::Prints(offset) => {
+                        let ram_lock = ram::VM_MEM.read().unwrap();
+                        ram_lock.print_c_str(offset).unwrap();
+                        msg::MachineResponse::Ok
+                    }
+                    msg::MachineRequest::Unknown => {
+                        msg::MachineResponse::Err(MachineCheck::from(CheckKind::IllegalOp))
+                    }
+                };
+                if let Err(_) = response_send.send(response) {
                     return;
                 }
             }

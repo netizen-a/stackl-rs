@@ -1,9 +1,14 @@
+use crate::chk::MachineCheck;
+
 #[derive(Debug)]
 pub enum MachineResponse {
-    Test,
+    Ok,
+    #[allow(dead_code)]
+    Err(MachineCheck),
 }
 
 #[derive(Debug)]
 pub enum MachineRequest {
-    Test,
+    Unknown,
+    Prints(i32),
 }

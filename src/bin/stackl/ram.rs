@@ -1,15 +1,20 @@
 use crate::chk;
 use std::io;
 use std::io::Write;
+use std::sync::RwLock;
+
+pub static VM_MEM: RwLock<Memory> = RwLock::new(Memory::new());
+
 pub struct Memory {
     inner: Vec<u8>,
 }
 
 impl Memory {
-    pub fn new(mem_size: usize) -> Self {
-        Memory {
-            inner: vec![0x79; mem_size],
-        }
+    pub fn resize(&mut self, new_len: usize, value: u8) {
+        self.inner.resize(new_len, value);
+    }
+    pub const fn new() -> Self {
+        Memory { inner: Vec::new() }
     }
     // returns true if success, else false
     // This function does not check alignment.
