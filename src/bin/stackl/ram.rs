@@ -1,6 +1,6 @@
 use crate::chk;
-use std::io::Write;
 use std::io;
+use std::io::Write;
 pub struct Memory {
     inner: Vec<u8>,
 }
@@ -12,6 +12,7 @@ impl Memory {
         }
     }
     // returns true if success, else false
+    // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {
         let mem = &mut self.inner;
         let offset = i32_to_offset(offset)?;
@@ -25,6 +26,12 @@ impl Memory {
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
         let mem = &self.inner;
         let offset = i32_to_offset(offset)?;
+        if offset % 4 != 0 {
+            return Err(chk::MachineCheck::new(
+                chk::CheckKind::IllegalAddr,
+                format!("Misaligned Address at {offset}"),
+            ));
+        }
         if let Some(mem) = mem.get(offset..=(offset + 3)) {
             mem.try_into()
                 .map(i32::from_le_bytes)
@@ -34,9 +41,16 @@ impl Memory {
         }
     }
     pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
+        if offset % 4 != 0 {
+            return Err(chk::MachineCheck::new(
+                chk::CheckKind::IllegalAddr,
+                format!("Misaligned Address at {offset}"),
+            ));
+        }
         let bytes = i32::to_le_bytes(val);
         self.store_slice(&bytes, offset)
     }
+    // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
         let mem = &self.inner;
         let offset = i32_to_offset(offset)?;
@@ -44,6 +58,7 @@ impl Memory {
             .copied()
             .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
     }
+    // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
         let mem = &mut self.inner;
         let offset = i32_to_offset(offset)?;
@@ -54,6 +69,7 @@ impl Memory {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
+    // This function does not check alignment
     pub fn print_c_str(&self, offset: i32) -> Result<(), chk::MachineCheck> {
         let mem = &self.inner;
         let offset = i32_to_offset(offset)?;
@@ -79,6 +95,8 @@ impl Memory {
     }
 }
 
+// Helper function to convert i32 to usize.
+// This function will return Err if val is negative
 fn i32_to_offset(val: i32) -> Result<usize, chk::MachineCheck> {
     val.try_into()
         .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))

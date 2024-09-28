@@ -1,10 +1,11 @@
-use std::sync::RwLock;
+use std::sync::mpsc::{Receiver, Sender};
 
-use crate::{chk, flag::IntVec};
 use crate::chk::MachineCheck;
-use crate::ram;
-use stackl::op;
 use crate::flag::{MachineFlags, Status};
+use crate::msg::MachineRequest;
+use crate::ram;
+use crate::{chk, msg};
+use stackl::op;
 
 #[allow(dead_code)]
 pub struct MachineState {
@@ -13,7 +14,7 @@ pub struct MachineState {
     pub ip: i32,
     pub sp: i32,
     pub fp: i32,
-    pub flag: RwLock<MachineFlags>,
+    pub flag: MachineFlags,
     pub ivec: i32,
     pub vmem: i32,
     pub ram: ram::Memory,
@@ -27,7 +28,7 @@ impl MachineState {
             ip: 0,
             sp: 0,
             fp: 0,
-            flag: RwLock::new(MachineFlags::new()),
+            flag: MachineFlags::new(),
             ivec: 0,
             vmem: 0,
             ram: ram::Memory::new(mem_size),
@@ -42,34 +43,8 @@ impl MachineState {
         self.sp -= 4;
         self.ram.load_i32(self.sp)
     }
-    pub fn store_status(&self, flag: Status, value: bool) {
-        let mut flag_lock = self.flag.write().unwrap();
-        flag_lock.set_status(flag, value);
-    }
-    pub fn load_status(&self, flag: Status) -> bool {
-        let flag_lock = self.flag.read().unwrap();
-        flag_lock.get_status(flag)
-    }
-    #[allow(dead_code)]
-    pub fn store_intvec(&self, flag: IntVec, value: bool) {
-        let mut flag_lock = self.flag.write().unwrap();
-        flag_lock.set_intvec(flag, value);
-    }
-    #[allow(dead_code)]
-    pub fn load_intvec(&self, flag: IntVec) -> bool {
-        let flag_lock = self.flag.read().unwrap();
-        flag_lock.get_intvec(flag)
-    }
-    pub fn store_flags(&mut self, flag: MachineFlags) {
-        let mut flag_lock = self.flag.write().unwrap();
-        *flag_lock = flag;
-    }
-    pub fn load_flags(&self) -> MachineFlags {
-        let flag_lock = self.flag.read().unwrap();
-        *flag_lock
-    }
     pub fn set_trace(&mut self, value: bool) {
-        self.store_status(Status::TRACE, value);
+        self.flag.set_status(Status::TRACE, value);
         if value {
             eprintln!(
                 "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
@@ -78,27 +53,33 @@ impl MachineState {
         }
     }
     pub fn is_user_mode(&self) -> bool {
-        let flag_lock = self.flag.read().unwrap();
-        flag_lock.get_status(Status::USER_MODE)
+        self.flag.get_status(Status::USER_MODE)
     }
-    pub fn run(mut self) {
+    pub fn run(
+        mut self,
+        request_send: Sender<msg::MachineRequest>,
+        response_recv: Receiver<msg::MachineResponse>,
+    ) {
         loop {
-            {
-                let flag_lock = self.flag.read().unwrap();
-                if flag_lock.get_status(Status::HALTED) {
-                    return;
-                }
+            for recv in response_recv.try_iter() {
+                println!("machine: {recv:?}");
             }
-            execute_op(&mut self).expect("uncaught machine check");
+            if self.flag.get_status(Status::HALTED) {
+                return;
+            }
+            execute_op(&mut self, &request_send).expect("uncaught machine check");
         }
     }
 }
 
-fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
-    if cpu.load_status(Status::TRACE) {
+fn execute_op(
+    cpu: &mut MachineState,
+    request_send: &Sender<msg::MachineRequest>,
+) -> Result<(), chk::MachineCheck> {
+    if cpu.flag.get_status(Status::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
-            cpu.load_flags().as_u32(),
+            cpu.flag.as_u32(),
             cpu.bp,
             cpu.lp,
             cpu.ip,
@@ -209,7 +190,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            cpu.store_status(Status::HALTED, true);
+            cpu.flag.set_status(Status::HALTED, true);
             return Ok(());
         }
         op::POP => {
@@ -249,7 +230,8 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            todo!("inp")
+            request_send.send(MachineRequest::Test).unwrap();
+            // todo!("inp")
         }
         op::PUSHFP => {
             cpu.push_i32(cpu.fp)?;
@@ -260,7 +242,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             }
             cpu.ip += 4;
             cpu.ip = cpu.ram.load_i32(cpu.ip)?;
-            cpu.store_status(Status::USER_MODE, true);
+            cpu.flag.set_status(Status::USER_MODE, true);
             return Ok(());
         }
         op::TRAP => {
@@ -292,7 +274,7 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 2 => cpu.push_i32(cpu.ip)?,
                 3 => cpu.push_i32(cpu.sp)?,
                 4 => cpu.push_i32(cpu.fp)?,
-                5 => cpu.push_i32(cpu.load_flags().as_u32() as i32)?,
+                5 => cpu.push_i32(cpu.flag.as_u32() as i32)?,
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
@@ -318,8 +300,8 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
                 4 => cpu.fp = cpu.pop_i32()?,
                 5 => {
                     let val = cpu.pop_i32()? as u32;
-                    cpu.store_flags(MachineFlags::from(val))
-                },
+                    cpu.flag = MachineFlags::from(val)
+                }
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
@@ -443,13 +425,13 @@ fn execute_op(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            cpu.store_status(Status::INT_DIS, false);
+            cpu.flag.set_status(Status::INT_DIS, false);
         }
         op::SET_INT_DIS => {
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            cpu.store_status(Status::INT_DIS, true);
+            cpu.flag.set_status(Status::INT_DIS, true);
         }
         op::ROTATE_LEFT => {
             let rhs = cpu.pop_i32()?;

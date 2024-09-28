@@ -1,13 +1,16 @@
 use std::process::ExitCode;
+use std::sync::mpsc::channel;
+use std::thread::scope;
 use std::{fs, path};
 
 use clap::Parser;
 use stackl::StacklFormat;
 
 mod chk;
-mod mach;
-mod ram;
 mod flag;
+mod mach;
+mod msg;
+mod ram;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -31,6 +34,20 @@ fn main() -> ExitCode {
     };
     machine.sp = sp_addr.try_into().unwrap();
     machine.set_trace(args.trace);
-    machine.run();
+    let (request_send, request_recv) = channel::<msg::MachineRequest>();
+    let (response_send, response_recv) = channel::<msg::MachineResponse>();
+    scope(|f| {
+        f.spawn(|| {
+            machine.run(request_send, response_recv);
+        });
+        f.spawn(|| {
+            for recv in request_recv {
+                println!("recv runtime: {recv:?}");
+                if let Err(_) = response_send.send(msg::MachineResponse::Test) {
+                    return;
+                }
+            }
+        });
+    });
     ExitCode::SUCCESS
 }

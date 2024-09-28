@@ -65,7 +65,7 @@ impl From<u32> for MachineFlags {
     fn from(value: u32) -> Self {
         Self {
             status: Status::from_bits_retain(value as u16),
-            intvec: IntVec::from_bits_retain((value >> 16) as u16)
+            intvec: IntVec::from_bits_retain((value >> 16) as u16),
         }
     }
 }
