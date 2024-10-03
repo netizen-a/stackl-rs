@@ -1,5 +1,6 @@
 use crate::chk;
-use std::io;
+use core::time;
+use std::{io, thread};
 use std::io::Write;
 use std::sync::RwLock;
 
@@ -75,24 +76,25 @@ impl Memory {
         }
     }
     // This function does not check alignment
-    pub fn print_c_str(&self, offset: i32) -> Result<(), chk::MachineCheck> {
+    pub fn print(&self, offset: i32) -> Result<(), chk::MachineCheck> {
         let mem = &self.inner;
         let offset = i32_to_offset(offset)?;
         if let Some(bytes) = mem.get(offset..) {
-            let mut lock = io::stdout().lock();
             for chunk in bytes.utf8_chunks() {
                 for ch in chunk.valid().chars() {
+                    thread::sleep(time::Duration::from_micros(100));
                     if ch == '\0' {
-                        io::stdout().flush().unwrap();
                         return Ok(());
                     }
-                    write!(lock, "{ch}").unwrap();
+                    print!("{ch}");
+                    io::stdout().flush().unwrap();
                 }
                 for byte in chunk.invalid() {
-                    write!(lock, "\\x{:02X}", byte).unwrap();
+                    thread::sleep(time::Duration::from_micros(100));
+                    print!("\\x{:02X}", byte);
+                    io::stdout().flush().unwrap();
                 }
             }
-            io::stdout().flush().unwrap();
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         } else {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))

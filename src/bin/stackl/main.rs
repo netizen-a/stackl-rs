@@ -50,7 +50,7 @@ fn main() -> ExitCode {
                 let response: msg::MachineResponse = match recv {
                     msg::MachineRequest::Prints(offset) => {
                         let ram_lock = ram::VM_MEM.read().unwrap();
-                        ram_lock.print_c_str(offset).unwrap();
+                        ram_lock.print(offset).unwrap();
                         msg::MachineResponse::Ok
                     }
                     msg::MachineRequest::Unknown => {

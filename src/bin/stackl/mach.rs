@@ -240,7 +240,7 @@ fn execute_op(
             }
             let ram_lock = ram::VM_MEM.read().unwrap();
             let offset = ram_lock.load_i32(cpu.sp - 4)?;
-            ram_lock.print_c_str(offset)?;
+            ram_lock.print(offset)?;
         }
         op::INP => {
             if cpu.is_user_mode() {
