@@ -73,11 +73,15 @@ impl MachineState {
     pub fn run(
         &mut self,
         request_send: Sender<msg::MachineRequest>,
-        response_recv: Receiver<msg::MachineResponse>,
+        response_recv: Receiver<Result<(), chk::MachineCheck>>,
     ) {
         loop {
+            let mut _mach_check = None;
             for recv in response_recv.try_iter() {
-                println!("machine: {recv:?}");
+                if let Err(check) = recv {
+                    _mach_check = Some(check);
+                    return;
+                }
             }
             if self.flag.get_status(Status::HALTED) {
                 return;

@@ -40,21 +40,20 @@ fn main() -> ExitCode {
     machine.sp = sp_addr.try_into().unwrap();
     machine.set_trace(args.trace);
     let (request_send, request_recv) = channel::<msg::MachineRequest>();
-    let (response_send, response_recv) = channel::<msg::MachineResponse>();
+    let (response_send, response_recv) = channel::<Result<(), chk::MachineCheck>>();
     scope(|f| {
         f.spawn(|| {
             machine.run(request_send, response_recv);
         });
         f.spawn(|| {
             for recv in request_recv {
-                let response: msg::MachineResponse = match recv {
+                let response = match recv {
                     msg::MachineRequest::Prints(offset) => {
                         let ram_lock = ram::VM_MEM.read().unwrap();
-                        ram_lock.print(offset).unwrap();
-                        msg::MachineResponse::Ok
+                        ram_lock.print(offset)
                     }
                     msg::MachineRequest::Unknown => {
-                        msg::MachineResponse::Err(MachineCheck::from(CheckKind::IllegalOp))
+                        Err(MachineCheck::from(CheckKind::IllegalOp))
                     }
                 };
                 if let Err(_) = response_send.send(response) {
