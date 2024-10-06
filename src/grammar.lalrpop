@@ -97,12 +97,14 @@ Reg: Reg = {
     3 => Ok(Reg::SP),
     4 => Ok(Reg::FP),
     5 => Ok(Reg::Flag),
+    6 => Ok(Reg::IVec),
     _ => Err(ParseError::UnrecognizedToken {
       token: (start, Token::Integer(i), end),
       expected: vec![
         "0".to_string(), "1".to_string(),
         "2".to_string(), "3".to_string(),
-        "4".to_string(), "5".to_string()
+        "4".to_string(), "5".to_string(),
+        "6".to_string()
       ],
     })
   },
@@ -113,12 +115,14 @@ Reg: Reg = {
     "sp" => Ok(Reg::SP),
     "fp" => Ok(Reg::FP),
     "flag" => Ok(Reg::Flag),
+    "ivec" => Ok(Reg::IVec),
     _ => Err(ParseError::UnrecognizedToken {
       token: (start, Token::Identifier(i), end),
       expected: vec![
         "BP".to_string(), "LP".to_string(),
         "IP".to_string(), "SP".to_string(),
-        "FP".to_string(), "FLAG".to_string()
+        "FP".to_string(), "FLAG".to_string(),
+        "IVEC".to_string()
       ],
     })
   },

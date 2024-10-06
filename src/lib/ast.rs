@@ -66,6 +66,7 @@ pub enum Reg {
     SP = 3,
     FP = 4,
     Flag = 5,
+    IVec = 6,
 }
 
 #[derive(Debug, PartialEq, Clone)]

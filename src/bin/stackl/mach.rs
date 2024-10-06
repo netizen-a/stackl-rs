@@ -344,6 +344,7 @@ fn execute_op(
                 3 => cpu.push_i32(cpu.sp)?,
                 4 => cpu.push_i32(cpu.fp)?,
                 5 => cpu.push_i32(cpu.flag.as_u32() as i32)?,
+                6 => cpu.push_i32(cpu.ivec)?,
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
@@ -371,6 +372,7 @@ fn execute_op(
                     let val = cpu.pop_i32()? as u32;
                     cpu.flag = MachineFlags::from(val)
                 }
+                6 => cpu.ivec = cpu.pop_i32()?,
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
