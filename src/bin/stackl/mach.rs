@@ -19,7 +19,7 @@ pub struct MachineState {
 }
 
 impl MachineState {
-    pub fn new(mem_size: usize) -> MachineState {
+    pub fn new(ivec: i32, mem_size: usize) -> MachineState {
         MachineState {
             bp: 0,
             lp: mem_size.try_into().unwrap(),
@@ -27,35 +27,35 @@ impl MachineState {
             sp: 0,
             fp: 0,
             flag: MachineFlags::new(),
-            ivec: 0,
+            ivec,
             vmem: 0,
         }
     }
     pub fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
-        let mut ram_lock = ram::VM_MEM.write().unwrap();
+        let mut ram_lock = ram::VM_RAM.write().unwrap();
         ram_lock.store_i32(val, self.sp)?;
         self.sp += 4;
         Ok(())
     }
     pub fn pop_i32(&mut self) -> Result<i32, chk::MachineCheck> {
-        let ram_lock = ram::VM_MEM.read().unwrap();
+        let ram_lock = ram::VM_RAM.read().unwrap();
         self.sp -= 4;
         ram_lock.load_i32(self.sp)
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
-        let ram_lock = ram::VM_MEM.read().unwrap();
+        let ram_lock = ram::VM_RAM.read().unwrap();
         ram_lock.load_i32(offset)
     }
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
-        let ram_lock = ram::VM_MEM.read().unwrap();
+        let ram_lock = ram::VM_RAM.read().unwrap();
         ram_lock.load_u8(offset)
     }
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
-        let mut ram_lock = ram::VM_MEM.write().unwrap();
+        let mut ram_lock = ram::VM_RAM.write().unwrap();
         ram_lock.store_u8(val, offset)
     }
     pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
-        let mut ram_lock = ram::VM_MEM.write().unwrap();
+        let mut ram_lock = ram::VM_RAM.write().unwrap();
         ram_lock.store_i32(val, offset)
     }
     pub fn set_trace(&mut self, value: bool) {
@@ -67,8 +67,16 @@ impl MachineState {
             );
         }
     }
+    pub fn get_trap_addr(&self) -> Result<i32, MachineCheck> {
+        if self.ivec == -1 {
+            let lock = ram::VM_ROM.read().unwrap();
+            lock.load_i32(4)
+        } else {
+            self.load_i32(self.ivec + 4)
+        }
+    }
     pub fn is_user_mode(&self) -> bool {
-        self.flag.get_status(Status::USER_MODE)
+        self.flag.get_status(Status::USR_MODE)
     }
     pub fn run(
         &mut self,
@@ -242,7 +250,7 @@ fn execute_op(
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            let ram_lock = ram::VM_MEM.read().unwrap();
+            let ram_lock = ram::VM_RAM.read().unwrap();
             let offset = ram_lock.load_i32(cpu.sp - 4)?;
             ram_lock.print(offset)?;
         }
@@ -270,13 +278,14 @@ fn execute_op(
             }
             cpu.ip += 4;
             cpu.ip = cpu.load_i32(cpu.ip)?;
-            cpu.flag.set_status(Status::USER_MODE, true);
+            cpu.flag.set_status(Status::USR_MODE, true);
             return Ok(());
         }
         op::TRAP => {
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
+            let _trap_addr = cpu.get_trap_addr()?;
             todo!("trap")
         }
         op::RTI => {

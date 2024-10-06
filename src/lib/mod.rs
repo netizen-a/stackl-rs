@@ -18,8 +18,8 @@ pub struct StacklFormat {
     version: u32,
     /// Reserved. Must be set to zero.
     flags: u32,
-    int_vec: i32,
-    trap_vec: i32,
+    pub int_vec: i32,
+    pub trap_vec: i32,
     pub text: Vec<u8>,
 }
 

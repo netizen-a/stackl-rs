@@ -1,10 +1,11 @@
 use crate::chk;
 use core::time;
-use std::{io, thread};
 use std::io::Write;
 use std::sync::RwLock;
+use std::{io, thread};
 
-pub static VM_MEM: RwLock<Memory> = RwLock::new(Memory::new());
+pub static VM_RAM: RwLock<Memory> = RwLock::new(Memory::new());
+pub static VM_ROM: RwLock<Memory> = RwLock::new(Memory::new());
 
 pub struct Memory {
     inner: Vec<u8>,

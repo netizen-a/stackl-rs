@@ -4,7 +4,7 @@ bitflags! {
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Status: u16 {
         const HALTED    = 1;
-        const USER_MODE = 1 << 1;
+        const USR_MODE = 1 << 1;
         const INT_MODE  = 1 << 2;
         const INT_DIS   = 1 << 3;
         const VMEM      = 1 << 4;

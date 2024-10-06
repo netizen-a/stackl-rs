@@ -26,12 +26,28 @@ fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
-    let mut machine = mach::MachineState::new(args.memory);
-    {
-        let mut ram_lock = ram::VM_MEM.write().unwrap();
-        ram_lock.resize(args.memory, 0x79);
-        ram_lock.store_slice(&data.text, 0).unwrap();
-    }
+    let mut machine = mach::MachineState::new(data.int_vec, args.memory);
+    let _ = ram::VM_RAM
+        .write()
+        .and_then(|mut ram| {
+            ram.resize(args.memory, 0x79);
+            ram.store_slice(&data.text, 0).unwrap();
+            Ok(())
+        })
+        .expect("Failed to initialize VM's RAM");
+    let _ = ram::VM_ROM
+        .write()
+        .and_then(|mut rom| {
+            rom.resize(64, 0);
+            for slot in 0..15 {
+                rom.store_i32(0x0001, 4*slot).unwrap();
+            }
+            if data.trap_vec != -1 {
+                rom.store_i32(data.trap_vec, 4).unwrap();
+            }
+            Ok(())
+        })
+        .expect("Failed to initialize VM's ROM");
     let sp_addr = if data.text.len() % 2 != 0 {
         data.text.len() + 2 - (data.text.len() % 2)
     } else {
@@ -49,12 +65,10 @@ fn main() -> ExitCode {
             for recv in request_recv {
                 let response = match recv {
                     msg::MachineRequest::Prints(offset) => {
-                        let ram_lock = ram::VM_MEM.read().unwrap();
+                        let ram_lock = ram::VM_RAM.read().unwrap();
                         ram_lock.print(offset)
                     }
-                    msg::MachineRequest::Unknown => {
-                        Err(MachineCheck::from(CheckKind::IllegalOp))
-                    }
+                    msg::MachineRequest::Unknown => Err(MachineCheck::from(CheckKind::IllegalOp)),
                 };
                 if let Err(_) = response_send.send(response) {
                     return;
