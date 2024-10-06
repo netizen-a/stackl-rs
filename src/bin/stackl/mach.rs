@@ -58,6 +58,10 @@ impl MachineState {
         let mut ram_lock = ram::VM_RAM.write().unwrap();
         ram_lock.store_i32(val, offset)
     }
+    pub fn get_inst_name(&self, offset: i32) -> Result<String, chk::MachineCheck> {
+        let ram_lock = ram::VM_RAM.read().unwrap();
+        ram_lock.get_inst_name(offset)
+    }
     pub fn set_trace(&mut self, value: bool) {
         self.flag.set_status(Status::TRACE, value);
         if value {
@@ -69,9 +73,11 @@ impl MachineState {
     }
     pub fn get_trap_addr(&self) -> Result<i32, MachineCheck> {
         if self.ivec == -1 {
+            println!("default ivec");
             let lock = ram::VM_ROM.read().unwrap();
             lock.load_i32(4)
         } else {
+            println!("custom ivec");
             self.load_i32(self.ivec + 4)
         }
     }
@@ -112,7 +118,7 @@ fn execute_op(
             cpu.ip,
             cpu.sp,
             cpu.fp,
-            cpu.load_i32(cpu.ip)?
+            cpu.get_inst_name(cpu.ip)?
         );
     }
     let op: i32 = cpu.load_i32(cpu.ip)?;
@@ -282,17 +288,43 @@ fn execute_op(
             return Ok(());
         }
         op::TRAP => {
-            if cpu.is_user_mode() {
+            let was_user = cpu.is_user_mode();
+            if was_user {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            let _trap_addr = cpu.get_trap_addr()?;
-            todo!("trap")
+            cpu.push_i32(cpu.sp)?;
+            cpu.push_i32(cpu.flag.as_u32() as i32)?;
+            cpu.push_i32(cpu.bp)?;
+            cpu.push_i32(cpu.lp)?;
+            cpu.push_i32(cpu.ip + 4)?;
+            cpu.push_i32(cpu.fp)?;
+            cpu.flag.set_status(Status::USR_MODE, false);
+            cpu.flag.set_status(Status::INT_MODE, true);
+            if was_user {
+                // switch fp and sp to absolute addresses
+                cpu.fp += cpu.bp;
+                cpu.sp += cpu.bp;
+            }
+            cpu.ip = cpu.get_trap_addr()?;
+            println!("trap addr:{}", cpu.ip);
+            return Ok(())
         }
         op::RTI => {
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            todo!("rti")
+            let new_flag: i32;
+            let flag = cpu.flag;
+            cpu.fp = cpu.pop_i32()?;
+            cpu.ip = cpu.pop_i32()?;
+            cpu.lp = cpu.pop_i32()?;
+            cpu.bp = cpu.pop_i32()?;
+            new_flag = cpu.pop_i32()?;
+            cpu.sp = cpu.pop_i32()?;
+
+            cpu.flag = MachineFlags::from(new_flag as u32);
+            cpu.flag.intvec = flag.intvec;
+            return Ok(());
         }
         op::CALLI => {
             let tmp = cpu.pop_i32()?;

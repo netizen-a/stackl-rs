@@ -1,3 +1,5 @@
+use stackl::op;
+
 use crate::chk;
 use core::time;
 use std::io::Write;
@@ -100,6 +102,70 @@ impl Memory {
         } else {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
+    }
+    pub fn get_inst_name(&self, offset: i32) -> Result<String, chk::MachineCheck> {
+        let op = self.load_i32(offset)?;
+        let name = match op {
+            op::NOP => "NOP",
+            op::ADD => "ADD",
+            op::SUB => "SUB",
+            op::MUL => "MUL",
+            op::DIV => "DIV",
+            op::MOD => "MOD",
+            op::EQ => "EQ",
+            op::NE => "NE",
+            op::GT => "GT",
+            op::LT => "LT",
+            op::GE => "GE",
+            op::LE => "LE",
+            op::AND => "AND",
+            op::OR => "OR",
+            op::NOT => "NOT",
+            op::SWAP => "SWAP",
+            op::DUP => "DUP",
+            op::HALT => "HALT",
+            op::POP => "POP",
+            op::RET => "RET",
+            op::RETV => "RETV",
+            op::NEG => "NEG",
+            op::PUSHCVARIND => "PUSHCVARIND",
+            op::OUTS => "OUTS",
+            op::INP => "INP",
+            op::PUSHFP => "PUSHFP",
+            op::JMPUSER => "JMPUSER",
+            op::TRAP => "TRAP",
+            op::RTI => "RTI",
+            op::CALLI => "CALLI",
+            op::PUSHREG => "PUSHREG",
+            op::POPREG => "POPREG",
+            op::BAND => "BAND",
+            op::BOR => "BOR",
+            op::BXOR => "BXOR",
+            op::SHIFT_LEFT => "SHIFT_LEFT",
+            op::SHIFT_RIGHT => "SHIFT_RIGHT",
+            op::PUSHVARIND => "PUSHVARIND",
+            op::POPCVARIND => "POPCVARIND",
+            op::POPVARIND => "POPVARIND",
+            op::COMP => "COMP",
+            op::PUSH => "PUSH",
+            op::JMP => "JMP",
+            op::JZ => "JZ",
+            op::PUSHVAR => "PUSHVAR",
+            op::POPVAR => "POPVAR",
+            op::ADJSP => "ADJSP",
+            op::POPARGS => "POPARGS",
+            op::CALL => "CALL",
+            op::PUSHCVAR => "PUSHCVAR",
+            op::POPCVAR => "POPCVAR",
+            op::SET_TRACE => "SET_TRACE",
+            op::CLR_TRACE => "CLR_TRACE",
+            op::CLR_INT_DIS => "CLR_INT_DIS",
+            op::SET_INT_DIS => "SET_INT_DIS",
+            op::ROTATE_LEFT => "ROTATE_LEFT",
+            op::ROTATE_RIGHT => "ROTATE_RIGHT",
+            _ => "ILLEGAL",
+        };
+        Ok(name.to_string())
     }
 }
 
