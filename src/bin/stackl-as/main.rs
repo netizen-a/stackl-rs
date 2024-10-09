@@ -7,6 +7,8 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 struct Args {
     asmfile: path::PathBuf,
+    #[arg(short)]
+    outfile: Option<path::PathBuf>,
 }
 
 fn main() -> ExitCode {
@@ -35,8 +37,14 @@ fn main() -> ExitCode {
     stackl::ast::fixup_start(&mut ast);
 
     let code = stackl::StacklFormat::try_from(ast).unwrap();
-    let outfile = args.asmfile.with_extension("stackl");
-    let outfile = outfile.file_name().unwrap();
+    let outfile = match args.outfile {
+        Some(o) => o,
+        None => {
+            let outfile = args.asmfile.with_extension("stackl");
+            let outfile = outfile.file_name().unwrap();
+            path::PathBuf::from(outfile)
+        }
+    };
     fs::write(outfile, code.to_vec()).unwrap();
 
     ExitCode::SUCCESS

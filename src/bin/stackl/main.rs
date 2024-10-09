@@ -40,7 +40,7 @@ fn main() -> ExitCode {
         .and_then(|mut rom| {
             rom.resize(64, 0);
             for slot in 0..15 {
-                rom.store_i32(0x0001, 4*slot).unwrap();
+                rom.store_i32(0x0001, 4 * slot).unwrap();
             }
             if data.trap_vec != -1 {
                 rom.store_i32(data.trap_vec, 4).unwrap();

@@ -307,7 +307,7 @@ fn execute_op(
             }
             cpu.ip = cpu.get_trap_addr()?;
             println!("trap addr:{}", cpu.ip);
-            return Ok(())
+            return Ok(());
         }
         op::RTI => {
             if cpu.is_user_mode() {
