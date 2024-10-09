@@ -9,11 +9,11 @@ publish = false
 build = "build.rs"
 
 [build-dependencies]
-lalrpop = "0.21.0"
+lalrpop = "0.22.0"
 
 [dependencies]
 logos = "0.14.1"
-lalrpop-util = "0.21.0"
+lalrpop-util = "0.22.0"
 clap = { version = "4.5.17", features = ["derive"] }
 bitflags = "2.6.0"
 
