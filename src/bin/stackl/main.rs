@@ -10,7 +10,6 @@ use stackl::StacklFormat;
 mod chk;
 mod flag;
 mod mach;
-mod msg;
 mod ram;
 
 #[derive(Parser, Debug)]
@@ -55,21 +54,15 @@ fn main() -> ExitCode {
     };
     machine.sp = sp_addr.try_into().unwrap();
     machine.set_trace(args.trace);
-    let (request_send, request_recv) = channel::<msg::MachineRequest>();
+    let (request_send, request_recv) = channel::<i32>();
     let (response_send, response_recv) = channel::<Result<(), chk::MachineCheck>>();
     scope(|f| {
         f.spawn(|| {
             machine.run(request_send, response_recv);
         });
         f.spawn(|| {
-            for recv in request_recv {
-                let response = match recv {
-                    msg::MachineRequest::Prints(offset) => {
-                        let ram_lock = ram::VM_RAM.read().unwrap();
-                        ram_lock.print(offset)
-                    }
-                    msg::MachineRequest::Unknown => Err(MachineCheck::from(CheckKind::IllegalOp)),
-                };
+            for offset in request_recv {
+                let response = process_request(offset);
                 if let Err(_) = response_send.send(response) {
                     return;
                 }
@@ -77,4 +70,15 @@ fn main() -> ExitCode {
         });
     });
     ExitCode::SUCCESS
+}
+
+fn process_request(offset: i32) -> Result<(), MachineCheck> {
+    let memory = ram::VM_RAM.read().unwrap();
+    let op = memory.load_i32(offset)?;
+    let param1 = memory.load_i32(offset + 4)?;
+    let _param2 = memory.load_i32(offset + 8)?;
+    match op {
+        3 => memory.print(param1),
+        _ => Err(MachineCheck::from(CheckKind::IllegalOp)),
+    }
 }

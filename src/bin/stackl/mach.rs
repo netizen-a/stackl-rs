@@ -3,7 +3,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::chk::MachineCheck;
 use crate::flag::{MachineFlags, Status};
 use crate::ram;
-use crate::{chk, msg};
+use crate::chk;
 use stackl::op;
 
 #[allow(dead_code)]
@@ -86,7 +86,7 @@ impl MachineState {
     }
     pub fn run(
         &mut self,
-        request_send: Sender<msg::MachineRequest>,
+        request_send: Sender<i32>,
         response_recv: Receiver<Result<(), chk::MachineCheck>>,
     ) {
         loop {
@@ -105,10 +105,7 @@ impl MachineState {
     }
 }
 
-fn execute_op(
-    cpu: &mut MachineState,
-    request_send: &Sender<msg::MachineRequest>,
-) -> Result<(), chk::MachineCheck> {
+fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), chk::MachineCheck> {
     if cpu.flag.get_status(Status::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
@@ -265,15 +262,7 @@ fn execute_op(
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             let offset = cpu.pop_i32()?;
-            let op = cpu.load_i32(offset)?;
-            let request = match op {
-                3 => {
-                    let param1 = cpu.load_i32(offset + 4)?;
-                    msg::MachineRequest::Prints(param1)
-                }
-                _ => msg::MachineRequest::Unknown,
-            };
-            request_send.send(request).unwrap();
+            request_send.send(offset).unwrap();
         }
         op::PUSHFP => {
             cpu.push_i32(cpu.fp)?;
