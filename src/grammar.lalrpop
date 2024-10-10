@@ -35,9 +35,9 @@ ValueList: Vec<Value> = {
 }
 
 Num: i32 = {
-  INTEGER =>? i32::from_str(&<>)
+  <start: @L> <i: INTEGER> <end: @R> =>? i32::from_str(&i)
     .map_err(|e| ParseError::User {
-            error: LexicalError::InvalidInteger(e)
+            error: LexicalError::InvalidInteger(start, e, end),
         })
 };
 

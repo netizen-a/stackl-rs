@@ -314,6 +314,8 @@ fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), 
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
+            // investigate why the original needed this.
+            #[allow(clippy::needless_late_init)]
             let new_flag: i32;
             let flag = cpu.flag;
             cpu.fp = cpu.pop_i32()?;

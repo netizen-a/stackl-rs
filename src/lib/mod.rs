@@ -5,7 +5,7 @@ mod code_gen;
 mod lex;
 pub mod op;
 mod sym;
-mod tok;
+pub mod tok;
 
 lalrpop_mod! {
     #[allow(clippy::ptr_arg)]

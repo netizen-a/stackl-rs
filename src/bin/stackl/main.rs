@@ -26,17 +26,16 @@ fn main() -> ExitCode {
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
     let mut machine = mach::MachineState::new(data.int_vec, args.memory);
-    let _ = ram::VM_RAM
+    ram::VM_RAM
         .write()
-        .and_then(|mut ram| {
+        .map(|mut ram| {
             ram.resize(args.memory, 0x79);
             ram.store_slice(&data.text, 0).unwrap();
-            Ok(())
         })
         .expect("Failed to initialize VM's RAM");
-    let _ = ram::VM_ROM
+    ram::VM_ROM
         .write()
-        .and_then(|mut rom| {
+        .map(|mut rom| {
             rom.resize(64, 0);
             for slot in 0..15 {
                 rom.store_i32(0x0001, 4 * slot).unwrap();
@@ -44,7 +43,6 @@ fn main() -> ExitCode {
             if data.trap_vec != -1 {
                 rom.store_i32(data.trap_vec, 4).unwrap();
             }
-            Ok(())
         })
         .expect("Failed to initialize VM's ROM");
     let sp_addr = if data.text.len() % 2 != 0 {
@@ -65,7 +63,7 @@ fn main() -> ExitCode {
                 let result = process_request(offset);
                 let mut write_lock = ram::VM_RAM.write().unwrap();
                 let mut val: u32 = 0x80000000;
-                if let Ok(_) = result {
+                if result.is_ok() {
                     write_lock.store_i32(val as i32, offset).unwrap();
                 } else {
                     val |= 0x40000000;

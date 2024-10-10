@@ -4,6 +4,8 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
+mod error;
+
 #[derive(Parser, Debug)]
 struct Args {
     asmfile: path::PathBuf,
@@ -28,7 +30,7 @@ fn main() -> ExitCode {
     let mut ast = match stackl::ast::parse_grammar(&source) {
         Ok(ast) => ast,
         Err(err) => {
-            eprintln!("ERROR: {:?}", err);
+            error::print_errors(&args.asmfile, err);
             return ExitCode::FAILURE;
         }
     };

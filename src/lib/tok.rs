@@ -4,15 +4,9 @@ use std::num::ParseIntError;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub enum LexicalError {
-    InvalidInteger(ParseIntError),
+    InvalidInteger(usize, ParseIntError, usize),
     #[default]
     InvalidToken,
-}
-
-impl From<ParseIntError> for LexicalError {
-    fn from(err: ParseIntError) -> Self {
-        LexicalError::InvalidInteger(err)
-    }
 }
 
 // TODO: fix unicode error handling
