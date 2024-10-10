@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 use std::sync::mpsc::channel;
 use std::thread::scope;
-use std::{fs, path};
+use std::{fs, io, path};
 
 use chk::{CheckKind, MachineCheck};
 use clap::Parser;
@@ -82,6 +82,13 @@ fn process_request(offset: i32) -> Result<(), MachineCheck> {
     let _param2 = read_lock.load_i32(offset + 8)?;
     match op {
         3 => read_lock.print(param1),
+        5 => {
+            drop(read_lock);
+            let mut buf = String::new();
+            io::stdin().read_line(&mut buf).unwrap();
+            let mut write_lock = ram::VM_RAM.write().unwrap();
+            write_lock.store_slice(buf.as_bytes(), param1)
+        }
         _ => Err(chk::MachineCheck::from(CheckKind::IllegalOp)),
     }
 }
