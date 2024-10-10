@@ -1,9 +1,9 @@
 use std::sync::mpsc::{Receiver, Sender};
 
+use crate::chk;
 use crate::chk::MachineCheck;
 use crate::flag::{MachineFlags, Status};
 use crate::ram;
-use crate::chk;
 use stackl::op;
 
 #[allow(dead_code)]
@@ -58,9 +58,9 @@ impl MachineState {
         let mut ram_lock = ram::VM_RAM.write().unwrap();
         ram_lock.store_i32(val, offset)
     }
-    pub fn get_inst_name(&self, offset: i32) -> Result<String, chk::MachineCheck> {
+    pub fn trace_inst(&self, offset: i32) -> Result<String, chk::MachineCheck> {
         let ram_lock = ram::VM_RAM.read().unwrap();
-        ram_lock.get_inst_name(offset)
+        ram_lock.trace_inst(offset)
     }
     pub fn set_trace(&mut self, value: bool) {
         self.flag.set_status(Status::TRACE, value);
@@ -100,7 +100,19 @@ impl MachineState {
             if self.flag.get_status(Status::HALTED) {
                 return;
             }
-            execute_op(self, &request_send).expect("uncaught machine check");
+            if let Err(check) = execute_op(self, &request_send) {
+                eprintln!("{check}");
+                eprintln!(
+                    "{:08x} {:6} {:6} {:6} {:6} {:6}",
+                    self.flag.as_u32(),
+                    self.bp,
+                    self.lp,
+                    self.ip,
+                    self.sp,
+                    self.fp
+                );
+                return;
+            }
         }
     }
 }
@@ -115,7 +127,7 @@ fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), 
             cpu.ip,
             cpu.sp,
             cpu.fp,
-            cpu.get_inst_name(cpu.ip)?
+            cpu.trace_inst(cpu.ip)?
         );
     }
     let op: i32 = cpu.load_i32(cpu.ip)?;

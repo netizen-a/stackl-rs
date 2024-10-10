@@ -103,7 +103,7 @@ impl Memory {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
-    pub fn get_inst_name(&self, offset: i32) -> Result<String, chk::MachineCheck> {
+    pub fn trace_inst(&self, offset: i32) -> Result<String, chk::MachineCheck> {
         let op = self.load_i32(offset)?;
         let name = match op {
             op::NOP => "NOP",
@@ -147,9 +147,9 @@ impl Memory {
             op::POPCVARIND => "POPCVARIND",
             op::POPVARIND => "POPVARIND",
             op::COMP => "COMP",
-            op::PUSH => "PUSH",
-            op::JMP => "JMP",
-            op::JZ => "JZ",
+            op::PUSH => "PUSH ",
+            op::JMP => "JMP ",
+            op::JZ => "JZ ",
             op::PUSHVAR => "PUSHVAR",
             op::POPVAR => "POPVAR",
             op::ADJSP => "ADJSP",
@@ -165,7 +165,16 @@ impl Memory {
             op::ROTATE_RIGHT => "ROTATE_RIGHT",
             _ => "ILLEGAL",
         };
-        Ok(name.to_string())
+        let mut inst = String::from(name);
+        match op {
+            op::JZ | op::PUSH | op::JMP => {
+                let operand = self.load_i32(offset + 4)?;
+                inst.push_str(&operand.to_string());
+            }
+            _ => {}
+        };
+
+        Ok(inst)
     }
 }
 

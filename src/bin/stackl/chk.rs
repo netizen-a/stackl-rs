@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum CheckKind {
@@ -71,5 +73,11 @@ impl From<CheckKind> for MachineCheck {
                 msg: "Other".to_string(),
             },
         }
+    }
+}
+
+impl fmt::Display for MachineCheck {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Machine Check: {}", self.msg)
     }
 }

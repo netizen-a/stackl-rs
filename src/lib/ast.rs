@@ -140,12 +140,12 @@ pub fn parse_grammar(
     let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
         Ok(v) => v,
         Err(parse_error) => {
-            errors.push(ErrorRecovery{
+            errors.push(ErrorRecovery {
                 error: parse_error,
-                dropped_tokens: vec![]
+                dropped_tokens: vec![],
             });
-            return Err(errors)
-        },
+            return Err(errors);
+        }
     };
     // prepend .text directive in case fixup rotates vector
     ast.insert(

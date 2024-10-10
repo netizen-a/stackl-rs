@@ -77,7 +77,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn process_request(offset: i32) -> Result<(), MachineCheck>{
+fn process_request(offset: i32) -> Result<(), MachineCheck> {
     let read_lock = ram::VM_RAM.read().unwrap();
     let op = read_lock.load_i32(offset)?;
     let param1 = read_lock.load_i32(offset + 4)?;
