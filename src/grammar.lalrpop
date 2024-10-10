@@ -1,6 +1,7 @@
 use crate::{tok::*, ast::*};
 use lalrpop_util::ParseError;
 use lalrpop_util::ErrorRecovery;
+use std::str::FromStr;
 
 grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token, LexicalError>>);
 
@@ -33,9 +34,16 @@ ValueList: Vec<Value> = {
   },
 }
 
+Num: i32 = {
+  INTEGER =>? i32::from_str(&<>)
+    .map_err(|e| ParseError::User {
+            error: LexicalError::InvalidInteger(e)
+        })
+};
+
 Value: Value = {
   STR => Value::String(<>),
-  INTEGER => Value::Int(<>),
+  Num => Value::Int(<>),
   Label => Value::Label(<>)
 }
 
@@ -85,12 +93,12 @@ Directive: Directive = {
 }
 
 Operand: Operand = {
-  INTEGER => Operand::Int(<>),
+  Num => Operand::Int(<>),
   IDENT => Operand::Label(<>),
 }
 
 Reg: Reg = {
-  <start: @L> <i:INTEGER> <end: @R> =>? match i {
+  <start: @L> <i:Num> <end: @R> =>? match i {
     0 => Ok(Reg::BP),
     1 => Ok(Reg::LP),
     2 => Ok(Reg::IP),
@@ -99,7 +107,7 @@ Reg: Reg = {
     5 => Ok(Reg::Flag),
     6 => Ok(Reg::IVec),
     _ => Err(ParseError::UnrecognizedToken {
-      token: (start, Token::Integer(i), end),
+      token: (start, Token::Integer(i.to_string()), end),
       expected: vec![
         "0".to_string(), "1".to_string(),
         "2".to_string(), "3".to_string(),
@@ -200,7 +208,7 @@ extern {
     ":" => Token::Colon,
     "," => Token::Comma,
     IDENT => Token::Identifier(<String>),
-    INTEGER => Token::Integer(<i32>),
+    INTEGER => Token::Integer(<String>),
     STR => Token::String(<String>),
     NOP => Token::OpNop,
     ADD => Token::OpAdd,

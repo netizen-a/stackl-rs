@@ -28,7 +28,7 @@ fn main() -> ExitCode {
     let mut ast = match stackl::ast::parse_grammar(&source) {
         Ok(ast) => ast,
         Err(err) => {
-            eprintln!("{:?}", err);
+            eprintln!("ERROR: {:?}", err);
             return ExitCode::FAILURE;
         }
     };

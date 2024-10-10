@@ -78,9 +78,8 @@ pub enum Token {
     DirectiveEnd,
     #[regex("[_a-zA-Z.?$][_0-9a-zA-Z.?$]*", |lex| lex.slice().to_string())]
     Identifier(String),
-    #[regex("-?[1-9][0-9]*", |lex| lex.slice().parse())]
-    #[regex("0", |_|0)]
-    Integer(i32),
+    #[regex("-?[0-9]+", |lex| lex.slice().to_string())]
+    Integer(String),
     #[regex("'[^'\n]*'", str_callback)]
     #[regex("`[^`\n]*`", str_callback)]
     #[regex("\"[^\"\n]*\"", str_callback)]
