@@ -30,6 +30,6 @@ exit_loop:
 
 [section .data]
     io_blk_hw dd 3, buf, 0
-    io_blk_read dd 5, buf, 0
-    buf dd 0,0,0,0,
+    io_blk_read dd 6, buf, 0
+    buf db dup 256 (0)
 

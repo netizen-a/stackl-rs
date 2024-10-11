@@ -26,14 +26,6 @@ LabelList: Vec<String> = {
 
 Labels: Vec<String> = <l:LabelList> "\n"* => l;
 
-ValueList: Vec<Value> = {
-  Value => vec![<>],
-  <mut v:ValueList> "," <s:Value> => {
-    v.push(s);
-    v
-  },
-}
-
 Num: i32 = {
   <start: @L> <i: INTEGER> <end: @R> =>? i32::from_str(&i)
     .map_err(|e| ParseError::User {
@@ -41,27 +33,54 @@ Num: i32 = {
         })
 };
 
-Value: Value = {
+Atom: Value = {
   STR => Value::String(<>),
   Num => Value::Int(<>),
   Label => Value::Label(<>)
 }
 
-Values: Vec<Value> = <v: ValueList> ","? => v;
+ParList: Vec<Value> = "(" <v:ValueList> ")" => v;
+DupList: Vec<Value> = DUP <n:Num> <mut val:Value> => {
+  let val_size = val.len();
+  assert!(n > 0, "Cannot duplicate <1 times");
+  for _ in 0..(n-1) {
+    val.extend_from_within(0..val_size);
+  }
+  val
+};
 
-Stmt: Stmt = {
-  <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m),
+List: Vec<Value> = {
+  DupList => <>,
+  ParList => <>,
 }
 
-Label: String = {
-  <label:IDENT> ":"?  => label.to_string(),
+Value: Vec<Value> = {
+  Atom => vec![<>],
+  List => <>,
+}
+
+ValueList: Vec<Value> = {
+  Value => <>,
+  <mut v:ValueList> "," <mut s:Value> => {
+    v.append(&mut s);
+    v
+  },
+}
+
+ValueListStmt: Vec<Value> = <v: ValueList> ","? => v;
+
+Stmt: Stmt = <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m);
+Label: String = <label:IDENT> ":"?  => label.to_string();
+
+DataDecl: Inst = {
+  DB <v:ValueListStmt> => Inst::DataDecl8(v),
+  DD <v:ValueListStmt> => Inst::DataDecl32(v),
 }
 
 Inst: Inst = {
   Mnemonic => Inst::Mnemonic(<>),
   "[" <d: Directive> <v:DirectiveArgs> "]" => Inst::Directive(d, v),
-  DB <v:Values> => Inst::DataDecl8(v),
-  DD <v:Values> => Inst::DataDecl32(v),
+  DataDecl => <>
 }
 
 DirectiveArgs: Vec<String> = {
@@ -205,6 +224,8 @@ extern {
     "\n" => Token::Newline,
     "[" => Token::DirectiveStart,
     "]" => Token::DirectiveEnd,
+    "(" => Token::ParLeft,
+    ")" => Token::ParRight,
     ":" => Token::Colon,
     "," => Token::Comma,
     IDENT => Token::Identifier(<String>),

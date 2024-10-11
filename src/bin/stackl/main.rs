@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::process::ExitCode;
 use std::sync::mpsc::channel;
 use std::thread::scope;
@@ -76,16 +77,30 @@ fn main() -> ExitCode {
 }
 
 fn process_request(offset: i32) -> Result<(), MachineCheck> {
+    const INP_PRINTS_CALL: i32 = 3;
+    const INP_GETS_CALL: i32 = 5;
+    const INP_GETL_CALL: i32 = 6;
+    const INP_GETI_CALL: i32 = 7;
+    const INP_EXEC_CALL: i32 = 8;
     let read_lock = ram::VM_RAM.read().unwrap();
     let op = read_lock.load_i32(offset)?;
     let param1 = read_lock.load_i32(offset + 4)?;
     let _param2 = read_lock.load_i32(offset + 8)?;
     match op {
-        3 => read_lock.print(param1),
-        5 => {
+        INP_PRINTS_CALL => read_lock.print(param1),
+        INP_GETS_CALL => {
             drop(read_lock);
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
+            let mut write_lock = ram::VM_RAM.write().unwrap();
+            write_lock.store_slice(buf.as_bytes(), param1)
+        }
+        INP_GETL_CALL => {
+            drop(read_lock);
+            let mut buf = String::new();
+            io::stdin().read_line(&mut buf).unwrap();
+            buf.truncate(255);
+            buf.push('\0');
             let mut write_lock = ram::VM_RAM.write().unwrap();
             write_lock.store_slice(buf.as_bytes(), param1)
         }

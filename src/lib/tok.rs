@@ -70,6 +70,10 @@ pub enum Token {
     DirectiveStart,
     #[token("]")]
     DirectiveEnd,
+    #[token("(")]
+    ParLeft,
+    #[token(")")]
+    ParRight,
     #[regex("[_a-zA-Z.?$][_0-9a-zA-Z.?$]*", |lex| lex.slice().to_string())]
     Identifier(String),
     #[regex("-?[0-9]+", |lex| lex.slice().to_string())]
