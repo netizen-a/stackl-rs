@@ -14,7 +14,7 @@ print_wait:
     eq
     jz print_wait
     ret
-readline
+readline:
     push io_blk_read
     inp
 readline_wait:

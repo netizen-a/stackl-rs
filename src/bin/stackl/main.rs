@@ -1,8 +1,8 @@
-use std::io::Read;
 use std::process::ExitCode;
 use std::sync::mpsc::channel;
 use std::thread::scope;
 use std::{fs, io, path};
+use std::str::FromStr;
 
 use chk::{CheckKind, MachineCheck};
 use clap::Parser;
@@ -103,6 +103,17 @@ fn process_request(offset: i32) -> Result<(), MachineCheck> {
             buf.push('\0');
             let mut write_lock = ram::VM_RAM.write().unwrap();
             write_lock.store_slice(buf.as_bytes(), param1)
+        }
+        INP_GETI_CALL => {
+            drop(read_lock);
+            let mut buf = String::new();
+            io::stdin().read_line(&mut buf).unwrap();
+            let Ok(deci) = i32::from_str(buf.trim()) else {
+                return Err(chk::MachineCheck::from(chk::CheckKind::Other));
+            };
+            let mut write_lock = ram::VM_RAM.write().unwrap();
+            let result = write_lock.store_i32(deci, param1);
+            result
         }
         _ => Err(chk::MachineCheck::from(CheckKind::IllegalOp)),
     }
