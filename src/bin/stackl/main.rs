@@ -1,11 +1,14 @@
 use std::process::ExitCode;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::RwLock;
 use std::thread::scope;
-use std::{fs, io, path};
+use std::{ffi, fs, io, path};
 use std::str::FromStr;
 
 use chk::{CheckKind, MachineCheck};
 use clap::Parser;
+use flag::Status;
+use mach::MachineState;
 use stackl::StacklFormat;
 
 mod chk;
@@ -26,7 +29,7 @@ fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
-    let mut machine = mach::MachineState::new(data.int_vec, args.memory);
+    let machine = RwLock::new(mach::MachineState::new(data.int_vec, args.memory));
     ram::VM_RAM
         .write()
         .map(|mut ram| {
@@ -51,22 +54,29 @@ fn main() -> ExitCode {
     } else {
         data.text.len()
     };
-    machine.sp = sp_addr.try_into().unwrap();
-    machine.set_trace(args.trace);
+    {
+        let mut write_lock = machine.write().unwrap();
+        write_lock.sp = sp_addr.try_into().unwrap();
+        write_lock.set_trace(args.trace);
+    }
     let (request_send, request_recv) = channel::<i32>();
     let (_, response_recv) = channel::<Result<(), chk::MachineCheck>>();
     scope(|f| {
         f.spawn(|| {
-            machine.run(request_send, response_recv);
+            run_machine(&machine, request_send, response_recv);
         });
         f.spawn(|| {
             for offset in request_recv {
-                let result = process_request(offset);
+                eprintln!("\nrequest: offset: {offset}\n");
+                let result = process_request(&machine, offset);
                 let mut write_lock = ram::VM_RAM.write().unwrap();
                 let mut val: u32 = 0x80000000;
                 if result.is_ok() {
+                    eprintln!("\nrequest: ok\n");
                     write_lock.store_i32(val as i32, offset).unwrap();
                 } else {
+                    eprintln!("\nrequest: err\n");
+                    eprintln!("\nrequest: err offset: {offset}\n");
                     val |= 0x40000000;
                     write_lock.store_i32(val as i32, offset).unwrap();
                 }
@@ -76,7 +86,40 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn process_request(offset: i32) -> Result<(), MachineCheck> {
+pub fn run_machine(
+    mach: &RwLock<mach::MachineState>,
+    request_send: Sender<i32>,
+    response_recv: Receiver<Result<(), chk::MachineCheck>>,
+) {
+    loop {
+        let mut _mach_check = None;
+        for recv in response_recv.try_iter() {
+            if let Err(check) = recv {
+                _mach_check = Some(check);
+                return;
+            }
+        }
+        let mut write_lock = mach.write().unwrap();
+        if write_lock.flag.get_status(Status::HALTED) {
+            return;
+        }
+        if let Err(check) = mach::execute_op(&mut *write_lock, &request_send) {
+            eprintln!("{check}");
+            eprintln!(
+                "{:08x} {:6} {:6} {:6} {:6} {:6}",
+                write_lock.flag.as_u32(),
+                write_lock.bp,
+                write_lock.lp,
+                write_lock.ip,
+                write_lock.sp,
+                write_lock.fp
+            );
+            return;
+        }
+    }
+}
+
+fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), MachineCheck> {
     const INP_PRINTS_CALL: i32 = 3;
     const INP_GETS_CALL: i32 = 5;
     const INP_GETL_CALL: i32 = 6;
@@ -87,8 +130,12 @@ fn process_request(offset: i32) -> Result<(), MachineCheck> {
     let param1 = read_lock.load_i32(offset + 4)?;
     let _param2 = read_lock.load_i32(offset + 8)?;
     match op {
-        INP_PRINTS_CALL => read_lock.print(param1),
+        INP_PRINTS_CALL => {
+            eprintln!("DEBUG: INP_PRINTS_CALL");
+            read_lock.print(param1)
+        }
         INP_GETS_CALL => {
+            eprintln!("DEBUG: INP_GETS_CALL");
             drop(read_lock);
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
@@ -96,6 +143,7 @@ fn process_request(offset: i32) -> Result<(), MachineCheck> {
             write_lock.store_slice(buf.as_bytes(), param1)
         }
         INP_GETL_CALL => {
+            eprintln!("DEBUG: INP_GETL_CALL");
             drop(read_lock);
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
@@ -105,6 +153,7 @@ fn process_request(offset: i32) -> Result<(), MachineCheck> {
             write_lock.store_slice(buf.as_bytes(), param1)
         }
         INP_GETI_CALL => {
+            eprintln!("DEBUG: INP_GETI_CALL");
             drop(read_lock);
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
@@ -112,9 +161,31 @@ fn process_request(offset: i32) -> Result<(), MachineCheck> {
                 return Err(chk::MachineCheck::from(chk::CheckKind::Other));
             };
             let mut write_lock = ram::VM_RAM.write().unwrap();
-            let result = write_lock.store_i32(deci, param1);
+            write_lock.store_i32(deci, param1)
+        }
+        INP_EXEC_CALL => {
+            eprintln!("DEBUG: INP_EXEC_CALL");
+            let bytes = read_lock.load_slice(param1)?;
+            let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes) else {
+                return Err(chk::MachineCheck::from(chk::CheckKind::Other))
+            };
+            let Ok(filepath) = c_str.to_str() else {
+                return Err(chk::MachineCheck::from(chk::CheckKind::Other))
+            };
+            let content = fs::read(filepath).expect("Failed to open file");
+            drop(read_lock);
+
+            let program = StacklFormat::try_from(content.as_slice()).unwrap();
+            let machine_lock = machine.read().unwrap();
+            let mut write_lock = ram::VM_RAM.write().unwrap();
+            write_lock.store_slice(&program.text, machine_lock.bp)?;
+            let result = write_lock.store_i32(program.stack_size, machine_lock.lp + 4);
+            eprintln!("{:?}", result);
             result
         }
-        _ => Err(chk::MachineCheck::from(CheckKind::IllegalOp)),
+        _ => {
+            eprintln!("DEBUG: Unknown option");
+            Err(chk::MachineCheck::from(CheckKind::IllegalOp))
+        }
     }
 }

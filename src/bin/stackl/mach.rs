@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 
 use crate::chk;
 use crate::chk::MachineCheck;
@@ -84,40 +84,9 @@ impl MachineState {
     pub fn is_user_mode(&self) -> bool {
         self.flag.get_status(Status::USR_MODE)
     }
-    pub fn run(
-        &mut self,
-        request_send: Sender<i32>,
-        response_recv: Receiver<Result<(), chk::MachineCheck>>,
-    ) {
-        loop {
-            let mut _mach_check = None;
-            for recv in response_recv.try_iter() {
-                if let Err(check) = recv {
-                    _mach_check = Some(check);
-                    return;
-                }
-            }
-            if self.flag.get_status(Status::HALTED) {
-                return;
-            }
-            if let Err(check) = execute_op(self, &request_send) {
-                eprintln!("{check}");
-                eprintln!(
-                    "{:08x} {:6} {:6} {:6} {:6} {:6}",
-                    self.flag.as_u32(),
-                    self.bp,
-                    self.lp,
-                    self.ip,
-                    self.sp,
-                    self.fp
-                );
-                return;
-            }
-        }
-    }
 }
 
-fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), chk::MachineCheck> {
+pub fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), chk::MachineCheck> {
     if cpu.flag.get_status(Status::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",

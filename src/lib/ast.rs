@@ -30,12 +30,12 @@ impl Stmt {
 pub enum Inst {
     Mnemonic(Opcode),
     Directive(Directive, Vec<String>),
-    DataDecl8(Vec<Value>),
-    DataDecl32(Vec<Value>),
+    DataDecl8(Vec<Atom>),
+    DataDecl32(Vec<Atom>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Value {
+pub enum Atom {
     String(String),
     Int(i32),
     Label(String),

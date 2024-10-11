@@ -14,10 +14,11 @@ lalrpop_mod! {
 
 #[derive(Debug)]
 pub struct StacklFormat {
-    magic: [u8; 4],
-    version: u32,
+    pub magic: [u8; 4],
+    pub version: u32,
     /// Reserved. Must be set to zero.
-    flags: u32,
+    pub flags: u32,
+    pub stack_size: i32,
     pub int_vec: i32,
     pub trap_vec: i32,
     pub text: Vec<u8>,
@@ -28,6 +29,7 @@ impl StacklFormat {
         let mut ret = Vec::from(self.magic);
         ret.extend(self.version.to_le_bytes());
         ret.extend(self.flags.to_le_bytes());
+        ret.extend(self.stack_size.to_le_bytes());
         ret.extend(self.int_vec.to_le_bytes());
         ret.extend(self.trap_vec.to_le_bytes());
         ret.extend(self.text);
@@ -51,8 +53,9 @@ impl TryFrom<&[u8]> for StacklFormat {
         let magic: [u8; 4] = value[..4].try_into().unwrap();
         let version: u32 = u32::from_le_bytes(value[4..8].try_into().unwrap());
         let flags = u32::from_le_bytes(value[8..12].try_into().unwrap());
-        let int_vec = i32::from_le_bytes(value[12..16].try_into().unwrap());
-        let trap_vec = i32::from_le_bytes(value[16..20].try_into().unwrap());
+        let stack_size = i32::from_le_bytes(value[12..16].try_into().unwrap());
+        let int_vec = i32::from_le_bytes(value[16..20].try_into().unwrap());
+        let trap_vec = i32::from_le_bytes(value[20..24].try_into().unwrap());
 
         if magic != [b's', b'l', 0, 0] {
             return Err(ErrorKind::InvalidMagic);
@@ -65,9 +68,10 @@ impl TryFrom<&[u8]> for StacklFormat {
             magic,
             version,
             flags,
+            stack_size,
             int_vec,
             trap_vec,
-            text: Vec::from(&value[20..]),
+            text: Vec::from(&value[24..]),
         })
     }
 }

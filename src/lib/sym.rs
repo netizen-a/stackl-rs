@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{self, Inst, Opcode, Operand, Value};
+use crate::ast::{self, Inst, Opcode, Operand, Atom};
 
 #[derive(Debug)]
 pub struct SymTabError {
@@ -87,8 +87,8 @@ fn get_inst_size(inst: &Inst) -> usize {
             let mut total = 0;
             for data in list {
                 total += match data {
-                    Value::Int(_) => 1,
-                    Value::String(s) => s.as_bytes().len(),
+                    Atom::Int(_) => 1,
+                    Atom::String(s) => s.as_bytes().len(),
                     _ => panic!("label cannot fit in target declaration"),
                 }
             }
@@ -98,8 +98,8 @@ fn get_inst_size(inst: &Inst) -> usize {
             let mut total = 0;
             for data in list {
                 total += match data {
-                    Value::Int(_) => 4,
-                    Value::String(s) => {
+                    Atom::Int(_) => 4,
+                    Atom::String(s) => {
                         let len = s.as_bytes().len();
                         if len % 4 == 0 {
                             len
@@ -107,7 +107,7 @@ fn get_inst_size(inst: &Inst) -> usize {
                             len + 4 - (len % 4)
                         }
                     }
-                    Value::Label(_) => 4,
+                    Atom::Label(_) => 4,
                 }
             }
             total

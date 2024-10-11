@@ -18,9 +18,9 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                     for data in list {
                         let vec: Vec<u8> = match data {
                             // convert i32 to u8
-                            Value::Int(value) => vec![value.try_into().unwrap()],
+                            Atom::Int(value) => vec![value.try_into().unwrap()],
                             // convert String to [u8]
-                            Value::String(s) => s.as_bytes().to_vec(),
+                            Atom::String(s) => s.as_bytes().to_vec(),
                             _ => unimplemented!(),
                         };
                         data_list.extend(vec);
@@ -32,9 +32,9 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                     for data in list {
                         let vec: Vec<u8> = match data {
                             // convert i32 to [u8]
-                            Value::Int(value) => value.to_le_bytes().to_vec(),
+                            Atom::Int(value) => value.to_le_bytes().to_vec(),
                             // convert String to [u8]
-                            Value::String(s) => {
+                            Atom::String(s) => {
                                 let mut bytes = s.as_bytes().to_vec();
                                 if bytes.len() % 4 == 0 {
                                     bytes
@@ -44,7 +44,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                                     bytes
                                 }
                             }
-                            Value::Label(label) => (symtab[&label] as u32).to_le_bytes().to_vec(),
+                            Atom::Label(label) => (symtab[&label] as u32).to_le_bytes().to_vec(),
                         };
                         data_list.extend(vec);
                     }
@@ -94,6 +94,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
             magic: [b's', b'l', 0, 0],
             version: 0,
             flags: 0,
+            stack_size: 0,
             int_vec,
             trap_vec,
             text,

@@ -32,6 +32,11 @@ impl Memory {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
+    pub fn load_slice<'a>(&'a self, offset: i32) -> Result<&'a [u8], chk::MachineCheck> {
+        let offset = i32_to_offset(offset)?;
+        self.inner.get(offset..)
+            .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+    }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
         let mem = &self.inner;
         let offset = i32_to_offset(offset)?;
@@ -170,6 +175,11 @@ impl Memory {
             op::JZ | op::PUSH | op::JMP => {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
+            }
+            57..=i32::MAX | i32::MIN..0 => {
+                inst.push('(');
+                inst.push_str(&op.to_string());
+                inst.push(')');
             }
             _ => {}
         };

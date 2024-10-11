@@ -44,14 +44,14 @@ Num: i32 = {
   }
 };
 
-Atom: Value = {
-  STR => Value::String(<>),
-  Num => Value::Int(<>),
-  Label => Value::Label(<>)
+Atom: Atom = {
+  STR => Atom::String(<>),
+  Num => Atom::Int(<>),
+  Label => Atom::Label(<>)
 }
 
-ParList: Vec<Value> = "(" <v:ValueList> ")" => v;
-DupList: Vec<Value> = DUP <n:Num> <mut val:Value> => {
+ParList: Vec<Atom> = "(" <v:ValueList> ")" => v;
+DupList: Vec<Atom> = DUP <n:Num> <mut val:Value> => {
   let val_size = val.len();
   assert!(n > 0, "Cannot duplicate <1 times");
   for _ in 0..(n-1) {
@@ -60,17 +60,17 @@ DupList: Vec<Value> = DUP <n:Num> <mut val:Value> => {
   val
 };
 
-List: Vec<Value> = {
+List: Vec<Atom> = {
   DupList => <>,
   ParList => <>,
 }
 
-Value: Vec<Value> = {
+Value: Vec<Atom> = {
   Atom => vec![<>],
   List => <>,
 }
 
-ValueList: Vec<Value> = {
+ValueList: Vec<Atom> = {
   Value => <>,
   <mut v:ValueList> "," <mut s:Value> => {
     v.append(&mut s);
@@ -78,7 +78,7 @@ ValueList: Vec<Value> = {
   },
 }
 
-ValueListStmt: Vec<Value> = <v: ValueList> ","? => v;
+ValueListStmt: Vec<Atom> = <v: ValueList> ","? => v;
 
 Stmt: Stmt = <l: Labels?> <m: Inst> => Stmt::with_labels(l.unwrap_or(Vec::new()),m);
 Label: String = <label:IDENT> ":"?  => label.to_string();
