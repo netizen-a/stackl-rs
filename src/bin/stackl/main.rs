@@ -30,13 +30,6 @@ fn main() -> ExitCode {
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
     let machine = RwLock::new(mach::MachineState::new(data.int_vec, args.memory));
-    ram::VM_RAM
-        .write()
-        .map(|mut ram| {
-            ram.resize(args.memory, 0x79);
-            ram.store_slice(&data.text, 0).unwrap();
-        })
-        .expect("Failed to initialize VM's RAM");
     ram::VM_ROM
         .write()
         .map(|mut rom| {
@@ -56,6 +49,8 @@ fn main() -> ExitCode {
     };
     {
         let mut write_lock = machine.write().unwrap();
+        write_lock.ram.resize(args.memory, 0x79);
+        write_lock.ram.store_slice(&data.text, 0).unwrap();
         write_lock.sp = sp_addr.try_into().unwrap();
         write_lock.set_trace(args.trace);
     }
@@ -69,7 +64,7 @@ fn main() -> ExitCode {
             for offset in request_recv {
                 eprintln!("\nrequest: offset: {offset}\n");
                 let result = process_request(&machine, offset);
-                let mut write_lock = ram::VM_RAM.write().unwrap();
+                let mut write_lock = machine.write().unwrap();
                 let mut val: u32 = 0x80000000;
                 if result.is_ok() {
                     eprintln!("\nrequest: ok\n");
@@ -125,22 +120,22 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
     const INP_GETL_CALL: i32 = 6;
     const INP_GETI_CALL: i32 = 7;
     const INP_EXEC_CALL: i32 = 8;
-    let read_lock = ram::VM_RAM.read().unwrap();
+    let read_lock = machine.read().unwrap();
     let op = read_lock.load_i32(offset)?;
     let param1 = read_lock.load_i32(offset + 4)?;
     let _param2 = read_lock.load_i32(offset + 8)?;
     match op {
         INP_PRINTS_CALL => {
             eprintln!("DEBUG: INP_PRINTS_CALL");
-            read_lock.print(param1)
+            read_lock.ram.print(param1)
         }
         INP_GETS_CALL => {
             eprintln!("DEBUG: INP_GETS_CALL");
             drop(read_lock);
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
-            let mut write_lock = ram::VM_RAM.write().unwrap();
-            write_lock.store_slice(buf.as_bytes(), param1)
+            let mut write_lock = machine.write().unwrap();
+            write_lock.ram.store_slice(buf.as_bytes(), param1)
         }
         INP_GETL_CALL => {
             eprintln!("DEBUG: INP_GETL_CALL");
@@ -149,8 +144,8 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             io::stdin().read_line(&mut buf).unwrap();
             buf.truncate(255);
             buf.push('\0');
-            let mut write_lock = ram::VM_RAM.write().unwrap();
-            write_lock.store_slice(buf.as_bytes(), param1)
+            let mut write_lock = machine.write().unwrap();
+            write_lock.ram.store_slice(buf.as_bytes(), param1)
         }
         INP_GETI_CALL => {
             eprintln!("DEBUG: INP_GETI_CALL");
@@ -160,12 +155,12 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let Ok(deci) = i32::from_str(buf.trim()) else {
                 return Err(chk::MachineCheck::from(chk::CheckKind::Other));
             };
-            let mut write_lock = ram::VM_RAM.write().unwrap();
+            let mut write_lock = machine.write().unwrap();
             write_lock.store_i32(deci, param1)
         }
         INP_EXEC_CALL => {
             eprintln!("DEBUG: INP_EXEC_CALL");
-            let bytes = read_lock.load_slice(param1)?;
+            let bytes = read_lock.ram.load_slice(param1)?;
             let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes) else {
                 return Err(chk::MachineCheck::from(chk::CheckKind::Other))
             };
@@ -176,10 +171,11 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             drop(read_lock);
 
             let program = StacklFormat::try_from(content.as_slice()).unwrap();
-            let machine_lock = machine.read().unwrap();
-            let mut write_lock = ram::VM_RAM.write().unwrap();
-            write_lock.store_slice(&program.text, machine_lock.bp)?;
-            let result = write_lock.store_i32(program.stack_size, machine_lock.lp + 4);
+            let mut machine_lock = machine.write().unwrap();
+            let bp = machine_lock.bp;
+            let lp = machine_lock.lp;
+            machine_lock.ram.store_slice(&program.text, bp)?;
+            let result = machine_lock.store_i32(program.stack_size, lp + 4);
             eprintln!("{:?}", result);
             result
         }

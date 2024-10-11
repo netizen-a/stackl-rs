@@ -6,7 +6,6 @@ use std::io::Write;
 use std::sync::RwLock;
 use std::{io, thread};
 
-pub static VM_RAM: RwLock<Memory> = RwLock::new(Memory::new());
 pub static VM_ROM: RwLock<Memory> = RwLock::new(Memory::new());
 
 pub struct Memory {

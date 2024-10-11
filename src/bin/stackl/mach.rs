@@ -16,6 +16,7 @@ pub struct MachineState {
     pub flag: MachineFlags,
     pub ivec: i32,
     pub vmem: i32,
+    pub ram: ram::Memory,
 }
 
 impl MachineState {
@@ -29,38 +30,32 @@ impl MachineState {
             flag: MachineFlags::new(),
             ivec,
             vmem: 0,
+            ram: ram::Memory::new(),
         }
     }
     pub fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
-        let mut ram_lock = ram::VM_RAM.write().unwrap();
-        ram_lock.store_i32(val, self.sp)?;
+        self.ram.store_i32(val, self.sp)?;
         self.sp += 4;
         Ok(())
     }
     pub fn pop_i32(&mut self) -> Result<i32, chk::MachineCheck> {
-        let ram_lock = ram::VM_RAM.read().unwrap();
         self.sp -= 4;
-        ram_lock.load_i32(self.sp)
+        self.ram.load_i32(self.sp)
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
-        let ram_lock = ram::VM_RAM.read().unwrap();
-        ram_lock.load_i32(offset)
+        self.ram.load_i32(offset)
     }
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
-        let ram_lock = ram::VM_RAM.read().unwrap();
-        ram_lock.load_u8(offset)
+        self.ram.load_u8(offset)
     }
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
-        let mut ram_lock = ram::VM_RAM.write().unwrap();
-        ram_lock.store_u8(val, offset)
+        self.ram.store_u8(val, offset)
     }
     pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
-        let mut ram_lock = ram::VM_RAM.write().unwrap();
-        ram_lock.store_i32(val, offset)
+        self.ram.store_i32(val, offset)
     }
     pub fn trace_inst(&self, offset: i32) -> Result<String, chk::MachineCheck> {
-        let ram_lock = ram::VM_RAM.read().unwrap();
-        ram_lock.trace_inst(offset)
+        self.ram.trace_inst(offset)
     }
     pub fn set_trace(&mut self, value: bool) {
         self.flag.set_status(Status::TRACE, value);
@@ -234,9 +229,8 @@ pub fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            let ram_lock = ram::VM_RAM.read().unwrap();
-            let offset = ram_lock.load_i32(cpu.sp - 4)?;
-            ram_lock.print(offset)?;
+            let offset = cpu.ram.load_i32(cpu.sp - 4)?;
+            cpu.ram.print(offset)?;
         }
         op::INP => {
             if cpu.is_user_mode() {
