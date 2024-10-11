@@ -76,6 +76,7 @@ pub enum Token {
     ParRight,
     #[regex("[_a-zA-Z.?$][_0-9a-zA-Z.?$]*", |lex| lex.slice().to_string())]
     Identifier(String),
+    #[regex("0x[0-9a-fA-F]+", |lex| lex.slice().to_string())]
     #[regex("-?[0-9]+", |lex| lex.slice().to_string())]
     Integer(String),
     #[regex("'[^'\n]*'", str_callback)]

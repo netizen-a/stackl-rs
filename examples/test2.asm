@@ -9,7 +9,7 @@ print:
 loop:
     push in
     pushvarind
-    push -2147483648
+    push 0x80000000
     ne
     jz exit
     jmp loop

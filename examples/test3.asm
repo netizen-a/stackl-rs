@@ -10,7 +10,7 @@ print:
 print_wait:
     push io_blk_hw
     pushvarind
-    push -2147483648
+    push 0x80000000
     eq
     jz print_wait
     ret
@@ -20,7 +20,7 @@ readline
 readline_wait:
     push io_blk_read
     pushvarind
-    push -2147483648
+    push 0x80000000
     eq
     jz readline_wait
     ret

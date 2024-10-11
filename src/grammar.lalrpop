@@ -27,10 +27,21 @@ LabelList: Vec<String> = {
 Labels: Vec<String> = <l:LabelList> "\n"* => l;
 
 Num: i32 = {
-  <start: @L> <i: INTEGER> <end: @R> =>? i32::from_str(&i)
-    .map_err(|e| ParseError::User {
-            error: LexicalError::InvalidInteger(start, e, end),
-        })
+  <start: @L> <i: INTEGER> <end: @R> =>? {
+    if let Some(deci) = i.strip_prefix("0x") {
+      // Convert hex to u32 then force convert to i32
+      u32::from_str_radix(deci, 16)
+      .map_err(|e| ParseError::User {
+              error: LexicalError::InvalidInteger(start, e, end),
+      })
+      .map(|x| x as i32)
+    } else {
+      i32::from_str(&i)
+      .map_err(|e| ParseError::User {
+              error: LexicalError::InvalidInteger(start, e, end),
+          })
+    }
+  }
 };
 
 Atom: Value = {

@@ -15,4 +15,3 @@ loop:
     halt
 [section .data]
     hw dd 'hello world!\n',0
-    
