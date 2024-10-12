@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{self, Inst, Opcode, Operand, Atom};
+use crate::ast::{self, Atom, Inst, Opcode, Operand};
 
 #[derive(Debug)]
 pub struct SymTabError {

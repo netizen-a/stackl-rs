@@ -1,6 +1,9 @@
 use super::*;
 
-pub fn next_opcode(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), chk::MachineCheck> {
+pub fn next_opcode(
+    cpu: &mut MachineState,
+    request_send: &Sender<i32>,
+) -> Result<(), chk::MachineCheck> {
     if cpu.flag.get_status(Status::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",

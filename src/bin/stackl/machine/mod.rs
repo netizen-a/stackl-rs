@@ -5,11 +5,12 @@ use std::{io, thread, time};
 use crate::chk;
 use crate::chk::MachineCheck;
 use crate::flag::{MachineFlags, Status};
-use stackl::op;
+use stackl::{op, StacklFormat};
 
 pub mod step;
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct MachineState {
     pub bp: i32,
     pub lp: i32,
@@ -24,18 +25,37 @@ pub struct MachineState {
 }
 
 impl MachineState {
-    pub fn new(ivec: i32, mem_size: usize) -> MachineState {
+    pub fn new(program: StacklFormat, mem_size: usize, trace: bool) -> MachineState {
+        let sp_addr = if program.text.len() % 2 != 0 {
+            program.text.len() + 2 - (program.text.len() % 2)
+        } else {
+            program.text.len()
+        };
+        eprintln!("Self::new() -> sp: {sp_addr}");
+        let mut rom = vec![0u8; 64];
+        for slot in rom.chunks_exact_mut(4) {
+            slot.copy_from_slice(&1i32.to_le_bytes());
+        }
+        if program.trap_vec != -1 {
+            rom[4..8].copy_from_slice(&program.trap_vec.to_le_bytes());
+        }
+        let mut flag = MachineFlags::new();
+        flag.set_status(Status::TRACE, trace);
+
+        let mut ram = vec![0x79; mem_size];
+        ram[..program.text.len()].copy_from_slice(&program.text);
+
         MachineState {
             bp: 0,
             lp: mem_size.try_into().unwrap(),
             ip: 0,
-            sp: 0,
+            sp: sp_addr as i32,
             fp: 0,
-            flag: MachineFlags::new(),
-            ivec,
+            flag,
+            ivec: program.int_vec,
             vmem: 0,
-            ram: vec![],
-            rom: vec![],
+            ram,
+            rom,
         }
     }
     pub fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
@@ -58,7 +78,6 @@ impl MachineState {
     }
     pub fn get_trap_addr(&self) -> Result<i32, MachineCheck> {
         if self.ivec == -1 {
-            println!("default ivec");
             if let Some(mem) = self.rom.get(4..8) {
                 mem.try_into()
                     .map(i32::from_le_bytes)
@@ -67,7 +86,6 @@ impl MachineState {
                 Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
             }
         } else {
-            println!("custom ivec");
             self.load_i32(self.ivec + 4)
         }
     }
@@ -104,7 +122,8 @@ impl MachineState {
     }
     pub fn load_slice<'a>(&'a self, offset: i32) -> Result<&'a [u8], chk::MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        self.ram.get(offset..)
+        self.ram
+            .get(offset..)
             .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
@@ -267,8 +286,6 @@ impl MachineState {
         Ok(inst)
     }
 }
-
-
 
 // Helper function to convert i32 to usize.
 // This function will return Err if val is negative
