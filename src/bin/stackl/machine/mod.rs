@@ -1,28 +1,99 @@
-use stackl::op;
+use std::io::Write;
+use std::sync::mpsc::Sender;
+use std::{io, thread, time};
 
 use crate::chk;
-use core::time;
-use std::io::Write;
-use std::sync::RwLock;
-use std::{io, thread};
+use crate::chk::MachineCheck;
+use crate::flag::{MachineFlags, Status};
+use stackl::op;
 
-pub static VM_ROM: RwLock<Memory> = RwLock::new(Memory::new());
+pub mod step;
 
-pub struct Memory {
-    inner: Vec<u8>,
+#[allow(dead_code)]
+pub struct MachineState {
+    pub bp: i32,
+    pub lp: i32,
+    pub ip: i32,
+    pub sp: i32,
+    pub fp: i32,
+    pub flag: MachineFlags,
+    pub ivec: i32,
+    pub vmem: i32,
+    pub ram: Vec<u8>,
+    pub rom: Vec<u8>,
 }
 
-impl Memory {
-    pub fn resize(&mut self, new_len: usize, value: u8) {
-        self.inner.resize(new_len, value);
+impl MachineState {
+    pub fn new(ivec: i32, mem_size: usize) -> MachineState {
+        MachineState {
+            bp: 0,
+            lp: mem_size.try_into().unwrap(),
+            ip: 0,
+            sp: 0,
+            fp: 0,
+            flag: MachineFlags::new(),
+            ivec,
+            vmem: 0,
+            ram: vec![],
+            rom: vec![],
+        }
     }
-    pub const fn new() -> Self {
-        Memory { inner: Vec::new() }
+    pub fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
+        self.store_i32(val, self.sp)?;
+        self.sp += 4;
+        Ok(())
+    }
+    pub fn pop_i32(&mut self) -> Result<i32, chk::MachineCheck> {
+        self.sp -= 4;
+        self.load_i32(self.sp)
+    }
+    pub fn set_trace(&mut self, value: bool) {
+        self.flag.set_status(Status::TRACE, value);
+        if value {
+            eprintln!(
+                "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
+                "Flag", "BP", "LP", "IP", "SP", "FP"
+            );
+        }
+    }
+    pub fn get_trap_addr(&self) -> Result<i32, MachineCheck> {
+        if self.ivec == -1 {
+            println!("default ivec");
+            if let Some(mem) = self.rom.get(4..8) {
+                mem.try_into()
+                    .map(i32::from_le_bytes)
+                    .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))
+            } else {
+                Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            }
+        } else {
+            println!("custom ivec");
+            self.load_i32(self.ivec + 4)
+        }
+    }
+    pub fn is_user_mode(&self) -> bool {
+        self.flag.get_status(Status::USR_MODE)
+    }
+
+    pub fn resize_ram(&mut self, new_len: usize, value: u8) {
+        self.ram.resize(new_len, value);
     }
     // returns true if success, else false
     // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {
-        let mem = &mut self.inner;
+        let mem = &mut self.ram;
+        let offset = i32_to_offset(offset)?;
+        if let Some(ram) = mem.get_mut(offset..offset + val.len()) {
+            ram.clone_from_slice(val);
+            Ok(())
+        } else {
+            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+        }
+    }
+    // returns true if success, else false
+    // This function does not check alignment.
+    pub fn rom_store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {
+        let mem = &mut self.rom;
         let offset = i32_to_offset(offset)?;
         if let Some(ram) = mem.get_mut(offset..offset + val.len()) {
             ram.clone_from_slice(val);
@@ -33,11 +104,11 @@ impl Memory {
     }
     pub fn load_slice<'a>(&'a self, offset: i32) -> Result<&'a [u8], chk::MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        self.inner.get(offset..)
+        self.ram.get(offset..)
             .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
-        let mem = &self.inner;
+        let mem = &self.ram;
         let offset = i32_to_offset(offset)?;
         if offset % 4 != 0 {
             return Err(chk::MachineCheck::new(
@@ -63,9 +134,19 @@ impl Memory {
         let bytes = i32::to_le_bytes(val);
         self.store_slice(&bytes, offset)
     }
+    pub fn rom_store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
+        if offset % 4 != 0 {
+            return Err(chk::MachineCheck::new(
+                chk::CheckKind::IllegalAddr,
+                format!("Misaligned Address at {offset}"),
+            ));
+        }
+        let bytes = i32::to_le_bytes(val);
+        self.rom_store_slice(&bytes, offset)
+    }
     // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
-        let mem = &self.inner;
+        let mem = &self.ram;
         let offset = i32_to_offset(offset)?;
         mem.get(offset)
             .copied()
@@ -73,7 +154,7 @@ impl Memory {
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
-        let mem = &mut self.inner;
+        let mem = &mut self.ram;
         let offset = i32_to_offset(offset)?;
         if let Some(byte) = mem.get_mut(offset) {
             *byte = val;
@@ -84,7 +165,7 @@ impl Memory {
     }
     // This function does not check alignment
     pub fn print(&self, offset: i32) -> Result<(), chk::MachineCheck> {
-        let mem = &self.inner;
+        let mem = &self.ram;
         let offset = i32_to_offset(offset)?;
         if let Some(bytes) = mem.get(offset..) {
             for chunk in bytes.utf8_chunks() {
@@ -94,7 +175,7 @@ impl Memory {
                         return Ok(());
                     }
                     print!("{ch}");
-                    io::stdout().flush().unwrap();
+                    io::stdout().flush().unwrap()
                 }
                 for byte in chunk.invalid() {
                     thread::sleep(time::Duration::from_micros(100));
@@ -186,6 +267,8 @@ impl Memory {
         Ok(inst)
     }
 }
+
+
 
 // Helper function to convert i32 to usize.
 // This function will return Err if val is negative

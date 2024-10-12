@@ -1,87 +1,6 @@
-use std::sync::mpsc::Sender;
+use super::*;
 
-use crate::chk;
-use crate::chk::MachineCheck;
-use crate::flag::{MachineFlags, Status};
-use crate::ram;
-use stackl::op;
-
-#[allow(dead_code)]
-pub struct MachineState {
-    pub bp: i32,
-    pub lp: i32,
-    pub ip: i32,
-    pub sp: i32,
-    pub fp: i32,
-    pub flag: MachineFlags,
-    pub ivec: i32,
-    pub vmem: i32,
-    pub ram: ram::Memory,
-}
-
-impl MachineState {
-    pub fn new(ivec: i32, mem_size: usize) -> MachineState {
-        MachineState {
-            bp: 0,
-            lp: mem_size.try_into().unwrap(),
-            ip: 0,
-            sp: 0,
-            fp: 0,
-            flag: MachineFlags::new(),
-            ivec,
-            vmem: 0,
-            ram: ram::Memory::new(),
-        }
-    }
-    pub fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
-        self.ram.store_i32(val, self.sp)?;
-        self.sp += 4;
-        Ok(())
-    }
-    pub fn pop_i32(&mut self) -> Result<i32, chk::MachineCheck> {
-        self.sp -= 4;
-        self.ram.load_i32(self.sp)
-    }
-    pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
-        self.ram.load_i32(offset)
-    }
-    pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
-        self.ram.load_u8(offset)
-    }
-    pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
-        self.ram.store_u8(val, offset)
-    }
-    pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
-        self.ram.store_i32(val, offset)
-    }
-    pub fn trace_inst(&self, offset: i32) -> Result<String, chk::MachineCheck> {
-        self.ram.trace_inst(offset)
-    }
-    pub fn set_trace(&mut self, value: bool) {
-        self.flag.set_status(Status::TRACE, value);
-        if value {
-            eprintln!(
-                "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
-                "Flag", "BP", "LP", "IP", "SP", "FP"
-            );
-        }
-    }
-    pub fn get_trap_addr(&self) -> Result<i32, MachineCheck> {
-        if self.ivec == -1 {
-            println!("default ivec");
-            let lock = ram::VM_ROM.read().unwrap();
-            lock.load_i32(4)
-        } else {
-            println!("custom ivec");
-            self.load_i32(self.ivec + 4)
-        }
-    }
-    pub fn is_user_mode(&self) -> bool {
-        self.flag.get_status(Status::USR_MODE)
-    }
-}
-
-pub fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), chk::MachineCheck> {
+pub fn next_opcode(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<(), chk::MachineCheck> {
     if cpu.flag.get_status(Status::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
@@ -229,8 +148,8 @@ pub fn execute_op(cpu: &mut MachineState, request_send: &Sender<i32>) -> Result<
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            let offset = cpu.ram.load_i32(cpu.sp - 4)?;
-            cpu.ram.print(offset)?;
+            let offset = cpu.load_i32(cpu.sp - 4)?;
+            cpu.print(offset)?;
         }
         op::INP => {
             if cpu.is_user_mode() {

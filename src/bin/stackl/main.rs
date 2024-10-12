@@ -8,13 +8,12 @@ use std::str::FromStr;
 use chk::{CheckKind, MachineCheck};
 use clap::Parser;
 use flag::Status;
-use mach::MachineState;
+use machine::MachineState;
 use stackl::StacklFormat;
 
 mod chk;
 mod flag;
-mod mach;
-mod ram;
+mod machine;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,19 +28,8 @@ fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
     let data = StacklFormat::try_from(content.as_slice()).unwrap();
-    let machine = RwLock::new(mach::MachineState::new(data.int_vec, args.memory));
-    ram::VM_ROM
-        .write()
-        .map(|mut rom| {
-            rom.resize(64, 0);
-            for slot in 0..15 {
-                rom.store_i32(0x0001, 4 * slot).unwrap();
-            }
-            if data.trap_vec != -1 {
-                rom.store_i32(data.trap_vec, 4).unwrap();
-            }
-        })
-        .expect("Failed to initialize VM's ROM");
+    let machine = RwLock::new(MachineState::new(data.int_vec, args.memory));
+    
     let sp_addr = if data.text.len() % 2 != 0 {
         data.text.len() + 2 - (data.text.len() % 2)
     } else {
@@ -49,8 +37,17 @@ fn main() -> ExitCode {
     };
     {
         let mut write_lock = machine.write().unwrap();
-        write_lock.ram.resize(args.memory, 0x79);
-        write_lock.ram.store_slice(&data.text, 0).unwrap();
+        write_lock.resize_ram(args.memory, 0x79);
+        write_lock.store_slice(&data.text, 0).unwrap();
+
+        write_lock.rom.resize(64, 0);
+        for slot in 0..15 {
+            write_lock.rom_store_i32(0x0001, 4 * slot).unwrap();
+        }
+        if data.trap_vec != -1 {
+            write_lock.rom_store_i32(data.trap_vec, 4).unwrap();
+        }
+
         write_lock.sp = sp_addr.try_into().unwrap();
         write_lock.set_trace(args.trace);
     }
@@ -82,7 +79,7 @@ fn main() -> ExitCode {
 }
 
 pub fn run_machine(
-    mach: &RwLock<mach::MachineState>,
+    mach: &RwLock<MachineState>,
     request_send: Sender<i32>,
     response_recv: Receiver<Result<(), chk::MachineCheck>>,
 ) {
@@ -98,7 +95,7 @@ pub fn run_machine(
         if write_lock.flag.get_status(Status::HALTED) {
             return;
         }
-        if let Err(check) = mach::execute_op(&mut *write_lock, &request_send) {
+        if let Err(check) = machine::step::next_opcode(&mut *write_lock, &request_send) {
             eprintln!("{check}");
             eprintln!(
                 "{:08x} {:6} {:6} {:6} {:6} {:6}",
@@ -127,7 +124,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
     match op {
         INP_PRINTS_CALL => {
             eprintln!("DEBUG: INP_PRINTS_CALL");
-            read_lock.ram.print(param1)
+            read_lock.print(param1)
         }
         INP_GETS_CALL => {
             eprintln!("DEBUG: INP_GETS_CALL");
@@ -135,7 +132,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
             let mut write_lock = machine.write().unwrap();
-            write_lock.ram.store_slice(buf.as_bytes(), param1)
+            write_lock.store_slice(buf.as_bytes(), param1)
         }
         INP_GETL_CALL => {
             eprintln!("DEBUG: INP_GETL_CALL");
@@ -145,7 +142,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             buf.truncate(255);
             buf.push('\0');
             let mut write_lock = machine.write().unwrap();
-            write_lock.ram.store_slice(buf.as_bytes(), param1)
+            write_lock.store_slice(buf.as_bytes(), param1)
         }
         INP_GETI_CALL => {
             eprintln!("DEBUG: INP_GETI_CALL");
@@ -160,7 +157,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
         }
         INP_EXEC_CALL => {
             eprintln!("DEBUG: INP_EXEC_CALL");
-            let bytes = read_lock.ram.load_slice(param1)?;
+            let bytes = read_lock.load_slice(param1)?;
             let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes) else {
                 return Err(chk::MachineCheck::from(chk::CheckKind::Other))
             };
@@ -174,7 +171,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let mut machine_lock = machine.write().unwrap();
             let bp = machine_lock.bp;
             let lp = machine_lock.lp;
-            machine_lock.ram.store_slice(&program.text, bp)?;
+            machine_lock.store_slice(&program.text, bp)?;
             let result = machine_lock.store_i32(program.stack_size, lp + 4);
             eprintln!("{:?}", result);
             result
