@@ -9,7 +9,6 @@ use stackl::{op, StacklFormat};
 
 pub mod step;
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct MachineState {
     pub bp: i32,
@@ -31,7 +30,6 @@ impl MachineState {
         } else {
             program.text.len()
         };
-        eprintln!("Self::new() -> sp: {sp_addr}");
         let mut rom = vec![0u8; 64];
         for slot in rom.chunks_exact_mut(4) {
             slot.copy_from_slice(&1i32.to_le_bytes());
@@ -108,19 +106,7 @@ impl MachineState {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
-    // returns true if success, else false
-    // This function does not check alignment.
-    pub fn rom_store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {
-        let mem = &mut self.rom;
-        let offset = i32_to_offset(offset)?;
-        if let Some(ram) = mem.get_mut(offset..offset + val.len()) {
-            ram.clone_from_slice(val);
-            Ok(())
-        } else {
-            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
-        }
-    }
-    pub fn load_slice<'a>(&'a self, offset: i32) -> Result<&'a [u8], chk::MachineCheck> {
+    pub fn load_slice(&self, offset: i32) -> Result<&[u8], chk::MachineCheck> {
         let offset = i32_to_offset(offset)?;
         self.ram
             .get(offset..)
@@ -128,6 +114,11 @@ impl MachineState {
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
         let mem = &self.ram;
+        let offset = if self.is_user_mode() {
+            offset + self.bp
+        } else {
+            offset
+        };
         let offset = i32_to_offset(offset)?;
         if offset % 4 != 0 {
             return Err(chk::MachineCheck::new(
@@ -151,17 +142,12 @@ impl MachineState {
             ));
         }
         let bytes = i32::to_le_bytes(val);
+        let offset = if self.is_user_mode() {
+            offset + self.bp
+        } else {
+            offset
+        };
         self.store_slice(&bytes, offset)
-    }
-    pub fn rom_store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
-        if offset % 4 != 0 {
-            return Err(chk::MachineCheck::new(
-                chk::CheckKind::IllegalAddr,
-                format!("Misaligned Address at {offset}"),
-            ));
-        }
-        let bytes = i32::to_le_bytes(val);
-        self.rom_store_slice(&bytes, offset)
     }
     // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
@@ -236,7 +222,7 @@ impl MachineState {
             op::OUTS => "OUTS",
             op::INP => "INP",
             op::PUSHFP => "PUSHFP",
-            op::JMPUSER => "JMPUSER",
+            op::JMPUSER => "JMPUSER ",
             op::TRAP => "TRAP",
             op::RTI => "RTI",
             op::CALLI => "CALLI",
@@ -271,7 +257,7 @@ impl MachineState {
         };
         let mut inst = String::from(name);
         match op {
-            op::JZ | op::PUSH | op::JMP => {
+            op::JZ | op::PUSH | op::JMP | op::JMPUSER => {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
             }

@@ -8,7 +8,7 @@ _start:
     inp
     nop
     call wait_io_blk
-    jmpuser 3000
+    jmpuser 0
     halt
 
 wait_io_blk:

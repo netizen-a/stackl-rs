@@ -168,8 +168,7 @@ pub fn next_opcode(
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            cpu.ip += 4;
-            cpu.ip = cpu.load_i32(cpu.ip)?;
+            cpu.ip = cpu.load_i32(cpu.ip + 4)?;
             cpu.flag.set_status(Status::USR_MODE, true);
             return Ok(());
         }

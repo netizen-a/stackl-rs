@@ -2,8 +2,8 @@ use std::process::ExitCode;
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::RwLock;
-use std::thread::scope;
-use std::{ffi, fs, io, path};
+use std::thread::{self, scope};
+use std::{ffi, fs, io, path, time};
 
 use chk::{CheckKind, MachineCheck};
 use clap::Parser;
@@ -23,6 +23,8 @@ struct Args {
     trace: bool,
     #[arg(short, long, default_value_t = 500000)]
     memory: usize,
+    #[arg(long, default_value_t = 0, help = "Instruction delay in milliseconds")]
+    mdelay: u64,
 }
 fn main() -> ExitCode {
     let args = Args::parse();
@@ -34,7 +36,7 @@ fn main() -> ExitCode {
     let (_, response_recv) = channel::<Result<(), chk::MachineCheck>>();
     scope(|f| {
         f.spawn(|| {
-            run_machine(&machine, request_send, response_recv);
+            run_machine(&machine, request_send, response_recv, args.mdelay);
         });
         f.spawn(|| {
             for offset in request_recv {
@@ -61,8 +63,12 @@ pub fn run_machine(
     mach: &RwLock<MachineState>,
     request_send: Sender<i32>,
     response_recv: Receiver<Result<(), chk::MachineCheck>>,
+    delay_step: u64,
 ) {
     loop {
+        if delay_step != 0 {
+            thread::sleep(time::Duration::from_millis(delay_step));
+        }
         let mut _mach_check = None;
         for recv in response_recv.try_iter() {
             if let Err(check) = recv {
@@ -74,7 +80,7 @@ pub fn run_machine(
         if write_lock.flag.get_status(Status::HALTED) {
             return;
         }
-        if let Err(check) = machine::step::next_opcode(&mut *write_lock, &request_send) {
+        if let Err(check) = machine::step::next_opcode(&mut write_lock, &request_send) {
             eprintln!("{check}");
             eprintln!(
                 "{:08x} {:6} {:6} {:6} {:6} {:6}",
