@@ -1,6 +1,6 @@
 use std::io::Write;
 use std::sync::mpsc::Sender;
-use std::{io, thread, time};
+use std::{ffi, io, thread, time};
 
 use crate::chk;
 use crate::chk::MachineCheck;
@@ -106,11 +106,15 @@ impl MachineState {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
     }
-    pub fn load_slice(&self, offset: i32) -> Result<&[u8], chk::MachineCheck> {
+    pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, chk::MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        self.ram
+        let bytes = self.ram
             .get(offset..)
-            .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr));
+        let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes?) else {
+            return Err(chk::MachineCheck::from(chk::CheckKind::Other));
+        };
+        Ok(c_str)
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
         let mem = &self.ram;
