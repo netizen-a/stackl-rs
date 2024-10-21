@@ -3,7 +3,10 @@
 _start:
     push 10   ; stack[0] = 10
 loop:
+    push hw
     call print
+    pop
+    halt
     pop
     push 1    ; stack[1] = 1
     sub       ; stack[0] = stack[0] - stack[1]
@@ -13,8 +16,7 @@ loop:
     jz loop   ; if stack[2] == 0 then goto loop;
     halt
 print:
-    push hw
-    outs
+    trap
     ret
 [section .data]
     hw dd 'hello world!\n',0

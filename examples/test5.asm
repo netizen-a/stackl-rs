@@ -1,4 +1,5 @@
 [global _start]
+[systrap systrap]
 _start:
     push 3000
     popreg bp
@@ -6,7 +7,6 @@ _start:
     popreg lp
     push io_blk
     inp
-    nop
     call wait_io_blk
     jmpuser 0
     halt
@@ -19,6 +19,13 @@ wait_io_blk:
     jz wait_io_blk
     ret
 
+systrap:
+    pushvar -12
+    pushreg bp
+    add
+    outs
+    pop
+    rti
 [section .data]
     io_blk: dd 8, prog_path, 0
-    prog_path: dd './target/test.stackl',0
+    prog_path: dd './target/user.stackl',0

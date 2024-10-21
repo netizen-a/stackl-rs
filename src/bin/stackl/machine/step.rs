@@ -174,9 +174,6 @@ pub fn next_opcode(
         }
         op::TRAP => {
             let was_user = cpu.is_user_mode();
-            if was_user {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
-            }
             cpu.push_i32(cpu.sp)?;
             cpu.push_i32(cpu.flag.as_u32() as i32)?;
             cpu.push_i32(cpu.bp)?;
@@ -191,7 +188,6 @@ pub fn next_opcode(
                 cpu.sp += cpu.bp;
             }
             cpu.ip = cpu.get_trap_addr()?;
-            println!("trap addr:{}", cpu.ip);
             return Ok(());
         }
         op::RTI => {

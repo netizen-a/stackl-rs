@@ -24,7 +24,7 @@ pub struct MachineState {
 }
 
 impl MachineState {
-    pub fn new(program: StacklFormat, mem_size: usize, trace: bool) -> MachineState {
+    pub fn new(program: StacklFormat, mem_size: usize) -> MachineState {
         let sp_addr = if program.text.len() % 2 != 0 {
             program.text.len() + 2 - (program.text.len() % 2)
         } else {
@@ -37,8 +37,7 @@ impl MachineState {
         if program.trap_vec != -1 {
             rom[4..8].copy_from_slice(&program.trap_vec.to_le_bytes());
         }
-        let mut flag = MachineFlags::new();
-        flag.set_status(Status::TRACE, trace);
+        let flag = MachineFlags::new();
 
         let mut ram = vec![0x79; mem_size];
         ram[..program.text.len()].copy_from_slice(&program.text);
@@ -156,6 +155,11 @@ impl MachineState {
     // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
         let mem = &self.ram;
+        let offset = if self.is_user_mode() {
+            offset + self.bp
+        } else {
+            offset
+        };
         let offset = i32_to_offset(offset)?;
         mem.get(offset)
             .copied()
@@ -163,6 +167,11 @@ impl MachineState {
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
+        let offset = if self.is_user_mode() {
+            offset + self.bp
+        } else {
+            offset
+        };
         let mem = &mut self.ram;
         let offset = i32_to_offset(offset)?;
         if let Some(byte) = mem.get_mut(offset) {
@@ -175,6 +184,11 @@ impl MachineState {
     // This function does not check alignment
     pub fn print(&self, offset: i32) -> Result<(), chk::MachineCheck> {
         let mem = &self.ram;
+        let offset = if self.is_user_mode() {
+            offset + self.bp
+        } else {
+            offset
+        };
         let offset = i32_to_offset(offset)?;
         if let Some(bytes) = mem.get(offset..) {
             for chunk in bytes.utf8_chunks() {
@@ -230,7 +244,7 @@ impl MachineState {
             op::TRAP => "TRAP",
             op::RTI => "RTI",
             op::CALLI => "CALLI",
-            op::PUSHREG => "PUSHREG",
+            op::PUSHREG => "PUSHREG ",
             op::POPREG => "POPREG",
             op::BAND => "BAND",
             op::BOR => "BOR",
@@ -264,7 +278,20 @@ impl MachineState {
             op::JZ | op::PUSH | op::JMP | op::JMPUSER => {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
-            }
+            },
+            op::PUSHREG => {
+                let operand = self.load_i32(offset + 4)?;
+                match operand {
+                    0 => inst.push_str("BP"),
+                    1 => inst.push_str("LP"),
+                    2 => inst.push_str("IP"),
+                    3 => inst.push_str("SP"),
+                    4 => inst.push_str("FP"),
+                    5 => inst.push_str("FLAG"),
+                    6 => inst.push_str("IVEC"),
+                    _ => inst.push_str(&operand.to_string()),
+                }
+            },
             57..=i32::MAX | i32::MIN..0 => {
                 inst.push('(');
                 inst.push_str(&op.to_string());
