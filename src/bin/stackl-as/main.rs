@@ -30,7 +30,7 @@ fn main() -> ExitCode {
     let mut ast = match stackl::ast::parse_grammar(&source) {
         Ok(ast) => ast,
         Err(err) => {
-            error::print_errors(&args.asmfile, err);
+            error::print_errors(&args.asmfile, err, &source);
             return ExitCode::FAILURE;
         }
     };

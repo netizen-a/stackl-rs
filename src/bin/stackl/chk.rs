@@ -24,7 +24,6 @@ pub enum CheckKind {
 pub struct MachineCheck {
     #[allow(dead_code)]
     kind: CheckKind,
-    #[allow(dead_code)]
     msg: String,
 }
 

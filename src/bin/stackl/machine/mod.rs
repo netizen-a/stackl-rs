@@ -107,7 +107,8 @@ impl MachineState {
     }
     pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, chk::MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        let bytes = self.ram
+        let bytes = self
+            .ram
             .get(offset..)
             .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr));
         let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes?) else {
@@ -260,11 +261,11 @@ impl MachineState {
             op::JZ => "JZ ",
             op::PUSHVAR => "PUSHVAR",
             op::POPVAR => "POPVAR",
-            op::ADJSP => "ADJSP",
-            op::POPARGS => "POPARGS",
-            op::CALL => "CALL",
+            op::ADJSP => "ADJSP ",
+            op::POPARGS => "POPARGS ",
+            op::CALL => "CALL ",
             op::PUSHCVAR => "PUSHCVAR",
-            op::POPCVAR => "POPCVAR",
+            op::POPCVAR => "POPCVAR ",
             op::SET_TRACE => "SET_TRACE",
             op::CLR_TRACE => "CLR_TRACE",
             op::CLR_INT_DIS => "CLR_INT_DIS",
@@ -275,10 +276,21 @@ impl MachineState {
         };
         let mut inst = String::from(name);
         match op {
-            op::JZ | op::PUSH | op::JMP | op::JMPUSER => {
+            op::PUSHVAR
+            | op::PUSHCVAR
+            | op::POPVAR
+            | op::POPREG
+            | op::POPCVAR
+            | op::POPARGS
+            | op::JZ
+            | op::PUSH
+            | op::JMP
+            | op::JMPUSER
+            | op::ADJSP
+            | op::CALL => {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
-            },
+            }
             op::PUSHREG => {
                 let operand = self.load_i32(offset + 4)?;
                 match operand {
@@ -291,7 +303,7 @@ impl MachineState {
                     6 => inst.push_str("IVEC"),
                     _ => inst.push_str(&operand.to_string()),
                 }
-            },
+            }
             57..=i32::MAX | i32::MIN..0 => {
                 inst.push('(');
                 inst.push_str(&op.to_string());

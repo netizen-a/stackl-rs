@@ -96,9 +96,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
     let param1 = read_lock.load_i32(offset + 4)?;
     let _param2 = read_lock.load_i32(offset + 8)?;
     match op {
-        INP_PRINTS_CALL => {
-            read_lock.print(param1)
-        }
+        INP_PRINTS_CALL => read_lock.print(param1),
         INP_GETS_CALL => {
             drop(read_lock);
             let mut buf = String::new();
@@ -142,8 +140,6 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             // eprintln!("{:?}", result);
             result
         }
-        _ => {
-            Err(chk::MachineCheck::from(CheckKind::IllegalOp))
-        }
+        _ => Err(chk::MachineCheck::from(CheckKind::IllegalOp)),
     }
 }

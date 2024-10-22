@@ -194,15 +194,12 @@ pub fn next_opcode(
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            // investigate why the original needed this.
-            #[allow(clippy::needless_late_init)]
-            let new_flag: i32;
             let flag = cpu.flag;
             cpu.fp = cpu.pop_i32()?;
             cpu.ip = cpu.pop_i32()?;
             cpu.lp = cpu.pop_i32()?;
             cpu.bp = cpu.pop_i32()?;
-            new_flag = cpu.pop_i32()?;
+            let new_flag = cpu.pop_i32()?;
             cpu.sp = cpu.pop_i32()?;
 
             cpu.flag = MachineFlags::from(new_flag as u32);
