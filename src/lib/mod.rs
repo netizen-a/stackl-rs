@@ -1,15 +1,8 @@
 use bitflags::bitflags;
-use lalrpop_util::lalrpop_mod;
 
 pub mod ast;
-mod lex;
 pub mod op;
 pub mod tok;
-
-lalrpop_mod! {
-    #[allow(clippy::ptr_arg)]
-    grammar
-}
 
 bitflags! {
     #[derive(Debug)]

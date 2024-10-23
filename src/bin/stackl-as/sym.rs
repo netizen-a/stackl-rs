@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use stackl::ast::{self, Atom, Inst, Opcode, Operand};
+use stackl::ast::*;
 
 #[derive(Debug)]
 pub struct SymTabError {
@@ -10,7 +10,7 @@ pub struct SymTabError {
 
 /// On success returns symbol table with corresponding offsets.
 /// On failure returns `SymTabError`.
-pub(crate) fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, SymTabError> {
+pub(crate) fn build_symtab(ast: &[Stmt]) -> Result<HashMap<String, usize>, SymTabError> {
     // Associate symbol names and offsets
     let mut symtab: HashMap<String, usize> = HashMap::new();
     // set for missing labels
@@ -114,4 +114,25 @@ fn get_inst_size(inst: &Inst) -> usize {
         }
         _ => unimplemented!(),
     }
+}
+
+// move labels to opcodes.
+// must be done before fixup_start
+pub fn fixup_labels(ast: &mut Vec<Stmt>) {
+    let mut labels = Vec::<String>::new();
+    for stmt in ast {
+        match stmt.inst {
+            Inst::Directive(_, _) => labels.append(&mut stmt.labels),
+            _ => stmt.labels.append(&mut labels),
+        }
+    }
+}
+
+pub fn fixup_start(ast: &mut [Stmt]) {
+    let start = "_start".to_string();
+    let mid = ast
+        .iter()
+        .position(|stmt| stmt.labels.contains(&start))
+        .unwrap();
+    ast.rotate_left(mid);
 }

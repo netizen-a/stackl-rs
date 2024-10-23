@@ -1,12 +1,22 @@
+use clap::Parser;
+use lalrpop_util::lalrpop_mod;
+use lalrpop_util::ErrorRecovery;
 use std::fs;
 use std::path;
 use std::process::ExitCode;
 
-use clap::Parser;
+use crate::grammar::ProgramParser;
+use stackl::tok::{LexicalError, Token};
 
 mod code_gen;
 mod error;
+mod lex;
 mod sym;
+
+lalrpop_mod! {
+    #[allow(clippy::ptr_arg)]
+    grammar
+}
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -29,7 +39,7 @@ fn main() -> ExitCode {
         }
     };
 
-    let mut ast = match stackl::ast::parse_grammar(&source) {
+    let mut ast = match parse_grammar(&source) {
         Ok(ast) => ast,
         Err(err) => {
             error::print_errors(&args.asmfile, err, &source);
@@ -37,8 +47,8 @@ fn main() -> ExitCode {
         }
     };
 
-    stackl::ast::fixup_labels(&mut ast);
-    stackl::ast::fixup_start(&mut ast);
+    sym::fixup_labels(&mut ast);
+    sym::fixup_start(&mut ast);
 
     let code = code_gen::ast_to_fmt2(ast).unwrap();
     let outfile = match args.outfile {
@@ -52,4 +62,34 @@ fn main() -> ExitCode {
     fs::write(outfile, code.to_vec()).unwrap();
 
     ExitCode::SUCCESS
+}
+
+pub fn parse_grammar(
+    input: &str,
+) -> Result<Vec<stackl::ast::Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
+    let tokens = lex::Lexer::new(input);
+    let mut errors = Vec::new();
+    let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
+        Ok(v) => v,
+        Err(parse_error) => {
+            errors.push(ErrorRecovery {
+                error: parse_error,
+                dropped_tokens: vec![],
+            });
+            return Err(errors);
+        }
+    };
+    // prepend .text directive in case fixup rotates vector
+    ast.insert(
+        0,
+        stackl::ast::Stmt::new(stackl::ast::Inst::Directive(
+            stackl::ast::Directive::Segment,
+            vec![".text".to_string()],
+        )),
+    );
+    if errors.is_empty() {
+        Ok(ast)
+    } else {
+        Err(errors)
+    }
 }

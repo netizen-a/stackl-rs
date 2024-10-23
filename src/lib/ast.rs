@@ -1,10 +1,10 @@
-use lalrpop_util::ErrorRecovery;
+// use lalrpop_util::ErrorRecovery;
 
-use crate::{
-    grammar::ProgramParser,
-    lex,
-    tok::{LexicalError, Token},
-};
+// use crate::{
+//     // grammar::ProgramParser,
+//     lex,
+//     tok::{LexicalError, Token},
+// };
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Stmt {
@@ -131,55 +131,4 @@ pub enum Opcode {
     RotateLeft,
     RotateRight,
     Illegal,
-}
-
-pub fn parse_grammar(
-    input: &str,
-) -> Result<Vec<Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
-    let tokens = lex::Lexer::new(input);
-    let mut errors = Vec::new();
-    let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
-        Ok(v) => v,
-        Err(parse_error) => {
-            errors.push(ErrorRecovery {
-                error: parse_error,
-                dropped_tokens: vec![],
-            });
-            return Err(errors);
-        }
-    };
-    // prepend .text directive in case fixup rotates vector
-    ast.insert(
-        0,
-        Stmt::new(Inst::Directive(
-            Directive::Segment,
-            vec![".text".to_string()],
-        )),
-    );
-    if errors.is_empty() {
-        Ok(ast)
-    } else {
-        Err(errors)
-    }
-}
-
-// move labels to opcodes.
-// must be done before fixup_start
-pub fn fixup_labels(ast: &mut Vec<Stmt>) {
-    let mut labels = Vec::<String>::new();
-    for stmt in ast {
-        match stmt.inst {
-            Inst::Directive(_, _) => labels.append(&mut stmt.labels),
-            _ => stmt.labels.append(&mut labels),
-        }
-    }
-}
-
-pub fn fixup_start(ast: &mut [Stmt]) {
-    let start = "_start".to_string();
-    let mid = ast
-        .iter()
-        .position(|stmt| stmt.labels.contains(&start))
-        .unwrap();
-    ast.rotate_left(mid);
 }
