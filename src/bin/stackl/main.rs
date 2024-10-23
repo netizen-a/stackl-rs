@@ -9,7 +9,7 @@ use chk::{CheckKind, MachineCheck};
 use clap::Parser;
 use flag::Status;
 use machine::MachineState;
-use stackl::StacklFormat;
+use stackl::{StacklFlags, StacklFormat};
 
 mod chk;
 mod flag;
@@ -19,17 +19,39 @@ mod machine;
 #[command(version, about, long_about = None)]
 struct Args {
     file: path::PathBuf,
-    #[arg(long, default_value_t = false)]
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Write an instruction trace to stderr"
+    )]
     trace: bool,
-    #[arg(short, long, default_value_t = 500000)]
+    #[arg(
+        short,
+        long,
+        default_value_t = 500000,
+        help = "Set the memory size for the virtual machine"
+    )]
     memory: usize,
     #[arg(long, default_value_t = 0, help = "Instruction delay in milliseconds")]
     mdelay: u64,
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        help = "Enable the INP instruction"
+    )]
+    inp: bool,
+    #[arg(long, help = "Load file with V1 legacy format")]
+    legacy: bool,
 }
 fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
-    let data = StacklFormat::try_from(content.as_slice()).unwrap();
+    let mut data = StacklFormat::try_from(content.as_slice()).unwrap();
+    if args.inp {
+        // force INP to be enabled regardless of binary
+        data.flags.set(StacklFlags::FEATURE_INP, true);
+    }
     let mut machine = MachineState::new(data, args.memory);
     machine.set_trace(args.trace);
     let machine = RwLock::new(machine);

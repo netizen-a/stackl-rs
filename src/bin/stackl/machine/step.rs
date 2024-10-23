@@ -389,7 +389,7 @@ pub fn next_opcode(
         }
         op::ROTATE_LEFT => {
             if cpu.flag.get_status(Status::LEGACY_MODE) {
-                return Err(MachineCheck::from(chk::CheckKind::IllegalInst))
+                return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
             }
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
@@ -397,7 +397,7 @@ pub fn next_opcode(
         }
         op::ROTATE_RIGHT => {
             if cpu.flag.get_status(Status::LEGACY_MODE) {
-                return Err(MachineCheck::from(chk::CheckKind::IllegalInst))
+                return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
             }
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
