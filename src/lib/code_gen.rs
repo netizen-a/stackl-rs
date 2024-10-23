@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error};
 
-use crate::{ast::*, op, sym, StacklFormat};
+use crate::{ast::*, op, sym, StacklFlags, StacklFormat};
 
 impl TryFrom<Vec<Stmt>> for StacklFormat {
     type Error = Box<dyn Error>;
@@ -10,6 +10,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
         let mut is_start_global = false;
         let mut int_vec = -1;
         let mut trap_vec = -1;
+        let mut flags = StacklFlags::empty();
         for stmt in ast {
             let data: Vec<u8> = match stmt.inst {
                 Inst::Mnemonic(op) => convert_op(&op, &symtab),
@@ -80,6 +81,18 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
                     trap_vec = symtab[&sym[0]].try_into().unwrap();
                     vec![]
                 }
+                Inst::Directive(Directive::Feature, symbols) => {
+                    for sym in symbols {
+                        match sym.to_ascii_lowercase().as_str() {
+                            "pio_term" => flags.set(StacklFlags::FEATURE_PIO_TERM, true),
+                            "dma_term" => flags.set(StacklFlags::FEATURE_DMA_TERM, true),
+                            "disk" => flags.set(StacklFlags::FEATURE_DISK, true),
+                            "inp" => flags.set(StacklFlags::FEATURE_INP, true),
+                            _ => panic!("invalid feature argument"),
+                        }
+                    }
+                    vec![]
+                }
             };
             if !data.is_empty() {
                 text.extend(data);
@@ -93,7 +106,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
         Ok(crate::StacklFormat {
             magic: [b's', b'l', 0, 0],
             version: 0,
-            flags: 0,
+            flags,
             stack_size: 0,
             int_vec,
             trap_vec,

@@ -5,7 +5,7 @@ use std::{ffi, io, thread, time};
 use crate::chk;
 use crate::chk::MachineCheck;
 use crate::flag::{MachineFlags, Status};
-use stackl::{op, StacklFormat};
+use stackl::{op, StacklFlags, StacklFormat};
 
 pub mod step;
 
@@ -37,7 +37,19 @@ impl MachineState {
         if program.trap_vec != -1 {
             rom[4..8].copy_from_slice(&program.trap_vec.to_le_bytes());
         }
-        let flag = MachineFlags::new();
+        let mut flag = MachineFlags::new();
+        if program.flags.contains(StacklFlags::FEATURE_PIO_TERM) {
+            flag.set_status(Status::FEATURE_PIO_TERM, true);
+        }
+        if program.flags.contains(StacklFlags::FEATURE_DMA_TERM) {
+            flag.set_status(Status::FEATURE_DMA_TERM, true);
+        }
+        if program.flags.contains(StacklFlags::FEATURE_DISK) {
+            flag.set_status(Status::FEATURE_DISK, true);
+        }
+        if program.flags.contains(StacklFlags::FEATURE_INP) {
+            flag.set_status(Status::FEATURE_INP, true);
+        }
 
         let mut ram = vec![0x79; mem_size];
         ram[..program.text.len()].copy_from_slice(&program.text);

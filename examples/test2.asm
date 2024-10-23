@@ -1,3 +1,4 @@
+[feature inp]
 [global _start]
 _start:
     jmp print

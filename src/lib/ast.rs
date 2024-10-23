@@ -50,6 +50,7 @@ pub enum Directive {
     Global,
     Interrupt,
     Systrap,
+    Feature,
 }
 
 #[derive(Debug, PartialEq, Clone)]

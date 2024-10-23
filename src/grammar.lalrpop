@@ -102,7 +102,10 @@ DirectiveArgs: Vec<String> = {
   },
 }
 
-Arg: String = IDENT => <>;
+Arg: String = {
+  IDENT => <>,
+  INP => "inp".to_string(),
+};
 
 Directive: Directive = {
   <start: @L> <i:IDENT> <end: @R> =>? match i.to_lowercase().as_ref() {
@@ -111,6 +114,7 @@ Directive: Directive = {
     "global" => Ok(Directive::Global),
     "interrupt" => Ok(Directive::Interrupt),
     "systrap" => Ok(Directive::Systrap),
+    "feature" => Ok(Directive::Feature),
     _ => Err(ParseError::UnrecognizedToken {
       token: (start, Token::Identifier(i), end),
       expected: vec![

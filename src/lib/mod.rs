@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use lalrpop_util::lalrpop_mod;
 
 pub mod ast;
@@ -12,12 +13,22 @@ lalrpop_mod! {
     grammar
 }
 
+bitflags! {
+    #[derive(Debug)]
+    pub struct StacklFlags: u32 {
+        const FEATURE_PIO_TERM = 1;
+        const FEATURE_DMA_TERM = 1 << 1;
+        const FEATURE_DISK     = 1 << 2;
+        const FEATURE_INP      = 1 << 3;
+        const _ = !0;
+    }
+}
+
 #[derive(Debug)]
 pub struct StacklFormat {
     pub magic: [u8; 4],
     pub version: u32,
-    /// Reserved. Must be set to zero.
-    pub flags: u32,
+    pub flags: StacklFlags,
     pub stack_size: i32,
     pub int_vec: i32,
     pub trap_vec: i32,
@@ -28,7 +39,7 @@ impl StacklFormat {
     pub fn to_vec(self) -> Vec<u8> {
         let mut ret = Vec::from(self.magic);
         ret.extend(self.version.to_le_bytes());
-        ret.extend(self.flags.to_le_bytes());
+        ret.extend(self.flags.bits().to_le_bytes());
         ret.extend(self.stack_size.to_le_bytes());
         ret.extend(self.int_vec.to_le_bytes());
         ret.extend(self.trap_vec.to_le_bytes());
@@ -67,7 +78,7 @@ impl TryFrom<&[u8]> for StacklFormat {
         Ok(StacklFormat {
             magic,
             version,
-            flags,
+            flags: StacklFlags::from_bits_retain(flags),
             stack_size,
             int_vec,
             trap_vec,

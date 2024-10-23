@@ -155,6 +155,9 @@ pub fn next_opcode(
             cpu.print(offset)?;
         }
         op::INP => {
+            if !cpu.flag.get_status(Status::FEATURE_INP) {
+                return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
+            }
             if cpu.is_user_mode() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
