@@ -2,10 +2,8 @@ use bitflags::bitflags;
 use lalrpop_util::lalrpop_mod;
 
 pub mod ast;
-mod code_gen;
 mod lex;
 pub mod op;
-mod sym;
 pub mod tok;
 
 lalrpop_mod! {

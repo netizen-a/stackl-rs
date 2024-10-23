@@ -4,7 +4,9 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
+mod code_gen;
 mod error;
+mod sym;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -38,7 +40,7 @@ fn main() -> ExitCode {
     stackl::ast::fixup_labels(&mut ast);
     stackl::ast::fixup_start(&mut ast);
 
-    let code = stackl::StacklFormatV2::try_from(ast).unwrap();
+    let code = code_gen::ast_to_fmt2(ast).unwrap();
     let outfile = match args.outfile {
         Some(o) => o,
         None => {

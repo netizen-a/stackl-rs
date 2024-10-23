@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{self, Atom, Inst, Opcode, Operand};
+use stackl::ast::{self, Atom, Inst, Opcode, Operand};
 
 #[derive(Debug)]
 pub struct SymTabError {
@@ -112,5 +112,6 @@ fn get_inst_size(inst: &Inst) -> usize {
             }
             total
         }
+        _ => unimplemented!(),
     }
 }

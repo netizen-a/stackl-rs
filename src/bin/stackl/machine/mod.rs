@@ -79,7 +79,7 @@ impl MachineState {
     pub fn is_user(&self) -> bool {
         self.flag.get_status(Status::USR_MODE)
     }
-    
+
     // returns true if success, else false
     // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {

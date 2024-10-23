@@ -1,119 +1,118 @@
 use std::{collections::HashMap, error::Error};
 
-use crate::{ast::*, op, sym, StacklFlags, StacklFormatV2};
+use crate::sym;
+use stackl::{ast::*, op, StacklFlags, StacklFormatV2};
 
-impl TryFrom<Vec<Stmt>> for StacklFormatV2 {
-    type Error = Box<dyn Error>;
-    fn try_from(ast: Vec<Stmt>) -> Result<crate::StacklFormatV2, Self::Error> {
-        let symtab: HashMap<String, usize> = sym::build_symtab(&ast).unwrap();
-        let mut text = vec![0u8;8];
-        let mut is_start_global = false;
-        let mut int_vec: i32 = -1;
-        let mut trap_vec: i32 = -1;
-        let mut flags = StacklFlags::empty();
-        for stmt in ast {
-            let data: Vec<u8> = match stmt.inst {
-                Inst::Mnemonic(op) => convert_op(&op, &symtab),
-                Inst::DataDecl8(list) => {
-                    let mut data_list = Vec::<u8>::new();
-                    for data in list {
-                        let vec: Vec<u8> = match data {
-                            // convert i32 to u8
-                            Atom::Int(value) => vec![value.try_into().unwrap()],
-                            // convert String to [u8]
-                            Atom::String(s) => s.as_bytes().to_vec(),
-                            _ => unimplemented!(),
-                        };
-                        data_list.extend(vec);
-                    }
-                    data_list
+pub fn ast_to_fmt2(ast: Vec<Stmt>) -> Result<StacklFormatV2, Box<dyn Error>> {
+    let symtab: HashMap<String, usize> = sym::build_symtab(&ast).unwrap();
+    let mut text = vec![0u8; 8];
+    let mut is_start_global = false;
+    let mut int_vec: i32 = -1;
+    let mut trap_vec: i32 = -1;
+    let mut flags = StacklFlags::empty();
+    for stmt in ast {
+        let data: Vec<u8> = match stmt.inst {
+            Inst::Mnemonic(op) => convert_op(&op, &symtab),
+            Inst::DataDecl8(list) => {
+                let mut data_list = Vec::<u8>::new();
+                for data in list {
+                    let vec: Vec<u8> = match data {
+                        // convert i32 to u8
+                        Atom::Int(value) => vec![value.try_into().unwrap()],
+                        // convert String to [u8]
+                        Atom::String(s) => s.as_bytes().to_vec(),
+                        _ => unimplemented!(),
+                    };
+                    data_list.extend(vec);
                 }
-                Inst::DataDecl32(list) => {
-                    let mut data_list = Vec::<u8>::new();
-                    for data in list {
-                        let vec: Vec<u8> = match data {
-                            // convert i32 to [u8]
-                            Atom::Int(value) => value.to_le_bytes().to_vec(),
-                            // convert String to [u8]
-                            Atom::String(s) => {
-                                let mut bytes = s.as_bytes().to_vec();
-                                if bytes.len() % 4 == 0 {
-                                    bytes
-                                } else {
-                                    let len = 4 - (bytes.len() % 4);
-                                    bytes.extend(vec![0; len]);
-                                    bytes
-                                }
-                            }
-                            Atom::Label(label) => (symtab[&label] as u32).to_le_bytes().to_vec(),
-                        };
-                        data_list.extend(vec);
-                    }
-                    data_list
-                }
-                Inst::Directive(Directive::Extern, _) => {
-                    panic!("binary does not support extern directive")
-                }
-                Inst::Directive(Directive::Segment, _) => {
-                    if text.len() % 4 != 0 {
-                        vec![0; 4 - (text.len() % 4)]
-                    } else {
-                        vec![]
-                    }
-                }
-                Inst::Directive(Directive::Global, sym) => {
-                    if !is_start_global {
-                        is_start_global = sym.contains(&"_start".to_string());
-                    }
-                    vec![]
-                }
-                Inst::Directive(Directive::Interrupt, sym) => {
-                    if sym.len() != 1 {
-                        panic!("invalid directive args");
-                    }
-                    int_vec = symtab[&sym[0]].try_into().unwrap();
-                    vec![]
-                }
-                Inst::Directive(Directive::Systrap, sym) => {
-                    if sym.len() != 1 {
-                        panic!("invalid directive args");
-                    }
-                    trap_vec = symtab[&sym[0]].try_into().unwrap();
-                    vec![]
-                }
-                Inst::Directive(Directive::Feature, symbols) => {
-                    for sym in symbols {
-                        match sym.to_ascii_lowercase().as_str() {
-                            "pio_term" => flags.set(StacklFlags::FEATURE_PIO_TERM, true),
-                            "dma_term" => flags.set(StacklFlags::FEATURE_DMA_TERM, true),
-                            "disk" => flags.set(StacklFlags::FEATURE_DISK, true),
-                            "inp" => flags.set(StacklFlags::FEATURE_INP, true),
-                            _ => panic!("invalid feature argument"),
-                        }
-                    }
-                    vec![]
-                }
-            };
-            if !data.is_empty() {
-                text.extend(data);
+                data_list
             }
+            Inst::DataDecl32(list) => {
+                let mut data_list = Vec::<u8>::new();
+                for data in list {
+                    let vec: Vec<u8> = match data {
+                        // convert i32 to [u8]
+                        Atom::Int(value) => value.to_le_bytes().to_vec(),
+                        // convert String to [u8]
+                        Atom::String(s) => {
+                            let mut bytes = s.as_bytes().to_vec();
+                            if bytes.len() % 4 == 0 {
+                                bytes
+                            } else {
+                                let len = 4 - (bytes.len() % 4);
+                                bytes.extend(vec![0; len]);
+                                bytes
+                            }
+                        }
+                        Atom::Label(label) => (symtab[&label] as u32).to_le_bytes().to_vec(),
+                    };
+                    data_list.extend(vec);
+                }
+                data_list
+            }
+            Inst::Directive(Directive::Extern, _) => {
+                panic!("binary does not support extern directive")
+            }
+            Inst::Directive(Directive::Segment, _) => {
+                if text.len() % 4 != 0 {
+                    vec![0; 4 - (text.len() % 4)]
+                } else {
+                    vec![]
+                }
+            }
+            Inst::Directive(Directive::Global, sym) => {
+                if !is_start_global {
+                    is_start_global = sym.contains(&"_start".to_string());
+                }
+                vec![]
+            }
+            Inst::Directive(Directive::Interrupt, sym) => {
+                if sym.len() != 1 {
+                    panic!("invalid directive args");
+                }
+                int_vec = symtab[&sym[0]].try_into().unwrap();
+                vec![]
+            }
+            Inst::Directive(Directive::Systrap, sym) => {
+                if sym.len() != 1 {
+                    panic!("invalid directive args");
+                }
+                trap_vec = symtab[&sym[0]].try_into().unwrap();
+                vec![]
+            }
+            Inst::Directive(Directive::Feature, symbols) => {
+                for sym in symbols {
+                    match sym.to_ascii_lowercase().as_str() {
+                        "pio_term" => flags.set(StacklFlags::FEATURE_PIO_TERM, true),
+                        "dma_term" => flags.set(StacklFlags::FEATURE_DMA_TERM, true),
+                        "disk" => flags.set(StacklFlags::FEATURE_DISK, true),
+                        "inp" => flags.set(StacklFlags::FEATURE_INP, true),
+                        _ => panic!("invalid feature argument"),
+                    }
+                }
+                vec![]
+            }
+            _ => unimplemented!(),
+        };
+        if !data.is_empty() {
+            text.extend(data);
         }
-
-        if !is_start_global {
-            panic!("Symbol _start not global");
-        }
-
-        text[0..4].copy_from_slice(&int_vec.to_le_bytes());
-        text[4..8].copy_from_slice(&trap_vec.to_le_bytes());
-
-        Ok(crate::StacklFormatV2 {
-            magic: [b's', b'l', 0, 0],
-            version: 0,
-            flags,
-            stack_size: 0,
-            text,
-        })
     }
+
+    if !is_start_global {
+        panic!("Symbol _start not global");
+    }
+
+    text[0..4].copy_from_slice(&int_vec.to_le_bytes());
+    text[4..8].copy_from_slice(&trap_vec.to_le_bytes());
+
+    Ok(StacklFormatV2 {
+        magic: [b's', b'l', 0, 0],
+        version: 0,
+        flags,
+        stack_size: 0,
+        text,
+    })
 }
 
 fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
@@ -209,6 +208,7 @@ fn convert_op(op: &Opcode, symtab: &HashMap<String, usize>) -> Vec<u8> {
         Opcode::RotateLeft => vec![op::ROTATE_LEFT],
         Opcode::RotateRight => vec![op::ROTATE_RIGHT],
         Opcode::Illegal => vec![op::ILLEGAL],
+        _ => unimplemented!(),
     };
 
     let mut ret = Vec::new();
