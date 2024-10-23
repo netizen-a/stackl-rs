@@ -1,10 +1,10 @@
 use std::{collections::HashMap, error::Error};
 
-use crate::{ast::*, op, sym, StacklFlags, StacklFormat};
+use crate::{ast::*, op, sym, StacklFlags, StacklFormatV2};
 
-impl TryFrom<Vec<Stmt>> for StacklFormat {
+impl TryFrom<Vec<Stmt>> for StacklFormatV2 {
     type Error = Box<dyn Error>;
-    fn try_from(ast: Vec<Stmt>) -> Result<crate::StacklFormat, Self::Error> {
+    fn try_from(ast: Vec<Stmt>) -> Result<crate::StacklFormatV2, Self::Error> {
         let symtab: HashMap<String, usize> = sym::build_symtab(&ast).unwrap();
         let mut text = vec![0u8;8];
         let mut is_start_global = false;
@@ -106,7 +106,7 @@ impl TryFrom<Vec<Stmt>> for StacklFormat {
         text[0..4].copy_from_slice(&int_vec.to_le_bytes());
         text[4..8].copy_from_slice(&trap_vec.to_le_bytes());
 
-        Ok(crate::StacklFormat {
+        Ok(crate::StacklFormatV2 {
             magic: [b's', b'l', 0, 0],
             version: 0,
             flags,

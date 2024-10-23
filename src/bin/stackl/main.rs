@@ -9,7 +9,7 @@ use chk::{CheckKind, MachineCheck};
 use clap::Parser;
 use flag::Status;
 use machine::MachineState;
-use stackl::{StacklFlags, StacklFormat};
+use stackl::{StacklFlags, StacklFormatV2};
 
 mod chk;
 mod flag;
@@ -47,7 +47,7 @@ struct Args {
 fn main() -> ExitCode {
     let args = Args::parse();
     let content = fs::read(args.file).unwrap();
-    let mut data = StacklFormat::try_from(content.as_slice()).unwrap();
+    let mut data = StacklFormatV2::try_from(content.as_slice()).unwrap();
     if args.inp {
         // force INP to be enabled regardless of binary
         data.flags.set(StacklFlags::FEATURE_INP, true);
@@ -153,7 +153,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let content = fs::read(filepath).expect("Failed to open file");
             drop(read_lock);
 
-            let program = StacklFormat::try_from(content.as_slice()).unwrap();
+            let program = StacklFormatV2::try_from(content.as_slice()).unwrap();
             let mut machine_lock = machine.write().unwrap();
             let bp = machine_lock.bp;
             let lp = machine_lock.lp;

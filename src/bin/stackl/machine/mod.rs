@@ -5,7 +5,7 @@ use std::{ffi, io, thread, time};
 use crate::chk;
 use crate::chk::MachineCheck;
 use crate::flag::{MachineFlags, Status};
-use stackl::{op, StacklFlags, StacklFormat};
+use stackl::{op, StacklFlags, StacklFormatV2};
 
 pub mod step;
 
@@ -23,7 +23,7 @@ pub struct MachineState {
 }
 
 impl MachineState {
-    pub fn new(program: StacklFormat, mem_size: usize) -> MachineState {
+    pub fn new(program: StacklFormatV2, mem_size: usize) -> MachineState {
         let sp_addr = if program.text.len() % 2 != 0 {
             program.text.len() + 2 - (program.text.len() % 2)
         } else {

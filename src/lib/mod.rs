@@ -25,7 +25,13 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub struct StacklFormat {
+pub struct StacklFormatV1 {
+    pub header: String,
+    pub text: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub struct StacklFormatV2 {
     pub magic: [u8; 4],
     pub version: u32,
     pub flags: StacklFlags,
@@ -33,7 +39,7 @@ pub struct StacklFormat {
     pub text: Vec<u8>,
 }
 
-impl StacklFormat {
+impl StacklFormatV2 {
     pub fn to_vec(self) -> Vec<u8> {
         let mut ret = Vec::from(self.magic);
         ret.extend(self.version.to_le_bytes());
@@ -51,7 +57,7 @@ pub enum ErrorKind {
     InvalidMagic,
 }
 
-impl TryFrom<&[u8]> for StacklFormat {
+impl TryFrom<&[u8]> for StacklFormatV2 {
     type Error = ErrorKind;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         if value.len() < 24 {
@@ -69,7 +75,7 @@ impl TryFrom<&[u8]> for StacklFormat {
             return Err(ErrorKind::InvalidVersion);
         }
 
-        Ok(StacklFormat {
+        Ok(StacklFormatV2 {
             magic,
             version,
             flags: StacklFlags::from_bits_retain(flags),

@@ -38,7 +38,7 @@ fn main() -> ExitCode {
     stackl::ast::fixup_labels(&mut ast);
     stackl::ast::fixup_start(&mut ast);
 
-    let code = stackl::StacklFormat::try_from(ast).unwrap();
+    let code = stackl::StacklFormatV2::try_from(ast).unwrap();
     let outfile = match args.outfile {
         Some(o) => o,
         None => {
