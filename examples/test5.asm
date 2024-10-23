@@ -1,3 +1,4 @@
+[feature inp]
 [global _start]
 [systrap systrap]
 _start:

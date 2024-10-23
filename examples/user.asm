@@ -6,7 +6,6 @@ loop:
     push hw
     call print
     pop
-    halt
     pop
     push 1    ; stack[1] = 1
     sub       ; stack[0] = stack[0] - stack[1]
