@@ -18,7 +18,7 @@ pub(crate) fn build_symtab(ast: &[ast::Stmt]) -> Result<HashMap<String, usize>, 
     // set for duplicate labels
     let mut dup_labels = HashSet::<String>::new();
     // offset in bytes
-    let mut pos = 0;
+    let mut pos = 8;
 
     for stmt in ast {
         for label in &stmt.labels {

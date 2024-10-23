@@ -30,8 +30,6 @@ pub struct StacklFormat {
     pub version: u32,
     pub flags: StacklFlags,
     pub stack_size: i32,
-    pub int_vec: i32,
-    pub trap_vec: i32,
     pub text: Vec<u8>,
 }
 
@@ -41,8 +39,6 @@ impl StacklFormat {
         ret.extend(self.version.to_le_bytes());
         ret.extend(self.flags.bits().to_le_bytes());
         ret.extend(self.stack_size.to_le_bytes());
-        ret.extend(self.int_vec.to_le_bytes());
-        ret.extend(self.trap_vec.to_le_bytes());
         ret.extend(self.text);
         ret
     }
@@ -65,8 +61,6 @@ impl TryFrom<&[u8]> for StacklFormat {
         let version: u32 = u32::from_le_bytes(value[4..8].try_into().unwrap());
         let flags = u32::from_le_bytes(value[8..12].try_into().unwrap());
         let stack_size = i32::from_le_bytes(value[12..16].try_into().unwrap());
-        let int_vec = i32::from_le_bytes(value[16..20].try_into().unwrap());
-        let trap_vec = i32::from_le_bytes(value[20..24].try_into().unwrap());
 
         if magic != [b's', b'l', 0, 0] {
             return Err(ErrorKind::InvalidMagic);
@@ -80,9 +74,7 @@ impl TryFrom<&[u8]> for StacklFormat {
             version,
             flags: StacklFlags::from_bits_retain(flags),
             stack_size,
-            int_vec,
-            trap_vec,
-            text: Vec::from(&value[24..]),
+            text: Vec::from(&value[16..]),
         })
     }
 }
