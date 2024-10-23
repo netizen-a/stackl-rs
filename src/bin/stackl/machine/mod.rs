@@ -46,8 +46,6 @@ impl MachineState {
         let mut ram = vec![0x79; mem_size];
         ram[..program.text.len()].copy_from_slice(&program.text);
 
-        let int_vec: i32 = i32::from_le_bytes(program.text[..4].try_into().unwrap());
-
         MachineState {
             bp: 0,
             lp: mem_size.try_into().unwrap(),
@@ -55,7 +53,7 @@ impl MachineState {
             sp: sp_addr as i32,
             fp: 0,
             flag,
-            ivec: int_vec,
+            ivec: 0,
             vmem: 0,
             ram,
         }
@@ -78,20 +76,10 @@ impl MachineState {
             );
         }
     }
-    pub fn get_trap_addr(&self) -> Result<i32, MachineCheck> {
-        if self.ivec == -1 {
-            self.load_abs_i32(4)
-        } else {
-            self.load_i32(self.ivec + 4)
-        }
-    }
-    pub fn is_user_mode(&self) -> bool {
+    pub fn is_user(&self) -> bool {
         self.flag.get_status(Status::USR_MODE)
     }
-
-    pub fn resize_ram(&mut self, new_len: usize, value: u8) {
-        self.ram.resize(new_len, value);
-    }
+    
     // returns true if success, else false
     // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {
@@ -133,7 +121,7 @@ impl MachineState {
         }
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
-        let offset = if self.is_user_mode() {
+        let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
@@ -148,7 +136,7 @@ impl MachineState {
             ));
         }
         let bytes = i32::to_le_bytes(val);
-        let offset = if self.is_user_mode() {
+        let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
@@ -158,7 +146,7 @@ impl MachineState {
     // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
         let mem = &self.ram;
-        let offset = if self.is_user_mode() {
+        let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
@@ -170,7 +158,7 @@ impl MachineState {
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
-        let offset = if self.is_user_mode() {
+        let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
@@ -187,7 +175,7 @@ impl MachineState {
     // This function does not check alignment
     pub fn print(&self, offset: i32) -> Result<(), chk::MachineCheck> {
         let mem = &self.ram;
-        let offset = if self.is_user_mode() {
+        let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset

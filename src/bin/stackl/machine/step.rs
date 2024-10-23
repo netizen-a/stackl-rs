@@ -115,7 +115,7 @@ pub fn next_opcode(
             cpu.sp += 4;
         }
         op::HALT => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.flag.set_status(Status::HALTED, true);
@@ -148,7 +148,7 @@ pub fn next_opcode(
             cpu.push_i32(val as i32)?;
         }
         op::OUTS => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             let offset = cpu.load_i32(cpu.sp - 4)?;
@@ -158,7 +158,7 @@ pub fn next_opcode(
             if !cpu.flag.get_status(Status::FEATURE_INP) {
                 return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
             }
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             let offset = cpu.pop_i32()?;
@@ -168,7 +168,7 @@ pub fn next_opcode(
             cpu.push_i32(cpu.fp)?;
         }
         op::JMPUSER => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.ip = cpu.load_i32(cpu.ip + 4)?;
@@ -176,7 +176,7 @@ pub fn next_opcode(
             return Ok(());
         }
         op::TRAP => {
-            let was_user = cpu.is_user_mode();
+            let was_user = cpu.is_user();
             cpu.push_i32(cpu.sp)?;
             cpu.push_i32(cpu.flag.as_u32() as i32)?;
             cpu.push_i32(cpu.bp)?;
@@ -190,11 +190,11 @@ pub fn next_opcode(
                 cpu.fp += cpu.bp;
                 cpu.sp += cpu.bp;
             }
-            cpu.ip = cpu.get_trap_addr()?;
+            cpu.ip = cpu.load_abs_i32(cpu.ivec + 4)?;
             return Ok(());
         }
         op::RTI => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             let flag = cpu.flag;
@@ -237,7 +237,7 @@ pub fn next_opcode(
             }
         }
         op::POPREG => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.ip += 4;
@@ -376,13 +376,13 @@ pub fn next_opcode(
             cpu.set_trace(false);
         }
         op::CLR_INT_DIS => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.flag.set_status(Status::INT_DIS, false);
         }
         op::SET_INT_DIS => {
-            if cpu.is_user_mode() {
+            if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
             cpu.flag.set_status(Status::INT_DIS, true);

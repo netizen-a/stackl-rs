@@ -158,9 +158,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let bp = machine_lock.bp;
             let lp = machine_lock.lp;
             machine_lock.store_slice(&program.text, bp)?;
-            let result = machine_lock.store_i32(program.stack_size, lp + 4);
-            // eprintln!("{:?}", result);
-            result
+            machine_lock.store_i32(program.stack_size, lp + 4)
         }
         _ => Err(chk::MachineCheck::from(CheckKind::IllegalOp)),
     }
