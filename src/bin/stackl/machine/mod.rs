@@ -24,12 +24,18 @@ pub struct MachineState {
 
 impl MachineState {
     pub fn new(program: StacklFormatV2, mem_size: usize) -> MachineState {
-        let sp_addr = if program.text.len() % 2 != 0 {
-            program.text.len() + 2 - (program.text.len() % 2)
+        let sp_addr = if program.text.len() % 4 != 0 {
+            program.text.len() + 4 - (program.text.len() % 4)
         } else {
             program.text.len()
         };
         let mut flag = MachineFlags::new();
+        if program.flags.contains(StacklFlags::LEGACY_MODE) {
+            flag.set_status(Status::LEGACY_MODE, true);
+        }
+        if program.flags.contains(StacklFlags::FEATURE_GEN_IO) {
+            flag.set_status(Status::FEATURE_GEN_IO, true);
+        }
         if program.flags.contains(StacklFlags::FEATURE_PIO_TERM) {
             flag.set_status(Status::FEATURE_PIO_TERM, true);
         }
@@ -105,13 +111,8 @@ impl MachineState {
     }
     pub fn load_abs_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
         let mem = &self.ram;
+        check_align(offset)?;
         let offset = i32_to_offset(offset)?;
-        if offset % 4 != 0 {
-            return Err(chk::MachineCheck::new(
-                chk::CheckKind::IllegalAddr,
-                format!("Misaligned Address at {offset}"),
-            ));
-        }
         if let Some(mem) = mem.get(offset..=(offset + 3)) {
             mem.try_into()
                 .map(i32::from_le_bytes)
@@ -119,6 +120,11 @@ impl MachineState {
         } else {
             Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
         }
+    }
+    pub fn store_abs_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
+        check_align(offset)?;
+        let bytes = i32::to_le_bytes(val);
+        self.store_slice(&bytes, offset)
     }
     pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
         let offset = if self.is_user() {
@@ -129,19 +135,12 @@ impl MachineState {
         self.load_abs_i32(offset)
     }
     pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
-        if offset % 4 != 0 {
-            return Err(chk::MachineCheck::new(
-                chk::CheckKind::IllegalAddr,
-                format!("Misaligned Address at {offset}"),
-            ));
-        }
-        let bytes = i32::to_le_bytes(val);
         let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
         };
-        self.store_slice(&bytes, offset)
+        self.store_abs_i32(val, offset)
     }
     // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
@@ -311,4 +310,14 @@ impl MachineState {
 fn i32_to_offset(val: i32) -> Result<usize, chk::MachineCheck> {
     val.try_into()
         .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))
+}
+
+fn check_align(offset: i32) -> Result<(), chk::MachineCheck> {
+    if offset % 4 != 0 {
+        return Err(chk::MachineCheck::new(
+            chk::CheckKind::IllegalAddr,
+            format!(": Misaligned Address at {offset}"),
+        ));
+    }
+    Ok(())
 }

@@ -41,42 +41,25 @@ impl MachineCheck {
 
 impl From<CheckKind> for MachineCheck {
     fn from(kind: CheckKind) -> Self {
-        use CheckKind::*;
-        match kind {
-            IllegalInst => Self {
-                kind,
-                msg: "Illegal Instruction".to_string(),
-            },
-            IllegalAddr => Self {
-                kind,
-                msg: "Illegal Address".to_string(),
-            },
-            HwFailure => Self {
-                kind,
-                msg: "Hardware Failure".to_string(),
-            },
-            HwWarning => Self {
-                kind,
-                msg: "Hardware Warning".to_string(),
-            },
-            ProtInst => Self {
-                kind,
-                msg: "Protected Instruction".to_string(),
-            },
-            IllegalOp => Self {
-                kind,
-                msg: "Illegal Operation".to_string(),
-            },
-            _ => Self {
-                kind: Other,
-                msg: "Other".to_string(),
-            },
+        Self {
+            kind,
+            msg: String::new(),
         }
     }
 }
 
 impl fmt::Display for MachineCheck {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Machine Check: {}", self.msg)
+        use CheckKind::*;
+        let kind_msg = match self.kind {
+            IllegalInst => "Illegal Instruction".to_string(),
+            IllegalAddr => "Illegal Address".to_string(),
+            HwFailure => "Hardware Failure".to_string(),
+            HwWarning => "Hardware Warning".to_string(),
+            ProtInst => "Protected Instruction".to_string(),
+            IllegalOp => "Illegal Operation".to_string(),
+            Other => "Other".to_string(),
+        };
+        write!(f, "Machine Check: {}{}", kind_msg, self.msg)
     }
 }

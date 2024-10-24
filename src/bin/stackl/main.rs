@@ -41,15 +41,13 @@ struct Args {
         help = "Enable the INP instruction"
     )]
     inp: bool,
-    #[arg(long, help = "Load file with V1 legacy format")]
-    legacy: bool,
 }
 fn main() -> ExitCode {
     let args = Args::parse();
     let content = match fs::read(&args.file) {
         Ok(v) => v,
         Err(err) => {
-            eprintln!("unabled to load `{}`:{:?}", args.file.display(), err);
+            eprintln!("Failed to load `{}`:{:?}", args.file.display(), err);
             return ExitCode::FAILURE;
         }
     };

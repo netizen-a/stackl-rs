@@ -10,10 +10,11 @@ bitflags! {
         const VMEM             = 1 << 4;
         const TRACE            = 1 << 5;
         const LEGACY_MODE      = 1 << 6;
-        const FEATURE_PIO_TERM = 1 << 7;
-        const FEATURE_DMA_TERM = 1 << 8;
-        const FEATURE_DISK     = 1 << 9;
-        const FEATURE_INP      = 1 << 10;
+        const FEATURE_GEN_IO   = 1 << 7;
+        const FEATURE_PIO_TERM = 1 << 8;
+        const FEATURE_DMA_TERM = 1 << 9;
+        const FEATURE_DISK     = 1 << 10;
+        const FEATURE_INP      = 1 << 11;
         const _                = !0;
     }
 }

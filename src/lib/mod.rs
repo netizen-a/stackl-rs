@@ -6,10 +6,12 @@ pub mod op;
 bitflags! {
     #[derive(Debug)]
     pub struct StacklFlags: u32 {
-        const FEATURE_PIO_TERM = 1;
-        const FEATURE_DMA_TERM = 1 << 1;
-        const FEATURE_DISK     = 1 << 2;
-        const FEATURE_INP      = 1 << 3;
+        const LEGACY_MODE      = 1;
+        const FEATURE_GEN_IO   = 1 << 1;
+        const FEATURE_PIO_TERM = 1 << 2;
+        const FEATURE_DMA_TERM = 1 << 3;
+        const FEATURE_DISK     = 1 << 4;
+        const FEATURE_INP      = 1 << 5;
         const _ = !0;
     }
 }
@@ -43,7 +45,9 @@ impl StacklFormatV1 {
         Some(Version::new(1, 0, 0))
     }
     pub fn flags(&self) -> StacklFlags {
-        StacklFlags::empty()
+        let mut flags = StacklFlags::empty();
+        flags.set(StacklFlags::LEGACY_MODE, true);
+        flags
     }
     pub fn stack_size(&self) -> i32 {
         0
@@ -116,7 +120,9 @@ impl TryFrom<&[u8]> for StacklFormatV2 {
         if magic != [b's', b'l', 0, 0] {
             return Err(ErrorKind::InvalidMagic);
         }
-        if version != 0 {
+        let current_version = Version(version);
+        let expected_version = Version::new(2, 0, 0);
+        if current_version.major() != expected_version.major() {
             return Err(ErrorKind::InvalidVersion);
         }
 

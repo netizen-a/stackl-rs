@@ -15,6 +15,7 @@ loop:
     jz loop   ; if stack[2] == 0 then goto loop;
     halt
 print:
+    rti
     trap
     ret
 [section .data]

@@ -10,7 +10,6 @@ _start:
     inp
     call wait_io_blk
     jmpuser 8
-    halt
 
 wait_io_blk:
     push io_blk

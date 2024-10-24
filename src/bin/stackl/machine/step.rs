@@ -403,7 +403,12 @@ pub fn next_opcode(
             let lhs = cpu.pop_i32()?;
             cpu.push_i32(lhs.rotate_right(rhs as u32))?;
         }
-        57..=i32::MAX | i32::MIN..0 => return Err(MachineCheck::from(chk::CheckKind::IllegalInst)),
+        57..=i32::MAX | i32::MIN..0 => {
+            return Err(MachineCheck::new(
+                chk::CheckKind::IllegalInst,
+                format!("({}) at {}", op, cpu.ip),
+            ))
+        }
     }
     cpu.ip += 4;
     Ok(())
