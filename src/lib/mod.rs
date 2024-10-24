@@ -35,7 +35,7 @@ impl Version {
 
 #[derive(Debug)]
 pub struct StacklFormatV1 {
-    pub header: Vec<u8>,
+    pub header: String,
     pub text: Vec<u8>,
 }
 
@@ -72,8 +72,9 @@ impl TryFrom<&[u8]> for StacklFormatV1 {
             return Err(ErrorKind::UnexpectedEof);
         };
         let (head, foot) = value.split_at(delim_pos + delim.len());
+        let header = String::from_utf8_lossy(head).into_owned();
         Ok(StacklFormatV1 {
-            header: head.to_vec(),
+            header,
             text: foot.to_vec(),
         })
     }
