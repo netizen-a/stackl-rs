@@ -2,7 +2,6 @@ use bitflags::bitflags;
 
 pub mod ast;
 pub mod op;
-pub mod tok;
 
 bitflags! {
     #[derive(Debug)]

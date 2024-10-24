@@ -6,12 +6,13 @@ use std::path;
 use std::process::ExitCode;
 
 use crate::grammar::ProgramParser;
-use stackl::tok::{LexicalError, Token};
+use tok::{LexicalError, Token};
 
 mod code_gen;
 mod error;
 mod lex;
 mod sym;
+mod tok;
 
 lalrpop_mod! {
     #[allow(clippy::ptr_arg)]

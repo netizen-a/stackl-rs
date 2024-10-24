@@ -1,6 +1,6 @@
 use logos::{Logos, SpannedIter};
 
-use stackl::tok::{LexicalError, Token};
+use crate::tok::{LexicalError, Token};
 
 type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
