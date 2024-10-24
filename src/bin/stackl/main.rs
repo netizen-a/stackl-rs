@@ -9,7 +9,7 @@ use chk::{CheckKind, MachineCheck};
 use clap::Parser;
 use flag::Status;
 use machine::MachineState;
-use stackl::{StacklFlags, StacklFormatV2};
+use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
 
 mod chk;
 mod flag;
@@ -46,8 +46,23 @@ struct Args {
 }
 fn main() -> ExitCode {
     let args = Args::parse();
-    let content = fs::read(args.file).unwrap();
-    let mut data = StacklFormatV2::try_from(content.as_slice()).unwrap();
+    let content = match fs::read(&args.file) {
+        Ok(v) => v,
+        Err(err) => {
+            eprintln!("unabled to load `{}`:{:?}", args.file.display(), err);
+            return ExitCode::FAILURE;
+        }
+    };
+    let mut data = match StacklFormatV2::try_from(content.as_slice()) {
+        Ok(data) => data,
+        Err(stackl::ErrorKind::InvalidMagic) => {
+            let fmt1 = StacklFormatV1::try_from(content.as_slice()).unwrap();
+            fmt1.try_into().unwrap()
+        }
+        Err(err) => {
+            panic!("failed to load: {:?}", err);
+        }
+    };
     if args.inp {
         // force INP to be enabled regardless of binary
         data.flags.set(StacklFlags::FEATURE_INP, true);

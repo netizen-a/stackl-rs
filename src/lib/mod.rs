@@ -15,15 +15,70 @@ bitflags! {
 }
 
 #[derive(Debug)]
+pub struct Version(pub u32);
+impl Version {
+    pub fn new(major: u32, minor: u32, patch: u32) -> Self {
+        Self((major << 22) | (minor << 12) | patch)
+    }
+    pub fn major(&self) -> u32 {
+        self.0 >> 22
+    }
+    pub fn minor(&self) -> u32 {
+        (self.0 >> 12) & 0x3ff
+    }
+    pub fn patch(&self) -> u32 {
+        self.0 & 0xfff
+    }
+}
+
+#[derive(Debug)]
 pub struct StacklFormatV1 {
-    pub header: String,
+    pub header: Vec<u8>,
     pub text: Vec<u8>,
+}
+
+impl StacklFormatV1 {
+    pub fn version(&self) -> Option<Version> {
+        // TODO: parse version
+        Some(Version::new(1, 0, 0))
+    }
+    pub fn flags(&self) -> StacklFlags {
+        StacklFlags::empty()
+    }
+    pub fn stack_size(&self) -> i32 {
+        0
+    }
+}
+
+impl TryFrom<&[u8]> for StacklFormatV1 {
+    type Error = ErrorKind;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let Some(magic) = value.first_chunk::<6>() else {
+            return Err(ErrorKind::InvalidMagic);
+        };
+        if magic != b"stackl" {
+            return Err(ErrorKind::InvalidMagic);
+        }
+
+        let delim = b"begindata\n";
+        let Some(delim_pos) = value
+            .windows(delim.len())
+            .position(|subslice| subslice == delim)
+        else {
+            return Err(ErrorKind::UnexpectedEof);
+        };
+        let (head, foot) = value.split_at(delim_pos + delim.len());
+        Ok(StacklFormatV1 {
+            header: head.to_vec(),
+            text: foot.to_vec(),
+        })
+    }
 }
 
 #[derive(Debug)]
 pub struct StacklFormatV2 {
     pub magic: [u8; 4],
-    pub version: u32,
+    pub version: Version,
     pub flags: StacklFlags,
     pub stack_size: i32,
     pub text: Vec<u8>,
@@ -32,7 +87,7 @@ pub struct StacklFormatV2 {
 impl StacklFormatV2 {
     pub fn to_vec(self) -> Vec<u8> {
         let mut ret = Vec::from(self.magic);
-        ret.extend(self.version.to_le_bytes());
+        ret.extend(self.version.0.to_le_bytes());
         ret.extend(self.flags.bits().to_le_bytes());
         ret.extend(self.stack_size.to_le_bytes());
         ret.extend(self.text);
@@ -50,7 +105,7 @@ pub enum ErrorKind {
 impl TryFrom<&[u8]> for StacklFormatV2 {
     type Error = ErrorKind;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() < 24 {
+        if value.len() < 20 {
             return Err(ErrorKind::UnexpectedEof);
         }
         let magic: [u8; 4] = value[..4].try_into().unwrap();
@@ -67,10 +122,23 @@ impl TryFrom<&[u8]> for StacklFormatV2 {
 
         Ok(StacklFormatV2 {
             magic,
-            version,
+            version: Version(version),
             flags: StacklFlags::from_bits_retain(flags),
             stack_size,
             text: Vec::from(&value[16..]),
+        })
+    }
+}
+
+impl TryFrom<StacklFormatV1> for StacklFormatV2 {
+    type Error = ErrorKind;
+    fn try_from(value: StacklFormatV1) -> Result<Self, Self::Error> {
+        Ok(StacklFormatV2 {
+            magic: [b's', b'l', 0, 0],
+            version: value.version().unwrap(),
+            flags: value.flags(),
+            stack_size: value.stack_size(),
+            text: value.text,
         })
     }
 }
