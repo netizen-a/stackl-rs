@@ -163,10 +163,21 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let Ok(filepath) = c_str.to_str() else {
                 return Err(chk::MachineCheck::from(chk::CheckKind::Other));
             };
-            let content = fs::read(filepath).expect("Failed to open file");
+            let Ok(content) = fs::read(filepath) else {
+                return Err(MachineCheck::from(chk::CheckKind::Other))
+            };
             drop(read_lock);
 
-            let program = StacklFormatV2::try_from(content.as_slice()).unwrap();
+            let program = match StacklFormatV2::try_from(content.as_slice()) {
+                Ok(data) => data,
+                Err(stackl::ErrorKind::InvalidMagic) => {
+                    let fmt1 = StacklFormatV1::try_from(content.as_slice()).unwrap();
+                    fmt1.try_into().unwrap()
+                }
+                Err(err) => {
+                    panic!("failed to load: {:?}", err);
+                }
+            };
             let mut machine_lock = machine.write().unwrap();
             let bp = machine_lock.bp;
             let lp = machine_lock.lp;
