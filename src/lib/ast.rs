@@ -1,11 +1,3 @@
-// use lalrpop_util::ErrorRecovery;
-
-// use crate::{
-//     // grammar::ProgramParser,
-//     lex,
-//     tok::{LexicalError, Token},
-// };
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Stmt {
     pub labels: Vec<String>,
