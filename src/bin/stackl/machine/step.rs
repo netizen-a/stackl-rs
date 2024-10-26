@@ -151,7 +151,7 @@ pub fn next_opcode(
             if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
-            let offset = cpu.load_i32(cpu.sp - 4)?;
+            let offset = cpu.pop_i32()?;
             cpu.print(offset)?;
         }
         op::INP => {
@@ -176,37 +176,11 @@ pub fn next_opcode(
             return Ok(());
         }
         op::TRAP => {
-            let was_user = cpu.is_user();
-            cpu.push_i32(cpu.sp)?;
-            cpu.push_i32(cpu.flag.as_u32() as i32)?;
-            cpu.push_i32(cpu.bp)?;
-            cpu.push_i32(cpu.lp)?;
-            cpu.push_i32(cpu.ip + 4)?;
-            cpu.push_i32(cpu.fp)?;
-            cpu.flag.set_status(Status::USR_MODE, false);
-            cpu.flag.set_status(Status::INT_MODE, true);
-            if was_user {
-                // switch fp and sp to absolute addresses
-                cpu.fp += cpu.bp;
-                cpu.sp += cpu.bp;
-            }
-            cpu.ip = cpu.load_abs_i32(cpu.ivec + 4)?;
+            exec_trap(cpu)?;
             return Ok(());
         }
         op::RTI => {
-            if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
-            }
-            let flag = cpu.flag;
-            cpu.fp = cpu.pop_i32()?;
-            cpu.ip = cpu.pop_i32()?;
-            cpu.lp = cpu.pop_i32()?;
-            cpu.bp = cpu.pop_i32()?;
-            let new_flag = cpu.pop_i32()?;
-            cpu.sp = cpu.pop_i32()?;
-
-            cpu.flag = MachineFlags::from(new_flag as u32);
-            cpu.flag.intvec = flag.intvec;
+            exec_rti(cpu)?;
             return Ok(());
         }
         op::CALLI => {
@@ -412,4 +386,40 @@ pub fn next_opcode(
     }
     cpu.ip += 4;
     Ok(())
+}
+
+fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck>{
+    let was_user = cpu.is_user();
+    cpu.push_i32(cpu.sp)?;
+    cpu.push_i32(cpu.flag.as_u32() as i32)?;
+    cpu.push_i32(cpu.bp)?;
+    cpu.push_i32(cpu.lp)?;
+    cpu.push_i32(cpu.ip + 4)?;
+    cpu.push_i32(cpu.fp)?;
+    cpu.flag.set_status(Status::USR_MODE, false);
+    cpu.flag.set_status(Status::INT_MODE, true);
+    if was_user {
+        // switch fp and sp to absolute addresses
+        cpu.fp += cpu.bp;
+        cpu.sp += cpu.bp;
+    }
+    cpu.ip = cpu.load_abs_i32(cpu.ivec + 4)?;
+    return Ok(());
+}
+
+fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck>{
+    if cpu.is_user() {
+        return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+    }
+    let flag = cpu.flag;
+    cpu.fp = cpu.pop_i32()?;
+    cpu.ip = cpu.pop_i32()?;
+    cpu.lp = cpu.pop_i32()?;
+    cpu.bp = cpu.pop_i32()?;
+    let new_flag = cpu.pop_i32()?;
+    cpu.sp = cpu.pop_i32()?;
+
+    cpu.flag = MachineFlags::from(new_flag as u32);
+    cpu.flag.intvec = flag.intvec;
+    return Ok(());
 }
