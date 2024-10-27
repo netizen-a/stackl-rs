@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 use std::str::FromStr;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Sender};
 use std::sync::RwLock;
 use std::thread::{self, scope};
 use std::{fs, io, path, time};
@@ -104,9 +104,15 @@ pub fn run_machine(
         if cpu.flag.get_status(Status::HALTED) {
             return;
         }
-        if let Err(_check) = machine::step::next_opcode(&mut cpu, &request_send) {
-            cpu.flag.intvec.set(IntVec::MACHINE_CHECK, true);
-            cpu.exec_interrupt().unwrap();
+        if let Err(check) = machine::step::next_opcode(&mut cpu, &request_send) {
+            if cpu.ivec == 0 && cpu.load_abs_i32(0).unwrap() == -1 {
+                // Default machine check
+                eprintln!("{check}");
+                return;
+            } else {
+                cpu.flag.intvec.set(IntVec::MACHINE_CHECK, true);
+                cpu.exec_interrupt().unwrap();
+            }
         }
     }
 }

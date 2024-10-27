@@ -304,9 +304,7 @@ impl MachineState {
         Ok(inst)
     }
     pub fn exec_interrupt(&mut self) -> Result<(), chk::MachineCheck> {
-        // const HW_INTERRUPT_VECTOR: i32 = 0;
         let was_user = self.is_user();
-        // let vector: i32;
 
         // Find highest priority pending interrupt
         let pending_interrupt = self.flag.intvec.iter().enumerate().next();
@@ -318,11 +316,6 @@ impl MachineState {
 
         // turn off pending bit for HW interrupts
         self.flag.intvec.set(int_flag, false);
-
-        // if IVEC not set, use ISR at offset zero
-        // if self.ivec == 0 {
-        //     vector = HW_INTERRUPT_VECTOR;
-        // }
 
         self.push_i32(self.sp)?;
         self.push_i32(self.flag.as_u32() as i32)?;
