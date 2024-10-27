@@ -7,7 +7,7 @@ use std::{fs, io, path, time};
 
 use chk::{CheckKind, MachineCheck};
 use clap::Parser;
-use flag::Status;
+use flag::{IntVec, Status};
 use machine::MachineState;
 use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
 
@@ -70,10 +70,9 @@ fn main() -> ExitCode {
     let machine = RwLock::new(machine);
 
     let (request_send, request_recv) = channel::<i32>();
-    let (_, response_recv) = channel::<Result<(), chk::MachineCheck>>();
     scope(|f| {
         f.spawn(|| {
-            run_machine(&machine, request_send, response_recv, args.mdelay);
+            run_machine(&machine, request_send, args.mdelay);
         });
         f.spawn(|| {
             for offset in request_recv {
@@ -93,29 +92,21 @@ fn main() -> ExitCode {
 }
 
 pub fn run_machine(
-    mach: &RwLock<MachineState>,
+    machine_lock: &RwLock<MachineState>,
     request_send: Sender<i32>,
-    response_recv: Receiver<Result<(), chk::MachineCheck>>,
     delay_step: u64,
 ) {
     loop {
         if delay_step != 0 {
             thread::sleep(time::Duration::from_millis(delay_step));
         }
-        let mut _mach_check = None;
-        for recv in response_recv.try_iter() {
-            if let Err(check) = recv {
-                _mach_check = Some(check);
-                return;
-            }
-        }
-        let mut write_lock = mach.write().unwrap();
-        if write_lock.flag.get_status(Status::HALTED) {
+        let mut cpu = machine_lock.write().unwrap();
+        if cpu.flag.get_status(Status::HALTED) {
             return;
         }
-        if let Err(check) = machine::step::next_opcode(&mut write_lock, &request_send) {
-            eprintln!("{check}");
-            return;
+        if let Err(_check) = machine::step::next_opcode(&mut cpu, &request_send) {
+            cpu.flag.intvec.set(IntVec::MACHINE_CHECK, true);
+            cpu.exec_interrupt().unwrap();
         }
     }
 }

@@ -58,7 +58,7 @@ impl StacklFormatV1 {
         while let Some(token) = token_iter.next() {
             if token == "feature" {
                 let Some(feature) = token_iter.next() else {
-                    return Err(ErrorKind::InvalidFeature)
+                    return Err(ErrorKind::InvalidFeature);
                 };
                 match feature {
                     "gen_io" => flags.set(StacklFlags::FEATURE_GEN_IO, true),
@@ -76,9 +76,10 @@ impl StacklFormatV1 {
         let mut token_iter = self.iter_header();
         while let Some(token) = token_iter.next() {
             if token == "stack_size" {
-                return token_iter.next().and_then(|value| {
-                    value.parse().ok()
-                }).ok_or(ErrorKind::InvalidStackSize);
+                return token_iter
+                    .next()
+                    .and_then(|value| value.parse().ok())
+                    .ok_or(ErrorKind::InvalidStackSize);
             }
         }
         // default value
@@ -141,7 +142,7 @@ pub enum ErrorKind {
     InvalidVersion,
     InvalidMagic,
     InvalidFeature,
-    InvalidStackSize
+    InvalidStackSize,
 }
 
 impl TryFrom<&[u8]> for StacklFormatV2 {

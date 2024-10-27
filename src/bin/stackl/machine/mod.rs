@@ -303,6 +303,52 @@ impl MachineState {
 
         Ok(inst)
     }
+    pub fn exec_interrupt(&mut self) -> Result<(), chk::MachineCheck> {
+        // const HW_INTERRUPT_VECTOR: i32 = 0;
+        let was_user = self.is_user();
+        // let vector: i32;
+
+        // Find highest priority pending interrupt
+        let pending_interrupt = self.flag.intvec.iter().enumerate().next();
+
+        let Some((vector, int_flag)) = pending_interrupt else {
+            // no pending interrupts
+            return Ok(());
+        };
+
+        // turn off pending bit for HW interrupts
+        self.flag.intvec.set(int_flag, false);
+
+        // if IVEC not set, use ISR at offset zero
+        // if self.ivec == 0 {
+        //     vector = HW_INTERRUPT_VECTOR;
+        // }
+
+        self.push_i32(self.sp)?;
+        self.push_i32(self.flag.as_u32() as i32)?;
+        self.push_i32(self.bp)?;
+        self.push_i32(self.lp)?;
+        self.push_i32(self.ip + 4)?;
+        self.push_i32(self.fp)?;
+
+        // Don't update the FP for trap instructions, so
+        // trap handler can see args from caller
+        self.fp = self.sp;
+
+        // go to system mode and interrupt mode
+        self.flag.set_status(Status::USR_MODE, false);
+        self.flag.set_status(Status::INT_MODE, true);
+
+        if was_user {
+            // switch fp and sp to absolute addresses
+            self.fp += self.bp;
+            self.sp += self.bp;
+        }
+
+        // ISR is at vector
+        self.ip = self.load_abs_i32(self.ivec + (vector as i32 * 4))?;
+        Ok(())
+    }
 }
 
 // Helper function to convert i32 to usize.
