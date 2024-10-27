@@ -1,3 +1,5 @@
+use std::str::SplitTerminator;
+
 use bitflags::bitflags;
 
 pub mod ast;
@@ -40,17 +42,50 @@ pub struct StacklFormatV1 {
 }
 
 impl StacklFormatV1 {
-    pub fn version(&self) -> Option<Version> {
-        // TODO: parse version
-        Some(Version::new(1, 0, 0))
+    pub fn version(&self) -> Option<String> {
+        let mut token_iter = self.iter_header();
+        for token in &mut token_iter {
+            if token == "stackl" {
+                return token_iter.next().map(|x| x.to_owned());
+            }
+        }
+        None
     }
-    pub fn flags(&self) -> StacklFlags {
+    pub fn flags(&self) -> Result<StacklFlags, ErrorKind> {
         let mut flags = StacklFlags::empty();
         flags.set(StacklFlags::LEGACY_MODE, true);
-        flags
+        let mut token_iter = self.iter_header();
+        while let Some(token) = token_iter.next() {
+            if token == "feature" {
+                let Some(feature) = token_iter.next() else {
+                    return Err(ErrorKind::InvalidFeature)
+                };
+                match feature {
+                    "gen_io" => flags.set(StacklFlags::FEATURE_GEN_IO, true),
+                    "pio_term" => flags.set(StacklFlags::FEATURE_PIO_TERM, true),
+                    "dma_term" => flags.set(StacklFlags::FEATURE_DMA_TERM, true),
+                    "disk" => flags.set(StacklFlags::FEATURE_DISK, true),
+                    "inp" => flags.set(StacklFlags::FEATURE_INP, true),
+                    _ => return Err(ErrorKind::InvalidFeature),
+                }
+            }
+        }
+        Ok(flags)
     }
-    pub fn stack_size(&self) -> i32 {
-        0
+    pub fn stack_size(&self) -> Result<i32, ErrorKind> {
+        let mut token_iter = self.iter_header();
+        while let Some(token) = token_iter.next() {
+            if token == "stack_size" {
+                return token_iter.next().and_then(|value| {
+                    value.parse().ok()
+                }).ok_or(ErrorKind::InvalidStackSize);
+            }
+        }
+        // default value
+        Ok(0)
+    }
+    fn iter_header(&self) -> SplitTerminator<&[char]> {
+        self.header.split_terminator(&['\n', ' '][..]).into_iter()
     }
 }
 
@@ -105,6 +140,8 @@ pub enum ErrorKind {
     UnexpectedEof,
     InvalidVersion,
     InvalidMagic,
+    InvalidFeature,
+    InvalidStackSize
 }
 
 impl TryFrom<&[u8]> for StacklFormatV2 {
@@ -122,7 +159,7 @@ impl TryFrom<&[u8]> for StacklFormatV2 {
             return Err(ErrorKind::InvalidMagic);
         }
         let current_version = Version(version);
-        let expected_version = Version::new(2, 0, 0);
+        let expected_version = Version::new(1, 0, 0);
         if current_version.major() != expected_version.major() {
             return Err(ErrorKind::InvalidVersion);
         }
@@ -142,9 +179,9 @@ impl TryFrom<StacklFormatV1> for StacklFormatV2 {
     fn try_from(value: StacklFormatV1) -> Result<Self, Self::Error> {
         Ok(StacklFormatV2 {
             magic: [b's', b'l', 0, 0],
-            version: value.version().unwrap(),
-            flags: value.flags(),
-            stack_size: value.stack_size(),
+            version: Version::new(1, 0, 0),
+            flags: value.flags()?,
+            stack_size: value.stack_size()?,
             text: value.text,
         })
     }

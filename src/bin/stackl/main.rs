@@ -164,7 +164,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
                 return Err(chk::MachineCheck::from(chk::CheckKind::Other));
             };
             let Ok(content) = fs::read(filepath) else {
-                return Err(MachineCheck::from(chk::CheckKind::Other))
+                return Err(MachineCheck::from(chk::CheckKind::Other));
             };
             drop(read_lock);
 

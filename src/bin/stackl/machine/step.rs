@@ -388,7 +388,7 @@ pub fn next_opcode(
     Ok(())
 }
 
-fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck>{
+fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
     let was_user = cpu.is_user();
     cpu.push_i32(cpu.sp)?;
     cpu.push_i32(cpu.flag.as_u32() as i32)?;
@@ -407,7 +407,7 @@ fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck>{
     return Ok(());
 }
 
-fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck>{
+fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck> {
     if cpu.is_user() {
         return Err(MachineCheck::from(chk::CheckKind::ProtInst));
     }
