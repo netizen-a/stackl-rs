@@ -43,7 +43,7 @@ pub fn next_opcode(
             } else {
                 return Err(MachineCheck::new(
                     chk::CheckKind::IllegalOp,
-                    "Divide by Zero",
+                    ": Divide by zero",
                 ));
             }
         }
@@ -55,7 +55,7 @@ pub fn next_opcode(
             } else {
                 return Err(MachineCheck::new(
                     chk::CheckKind::IllegalOp,
-                    "Divide by Zero",
+                    ": Divide by zero",
                 ));
             }
         }
@@ -205,7 +205,7 @@ pub fn next_opcode(
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
-                        "Invalid Register",
+                        ": Invalid register",
                     ))
                 }
             }
@@ -233,7 +233,7 @@ pub fn next_opcode(
                 _ => {
                     return Err(chk::MachineCheck::new(
                         chk::CheckKind::IllegalOp,
-                        "invalid register",
+                        ": Invalid register",
                     ))
                 }
             }
