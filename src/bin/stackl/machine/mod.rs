@@ -2,9 +2,7 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 use std::{ffi, io, thread, time};
 
-use crate::chk;
-use crate::chk::MachineCheck;
-use crate::flag::{MachineFlags, Status};
+use crate::flag::{MachineFlags, MetaFlags, Status, MachineCheck};
 use stackl::{op, StacklFlags, StacklFormatV2};
 
 pub mod step;
@@ -20,6 +18,7 @@ pub struct MachineState {
     pub ivec: i32,
     pub vmem: i32,
     pub ram: Vec<u8>,
+    pub meta: MetaFlags,
 }
 
 impl MachineState {
@@ -29,24 +28,24 @@ impl MachineState {
         } else {
             program.text.len()
         };
-        let mut flag = MachineFlags::new();
+        let mut meta = MetaFlags::empty();
         if program.flags.contains(StacklFlags::LEGACY_MODE) {
-            flag.set_status(Status::LEGACY_MODE, true);
+            meta.set(MetaFlags::LEGACY_MODE, true);
         }
         if program.flags.contains(StacklFlags::FEATURE_GEN_IO) {
-            flag.set_status(Status::FEATURE_GEN_IO, true);
+            meta.set(MetaFlags::FEATURE_GEN_IO, true);
         }
         if program.flags.contains(StacklFlags::FEATURE_PIO_TERM) {
-            flag.set_status(Status::FEATURE_PIO_TERM, true);
+            meta.set(MetaFlags::FEATURE_PIO_TERM, true);
         }
         if program.flags.contains(StacklFlags::FEATURE_DMA_TERM) {
-            flag.set_status(Status::FEATURE_DMA_TERM, true);
+            meta.set(MetaFlags::FEATURE_DMA_TERM, true);
         }
         if program.flags.contains(StacklFlags::FEATURE_DISK) {
-            flag.set_status(Status::FEATURE_DISK, true);
+            meta.set(MetaFlags::FEATURE_DISK, true);
         }
         if program.flags.contains(StacklFlags::FEATURE_INP) {
-            flag.set_status(Status::FEATURE_INP, true);
+            meta.set(MetaFlags::FEATURE_INP, true);
         }
 
         let mut ram = vec![0x79; mem_size];
@@ -58,23 +57,24 @@ impl MachineState {
             ip: 8,
             sp: sp_addr as i32,
             fp: 0,
-            flag,
+            flag: MachineFlags::new(),
             ivec: 0,
             vmem: 0,
             ram,
+            meta,
         }
     }
-    pub fn push_i32(&mut self, val: i32) -> Result<(), chk::MachineCheck> {
+    pub fn push_i32(&mut self, val: i32) -> Result<(), MachineCheck> {
         self.store_i32(val, self.sp)?;
         self.sp += 4;
         Ok(())
     }
-    pub fn pop_i32(&mut self) -> Result<i32, chk::MachineCheck> {
+    pub fn pop_i32(&mut self) -> Result<i32, MachineCheck> {
         self.sp -= 4;
         self.load_i32(self.sp)
     }
     pub fn set_trace(&mut self, value: bool) {
-        self.flag.set_status(Status::TRACE, value);
+        self.meta.set(MetaFlags::TRACE, value);
         if value {
             eprintln!(
                 "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
@@ -88,45 +88,45 @@ impl MachineState {
 
     // returns true if success, else false
     // This function does not check alignment.
-    pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), chk::MachineCheck> {
+    pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), MachineCheck> {
         let mem = &mut self.ram;
         let offset = i32_to_offset(offset)?;
         if let Some(ram) = mem.get_mut(offset..offset + val.len()) {
             ram.clone_from_slice(val);
             Ok(())
         } else {
-            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            Err(MachineCheck::ILLEGAL_ADDR)
         }
     }
-    pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, chk::MachineCheck> {
+    pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, MachineCheck> {
         let offset = i32_to_offset(offset)?;
         let bytes = self
             .ram
             .get(offset..)
-            .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr));
+            .ok_or(MachineCheck::ILLEGAL_ADDR);
         let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes?) else {
-            return Err(chk::MachineCheck::from(chk::CheckKind::Other));
+            return Err(MachineCheck::ILLEGAL_ADDR);
         };
         Ok(c_str)
     }
-    pub fn load_abs_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
+    pub fn load_abs_i32(&self, offset: i32) -> Result<i32, MachineCheck> {
         let mem = &self.ram;
         check_align(offset)?;
         let offset = i32_to_offset(offset)?;
         if let Some(mem) = mem.get(offset..=(offset + 3)) {
             mem.try_into()
                 .map(i32::from_le_bytes)
-                .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))
+                .or(Err(MachineCheck::ILLEGAL_ADDR))
         } else {
-            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            Err(MachineCheck::ILLEGAL_ADDR)
         }
     }
-    pub fn store_abs_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
+    pub fn store_abs_i32(&mut self, val: i32, offset: i32) -> Result<(), MachineCheck> {
         check_align(offset)?;
         let bytes = i32::to_le_bytes(val);
         self.store_slice(&bytes, offset)
     }
-    pub fn load_i32(&self, offset: i32) -> Result<i32, chk::MachineCheck> {
+    pub fn load_i32(&self, offset: i32) -> Result<i32, MachineCheck> {
         let offset = if self.is_user() {
             offset + self.bp
         } else {
@@ -134,7 +134,7 @@ impl MachineState {
         };
         self.load_abs_i32(offset)
     }
-    pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), chk::MachineCheck> {
+    pub fn store_i32(&mut self, val: i32, offset: i32) -> Result<(), MachineCheck> {
         let offset = if self.is_user() {
             offset + self.bp
         } else {
@@ -143,7 +143,7 @@ impl MachineState {
         self.store_abs_i32(val, offset)
     }
     // This function does not check alignment
-    pub fn load_u8(&self, offset: i32) -> Result<u8, chk::MachineCheck> {
+    pub fn load_u8(&self, offset: i32) -> Result<u8, MachineCheck> {
         let mem = &self.ram;
         let offset = if self.is_user() {
             offset + self.bp
@@ -153,10 +153,10 @@ impl MachineState {
         let offset = i32_to_offset(offset)?;
         mem.get(offset)
             .copied()
-            .ok_or(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            .ok_or(MachineCheck::ILLEGAL_ADDR)
     }
     // This function does not check alignment
-    pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), chk::MachineCheck> {
+    pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), MachineCheck> {
         let offset = if self.is_user() {
             offset + self.bp
         } else {
@@ -168,11 +168,11 @@ impl MachineState {
             *byte = val;
             Ok(())
         } else {
-            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            Err(MachineCheck::ILLEGAL_ADDR)
         }
     }
     // This function does not check alignment
-    pub fn print(&self, offset: i32) -> Result<(), chk::MachineCheck> {
+    pub fn print(&self, offset: i32) -> Result<(), MachineCheck> {
         let mem = &self.ram;
         let offset = if self.is_user() {
             offset + self.bp
@@ -196,12 +196,12 @@ impl MachineState {
                     io::stdout().flush().unwrap();
                 }
             }
-            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            Err(MachineCheck::ILLEGAL_ADDR)
         } else {
-            Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr))
+            Err(MachineCheck::ILLEGAL_ADDR)
         }
     }
-    pub fn trace_inst(&self, offset: i32) -> Result<String, chk::MachineCheck> {
+    pub fn trace_inst(&self, offset: i32) -> Result<String, MachineCheck> {
         let op = self.load_i32(offset)?;
         let name = match op {
             op::NOP => "NOP",
@@ -303,7 +303,7 @@ impl MachineState {
 
         Ok(inst)
     }
-    pub fn exec_interrupt(&mut self) -> Result<(), chk::MachineCheck> {
+    pub fn exec_interrupt(&mut self) -> Result<(), MachineCheck> {
         let was_user = self.is_user();
 
         // Find highest priority pending interrupt
@@ -344,17 +344,14 @@ impl MachineState {
 
 // Helper function to convert i32 to usize.
 // This function will return Err if val is negative
-fn i32_to_offset(val: i32) -> Result<usize, chk::MachineCheck> {
+fn i32_to_offset(val: i32) -> Result<usize, MachineCheck> {
     val.try_into()
-        .or(Err(chk::MachineCheck::from(chk::CheckKind::IllegalAddr)))
+        .or(Err(MachineCheck::ILLEGAL_ADDR))
 }
 
-fn check_align(offset: i32) -> Result<(), chk::MachineCheck> {
+fn check_align(offset: i32) -> Result<(), MachineCheck> {
     if offset % 4 != 0 {
-        return Err(chk::MachineCheck::new(
-            chk::CheckKind::IllegalAddr,
-            format!(": Misaligned Address at {offset}"),
-        ));
+        return Err(MachineCheck::ILLEGAL_ADDR);
     }
     Ok(())
 }

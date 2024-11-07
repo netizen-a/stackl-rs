@@ -5,13 +5,13 @@ use std::sync::RwLock;
 use std::thread::{self, scope};
 use std::{fs, io, path, time};
 
-use chk::{CheckKind, MachineCheck};
 use clap::Parser;
 use flag::{IntVec, Status};
 use machine::MachineState;
 use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
 
-mod chk;
+use flag::MachineCheck;
+
 mod flag;
 mod machine;
 
@@ -111,9 +111,10 @@ pub fn run_machine(
         if let Err(check) = machine::step::next_opcode(&mut cpu, &request_send) {
             if cpu.ivec == 0 && cpu.load_abs_i32(0).unwrap() == -1 {
                 // Default machine check
-                eprintln!("{check}");
+                eprintln!("Machine Check: {check} at {}", cpu.ip);
                 return;
             } else {
+                cpu.flag.check.set(check, true);
                 cpu.flag.intvec.set(IntVec::MACHINE_CHECK, true);
                 cpu.exec_interrupt().unwrap();
             }
@@ -154,7 +155,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             let mut buf = String::new();
             io::stdin().read_line(&mut buf).unwrap();
             let Ok(deci) = i32::from_str(buf.trim()) else {
-                return Err(chk::MachineCheck::from(chk::CheckKind::Other));
+                return Err(flag::MachineCheck::ILLEGAL_INST);
             };
             let mut write_lock = machine.write().unwrap();
             write_lock.store_i32(deci, param1)
@@ -162,10 +163,10 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
         INP_EXEC_CALL => {
             let c_str = read_lock.load_cstr(param1)?;
             let Ok(filepath) = c_str.to_str() else {
-                return Err(chk::MachineCheck::from(chk::CheckKind::Other));
+                return Err(MachineCheck::ILLEGAL_INST);
             };
             let Ok(content) = fs::read(filepath) else {
-                return Err(MachineCheck::from(chk::CheckKind::Other));
+                return Err(MachineCheck::ILLEGAL_INST);
             };
             drop(read_lock);
 
@@ -185,6 +186,6 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
             machine_lock.store_slice(&program.text, bp)?;
             machine_lock.store_i32(program.stack_size, lp + 4)
         }
-        _ => Err(chk::MachineCheck::from(CheckKind::IllegalOp)),
+        _ => Err(MachineCheck::ILLEGAL_INST),
     }
 }

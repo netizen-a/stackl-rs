@@ -3,7 +3,7 @@ use super::*;
 pub fn next_opcode(
     cpu: &mut MachineState,
     request_send: &Sender<i32>,
-) -> Result<(), chk::MachineCheck> {
+) -> Result<(), MachineCheck> {
     if !cpu.flag.intvec.is_empty()
         && !cpu.flag.get_status(Status::INT_MODE)
         && !cpu.flag.get_status(Status::INT_DIS)
@@ -11,7 +11,7 @@ pub fn next_opcode(
         return cpu.exec_interrupt();
     }
 
-    if cpu.flag.get_status(Status::TRACE) {
+    if cpu.meta.contains(MetaFlags::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
             cpu.flag.as_u32(),
@@ -48,10 +48,7 @@ pub fn next_opcode(
             if let Some(result) = lhs.checked_div(rhs) {
                 cpu.push_i32(result)?;
             } else {
-                return Err(MachineCheck::new(
-                    chk::CheckKind::IllegalOp,
-                    ": Divide by zero",
-                ));
+                return Err(MachineCheck::DIVIDE_ZERO);
             }
         }
         op::MOD => {
@@ -60,10 +57,7 @@ pub fn next_opcode(
             if let Some(result) = lhs.checked_rem_euclid(rhs) {
                 cpu.push_i32(result)?;
             } else {
-                return Err(MachineCheck::new(
-                    chk::CheckKind::IllegalOp,
-                    ": Divide by zero",
-                ));
+                return Err(MachineCheck::DIVIDE_ZERO);
             }
         }
         op::EQ => {
@@ -123,7 +117,7 @@ pub fn next_opcode(
         }
         op::HALT => {
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             cpu.flag.set_status(Status::HALTED, true);
             return Ok(());
@@ -156,17 +150,17 @@ pub fn next_opcode(
         }
         op::OUTS => {
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             let offset = cpu.pop_i32()?;
             cpu.print(offset)?;
         }
         op::INP => {
-            if !cpu.flag.get_status(Status::FEATURE_INP) {
-                return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
+            if !cpu.meta.contains(MetaFlags::FEATURE_INP) {
+                return Err(MachineCheck::ILLEGAL_INST);
             }
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             let offset = cpu.pop_i32()?;
             request_send.send(offset).unwrap();
@@ -176,7 +170,7 @@ pub fn next_opcode(
         }
         op::JMPUSER => {
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             cpu.ip = cpu.load_i32(cpu.ip + 4)?;
             cpu.flag.set_status(Status::USR_MODE, true);
@@ -211,16 +205,13 @@ pub fn next_opcode(
                 5 => cpu.push_i32(cpu.flag.as_u32() as i32)?,
                 6 => cpu.push_i32(cpu.ivec)?,
                 _ => {
-                    return Err(chk::MachineCheck::new(
-                        chk::CheckKind::IllegalOp,
-                        ": Invalid register",
-                    ))
+                    return Err(MachineCheck::ILLEGAL_INST)
                 }
             }
         }
         op::POPREG => {
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             cpu.ip += 4;
             let reg = cpu.load_i32(cpu.ip)?;
@@ -239,10 +230,7 @@ pub fn next_opcode(
                 }
                 6 => cpu.ivec = cpu.pop_i32()?,
                 _ => {
-                    return Err(chk::MachineCheck::new(
-                        chk::CheckKind::IllegalOp,
-                        ": Invalid register",
-                    ))
+                    return Err(MachineCheck::ILLEGAL_INST)
                 }
             }
         }
@@ -359,7 +347,7 @@ pub fn next_opcode(
         }
         op::CLR_INT_DIS => {
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             let value = cpu.flag.get_status(Status::INT_DIS);
             cpu.push_i32(value as i32)?;
@@ -367,40 +355,37 @@ pub fn next_opcode(
         }
         op::SET_INT_DIS => {
             if cpu.is_user() {
-                return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+                return Err(MachineCheck::PROT_INST);
             }
             let value = cpu.flag.get_status(Status::INT_DIS);
             cpu.push_i32(value as i32)?;
             cpu.flag.set_status(Status::INT_DIS, true);
         }
         op::ROTATE_LEFT => {
-            if cpu.flag.get_status(Status::LEGACY_MODE) {
-                return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
+            if cpu.meta.contains(MetaFlags::LEGACY_MODE) {
+                return Err(MachineCheck::ILLEGAL_INST);
             }
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
             cpu.push_i32(lhs.rotate_left(rhs as u32))?;
         }
         op::ROTATE_RIGHT => {
-            if cpu.flag.get_status(Status::LEGACY_MODE) {
-                return Err(MachineCheck::from(chk::CheckKind::IllegalInst));
+            if cpu.meta.contains(MetaFlags::LEGACY_MODE) {
+                return Err(MachineCheck::ILLEGAL_INST);
             }
             let rhs = cpu.pop_i32()?;
             let lhs = cpu.pop_i32()?;
             cpu.push_i32(lhs.rotate_right(rhs as u32))?;
         }
         57..=i32::MAX | i32::MIN..0 => {
-            return Err(MachineCheck::new(
-                chk::CheckKind::IllegalInst,
-                format!("({}) at {}", op, cpu.ip),
-            ))
+            return Err(MachineCheck::ILLEGAL_INST)
         }
     }
     cpu.ip += 4;
     Ok(())
 }
 
-fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
+fn exec_trap(cpu: &mut MachineState) -> Result<(), MachineCheck> {
     let was_user = cpu.is_user();
     cpu.push_i32(cpu.sp)?;
     cpu.push_i32(cpu.flag.as_u32() as i32)?;
@@ -421,7 +406,7 @@ fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
 
 fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck> {
     if cpu.is_user() {
-        return Err(MachineCheck::from(chk::CheckKind::ProtInst));
+        return Err(MachineCheck::PROT_INST);
     }
     let flag = cpu.flag;
     cpu.fp = cpu.pop_i32()?;

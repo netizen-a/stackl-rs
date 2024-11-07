@@ -180,10 +180,10 @@ impl TryFrom<&[u8]> for StacklFormatV2 {
             return Err(ErrorKind::InvalidMagic);
         }
         let current_version = Version(version);
-        if current_version.major() != 1 && current_version.variant() != 1 {
+        if current_version.major() != 1 && current_version.variant() != 0 {
             return Err(ErrorKind::InvalidVersion{
                 found: current_version,
-                expected: Version::new(1, 1, 0, 0),
+                expected: Version::new(0, 1, 0, 0),
             });
         }
 
@@ -202,7 +202,7 @@ impl TryFrom<StacklFormatV1> for StacklFormatV2 {
     fn try_from(value: StacklFormatV1) -> Result<Self, Self::Error> {
         Ok(StacklFormatV2 {
             magic: [b's', b'l', 0, 0],
-            version: Version::new(0, 1, 0, 0),
+            version: Version::new(1, 1, 0, 0),
             flags: value.flags()?,
             stack_size: value.stack_size()?,
             text: value.text,
