@@ -1,4 +1,4 @@
-use std::str::SplitTerminator;
+use std::{fmt, str::SplitTerminator};
 
 use bitflags::bitflags;
 
@@ -21,17 +21,34 @@ bitflags! {
 #[derive(Debug)]
 pub struct Version(pub u32);
 impl Version {
-    pub fn new(major: u32, minor: u32, patch: u32) -> Self {
-        Self((major << 22) | (minor << 12) | patch)
+    pub fn new(variant: u32, major: u32, minor: u32, patch: u32) -> Self {
+        Self((variant << 29) | (major << 22) | (minor << 12) | patch)
+    }
+    pub fn variant(&self) -> u32 {
+        self.0 >> 29
     }
     pub fn major(&self) -> u32 {
-        self.0 >> 22
+        (self.0 >> 22) & 0x7fu32
     }
     pub fn minor(&self) -> u32 {
         (self.0 >> 12) & 0x3ff
     }
     pub fn patch(&self) -> u32 {
         self.0 & 0xfff
+    }
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let variant = self.variant();
+        let major = self.major();
+        let minor = self.minor();
+        let patch = self.patch();
+        if variant == 0 {
+            write!(f, "{major}.{minor}.{patch}")
+        } else {
+            write!(f, "({variant}) {major}.{minor}.{patch}")
+        }
     }
 }
 
@@ -139,7 +156,10 @@ impl StacklFormatV2 {
 #[derive(Debug)]
 pub enum ErrorKind {
     UnexpectedEof,
-    InvalidVersion,
+    InvalidVersion{
+        expected: Version,
+        found: Version,
+    },
     InvalidMagic,
     InvalidFeature,
     InvalidStackSize,
@@ -160,9 +180,11 @@ impl TryFrom<&[u8]> for StacklFormatV2 {
             return Err(ErrorKind::InvalidMagic);
         }
         let current_version = Version(version);
-        let expected_version = Version::new(1, 0, 0);
-        if current_version.major() != expected_version.major() {
-            return Err(ErrorKind::InvalidVersion);
+        if current_version.major() != 1 && current_version.variant() != 1 {
+            return Err(ErrorKind::InvalidVersion{
+                found: current_version,
+                expected: Version::new(1, 1, 0, 0),
+            });
         }
 
         Ok(StacklFormatV2 {
@@ -180,7 +202,7 @@ impl TryFrom<StacklFormatV1> for StacklFormatV2 {
     fn try_from(value: StacklFormatV1) -> Result<Self, Self::Error> {
         Ok(StacklFormatV2 {
             magic: [b's', b'l', 0, 0],
-            version: Version::new(1, 0, 0),
+            version: Version::new(0, 1, 0, 0),
             flags: value.flags()?,
             stack_size: value.stack_size()?,
             text: value.text,

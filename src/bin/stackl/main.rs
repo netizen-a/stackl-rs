@@ -57,8 +57,12 @@ fn main() -> ExitCode {
             let fmt1 = StacklFormatV1::try_from(content.as_slice()).unwrap();
             fmt1.try_into().unwrap()
         }
-        Err(err) => {
-            panic!("failed to load: {:?}", err);
+        Err(kind) => match kind {
+            stackl::ErrorKind::InvalidVersion{ expected, found} => {
+                eprintln!("Error: Expected header version {expected}, but found {found}");
+                return ExitCode::FAILURE;
+            },
+            err => panic!("failed to load: {:?}", err),
         }
     };
     if args.inp {

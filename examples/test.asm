@@ -5,6 +5,7 @@ _start:
 loop:
     call print
     pop
+    dup
     push 1    ; stack[1] = 1
     sub       ; stack[0] = stack[0] - stack[1]
     dup       ; stack[1] = stack[0]
