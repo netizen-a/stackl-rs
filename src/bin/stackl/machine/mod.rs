@@ -321,11 +321,9 @@ impl MachineState {
         self.push_i32(self.flag.as_u32() as i32)?;
         self.push_i32(self.bp)?;
         self.push_i32(self.lp)?;
-        self.push_i32(self.ip + 4)?;
+        self.push_i32(self.ip)?;
         self.push_i32(self.fp)?;
 
-        // Don't update the FP for trap instructions, so
-        // trap handler can see args from caller
         self.fp = self.sp;
 
         // go to system mode and interrupt mode

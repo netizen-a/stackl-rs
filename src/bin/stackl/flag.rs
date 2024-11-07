@@ -25,7 +25,6 @@ bitflags! {
         const MACHINE_CHECK = 1;
         const TRAP          = 1 << 1;
         const I_PF          = 1 << 2;
-        const I_ALL         = 0xFFFF;
         const _ = !0;
     }
 }

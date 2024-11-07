@@ -4,6 +4,13 @@ pub fn next_opcode(
     cpu: &mut MachineState,
     request_send: &Sender<i32>,
 ) -> Result<(), chk::MachineCheck> {
+    if !cpu.flag.intvec.is_empty()
+        && !cpu.flag.get_status(Status::INT_MODE)
+        && !cpu.flag.get_status(Status::INT_DIS)
+    {
+        return cpu.exec_interrupt();
+    }
+
     if cpu.flag.get_status(Status::TRACE) {
         eprintln!(
             "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
@@ -176,6 +183,7 @@ pub fn next_opcode(
             return Ok(());
         }
         op::TRAP => {
+            cpu.ip += 4;
             exec_trap(cpu)?;
             return Ok(());
         }
@@ -353,12 +361,16 @@ pub fn next_opcode(
             if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
+            let value = cpu.flag.get_status(Status::INT_DIS);
+            cpu.push_i32(value as i32)?;
             cpu.flag.set_status(Status::INT_DIS, false);
         }
         op::SET_INT_DIS => {
             if cpu.is_user() {
                 return Err(MachineCheck::from(chk::CheckKind::ProtInst));
             }
+            let value = cpu.flag.get_status(Status::INT_DIS);
+            cpu.push_i32(value as i32)?;
             cpu.flag.set_status(Status::INT_DIS, true);
         }
         op::ROTATE_LEFT => {
@@ -394,7 +406,7 @@ fn exec_trap(cpu: &mut MachineState) -> Result<(), chk::MachineCheck> {
     cpu.push_i32(cpu.flag.as_u32() as i32)?;
     cpu.push_i32(cpu.bp)?;
     cpu.push_i32(cpu.lp)?;
-    cpu.push_i32(cpu.ip + 4)?;
+    cpu.push_i32(cpu.ip)?;
     cpu.push_i32(cpu.fp)?;
     cpu.flag.set_status(Status::USR_MODE, false);
     cpu.flag.set_status(Status::INT_MODE, true);
