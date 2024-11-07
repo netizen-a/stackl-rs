@@ -99,7 +99,8 @@ impl MachineFlags {
         self.intvec.contains(flag)
     }
     pub const fn as_u32(&self) -> u32 {
-        let mut result: u32 = self.status.bits() as _;
+        let mut result: u32 = self.status.bits() as u32;
+        result |= (self.check.bits() as u32) << 8;
         result |= (self.intvec.bits() as u32) << 16;
         result
     }
