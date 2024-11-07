@@ -56,7 +56,7 @@ impl MachineState {
             lp: mem_size.try_into().unwrap(),
             ip: 8,
             sp: sp_addr as i32,
-            fp: 0,
+            fp: sp_addr as i32,
             flag: MachineFlags::new(),
             ivec: 0,
             vmem: 0,
@@ -226,7 +226,7 @@ impl MachineState {
             op::RET => "RET",
             op::RETV => "RETV",
             op::NEG => "NEG",
-            op::PUSHCVARIND => "PUSHCVARIND",
+            op::PUSHCVARIND => "PUSHCVARIND ",
             op::OUTS => "OUTS",
             op::INP => "INP",
             op::PUSHFP => "PUSHFP",
@@ -241,9 +241,9 @@ impl MachineState {
             op::BXOR => "BXOR",
             op::SHIFT_LEFT => "SHIFT_LEFT",
             op::SHIFT_RIGHT => "SHIFT_RIGHT",
-            op::PUSHVARIND => "PUSHVARIND",
-            op::POPCVARIND => "POPCVARIND",
-            op::POPVARIND => "POPVARIND",
+            op::PUSHVARIND => "PUSHVARIND ",
+            op::POPCVARIND => "POPCVARIND ",
+            op::POPVARIND => "POPVARIND ",
             op::COMP => "COMP",
             op::PUSH => "PUSH ",
             op::JMP => "JMP ",
@@ -265,11 +265,19 @@ impl MachineState {
         };
         let mut inst = String::from(name);
         match op {
-            op::PUSHVAR
+            op::PUSHVARIND
+            | op::POPVARIND
+            | op::PUSHVAR
             | op::PUSHCVAR
             | op::POPVAR
-            | op::POPCVAR
-            | op::POPARGS
+            | op::POPCVAR => {
+                let operand = self.load_i32(offset + 4)?;
+                inst.push_str(&operand.to_string());
+                // let val = self.load_i32(operand)?;
+                // inst.push_str(" -> ");
+                // inst.push_str(&val.to_string());
+            }
+            op::POPARGS
             | op::JZ
             | op::PUSH
             | op::JMP
