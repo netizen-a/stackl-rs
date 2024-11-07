@@ -2,7 +2,7 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 use std::{ffi, io, thread, time};
 
-use crate::flag::{MachineFlags, MetaFlags, Status, MachineCheck};
+use crate::flag::{IntVec, MachineCheck, MachineFlags, MetaFlags, Status};
 use stackl::{op, StacklFlags, StacklFormatV2};
 
 pub mod step;
@@ -268,7 +268,6 @@ impl MachineState {
             op::PUSHVAR
             | op::PUSHCVAR
             | op::POPVAR
-            | op::POPREG
             | op::POPCVAR
             | op::POPARGS
             | op::JZ
@@ -280,7 +279,7 @@ impl MachineState {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
             }
-            op::PUSHREG => {
+            op::PUSHREG | op::POPREG => {
                 let operand = self.load_i32(offset + 4)?;
                 match operand {
                     0 => inst.push_str("BP"),
@@ -339,6 +338,11 @@ impl MachineState {
         // ISR is at vector
         self.ip = self.load_abs_i32(self.ivec + (vector as i32 * 4))?;
         Ok(())
+    }
+    pub fn machine_check(&mut self, value: MachineCheck)
+    {
+        self.flag.intvec.set(IntVec::MACHINE_CHECK, true);
+        self.flag.check.set(value, true);
     }
 }
 

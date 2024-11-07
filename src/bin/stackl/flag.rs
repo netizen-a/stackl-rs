@@ -98,6 +98,12 @@ impl MachineFlags {
     pub fn get_intvec(&self, flag: IntVec) -> bool {
         self.intvec.contains(flag)
     }
+    pub fn set_check(&mut self, flag: MachineCheck, value: bool) {
+        self.check.set(flag, value);
+    }
+    pub fn get_check(&self, flag: MachineCheck) -> bool {
+        self.check.contains(flag)
+    }
     pub const fn as_u32(&self) -> u32 {
         let mut result: u32 = self.status.bits() as u32;
         result |= (self.check.bits() as u32) << 8;

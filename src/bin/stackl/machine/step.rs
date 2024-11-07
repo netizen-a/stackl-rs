@@ -48,7 +48,7 @@ pub fn next_opcode(
             if let Some(result) = lhs.checked_div(rhs) {
                 cpu.push_i32(result)?;
             } else {
-                return Err(MachineCheck::DIVIDE_ZERO);
+                cpu.machine_check(MachineCheck::DIVIDE_ZERO);
             }
         }
         op::MOD => {
@@ -57,7 +57,7 @@ pub fn next_opcode(
             if let Some(result) = lhs.checked_rem_euclid(rhs) {
                 cpu.push_i32(result)?;
             } else {
-                return Err(MachineCheck::DIVIDE_ZERO);
+                cpu.machine_check(MachineCheck::DIVIDE_ZERO);
             }
         }
         op::EQ => {
