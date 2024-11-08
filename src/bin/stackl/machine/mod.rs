@@ -19,15 +19,17 @@ pub struct MachineState {
     pub vmem: i32,
     pub ram: Vec<u8>,
     pub meta: MetaFlags,
+    pub last_trace: u8,
 }
 
 impl MachineState {
     pub fn new(program: StacklFormatV2, mem_size: usize) -> MachineState {
-        let sp_addr = if program.text.len() % 4 != 0 {
+        let mut sp_addr = if program.text.len() % 4 != 0 {
             program.text.len() + 4 - (program.text.len() % 4)
         } else {
             program.text.len()
         };
+        sp_addr += 4;
         let mut meta = MetaFlags::empty();
         if program.flags.contains(StacklFlags::LEGACY_MODE) {
             meta.set(MetaFlags::LEGACY_MODE, true);
@@ -62,6 +64,7 @@ impl MachineState {
             vmem: 0,
             ram,
             meta,
+            last_trace: 0,
         }
     }
     pub fn push_i32(&mut self, val: i32) -> Result<(), MachineCheck> {
@@ -81,6 +84,28 @@ impl MachineState {
                 "Flag", "BP", "LP", "IP", "SP", "FP"
             );
         }
+    }
+    pub fn print_trace(&mut self) -> Result<(), MachineCheck> {
+        if self.last_trace > 28 {
+            eprintln!(
+                "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
+                "Flag", "BP", "LP", "IP", "SP", "FP"
+            );
+            self.last_trace = 0;
+        } else {
+            self.last_trace += 1;
+        }
+        eprintln!(
+            "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
+            self.flag.as_u32(),
+            self.bp,
+            self.lp,
+            self.ip,
+            self.sp,
+            self.fp,
+            self.trace_inst(self.ip)?
+        );
+        Ok(())
     }
     pub fn is_user(&self) -> bool {
         self.flag.get_status(Status::USR_MODE)

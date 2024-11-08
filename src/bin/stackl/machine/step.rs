@@ -12,17 +12,9 @@ pub fn next_opcode(
     }
 
     if cpu.meta.contains(MetaFlags::TRACE) {
-        eprintln!(
-            "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
-            cpu.flag.as_u32(),
-            cpu.bp,
-            cpu.lp,
-            cpu.ip,
-            cpu.sp,
-            cpu.fp,
-            cpu.trace_inst(cpu.ip)?
-        );
+        cpu.print_trace()?;
     }
+
     let op: i32 = cpu.load_i32(cpu.ip)?;
 
     match op {
