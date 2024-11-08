@@ -290,17 +290,12 @@ impl MachineState {
         };
         let mut inst = String::from(name);
         match op {
-            op::PUSHVARIND
-            | op::POPVARIND
-            | op::PUSHVAR
-            | op::PUSHCVAR
-            | op::POPVAR
-            | op::POPCVAR => {
+            op::PUSHVAR | op::POPVAR => {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
-                // let val = self.load_i32(operand)?;
-                // inst.push_str(" -> ");
-                // inst.push_str(&val.to_string());
+                let val = self.load_i32(self.fp + operand)?;
+                inst.push_str(" ");
+                inst.push_str(&val.to_string());
             }
             op::POPARGS
             | op::JZ
