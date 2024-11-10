@@ -71,14 +71,15 @@ impl MachineState {
             self.fp = self.sp;
         }
 
-        // put the stack size just above the text segment
-        self.store_i32(program.stack_size, text_len as i32)?;
-
         let addr = if bp < 0 {
             self.bp
         } else {
             bp
         };
+
+        // put the stack size just above the text segment
+        self.store_i32(program.stack_size, addr + text_len as i32)?;
+
 
         // copy text segment to memory
         let offset = addr as usize;
