@@ -1,8 +1,10 @@
+use crate::request::Request;
+
 use super::*;
 
 pub fn next_opcode(
     cpu: &mut MachineState,
-    request_send: &Sender<i32>,
+    request_send: &Sender<Request>,
 ) -> Result<(), MachineCheck> {
     if !cpu.flag.intvec.is_empty()
         && !cpu.flag.get_status(Status::INT_MODE)
@@ -155,7 +157,14 @@ pub fn next_opcode(
                 return Err(MachineCheck::PROT_INST);
             }
             let offset = cpu.pop_i32()?;
-            request_send.send(offset).unwrap();
+            let request = Request {
+                offset,
+                op: cpu.load_i32(offset)?,
+                param1: cpu.load_i32(offset + 4)?,
+                param2: cpu.load_i32(offset + 8)?,
+                bp: cpu.bp,
+            };
+            request_send.send(request).unwrap();
         }
         op::PUSHFP => {
             cpu.push_i32(cpu.fp)?;

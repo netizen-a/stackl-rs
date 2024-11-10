@@ -39,7 +39,7 @@ impl MachineState {
             last_trace: 0,
         }
     }
-    pub fn store_program(&mut self, program: StacklFormatV2, boot: bool) -> Result<(), MachineCheck> {
+    pub fn store_program(&mut self, program: StacklFormatV2, boot: bool, bp: i32) -> Result<(), MachineCheck> {
         let text_len = program.text.len();
         if boot {
             let sp_addr = if text_len % 4 != 0 {
@@ -74,8 +74,14 @@ impl MachineState {
         // put the stack size just above the text segment
         self.store_i32(program.stack_size, text_len as i32)?;
 
+        let addr = if bp < 0 {
+            self.bp
+        } else {
+            bp
+        };
+
         // copy text segment to memory
-        let offset = self.bp as usize;
+        let offset = addr as usize;
         self.ram[offset..(text_len+offset)].copy_from_slice(&program.text);
         Ok(())
     }
