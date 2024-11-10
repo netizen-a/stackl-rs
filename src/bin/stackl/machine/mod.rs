@@ -6,6 +6,7 @@ use crate::flag::{IntVec, MachineCheck, MachineFlags, MetaFlags, Status};
 use stackl::{op, StacklFlags, StacklFormatV2};
 
 pub mod step;
+mod trace;
 
 #[derive(Debug)]
 pub struct MachineState {
@@ -97,28 +98,7 @@ impl MachineState {
             );
         }
     }
-    pub fn print_trace(&mut self) -> Result<(), MachineCheck> {
-        if self.last_trace > 28 {
-            eprintln!(
-                "\n{:>8} {:>6} {:>6} {:>6} {:>6} {:>6}",
-                "Flag", "BP", "LP", "IP", "SP", "FP"
-            );
-            self.last_trace = 0;
-        } else {
-            self.last_trace += 1;
-        }
-        eprintln!(
-            "{:08x} {:6} {:6} {:6} {:6} {:6} {}",
-            self.flag.as_u32(),
-            self.bp,
-            self.lp,
-            self.ip,
-            self.sp,
-            self.fp,
-            self.trace_inst(self.ip)?
-        );
-        Ok(())
-    }
+
     pub fn is_user(&self) -> bool {
         self.flag.get_status(Status::USR_MODE)
     }
@@ -238,110 +218,7 @@ impl MachineState {
             Err(MachineCheck::ILLEGAL_ADDR)
         }
     }
-    pub fn trace_inst(&self, offset: i32) -> Result<String, MachineCheck> {
-        let op = self.load_i32(offset)?;
-        let name = match op {
-            op::NOP => "NOP",
-            op::ADD => "ADD",
-            op::SUB => "SUB",
-            op::MUL => "MUL",
-            op::DIV => "DIV",
-            op::MOD => "MOD",
-            op::EQ => "EQ",
-            op::NE => "NE",
-            op::GT => "GT",
-            op::LT => "LT",
-            op::GE => "GE",
-            op::LE => "LE",
-            op::AND => "AND",
-            op::OR => "OR",
-            op::NOT => "NOT",
-            op::SWAP => "SWAP",
-            op::DUP => "DUP",
-            op::HALT => "HALT",
-            op::POP => "POP",
-            op::RET => "RET",
-            op::RETV => "RETV",
-            op::NEG => "NEG",
-            op::PUSHCVARIND => "PUSHCVARIND ",
-            op::OUTS => "OUTS",
-            op::INP => "INP",
-            op::PUSHFP => "PUSHFP",
-            op::JMPUSER => "JMPUSER ",
-            op::TRAP => "TRAP",
-            op::RTI => "RTI",
-            op::CALLI => "CALLI",
-            op::PUSHREG => "PUSHREG ",
-            op::POPREG => "POPREG ",
-            op::BAND => "BAND",
-            op::BOR => "BOR",
-            op::BXOR => "BXOR",
-            op::SHIFT_LEFT => "SHIFT_LEFT",
-            op::SHIFT_RIGHT => "SHIFT_RIGHT",
-            op::PUSHVARIND => "PUSHVARIND ",
-            op::POPCVARIND => "POPCVARIND ",
-            op::POPVARIND => "POPVARIND ",
-            op::COMP => "COMP",
-            op::PUSH => "PUSH ",
-            op::JMP => "JMP ",
-            op::JZ => "JZ ",
-            op::PUSHVAR => "PUSHVAR ",
-            op::POPVAR => "POPVAR ",
-            op::ADJSP => "ADJSP ",
-            op::POPARGS => "POPARGS ",
-            op::CALL => "CALL ",
-            op::PUSHCVAR => "PUSHCVAR ",
-            op::POPCVAR => "POPCVAR ",
-            op::SET_TRACE => "SET_TRACE",
-            op::CLR_TRACE => "CLR_TRACE",
-            op::CLR_INT_DIS => "CLR_INT_DIS",
-            op::SET_INT_DIS => "SET_INT_DIS",
-            op::ROTATE_LEFT => "ROTATE_LEFT",
-            op::ROTATE_RIGHT => "ROTATE_RIGHT",
-            _ => "ILLEGAL",
-        };
-        let mut inst = String::from(name);
-        match op {
-            op::PUSHVAR | op::POPVAR => {
-                let operand = self.load_i32(offset + 4)?;
-                inst.push_str(&operand.to_string());
-                let val = self.load_i32(self.fp + operand)?;
-                inst.push_str(" ");
-                inst.push_str(&val.to_string());
-            }
-            op::POPARGS
-            | op::JZ
-            | op::PUSH
-            | op::JMP
-            | op::JMPUSER
-            | op::ADJSP
-            | op::CALL => {
-                let operand = self.load_i32(offset + 4)?;
-                inst.push_str(&operand.to_string());
-            }
-            op::PUSHREG | op::POPREG => {
-                let operand = self.load_i32(offset + 4)?;
-                match operand {
-                    0 => inst.push_str("BP"),
-                    1 => inst.push_str("LP"),
-                    2 => inst.push_str("IP"),
-                    3 => inst.push_str("SP"),
-                    4 => inst.push_str("FP"),
-                    5 => inst.push_str("FLAG"),
-                    6 => inst.push_str("IVEC"),
-                    _ => inst.push_str(&operand.to_string()),
-                }
-            }
-            57..=i32::MAX | i32::MIN..0 => {
-                inst.push('(');
-                inst.push_str(&op.to_string());
-                inst.push(')');
-            }
-            _ => {}
-        };
 
-        Ok(inst)
-    }
     pub fn exec_interrupt(&mut self) -> Result<(), MachineCheck> {
         let was_user = self.is_user();
 
