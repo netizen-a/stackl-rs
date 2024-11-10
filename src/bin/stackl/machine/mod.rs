@@ -23,50 +23,60 @@ pub struct MachineState {
 }
 
 impl MachineState {
-    pub fn new(program: StacklFormatV2, mem_size: usize) -> MachineState {
-        let mut sp_addr = if program.text.len() % 4 != 0 {
-            program.text.len() + 4 - (program.text.len() % 4)
-        } else {
-            program.text.len()
-        };
-        sp_addr += 4;
-        let mut meta = MetaFlags::empty();
-        if program.flags.contains(StacklFlags::LEGACY_MODE) {
-            meta.set(MetaFlags::LEGACY_MODE, true);
-        }
-        if program.flags.contains(StacklFlags::FEATURE_GEN_IO) {
-            meta.set(MetaFlags::FEATURE_GEN_IO, true);
-        }
-        if program.flags.contains(StacklFlags::FEATURE_PIO_TERM) {
-            meta.set(MetaFlags::FEATURE_PIO_TERM, true);
-        }
-        if program.flags.contains(StacklFlags::FEATURE_DMA_TERM) {
-            meta.set(MetaFlags::FEATURE_DMA_TERM, true);
-        }
-        if program.flags.contains(StacklFlags::FEATURE_DISK) {
-            meta.set(MetaFlags::FEATURE_DISK, true);
-        }
-        if program.flags.contains(StacklFlags::FEATURE_INP) {
-            meta.set(MetaFlags::FEATURE_INP, true);
-        }
-
-        let mut ram = vec![0x79; mem_size];
-        ram[..program.text.len()].copy_from_slice(&program.text);
-
+    pub fn new(mem_size: usize) -> MachineState {
         MachineState {
             bp: 0,
-            lp: mem_size.try_into().unwrap(),
+            lp: mem_size as i32,
             ip: 8,
-            sp: sp_addr as i32,
-            fp: sp_addr as i32,
+            sp: 0,
+            fp: 0,
             flag: MachineFlags::new(),
             ivec: 0,
             vmem: 0,
-            ram,
-            meta,
+            ram: vec![0x79; mem_size],
+            meta: MetaFlags::empty(),
             last_trace: 0,
         }
     }
+    pub fn store_program(&mut self, program: StacklFormatV2, boot: bool) -> Result<(), MachineCheck> {
+        let tmp_flag = self.flag;
+        self.flag = MachineFlags::new();
+        if boot {
+            let sp_addr = if program.text.len() % 4 != 0 {
+                program.text.len() + 4 - (program.text.len() % 4)
+            } else {
+                program.text.len()
+            };
+            let mut meta = MetaFlags::empty();
+            if program.flags.contains(StacklFlags::LEGACY_MODE) {
+                meta.set(MetaFlags::LEGACY_MODE, true);
+            }
+            if program.flags.contains(StacklFlags::FEATURE_GEN_IO) {
+                meta.set(MetaFlags::FEATURE_GEN_IO, true);
+            }
+            if program.flags.contains(StacklFlags::FEATURE_PIO_TERM) {
+                meta.set(MetaFlags::FEATURE_PIO_TERM, true);
+            }
+            if program.flags.contains(StacklFlags::FEATURE_DMA_TERM) {
+                meta.set(MetaFlags::FEATURE_DMA_TERM, true);
+            }
+            if program.flags.contains(StacklFlags::FEATURE_DISK) {
+                meta.set(MetaFlags::FEATURE_DISK, true);
+            }
+            if program.flags.contains(StacklFlags::FEATURE_INP) {
+                meta.set(MetaFlags::FEATURE_INP, true);
+            }
+            self.meta = meta;
+            self.sp = (sp_addr + 4) as i32;
+            self.fp = self.sp;
+        }
+        // self.store_i32(program.stack_size, self.lp + 4)?;
+        let offset = self.bp as usize;
+        self.ram[offset..(program.text.len()+offset)].copy_from_slice(&program.text);
+        self.flag = tmp_flag;
+        Ok(())
+    }
+
     pub fn push_i32(&mut self, val: i32) -> Result<(), MachineCheck> {
         self.store_i32(val, self.sp)?;
         self.sp += 4;

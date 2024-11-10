@@ -69,7 +69,8 @@ fn main() -> ExitCode {
         // force INP to be enabled regardless of binary
         data.flags.set(StacklFlags::FEATURE_INP, true);
     }
-    let mut machine = MachineState::new(data, args.memory);
+    let mut machine = MachineState::new(args.memory);
+    machine.store_program(data, true).unwrap();
     machine.set_trace(args.trace);
     let machine = RwLock::new(machine);
 
@@ -181,10 +182,7 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
                 }
             };
             let mut machine_lock = machine.write().unwrap();
-            let bp = machine_lock.bp;
-            let lp = machine_lock.lp;
-            machine_lock.store_slice(&program.text, bp)?;
-            machine_lock.store_i32(program.stack_size, lp + 4)
+            machine_lock.store_program(program, false)
         }
         _ => Err(MachineCheck::ILLEGAL_INST),
     }
