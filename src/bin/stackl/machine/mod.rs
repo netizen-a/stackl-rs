@@ -39,13 +39,12 @@ impl MachineState {
         }
     }
     pub fn store_program(&mut self, program: StacklFormatV2, boot: bool) -> Result<(), MachineCheck> {
-        let tmp_flag = self.flag;
-        self.flag = MachineFlags::new();
+        let text_len = program.text.len();
         if boot {
-            let sp_addr = if program.text.len() % 4 != 0 {
-                program.text.len() + 4 - (program.text.len() % 4)
+            let sp_addr = if text_len % 4 != 0 {
+                text_len + 4 - (text_len % 4)
             } else {
-                program.text.len()
+                text_len
             };
             let mut meta = MetaFlags::empty();
             if program.flags.contains(StacklFlags::LEGACY_MODE) {
@@ -70,10 +69,13 @@ impl MachineState {
             self.sp = (sp_addr + 4) as i32;
             self.fp = self.sp;
         }
-        // self.store_i32(program.stack_size, self.lp + 4)?;
+
+        // put the stack size just above the text segment
+        self.store_i32(program.stack_size, text_len as i32)?;
+
+        // copy text segment to memory
         let offset = self.bp as usize;
-        self.ram[offset..(program.text.len()+offset)].copy_from_slice(&program.text);
-        self.flag = tmp_flag;
+        self.ram[offset..(text_len+offset)].copy_from_slice(&program.text);
         Ok(())
     }
 
