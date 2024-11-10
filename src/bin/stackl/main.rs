@@ -182,6 +182,8 @@ fn process_request(machine: &RwLock<MachineState>, offset: i32) -> Result<(), Ma
                 }
             };
             let mut machine_lock = machine.write().unwrap();
+            let high_mem = program.text.len() as i32 + machine_lock.bp;
+            machine_lock.store_i32(high_mem, offset + 8)?;
             machine_lock.store_program(program, false)
         }
         _ => Err(MachineCheck::ILLEGAL_INST),
