@@ -205,9 +205,7 @@ pub fn next_opcode(
                 4 => cpu.push_i32(cpu.fp)?,
                 5 => cpu.push_i32(cpu.flag.as_u32() as i32)?,
                 6 => cpu.push_i32(cpu.ivec)?,
-                _ => {
-                    return Err(MachineCheck::ILLEGAL_INST)
-                }
+                _ => return Err(MachineCheck::ILLEGAL_INST),
             }
         }
         op::POPREG => {
@@ -230,9 +228,7 @@ pub fn next_opcode(
                     cpu.flag = MachineFlags::from(val)
                 }
                 6 => cpu.ivec = cpu.pop_i32()?,
-                _ => {
-                    return Err(MachineCheck::ILLEGAL_INST)
-                }
+                _ => return Err(MachineCheck::ILLEGAL_INST),
             }
         }
         op::BAND => {
@@ -378,9 +374,7 @@ pub fn next_opcode(
             let lhs = cpu.pop_i32()?;
             cpu.push_i32(lhs.rotate_right(rhs as u32))?;
         }
-        57..=i32::MAX | i32::MIN..0 => {
-            return Err(MachineCheck::ILLEGAL_INST)
-        }
+        57..=i32::MAX | i32::MIN..0 => return Err(MachineCheck::ILLEGAL_INST),
     }
     cpu.ip += 4;
     Ok(())

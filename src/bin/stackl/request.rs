@@ -1,5 +1,7 @@
 use super::*;
 
+use machine::flag;
+
 #[derive(Debug, Clone)]
 pub struct Request {
     pub offset: i32,
@@ -9,7 +11,10 @@ pub struct Request {
     pub bp: i32,
 }
 
-pub fn process_request(machine: &RwLock<MachineState>, request: &Request) -> Result<(), MachineCheck> {
+pub fn process_request(
+    machine: &RwLock<MachineState>,
+    request: &Request,
+) -> Result<(), MachineCheck> {
     const INP_PRINTS_CALL: i32 = 3;
     const INP_GETS_CALL: i32 = 5;
     const INP_GETL_CALL: i32 = 6;

@@ -6,14 +6,11 @@ use std::thread::{self, scope};
 use std::{fs, io, path, time};
 
 use clap::Parser;
-use flag::{IntVec, Status};
+use machine::flag::{IntVec, MachineCheck, Status};
 use machine::MachineState;
 use request::Request;
 use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
 
-use flag::MachineCheck;
-
-mod flag;
 mod machine;
 mod request;
 
@@ -60,12 +57,12 @@ fn main() -> ExitCode {
             fmt1.try_into().unwrap()
         }
         Err(kind) => match kind {
-            stackl::ErrorKind::InvalidVersion{ expected, found} => {
+            stackl::ErrorKind::InvalidVersion { expected, found } => {
                 eprintln!("Error: Expected header version {expected}, but found {found}");
                 return ExitCode::FAILURE;
-            },
+            }
             err => panic!("failed to load: {:?}", err),
-        }
+        },
     };
     if args.inp {
         // force INP to be enabled regardless of binary

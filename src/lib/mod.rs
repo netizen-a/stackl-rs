@@ -156,10 +156,7 @@ impl StacklFormatV2 {
 #[derive(Debug)]
 pub enum ErrorKind {
     UnexpectedEof,
-    InvalidVersion{
-        expected: Version,
-        found: Version,
-    },
+    InvalidVersion { expected: Version, found: Version },
     InvalidMagic,
     InvalidFeature,
     InvalidStackSize,
@@ -181,7 +178,7 @@ impl TryFrom<&[u8]> for StacklFormatV2 {
         }
         let current_version = Version(version);
         if current_version.major() != 1 && current_version.variant() != 0 {
-            return Err(ErrorKind::InvalidVersion{
+            return Err(ErrorKind::InvalidVersion {
                 found: current_version,
                 expected: Version::new(0, 1, 0, 0),
             });

@@ -75,7 +75,7 @@ impl MachineState {
                 let temp1 = self.load_i32(self.sp - 8)?;
                 let temp2 = self.load_i32(self.sp - 4)?;
                 &format!("POPVARIND {temp1} {temp2}")
-            },
+            }
             op::COMP => "COMP",
             op::PUSH => "PUSH ",
             op::JMP => "JMP ",
@@ -97,12 +97,7 @@ impl MachineState {
         };
         let mut inst = String::from(name);
         match op {
-            op::POPARGS
-            | op::PUSH
-            | op::JMP
-            | op::JMPUSER
-            | op::ADJSP
-            | op::CALL => {
+            op::POPARGS | op::PUSH | op::JMP | op::JMPUSER | op::ADJSP | op::CALL => {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
             }

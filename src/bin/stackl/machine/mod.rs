@@ -2,9 +2,10 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 use std::{ffi, io, thread, time};
 
-use crate::flag::{IntVec, MachineCheck, MachineFlags, MetaFlags, Status};
+use flag::{IntVec, MachineCheck, MachineFlags, MetaFlags, Status};
 use stackl::{op, StacklFlags, StacklFormatV2};
 
+pub mod flag;
 pub mod step;
 mod trace;
 
@@ -39,7 +40,12 @@ impl MachineState {
             last_trace: 0,
         }
     }
-    pub fn store_program(&mut self, program: StacklFormatV2, boot: bool, bp: i32) -> Result<(), MachineCheck> {
+    pub fn store_program(
+        &mut self,
+        program: StacklFormatV2,
+        boot: bool,
+        bp: i32,
+    ) -> Result<(), MachineCheck> {
         let text_len = program.text.len();
         if boot {
             let sp_addr = if text_len % 4 != 0 {
@@ -71,19 +77,14 @@ impl MachineState {
             self.fp = self.sp;
         }
 
-        let addr = if bp < 0 {
-            self.bp
-        } else {
-            bp
-        };
+        let addr = if bp < 0 { self.bp } else { bp };
 
         // put the stack size just above the text segment
         self.store_i32(program.stack_size, addr + text_len as i32)?;
 
-
         // copy text segment to memory
         let offset = addr as usize;
-        self.ram[offset..(text_len+offset)].copy_from_slice(&program.text);
+        self.ram[offset..(text_len + offset)].copy_from_slice(&program.text);
         Ok(())
     }
 
@@ -124,10 +125,7 @@ impl MachineState {
     }
     pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        let bytes = self
-            .ram
-            .get(offset..)
-            .ok_or(MachineCheck::ILLEGAL_ADDR);
+        let bytes = self.ram.get(offset..).ok_or(MachineCheck::ILLEGAL_ADDR);
         let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes?) else {
             return Err(MachineCheck::ILLEGAL_ADDR);
         };
@@ -175,9 +173,7 @@ impl MachineState {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        mem.get(offset)
-            .copied()
-            .ok_or(MachineCheck::ILLEGAL_ADDR)
+        mem.get(offset).copied().ok_or(MachineCheck::ILLEGAL_ADDR)
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), MachineCheck> {
@@ -263,8 +259,7 @@ impl MachineState {
         self.ip = self.load_abs_i32(self.ivec + (vector as i32 * 4))?;
         Ok(())
     }
-    pub fn machine_check(&mut self, value: MachineCheck)
-    {
+    pub fn machine_check(&mut self, value: MachineCheck) {
         self.flag.intvec.set(IntVec::MACHINE_CHECK, true);
         self.flag.check.set(value, true);
     }
@@ -273,8 +268,7 @@ impl MachineState {
 // Helper function to convert i32 to usize.
 // This function will return Err if val is negative
 fn i32_to_offset(val: i32) -> Result<usize, MachineCheck> {
-    val.try_into()
-        .or(Err(MachineCheck::ILLEGAL_ADDR))
+    val.try_into().or(Err(MachineCheck::ILLEGAL_ADDR))
 }
 
 fn check_align(offset: i32) -> Result<(), MachineCheck> {
