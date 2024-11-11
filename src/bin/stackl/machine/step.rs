@@ -396,7 +396,7 @@ fn exec_trap(cpu: &mut MachineState) -> Result<(), MachineCheck> {
         cpu.sp += cpu.bp;
     }
     cpu.ip = cpu.load_abs_i32(cpu.ivec + 4)?;
-    return Ok(());
+    Ok(())
 }
 
 fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck> {
@@ -413,5 +413,5 @@ fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck> {
 
     cpu.flag = MachineFlags::from(new_flag as u32);
     cpu.flag.intvec = flag.intvec;
-    return Ok(());
+    Ok(())
 }

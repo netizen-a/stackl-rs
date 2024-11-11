@@ -103,7 +103,7 @@ impl StacklFormatV1 {
         Ok(0)
     }
     fn iter_header(&self) -> SplitTerminator<&[char]> {
-        self.header.split_terminator(&['\n', ' '][..]).into_iter()
+        self.header.split_terminator(&['\n', ' '][..])
     }
 }
 

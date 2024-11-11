@@ -124,7 +124,7 @@ impl MachineState {
                 let operand = self.load_i32(offset + 4)?;
                 inst.push_str(&operand.to_string());
                 let value = self.load_i32(self.fp + operand)?;
-                inst.push_str(" ");
+                inst.push(' ');
                 inst.push_str(&value.to_string());
             }
             57..=i32::MAX | i32::MIN..0 => {
