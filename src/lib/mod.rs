@@ -6,7 +6,7 @@ pub mod ast;
 pub mod op;
 
 bitflags! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     pub struct StacklFlags: u32 {
         const LEGACY_MODE      = 1;
         const FEATURE_GEN_IO   = 1 << 1;

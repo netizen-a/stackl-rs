@@ -40,8 +40,11 @@ struct Args {
         help = "Enable the INP instruction"
     )]
     inp: bool,
+    #[arg(short = 'G', long, default_value_t = false, help = "Enable the General IO device")]
+    gen_io: bool,
 }
 fn main() -> ExitCode {
+    
     let args = Args::parse();
     let content = match fs::read(&args.file) {
         Ok(v) => v,
@@ -64,10 +67,19 @@ fn main() -> ExitCode {
             err => panic!("failed to load: {:?}", err),
         },
     };
+
     if args.inp {
         // force INP to be enabled regardless of binary
         data.flags.set(StacklFlags::FEATURE_INP, true);
     }
+
+    if args.gen_io {
+        // force INP to be enabled regardless of binary
+        data.flags.set(StacklFlags::FEATURE_GEN_IO, true);
+    }
+
+    let flags = data.flags;
+
     let mut machine = MachineState::new(args.memory);
     machine.store_program(data, true, -1).unwrap();
     machine.set_trace(args.trace);
@@ -75,22 +87,32 @@ fn main() -> ExitCode {
 
     let (request_send, request_recv) = channel::<Request>();
     scope(|f| {
-        f.spawn(|| {
+        let main_id = f.spawn(|| {
             run_machine(&machine, request_send, args.mdelay);
         });
-        f.spawn(|| {
-            for request in request_recv {
-                let result = request::process_request(&machine, &request);
-                let mut write_lock = machine.write().unwrap();
-                let mut val: u32 = 0x80000000;
-                if result.is_ok() {
-                    write_lock.store_i32(val as i32, request.offset).unwrap();
-                } else {
-                    val |= 0x40000000;
-                    write_lock.store_i32(val as i32, request.offset).unwrap();
+        if flags.contains(StacklFlags::FEATURE_INP) {
+            f.spawn(|| {
+                for request in request_recv {
+                    let result = request::process_request(&machine, &request);
+                    let mut write_lock = machine.write().unwrap();
+                    let mut val: u32 = 0x80000000;
+                    if result.is_ok() {
+                        write_lock.store_i32(val as i32, request.offset).unwrap();
+                    } else {
+                        val |= 0x40000000;
+                        write_lock.store_i32(val as i32, request.offset).unwrap();
+                    }
                 }
-            }
-        });
+            });
+        }
+        if flags.contains(StacklFlags::FEATURE_GEN_IO) {
+            f.spawn(move || {
+                while !main_id.is_finished() {
+
+                }
+                println!("exiting feature gen loop");
+            });
+        }
     });
     ExitCode::SUCCESS
 }
