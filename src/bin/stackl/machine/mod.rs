@@ -193,15 +193,16 @@ impl MachineState {
         }
     }
     // This function does not check alignment
+    // FIXME: this function should block per character,
+    //        but not per call.
     pub fn print(&self, offset: i32) -> Result<(), MachineCheck> {
-        let mem = &self.ram;
         let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        if let Some(bytes) = mem.get(offset..) {
+        if let Some(bytes) = self.ram.get(offset..) {
             for chunk in bytes.utf8_chunks() {
                 for ch in chunk.valid().chars() {
                     thread::sleep(time::Duration::from_micros(100));

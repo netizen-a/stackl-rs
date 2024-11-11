@@ -44,7 +44,6 @@ struct Args {
     gen_io: bool,
 }
 fn main() -> ExitCode {
-    
     let args = Args::parse();
     let content = match fs::read(&args.file) {
         Ok(v) => v,
@@ -74,10 +73,11 @@ fn main() -> ExitCode {
     }
 
     if args.gen_io {
-        // force INP to be enabled regardless of binary
+        // force gen_io to be enabled regardless of binary
         data.flags.set(StacklFlags::FEATURE_GEN_IO, true);
     }
 
+    // copy to local variable to handle threading later.
     let flags = data.flags;
 
     let mut machine = MachineState::new(args.memory);

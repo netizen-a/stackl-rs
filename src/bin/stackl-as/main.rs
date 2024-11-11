@@ -51,6 +51,8 @@ fn main() -> ExitCode {
     sym::fixup_labels(&mut ast);
     sym::fixup_start(&mut ast);
 
+    // TODO: add fixup_sections, which will combine section blocks
+
     let code = code_gen::ast_to_fmt2(ast).unwrap();
     let outfile = match args.outfile {
         Some(o) => o,
