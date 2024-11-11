@@ -110,7 +110,7 @@ pub fn ast_to_fmt2(ast: Vec<Stmt>) -> Result<StacklFormatV2, Box<dyn Error>> {
         magic: [b's', b'l', 0, 0],
         version: stackl::Version::new(1, 1, 0, 0),
         flags,
-        stack_size: 0,
+        stack_size: 1000,
         text,
     })
 }
