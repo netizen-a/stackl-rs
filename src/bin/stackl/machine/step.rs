@@ -120,7 +120,7 @@ pub fn next_opcode(
             cpu.sp -= 4;
         }
         op::RET => {
-            cpu.sp = cpu.fp - 4;
+            cpu.sp = cpu.fp - 8;
             cpu.ip = cpu.load_i32(cpu.fp - 8)?;
             cpu.fp = cpu.load_i32(cpu.fp - 4)?;
             return Ok(());
