@@ -10,7 +10,7 @@ pub fn next_opcode(
         && !cpu.flag.get_status(Status::INT_MODE)
         && !cpu.flag.get_status(Status::INT_DIS)
     {
-        return cpu.exec_interrupt();
+        return cpu.interrupt(false);
     }
 
     if cpu.meta.contains(MetaFlags::TRACE) {
@@ -179,12 +179,10 @@ pub fn next_opcode(
         }
         op::TRAP => {
             cpu.ip += 4;
-            exec_trap(cpu)?;
-            return Ok(());
+            return cpu.interrupt(true);
         }
         op::RTI => {
-            exec_rti(cpu)?;
-            return Ok(());
+            return cpu.rti();
         }
         op::CALLI => {
             let tmp = cpu.pop_i32()?;
@@ -377,41 +375,5 @@ pub fn next_opcode(
         57..=i32::MAX | i32::MIN..0 => return Err(MachineCheck::ILLEGAL_INST),
     }
     cpu.ip += 4;
-    Ok(())
-}
-
-fn exec_trap(cpu: &mut MachineState) -> Result<(), MachineCheck> {
-    let was_user = cpu.is_user();
-    cpu.push_i32(cpu.sp)?;
-    cpu.push_i32(cpu.flag.as_u32() as i32)?;
-    cpu.push_i32(cpu.bp)?;
-    cpu.push_i32(cpu.lp)?;
-    cpu.push_i32(cpu.ip)?;
-    cpu.push_i32(cpu.fp)?;
-    cpu.flag.set_status(Status::USR_MODE, false);
-    cpu.flag.set_status(Status::INT_MODE, true);
-    if was_user {
-        // switch fp and sp to absolute addresses
-        cpu.fp += cpu.bp;
-        cpu.sp += cpu.bp;
-    }
-    cpu.ip = cpu.load_abs_i32(cpu.ivec + 4)?;
-    Ok(())
-}
-
-fn exec_rti(cpu: &mut MachineState) -> Result<(), MachineCheck> {
-    if cpu.is_user() {
-        return Err(MachineCheck::PROT_INST);
-    }
-    let flag = cpu.flag;
-    cpu.fp = cpu.pop_i32()?;
-    cpu.ip = cpu.pop_i32()?;
-    cpu.lp = cpu.pop_i32()?;
-    cpu.bp = cpu.pop_i32()?;
-    let new_flag = cpu.pop_i32()?;
-    cpu.sp = cpu.pop_i32()?;
-
-    cpu.flag = MachineFlags::from(new_flag as u32);
-    cpu.flag.intvec = flag.intvec;
     Ok(())
 }

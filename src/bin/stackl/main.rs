@@ -116,7 +116,7 @@ pub fn run_machine(
             } else {
                 cpu.flag.check.set(check, true);
                 cpu.flag.intvec.set(IntVec::MACHINE_CHECK, true);
-                cpu.exec_interrupt().unwrap();
+                cpu.interrupt(false).unwrap();
             }
         }
     }

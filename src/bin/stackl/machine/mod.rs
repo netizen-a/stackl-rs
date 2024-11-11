@@ -2,10 +2,11 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 use std::{ffi, io, thread, time};
 
-use flag::{IntVec, MachineCheck, MachineFlags, MetaFlags, Status};
+use flag::{MachineCheck, MachineFlags, MetaFlags, Status};
 use stackl::{op, StacklFlags, StacklFormatV2};
 
 pub mod flag;
+mod interrupt;
 pub mod step;
 mod trace;
 
@@ -220,48 +221,6 @@ impl MachineState {
         } else {
             Err(MachineCheck::ILLEGAL_ADDR)
         }
-    }
-
-    pub fn exec_interrupt(&mut self) -> Result<(), MachineCheck> {
-        let was_user = self.is_user();
-
-        // Find highest priority pending interrupt
-        let pending_interrupt = self.flag.intvec.iter().enumerate().next();
-
-        let Some((vector, int_flag)) = pending_interrupt else {
-            // no pending interrupts
-            return Ok(());
-        };
-
-        // turn off pending bit for HW interrupts
-        self.flag.intvec.set(int_flag, false);
-
-        self.push_i32(self.sp)?;
-        self.push_i32(self.flag.as_u32() as i32)?;
-        self.push_i32(self.bp)?;
-        self.push_i32(self.lp)?;
-        self.push_i32(self.ip)?;
-        self.push_i32(self.fp)?;
-
-        self.fp = self.sp;
-
-        // go to system mode and interrupt mode
-        self.flag.set_status(Status::USR_MODE, false);
-        self.flag.set_status(Status::INT_MODE, true);
-
-        if was_user {
-            // switch fp and sp to absolute addresses
-            self.fp += self.bp;
-            self.sp += self.bp;
-        }
-
-        // ISR is at vector
-        self.ip = self.load_abs_i32(self.ivec + (vector as i32 * 4))?;
-        Ok(())
-    }
-    pub fn machine_check(&mut self, value: MachineCheck) {
-        self.flag.intvec.set(IntVec::MACHINE_CHECK, true);
-        self.flag.check.set(value, true);
     }
 }
 
