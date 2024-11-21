@@ -3,7 +3,7 @@ use std::process::Command;
 const RUN_PATH: &str = "../stackl-rs/target/debug/stackl";
 const BLD_PATH: &str = "../stackl-rs/target/debug/stackl-as";
 
-const SRC_DIR: &str = "../stackl-rs/examples/";
+const SRC_DIR: &str = "../stackl-rs/tests/";
 const OUT_DIR: &str = "../stackl-rs/target/";
 
 #[test]

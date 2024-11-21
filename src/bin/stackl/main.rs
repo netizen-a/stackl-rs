@@ -2,7 +2,8 @@ use std::process::ExitCode;
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::RwLock;
-use std::thread::{self, scope};
+use std::thread::{self, scope, sleep};
+use std::time::Duration;
 use std::{fs, io, path, time};
 
 use clap::Parser;
@@ -40,7 +41,12 @@ struct Args {
         help = "Enable the INP instruction"
     )]
     inp: bool,
-    #[arg(short = 'G', long, default_value_t = false, help = "Enable the General IO device")]
+    #[arg(
+        short = 'G',
+        long,
+        default_value_t = false,
+        help = "Enable the General IO device"
+    )]
     gen_io: bool,
 }
 fn main() -> ExitCode {
@@ -85,15 +91,18 @@ fn main() -> ExitCode {
     machine.set_trace(args.trace);
     let machine = RwLock::new(machine);
 
+    // prevent move semantics on closures with `move`.
+    let machine = &machine;
+
     let (request_send, request_recv) = channel::<Request>();
     scope(|f| {
         let main_id = f.spawn(|| {
-            run_machine(&machine, request_send, args.mdelay);
+            run_machine(machine, request_send, args.mdelay);
         });
         if flags.contains(StacklFlags::FEATURE_INP) {
             f.spawn(|| {
                 for request in request_recv {
-                    let result = request::process_request(&machine, &request);
+                    let result = request::process_request(machine, &request);
                     let mut write_lock = machine.write().unwrap();
                     let mut val: u32 = 0x80000000;
                     if result.is_ok() {
@@ -107,8 +116,11 @@ fn main() -> ExitCode {
         }
         if flags.contains(StacklFlags::FEATURE_GEN_IO) {
             f.spawn(move || {
+                let main_id = main_id;
                 while !main_id.is_finished() {
-
+                    sleep(Duration::from_micros(100));
+                    // let machine_lock = machine.read().unwrap();
+                    // machine_lock.ram[0x0B00000];
                 }
                 println!("exiting feature gen loop");
             });

@@ -112,7 +112,6 @@ impl MachineState {
         self.flag.get_status(Status::USR_MODE)
     }
 
-    // returns true if success, else false
     // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), MachineCheck> {
         let mem = &mut self.ram;
@@ -133,10 +132,9 @@ impl MachineState {
         Ok(c_str)
     }
     pub fn load_abs_i32(&self, offset: i32) -> Result<i32, MachineCheck> {
-        let mem = &self.ram;
         check_align(offset)?;
         let offset = i32_to_offset(offset)?;
-        if let Some(mem) = mem.get(offset..=(offset + 3)) {
+        if let Some(mem) = self.ram.get(offset..=(offset + 3)) {
             mem.try_into()
                 .map(i32::from_le_bytes)
                 .or(Err(MachineCheck::ILLEGAL_ADDR))

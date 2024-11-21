@@ -8,6 +8,11 @@ repository = "https://github.com/jonathan-a-thomason/stackl-rs.git"
 publish = false
 build = "build.rs"
 
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
+all-features = true
+
 [build-dependencies]
 lalrpop = "0.22.0"
 
