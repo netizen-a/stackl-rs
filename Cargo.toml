@@ -4,7 +4,6 @@ version = "0.0.0"
 edition = "2021"
 authors = ["Jonathan Thomason"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/jonathan-a-thomason/stackl-rs.git"
 publish = false
 build = "build.rs"
 
