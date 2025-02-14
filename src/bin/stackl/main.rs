@@ -1,10 +1,9 @@
 use std::process::ExitCode;
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
-use std::sync::{self, RwLock};
-use std::thread;
+use std::sync::RwLock;
 use std::time::Duration;
-use std::{fs, io, path, time};
+use std::{fs, io, path, sync, thread, time};
 
 use clap::Parser;
 use machine::flag::{IntVec, MachineCheck, Status};
