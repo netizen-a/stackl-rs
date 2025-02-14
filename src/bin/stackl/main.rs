@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
-use std::sync::{self, OnceLock, RwLock};
-use std::thread::{self, ScopedJoinHandle};
+use std::sync::{self, RwLock};
+use std::thread;
 use std::time::Duration;
 use std::{fs, io, path, time};
 
@@ -98,7 +98,7 @@ fn main() -> ExitCode {
     thread::scope(|f| {
         static RUNNING_STATE: sync::Once = sync::Once::new();
         f.spawn(|| {
-            RUNNING_STATE.call_once(||{
+            RUNNING_STATE.call_once(|| {
                 run_machine(machine, request_send, args.mdelay);
             });
         });
