@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
-use std::sync::RwLock;
-use std::thread::{self, scope, sleep};
+use std::sync::{self, OnceLock, RwLock};
+use std::thread::{self, ScopedJoinHandle};
 use std::time::Duration;
 use std::{fs, io, path, time};
 
@@ -95,9 +95,12 @@ fn main() -> ExitCode {
     let machine = &machine;
 
     let (request_send, request_recv) = channel::<Request>();
-    scope(|f| {
-        let main_id = f.spawn(|| {
-            run_machine(machine, request_send, args.mdelay);
+    thread::scope(|f| {
+        static RUNNING_STATE: sync::Once = sync::Once::new();
+        f.spawn(|| {
+            RUNNING_STATE.call_once(||{
+                run_machine(machine, request_send, args.mdelay);
+            });
         });
         if flags.contains(StacklFlags::FEATURE_INP) {
             f.spawn(|| {
@@ -115,12 +118,21 @@ fn main() -> ExitCode {
             });
         }
         if flags.contains(StacklFlags::FEATURE_GEN_IO) {
-            f.spawn(move || {
-                let main_id = main_id;
-                while !main_id.is_finished() {
-                    sleep(Duration::from_micros(100));
+            f.spawn(|| {
+                while !RUNNING_STATE.is_completed() {
+                    thread::sleep(Duration::from_micros(100));
                     // let machine_lock = machine.read().unwrap();
                     // machine_lock.ram[0x0B00000];
+                }
+                println!("exiting feature gen loop");
+            });
+        }
+        if flags.contains(StacklFlags::FEATURE_PIO_TERM) {
+            f.spawn(|| {
+                while !RUNNING_STATE.is_completed() {
+                    thread::sleep(Duration::from_micros(100));
+                    // let machine_lock = machine.read().unwrap();
+                    // machine_lock.ram[0x0E00000];
                 }
                 println!("exiting feature gen loop");
             });
