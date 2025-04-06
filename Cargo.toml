@@ -16,7 +16,7 @@ all-features = true
 lalrpop = "0.22.0"
 
 [dependencies]
-logos = "0.14.1"
+logos = "0.15.0"
 lalrpop-util = "0.22.0"
 clap = { version = "4.5.17", features = ["derive"] }
 bitflags = "2.6.0"
