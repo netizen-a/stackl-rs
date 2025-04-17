@@ -87,7 +87,7 @@ impl MachineState {
 
         // copy text segment to memory
         let offset = addr as usize;
-        self.mem.set(offset..(text_len + offset), &program.text);
+        self.mem.set(offset..(text_len + offset), &program.text)?;
         Ok(())
     }
 
@@ -117,16 +117,12 @@ impl MachineState {
     // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        if self.mem.set(offset..offset + val.len(), val) {
-            Ok(())
-        } else {
-            Err(MachineCheck::ILLEGAL_ADDR)
-        }
+        self.mem.set(offset..offset + val.len(), val)
     }
     pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        let bytes = self.mem.get(offset..).ok_or(MachineCheck::ILLEGAL_ADDR);
-        let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes?) else {
+        let bytes = self.mem.get(offset..)?;
+        let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes) else {
             return Err(MachineCheck::ILLEGAL_ADDR);
         };
         Ok(c_str)
@@ -134,13 +130,10 @@ impl MachineState {
     pub fn load_abs_i32(&self, offset: i32) -> Result<i32, MachineCheck> {
         check_align(offset)?;
         let offset = i32_to_offset(offset)?;
-        if let Some(mem) = self.mem.get(offset..=(offset + 3)) {
-            mem.try_into()
-                .map(i32::from_le_bytes)
-                .or(Err(MachineCheck::ILLEGAL_ADDR))
-        } else {
-            Err(MachineCheck::ILLEGAL_ADDR)
-        }
+        let mem = self.mem.get(offset..=(offset + 3))?;
+        mem.try_into()
+            .map(i32::from_le_bytes)
+            .or(Err(MachineCheck::ILLEGAL_ADDR))
     }
     pub fn store_abs_i32(&mut self, val: i32, offset: i32) -> Result<(), MachineCheck> {
         check_align(offset)?;
@@ -171,10 +164,7 @@ impl MachineState {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        self.mem
-            .get(offset)
-            .copied()
-            .ok_or(MachineCheck::ILLEGAL_ADDR)
+        self.mem.get(offset).copied()
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), MachineCheck> {
@@ -184,11 +174,7 @@ impl MachineState {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        if self.mem.set(offset..=offset, &[val]) {
-            Ok(())
-        } else {
-            Err(MachineCheck::ILLEGAL_ADDR)
-        }
+        self.mem.set(offset..=offset, &[val])
     }
     // This function does not check alignment
     // FIXME: this function should block per character,
@@ -200,26 +186,23 @@ impl MachineState {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        if let Some(bytes) = self.mem.get(offset..) {
-            for chunk in bytes.utf8_chunks() {
-                for ch in chunk.valid().chars() {
-                    thread::sleep(time::Duration::from_micros(100));
-                    if ch == '\0' {
-                        return Ok(());
-                    }
-                    print!("{ch}");
-                    io::stdout().flush().unwrap()
+        let bytes = self.mem.get(offset..)?;
+        for chunk in bytes.utf8_chunks() {
+            for ch in chunk.valid().chars() {
+                thread::sleep(time::Duration::from_micros(100));
+                if ch == '\0' {
+                    return Ok(());
                 }
-                for byte in chunk.invalid() {
-                    thread::sleep(time::Duration::from_micros(100));
-                    print!("\\x{:02X}", byte);
-                    io::stdout().flush().unwrap();
-                }
+                print!("{ch}");
+                io::stdout().flush().unwrap()
             }
-            Err(MachineCheck::ILLEGAL_ADDR)
-        } else {
-            Err(MachineCheck::ILLEGAL_ADDR)
+            for byte in chunk.invalid() {
+                thread::sleep(time::Duration::from_micros(100));
+                print!("\\x{:02X}", byte);
+                io::stdout().flush().unwrap();
+            }
         }
+        Err(MachineCheck::ILLEGAL_ADDR)
     }
 }
 
