@@ -1,16 +1,15 @@
-use std::slice::SliceIndex;
-
 use super::flag::MachineCheck;
+use std::ops::{Bound, RangeBounds};
 
 #[derive(Debug)]
 pub struct MachineMemory {
-    /// mapped addr: 0x0B000000
+    /// mapped addr: 0x0B00_0000
     gen_io: [u8; 16],
-    /// mapped addr: 0x0C000000
+    /// mapped addr: 0x0C00_0000
     timer: [u8; 16],
-    /// mapped addr: 0x0D000000
+    /// mapped addr: 0x0D00_0000
     disk: [u8; 16],
-    /// mapped addr: 0x0E000000
+    /// mapped addr: 0x0E00_0000
     pio_term: [u8; 16],
     ram: Vec<u8>,
 }
@@ -27,17 +26,37 @@ impl MachineMemory {
     }
 
     #[inline]
-    pub fn get<I>(&self, index: I) -> Result<&I::Output, MachineCheck>
+    pub fn get<I>(&self, index: I) -> Result<&[u8], MachineCheck>
     where
-        I: SliceIndex<[u8]>,
+        I: RangeBounds<usize>,
     {
-        self.ram.get(index).ok_or(MachineCheck::ILLEGAL_ADDR)
+        let start: usize = match index.start_bound() {
+            Bound::Unbounded => 0,
+            Bound::Included(&i) => i,
+            Bound::Excluded(_) => unreachable!(),
+        };
+        let slice = match index.end_bound() {
+            Bound::Unbounded => self.ram.get(start..),
+            Bound::Excluded(&i) => self.ram.get(start..i),
+            Bound::Included(&i) => self.ram.get(start..=i),
+        };
+        slice.ok_or(MachineCheck::ILLEGAL_ADDR)
     }
     pub fn set<I>(&mut self, index: I, value: &[u8]) -> Result<(), MachineCheck>
     where
-        I: SliceIndex<[u8], Output = [u8]>,
+        I: RangeBounds<usize>,
     {
-        if let Some(slice) = self.ram.get_mut(index) {
+        let start: usize = match index.start_bound() {
+            Bound::Unbounded => 0,
+            Bound::Included(&i) => i,
+            Bound::Excluded(_) => unreachable!(),
+        };
+        let slice = match index.end_bound() {
+            Bound::Unbounded => self.ram.get_mut(start..),
+            Bound::Excluded(&i) => self.ram.get_mut(start..i),
+            Bound::Included(&i) => self.ram.get_mut(start..=i),
+        };
+        if let Some(slice) = slice {
             if slice.len() != value.len() {
                 Err(MachineCheck::ILLEGAL_ADDR)
             } else {

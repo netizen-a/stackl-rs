@@ -164,7 +164,7 @@ impl MachineState {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        self.mem.get(offset).copied()
+        self.mem.get(offset..=offset).map(|x| x[0])
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), MachineCheck> {
