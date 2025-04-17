@@ -35,12 +35,12 @@ impl MachineMemory {
             Bound::Included(&i) => i,
             Bound::Excluded(_) => unreachable!(),
         };
-        let slice = match index.end_bound() {
-            Bound::Unbounded => self.ram.get(start..),
-            Bound::Excluded(&i) => self.ram.get(start..i),
-            Bound::Included(&i) => self.ram.get(start..=i),
+        let end = match index.end_bound() {
+            Bound::Unbounded => self.ram.len() - 1,
+            Bound::Excluded(&i) => i - 1,
+            Bound::Included(&i) => i,
         };
-        slice.ok_or(MachineCheck::ILLEGAL_ADDR)
+        self.ram.get(start..=end).ok_or(MachineCheck::ILLEGAL_ADDR)
     }
     pub fn set<I>(&mut self, index: I, value: &[u8]) -> Result<(), MachineCheck>
     where
@@ -51,12 +51,12 @@ impl MachineMemory {
             Bound::Included(&i) => i,
             Bound::Excluded(_) => unreachable!(),
         };
-        let slice = match index.end_bound() {
-            Bound::Unbounded => self.ram.get_mut(start..),
-            Bound::Excluded(&i) => self.ram.get_mut(start..i),
-            Bound::Included(&i) => self.ram.get_mut(start..=i),
+        let end = match index.end_bound() {
+            Bound::Unbounded => self.ram.len() - 1,
+            Bound::Excluded(&i) => i - 1,
+            Bound::Included(&i) => i,
         };
-        if let Some(slice) = slice {
+        if let Some(slice) = self.ram.get_mut(start..=end) {
             if slice.len() != value.len() {
                 Err(MachineCheck::ILLEGAL_ADDR)
             } else {
