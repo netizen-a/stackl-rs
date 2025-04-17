@@ -3,10 +3,12 @@ use std::sync::mpsc::Sender;
 use std::{ffi, io, thread, time};
 
 use flag::{MachineCheck, MachineFlags, MetaFlags, Status};
+use memory::MachineMemory;
 use stackl::{op, StacklFlags, StacklFormatV2};
 
 pub mod flag;
 mod interrupt;
+pub mod memory;
 pub mod step;
 mod trace;
 
@@ -20,7 +22,7 @@ pub struct MachineState {
     pub flag: MachineFlags,
     pub ivec: i32,
     pub vmem: i32,
-    pub ram: Vec<u8>,
+    pub mem: MachineMemory,
     pub meta: MetaFlags,
     pub last_trace: u8,
 }
@@ -36,7 +38,7 @@ impl MachineState {
             flag: MachineFlags::new(),
             ivec: 0,
             vmem: 0,
-            ram: vec![0x79; mem_size],
+            mem: MachineMemory::new(mem_size),
             meta: MetaFlags::empty(),
             last_trace: 0,
         }
@@ -85,7 +87,7 @@ impl MachineState {
 
         // copy text segment to memory
         let offset = addr as usize;
-        self.ram[offset..(text_len + offset)].copy_from_slice(&program.text);
+        self.mem.set(offset..(text_len + offset), &program.text);
         Ok(())
     }
 
@@ -114,10 +116,8 @@ impl MachineState {
 
     // This function does not check alignment.
     pub fn store_slice(&mut self, val: &[u8], offset: i32) -> Result<(), MachineCheck> {
-        let mem = &mut self.ram;
         let offset = i32_to_offset(offset)?;
-        if let Some(ram) = mem.get_mut(offset..offset + val.len()) {
-            ram.clone_from_slice(val);
+        if self.mem.set(offset..offset + val.len(), val) {
             Ok(())
         } else {
             Err(MachineCheck::ILLEGAL_ADDR)
@@ -125,7 +125,7 @@ impl MachineState {
     }
     pub fn load_cstr(&self, offset: i32) -> Result<&ffi::CStr, MachineCheck> {
         let offset = i32_to_offset(offset)?;
-        let bytes = self.ram.get(offset..).ok_or(MachineCheck::ILLEGAL_ADDR);
+        let bytes = self.mem.get(offset..).ok_or(MachineCheck::ILLEGAL_ADDR);
         let Ok(c_str) = ffi::CStr::from_bytes_until_nul(bytes?) else {
             return Err(MachineCheck::ILLEGAL_ADDR);
         };
@@ -134,7 +134,7 @@ impl MachineState {
     pub fn load_abs_i32(&self, offset: i32) -> Result<i32, MachineCheck> {
         check_align(offset)?;
         let offset = i32_to_offset(offset)?;
-        if let Some(mem) = self.ram.get(offset..=(offset + 3)) {
+        if let Some(mem) = self.mem.get(offset..=(offset + 3)) {
             mem.try_into()
                 .map(i32::from_le_bytes)
                 .or(Err(MachineCheck::ILLEGAL_ADDR))
@@ -165,14 +165,16 @@ impl MachineState {
     }
     // This function does not check alignment
     pub fn load_u8(&self, offset: i32) -> Result<u8, MachineCheck> {
-        let mem = &self.ram;
         let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        mem.get(offset).copied().ok_or(MachineCheck::ILLEGAL_ADDR)
+        self.mem
+            .get(offset)
+            .copied()
+            .ok_or(MachineCheck::ILLEGAL_ADDR)
     }
     // This function does not check alignment
     pub fn store_u8(&mut self, val: u8, offset: i32) -> Result<(), MachineCheck> {
@@ -181,10 +183,8 @@ impl MachineState {
         } else {
             offset
         };
-        let mem = &mut self.ram;
         let offset = i32_to_offset(offset)?;
-        if let Some(byte) = mem.get_mut(offset) {
-            *byte = val;
+        if self.mem.set(offset..=offset, &[val]) {
             Ok(())
         } else {
             Err(MachineCheck::ILLEGAL_ADDR)
@@ -200,7 +200,7 @@ impl MachineState {
             offset
         };
         let offset = i32_to_offset(offset)?;
-        if let Some(bytes) = self.ram.get(offset..) {
+        if let Some(bytes) = self.mem.get(offset..) {
             for chunk in bytes.utf8_chunks() {
                 for ch in chunk.valid().chars() {
                     thread::sleep(time::Duration::from_micros(100));

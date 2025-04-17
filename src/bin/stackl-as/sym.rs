@@ -88,7 +88,7 @@ fn get_inst_size(inst: &Inst) -> usize {
             for data in list {
                 total += match data {
                     Atom::Int(_) => 1,
-                    Atom::String(s) => s.as_bytes().len(),
+                    Atom::String(s) => s.len(),
                     _ => panic!("label cannot fit in target declaration"),
                 }
             }
@@ -100,7 +100,7 @@ fn get_inst_size(inst: &Inst) -> usize {
                 total += match data {
                     Atom::Int(_) => 4,
                     Atom::String(s) => {
-                        let len = s.as_bytes().len();
+                        let len = s.len();
                         if len % 4 == 0 {
                             len
                         } else {
