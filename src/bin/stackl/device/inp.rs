@@ -1,6 +1,15 @@
-use super::*;
+use crate::machine::*;
+use stackl::{StacklFormatV1, StacklFormatV2};
+use std::fs;
+use std::io;
+use std::str::FromStr;
+use std::sync::RwLock;
 
-use machine::flag;
+const INP_PRINTS_CALL: i32 = 3;
+const INP_GETS_CALL: i32 = 5;
+const INP_GETL_CALL: i32 = 6;
+const INP_GETI_CALL: i32 = 7;
+const INP_EXEC_CALL: i32 = 8;
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -14,12 +23,7 @@ pub struct Request {
 pub fn process_request(
     machine: &RwLock<MachineState>,
     request: &Request,
-) -> Result<(), MachineCheck> {
-    const INP_PRINTS_CALL: i32 = 3;
-    const INP_GETS_CALL: i32 = 5;
-    const INP_GETL_CALL: i32 = 6;
-    const INP_GETI_CALL: i32 = 7;
-    const INP_EXEC_CALL: i32 = 8;
+) -> Result<(), flag::MachineCheck> {
     let op = request.op;
     let param1 = request.param1;
     let _param2 = request.param2;
@@ -55,10 +59,10 @@ pub fn process_request(
             let read_lock = machine.read().unwrap();
             let c_str = read_lock.load_cstr(param1)?;
             let Ok(filepath) = c_str.to_str() else {
-                return Err(MachineCheck::ILLEGAL_INST);
+                return Err(flag::MachineCheck::ILLEGAL_INST);
             };
             let Ok(content) = fs::read(filepath) else {
-                return Err(MachineCheck::ILLEGAL_INST);
+                return Err(flag::MachineCheck::ILLEGAL_INST);
             };
             drop(read_lock);
 
@@ -77,6 +81,6 @@ pub fn process_request(
             machine_lock.store_i32(high_mem, request.offset + 8)?;
             machine_lock.store_program(program, false, request.bp)
         }
-        _ => Err(MachineCheck::ILLEGAL_INST),
+        _ => Err(flag::MachineCheck::ILLEGAL_INST),
     }
 }

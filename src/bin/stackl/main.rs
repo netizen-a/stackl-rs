@@ -8,12 +8,10 @@ use std::{fs, io, path, sync, thread, time};
 use clap::Parser;
 use machine::flag::{IntVec, MachineCheck, Status};
 use machine::MachineState;
-use request::Request;
 use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
 
 mod device;
 mod machine;
-mod request;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -87,24 +85,21 @@ fn main() -> ExitCode {
     let mut machine = MachineState::new(args.memory);
     machine.store_program(data, true, -1).unwrap();
     machine.set_trace(args.trace);
-    let machine = RwLock::new(machine);
+    let machine_lock = &RwLock::new(machine);
 
-    // prevent move semantics on closures with `move`.
-    let machine = &machine;
-
-    let (request_send, request_recv) = channel::<Request>();
+    let (request_send, request_recv) = channel::<device::inp::Request>();
     thread::scope(|f| {
         static RUNNING_STATE: sync::Once = sync::Once::new();
         f.spawn(|| {
             RUNNING_STATE.call_once(|| {
-                run_machine(machine, request_send);
+                run_machine(machine_lock, request_send);
             });
         });
         if flags.contains(StacklFlags::FEATURE_INP) {
             f.spawn(|| {
                 for request in request_recv {
-                    let result = request::process_request(machine, &request);
-                    let mut write_lock = machine.write().unwrap();
+                    let result = device::inp::process_request(machine_lock, &request);
+                    let mut write_lock = machine_lock.write().unwrap();
                     let mut val: u32 = 0x80000000;
                     if result.is_ok() {
                         write_lock.store_i32(val as i32, request.offset).unwrap();
@@ -117,24 +112,32 @@ fn main() -> ExitCode {
         }
         if flags.contains(StacklFlags::FEATURE_GEN_IO) {
             f.spawn(|| {
-                while !RUNNING_STATE.is_completed() {
-                    thread::sleep(Duration::from_micros(100));
-                    device::gen_io::run_gen_io(machine);
-                }
+                device::gen_io::run_device(machine_lock, &RUNNING_STATE);
             });
         }
         if flags.contains(StacklFlags::FEATURE_PIO_TERM) {
             f.spawn(|| {
-                while !RUNNING_STATE.is_completed() {
-                    thread::sleep(Duration::from_micros(100));
-                }
+                device::pio_term::run_device(machine_lock, &RUNNING_STATE);
+            });
+        }
+        if flags.contains(StacklFlags::FEATURE_DISK) {
+            f.spawn(|| {
+                device::disk::run_device(machine_lock, &RUNNING_STATE);
+            });
+        }
+        if flags.contains(StacklFlags::FEATURE_DMA_TERM) {
+            f.spawn(|| {
+                device::dma_term::run_device(machine_lock, &RUNNING_STATE);
             });
         }
     });
     ExitCode::SUCCESS
 }
 
-pub fn run_machine(machine_lock: &RwLock<MachineState>, request_send: Sender<Request>) {
+pub fn run_machine(
+    machine_lock: &RwLock<MachineState>,
+    request_send: Sender<device::inp::Request>,
+) {
     loop {
         let mut cpu = machine_lock.write().unwrap();
         if cpu.flag.get_status(Status::HALTED) {

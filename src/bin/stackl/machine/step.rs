@@ -1,4 +1,4 @@
-use crate::request::Request;
+use crate::device::inp::Request;
 
 use super::*;
 
