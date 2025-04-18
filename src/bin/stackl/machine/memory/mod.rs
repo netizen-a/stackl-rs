@@ -1,6 +1,11 @@
 use super::flag::MachineCheck;
 use std::ops::{Bound, RangeBounds};
 
+pub mod disk;
+pub mod gen_io;
+pub mod pio_term;
+pub mod timer;
+
 #[derive(Debug)]
 pub struct MachineMemory {
     /// mapped addr: 0x0B00_0000..=0x0B00_000F
