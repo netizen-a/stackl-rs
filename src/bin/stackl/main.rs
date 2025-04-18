@@ -165,7 +165,7 @@ pub fn run_machine(
 pub fn run_gen_io(machine_lock: &RwLock<MachineState>) {
     let mut machine_lock = machine_lock.write().unwrap();
     let mut csr = machine_lock.load_abs_i32(0x0B00_0000).unwrap();
-    if csr as u32 & 0x8000_0000u32 != 0 {
+    if csr & machine::memory::gen_io::GEN_IO_CSR_DONE != 0 {
         return;
     }
     let buff = machine_lock.load_abs_i32(0x0B00_0004).unwrap();
