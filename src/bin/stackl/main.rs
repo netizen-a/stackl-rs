@@ -120,20 +120,15 @@ fn main() -> ExitCode {
             f.spawn(|| {
                 while !RUNNING_STATE.is_completed() {
                     thread::sleep(Duration::from_micros(100));
-                    // let machine_lock = machine.read().unwrap();
-                    // machine_lock.ram[0x0B00000];
+                    run_gen_io(machine);
                 }
-                println!("exiting feature gen loop");
             });
         }
         if flags.contains(StacklFlags::FEATURE_PIO_TERM) {
             f.spawn(|| {
                 while !RUNNING_STATE.is_completed() {
                     thread::sleep(Duration::from_micros(100));
-                    // let machine_lock = machine.read().unwrap();
-                    // machine_lock.ram[0x0E00000];
                 }
-                println!("exiting feature gen loop");
             });
         }
     });
@@ -165,4 +160,29 @@ pub fn run_machine(
             }
         }
     }
+}
+
+pub fn run_gen_io(machine_lock: &RwLock<MachineState>) {
+    let mut machine_lock = machine_lock.write().unwrap();
+    let mut csr = machine_lock.load_abs_i32(0x0B00_0000).unwrap();
+    if csr as u32 & 0x8000_0000u32 != 0 {
+        return;
+    }
+    let buff = machine_lock.load_abs_i32(0x0B00_0004).unwrap();
+    let size = machine_lock.load_abs_i32(0x0B00_0008).unwrap();
+    match csr & 0xFF {
+        0 => {
+            // do nothing.
+        }
+        // GEN_IO_OP_PRINTS
+        1 => {
+            let count = machine_lock.print(buff, size as usize).unwrap();
+            machine_lock
+                .store_abs_i32(count as i32, 0x0B00_000C)
+                .unwrap();
+            csr |= 0x8000_0000u32 as i32;
+        }
+        csr => todo!("gen_io: {csr}"),
+    }
+    machine_lock.store_abs_i32(csr, 0x0B00_0000).unwrap();
 }

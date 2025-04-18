@@ -147,7 +147,7 @@ pub fn next_opcode(
                 return Err(MachineCheck::PROT_INST);
             }
             let offset = cpu.pop_i32()?;
-            cpu.print(offset)?;
+            cpu.print(offset, usize::MAX)?;
         }
         op::INP => {
             if !cpu.meta.contains(MetaFlags::FEATURE_INP) {

@@ -179,27 +179,36 @@ impl MachineState {
     // This function does not check alignment
     // FIXME: this function should block per character,
     //        but not per call.
-    pub fn print(&self, offset: i32) -> Result<(), MachineCheck> {
+    pub fn print(&self, offset: i32, len: usize) -> Result<usize, MachineCheck> {
         let offset = if self.is_user() {
             offset + self.bp
         } else {
             offset
         };
         let offset = i32_to_offset(offset)?;
+        let mut consumed_bytes = 0;
         let bytes = self.mem.get(offset..)?;
         for chunk in bytes.utf8_chunks() {
             for ch in chunk.valid().chars() {
                 thread::sleep(time::Duration::from_micros(100));
+                consumed_bytes += ch.len_utf8();
                 if ch == '\0' {
-                    return Ok(());
+                    return Ok(consumed_bytes);
                 }
                 print!("{ch}");
-                io::stdout().flush().unwrap()
+                io::stdout().flush().unwrap();
+                if consumed_bytes >= len {
+                    return Ok(consumed_bytes);
+                }
             }
             for byte in chunk.invalid() {
                 thread::sleep(time::Duration::from_micros(100));
+                consumed_bytes += 1;
                 print!("\\x{:02X}", byte);
                 io::stdout().flush().unwrap();
+                if consumed_bytes >= len {
+                    return Ok(consumed_bytes);
+                }
             }
         }
         Err(MachineCheck::ILLEGAL_ADDR)

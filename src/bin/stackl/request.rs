@@ -26,7 +26,7 @@ pub fn process_request(
     match op {
         INP_PRINTS_CALL => {
             let read_lock = machine.read().unwrap();
-            read_lock.print(param1)
+            read_lock.print(param1, usize::MAX).map(|_| ())
         }
         INP_GETS_CALL => {
             let mut buf = String::new();
