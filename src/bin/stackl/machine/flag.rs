@@ -53,6 +53,7 @@ bitflags! {
     pub struct IntVec: u16 {
         const MACHINE_CHECK = 1;
         const TRAP          = 1 << 1;
+        const GEN_IO        = 1 << 8;
         const _ = !0;
     }
 }
