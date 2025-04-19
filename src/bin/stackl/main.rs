@@ -96,17 +96,7 @@ fn main() -> ExitCode {
         });
         if flags.contains(StacklFlags::FEATURE_INP) {
             f.spawn(|| {
-                for request in request_recv {
-                    let result = device::inp::process_request(machine_lock, &request);
-                    let mut write_lock = machine_lock.write().unwrap();
-                    let mut val: u32 = 0x80000000;
-                    if result.is_ok() {
-                        write_lock.store_i32(val as i32, request.offset).unwrap();
-                    } else {
-                        val |= 0x40000000;
-                        write_lock.store_i32(val as i32, request.offset).unwrap();
-                    }
-                }
+                device::inp::run_device(machine_lock, request_recv);
             });
         }
         if flags.contains(StacklFlags::FEATURE_GEN_IO) {

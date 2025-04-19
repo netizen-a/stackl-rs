@@ -3,6 +3,7 @@ use crate::machine::*;
 use stackl::{StacklFormatV1, StacklFormatV2};
 use std::fs;
 use std::str::FromStr;
+use std::sync::mpsc::Receiver;
 use std::sync::RwLock;
 
 const INP_PRINTS_CALL: i32 = 3;
@@ -19,8 +20,21 @@ pub struct Request {
     pub param2: i32,
     pub bp: i32,
 }
+pub fn run_device(machine_lock: &RwLock<MachineState>, request_recv: Receiver<Request>) {
+    for request in request_recv {
+        let result = process_request(machine_lock, &request);
+        let mut write_lock = machine_lock.write().unwrap();
+        let mut val: u32 = 0x80000000;
+        if result.is_ok() {
+            write_lock.store_i32(val as i32, request.offset).unwrap();
+        } else {
+            val |= 0x40000000;
+            write_lock.store_i32(val as i32, request.offset).unwrap();
+        }
+    }
+}
 
-pub fn process_request(
+fn process_request(
     machine: &RwLock<MachineState>,
     request: &Request,
 ) -> Result<(), flag::MachineCheck> {
