@@ -1,7 +1,7 @@
+use crate::io;
 use crate::machine::*;
 use stackl::{StacklFormatV1, StacklFormatV2};
 use std::fs;
-use std::io;
 use std::str::FromStr;
 use std::sync::RwLock;
 
@@ -26,29 +26,27 @@ pub fn process_request(
 ) -> Result<(), flag::MachineCheck> {
     let op = request.op;
     let param1 = request.param1;
-    let _param2 = request.param2;
     match op {
         INP_PRINTS_CALL => {
-            let read_lock = machine.read().unwrap();
-            read_lock.print(param1, usize::MAX).map(|_| ())
+            let cpu = machine.read().unwrap();
+            let buf = cpu.mem.get((param1 as usize)..)?;
+            io::try_print(buf);
+            Ok(())
         }
         INP_GETS_CALL => {
-            let mut buf = String::new();
-            io::stdin().read_line(&mut buf).unwrap();
+            let buf = io::read_line().unwrap();
             let mut write_lock = machine.write().unwrap();
             write_lock.store_slice(buf.as_bytes(), param1)
         }
         INP_GETL_CALL => {
-            let mut buf = String::new();
-            io::stdin().read_line(&mut buf).unwrap();
+            let mut buf = io::read_line().unwrap();
             buf.truncate(255);
             buf.push('\0');
             let mut write_lock = machine.write().unwrap();
             write_lock.store_slice(buf.as_bytes(), param1)
         }
         INP_GETI_CALL => {
-            let mut buf = String::new();
-            io::stdin().read_line(&mut buf).unwrap();
+            let buf = io::read_line().unwrap();
             let Ok(deci) = i32::from_str(buf.trim()) else {
                 return Err(flag::MachineCheck::ILLEGAL_INST);
             };

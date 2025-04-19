@@ -1,3 +1,4 @@
+use crate::io;
 use crate::machine::flag;
 use crate::machine::MachineState;
 use std::sync;
@@ -37,18 +38,24 @@ pub fn run_device(machine_lock: &RwLock<MachineState>, state: &sync::Once) {
 
 fn execute_operation(cpu: &mut MachineState) -> Result<(), flag::MachineCheck> {
     let mut csr = cpu.load_abs_i32(GEN_IO_CSR).unwrap();
-    let buff = cpu.load_abs_i32(GEN_IO_BUFF).unwrap();
+    // If done don't check anything else.
+    if csr & GEN_IO_CSR_DONE != 0 {
+        return Ok(());
+    }
+    let addr = cpu.load_abs_i32(GEN_IO_BUFF).unwrap();
     let size = cpu.load_abs_i32(GEN_IO_SIZE).unwrap();
     match csr & 0xFF {
         GEN_IO_OP_PRINTS => {
-            let count = cpu.print(buff, size as usize).unwrap();
+            let max_addr = (addr + size) as usize;
+            let buf = cpu.mem.get((addr as usize)..max_addr)?;
+            let count = io::try_print(buf);
             cpu.store_abs_i32(count as i32, GEN_IO_COUNT)?;
             csr |= GEN_IO_CSR_DONE;
         }
-        GEN_IO_OP_PRINTC => {}
-        GEN_IO_OP_GETL => {}
-        GEN_IO_OP_GETI => {}
-        GEN_IO_OP_EXEC => {}
+        GEN_IO_OP_PRINTC => todo!(),
+        GEN_IO_OP_GETL => todo!(),
+        GEN_IO_OP_GETI => todo!(),
+        GEN_IO_OP_EXEC => todo!(),
         _ => {
             // report error
             return Err(flag::MachineCheck::ILLEGAL_INST);

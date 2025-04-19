@@ -1,16 +1,15 @@
 use std::process::ExitCode;
-use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::RwLock;
-use std::time::Duration;
-use std::{fs, io, path, sync, thread, time};
+use std::{fs, path, sync, thread};
 
 use clap::Parser;
-use machine::flag::{IntVec, MachineCheck, Status};
+use machine::flag::{IntVec, Status};
 use machine::MachineState;
 use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
 
 mod device;
+mod io;
 mod machine;
 
 #[derive(Parser, Debug)]

@@ -1,4 +1,5 @@
 use crate::device::inp::Request;
+use crate::io;
 
 use super::*;
 
@@ -146,8 +147,9 @@ pub fn next_opcode(
             if cpu.is_user() {
                 return Err(MachineCheck::PROT_INST);
             }
-            let offset = cpu.pop_i32()?;
-            cpu.print(offset, usize::MAX)?;
+            let offset = cpu.pop_i32()? as usize;
+            let buf = cpu.mem.get(offset..)?;
+            io::try_print(buf);
         }
         op::INP => {
             if !cpu.meta.contains(MetaFlags::FEATURE_INP) {
