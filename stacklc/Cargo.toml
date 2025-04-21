@@ -5,18 +5,13 @@ edition = "2021"
 authors = ["Jonathan Thomason"]
 license = "MIT OR Apache-2.0"
 publish = false
-build = "build.rs"
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
 all-features = true
 
-[build-dependencies]
-lalrpop = "0.22.0"
-
 [dependencies]
 stackl = {version = "0.0.0", path = "../stackl"}
-lalrpop-util = "0.22.0"
-clap = { version = "4.5.17", features = ["derive"] }
+clap = { version = "4.5.17", features = ["cargo"] }
 bitflags = "2.6.0"
