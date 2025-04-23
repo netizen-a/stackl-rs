@@ -15,3 +15,4 @@ all-features = true
 stackl = {version = "0.0.0", path = "../stackl"}
 clap = { version = "4.5.17", features = ["cargo"] }
 bitflags = "2.6.0"
+bimap = "0.6.3"

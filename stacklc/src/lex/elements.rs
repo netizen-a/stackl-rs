@@ -1,0 +1,100 @@
+//! Lexical Elements
+
+pub struct Span {
+    pub location: (usize, usize),
+    pub file_key: usize,
+}
+
+#[non_exhaustive]
+pub enum Keyword {
+    Auto(Span),
+    Break(Span),
+    Case(Span),
+    Char(Span),
+    Const(Span),
+    Continue(Span),
+    Default(Span),
+    Do(Span),
+    Double(Span),
+    Else(Span),
+    Enum(Span),
+    Extern(Span),
+    Float(Span),
+    For(Span),
+    Goto(Span),
+    If(Span),
+    Int(Span),
+    Long(Span),
+    Register(Span),
+    Return(Span),
+    Short(Span),
+    Signed(Span),
+    SizeOf(Span),
+    Static(Span),
+    Struct(Span),
+    Switch(Span),
+    TypeDef(Span),
+    Union(Span),
+    Unsigned(Span),
+    Void(Span),
+    Volatile(Span),
+    While(Span),
+}
+
+pub struct Identifier {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct Constant {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct StringLiteral {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct Punctuator {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct HeaderName {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct PreprocessingNumber {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct CharacterConstant {
+    pub span: Span,
+    pub name: String,
+}
+
+pub struct Other {
+    pub span: Span,
+    pub name: String,
+}
+
+pub enum Token {
+    Keyword(Keyword),
+    Identifier(Identifier),
+    Constant(Constant),
+    StringLiteral(StringLiteral),
+    Punctuator(Punctuator),
+}
+
+pub enum PreprocessingToken {
+    HeaderName(HeaderName),
+    Identifier(Identifier),
+    PreprocessingNumber(PreprocessingNumber),
+    CharacterConstant(CharacterConstant),
+    StringLiteral(StringLiteral),
+    Punctuator(Punctuator),
+    Other(Other),
+}
