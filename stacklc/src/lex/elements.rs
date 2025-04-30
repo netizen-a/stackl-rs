@@ -2,7 +2,7 @@
 
 #[derive(Debug)]
 pub struct Span {
-    pub location: (usize, usize),
+    pub location: (isize, isize),
     pub file_key: usize,
 }
 
@@ -74,13 +74,19 @@ pub struct HeaderName {
 }
 
 #[derive(Debug)]
-pub struct PreprocessingNumber {
+pub struct PPNumber {
     pub span: Span,
     pub name: String,
 }
 
 #[derive(Debug)]
 pub struct CharacterConstant {
+    pub span: Span,
+    pub name: String,
+}
+
+#[derive(Debug)]
+pub struct NewLine {
     pub span: Span,
     pub name: String,
 }
@@ -99,8 +105,9 @@ pub enum Token {
 pub enum PreprocessingToken {
     HeaderName(HeaderName),
     Identifier(Identifier),
-    PreprocessingNumber(PreprocessingNumber),
+    PPNumber(PPNumber),
     CharacterConstant(CharacterConstant),
     StringLiteral(StringLiteral),
     Punctuator(Punctuator),
+    NewLine(NewLine),
 }
