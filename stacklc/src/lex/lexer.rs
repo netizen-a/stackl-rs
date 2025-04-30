@@ -132,20 +132,13 @@ impl Iterator for Lexer<'_> {
             '0'..='9' => {
                 name.push(c);
                 let mut last_pos = self.pos;
-                let mut has_period = false;
-                let mut has_exp = false;
                 while let Some(&next_c) = self.chars.peek() {
-                    if next_c.is_ascii_digit() {
+                    if next_c.is_ascii_digit() || next_c == '.' {
                         name.push(self.chars.next()?);
                         last_pos += 1;
-                    } else if !has_period && next_c == '.' {
-                        name.push(self.chars.next()?);
-                        last_pos += 1;
-                        has_period = true;
                     } else if next_c.is_ascii_alphabetic() {
                         name.push(self.chars.next()?);
-                        if !has_exp && matches!(next_c, 'e' | 'E' | 'p' | 'P') {
-                            has_exp = true;
+                        if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
                             let Some(&sign) = self.chars.peek() else {
                                 span.location = (self.pos, last_pos);
                                 return Some(Err(LexicalError::UnexpectedEof(span)));
