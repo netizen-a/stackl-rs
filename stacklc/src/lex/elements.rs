@@ -1,10 +1,12 @@
 //! Lexical Elements
 
+#[derive(Debug)]
 pub struct Span {
     pub location: (usize, usize),
     pub file_key: usize,
 }
 
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum Keyword {
     Auto(Span),
@@ -41,46 +43,49 @@ pub enum Keyword {
     While(Span),
 }
 
+#[derive(Debug)]
 pub struct Identifier {
     pub span: Span,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct Constant {
     pub span: Span,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct StringLiteral {
     pub span: Span,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct Punctuator {
     pub span: Span,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct HeaderName {
     pub span: Span,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct PreprocessingNumber {
     pub span: Span,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct CharacterConstant {
     pub span: Span,
     pub name: String,
 }
 
-pub struct Other {
-    pub span: Span,
-    pub name: String,
-}
-
+#[derive(Debug)]
 pub enum Token {
     Keyword(Keyword),
     Identifier(Identifier),
@@ -89,6 +94,8 @@ pub enum Token {
     Punctuator(Punctuator),
 }
 
+#[derive(Debug)]
+#[non_exhaustive]
 pub enum PreprocessingToken {
     HeaderName(HeaderName),
     Identifier(Identifier),
@@ -96,5 +103,4 @@ pub enum PreprocessingToken {
     CharacterConstant(CharacterConstant),
     StringLiteral(StringLiteral),
     Punctuator(Punctuator),
-    Other(Other),
 }
