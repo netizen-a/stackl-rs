@@ -15,7 +15,7 @@ pub struct Lexer<'a> {
     chars: iter::Peekable<Chars<'a>>,
     pos: isize,
     file_key: usize,
-    inc_stage: u8,
+    include_state: u8,
 }
 impl<'a> Lexer<'a> {
     pub fn new(text: &'a str, file_key: usize) -> Self {
@@ -23,7 +23,7 @@ impl<'a> Lexer<'a> {
             chars: text.chars().peekable(),
             pos: -1,
             file_key,
-            inc_stage: 0,
+            include_state: 1,
         }
     }
 }
@@ -42,7 +42,7 @@ impl Iterator for Lexer<'_> {
         // skip whitespace
         while c.is_ascii_whitespace() {
             if c == '\n' {
-                self.inc_stage = 1;
+                self.include_state = 1;
                 span.location = (self.pos, self.pos);
                 name.push(c);
                 let new_line = tok::NewLine { span, name };
@@ -61,13 +61,10 @@ impl Iterator for Lexer<'_> {
                 last_pos += 1;
             }
             name.push(c);
-            while let Some(&next_c) = self.chars.peek() {
-                if next_c != '"' && next_c != '\\' {
-                    name.push(self.chars.next()?);
-                    last_pos += 1;
-                } else if next_c == '\\' {
-                    name.push(self.chars.next()?);
-                    last_pos += 1;
+            while let Some(next_c) = self.chars.next() {
+                name.push(next_c);
+                last_pos += 1;
+                if next_c == '\\' {
                     span.location = (self.pos, last_pos);
                     let Some(&next_c) = self.chars.peek() else {
                         return Some(Err(LexicalError::UnexpectedEof(span)));
@@ -81,44 +78,28 @@ impl Iterator for Lexer<'_> {
                             return Some(Err(LexicalError::UnexpectedEscape(span)));
                         }
                     }
-                } else {
+                } else if next_c == '"' {
                     break;
                 }
             }
             span.location = (self.pos, last_pos);
             self.pos = last_pos;
-            if is_l && self.inc_stage == 3 {
+            let is_header = self.include_state == 3;
+            self.include_state = 0;
+            if !is_l && is_header {
                 let head_name = tok::HeaderName { span, name };
                 return Some(Ok(tok::PreprocessingToken::HeaderName(head_name)));
             } else {
+                println!("\nis not header: {}, {}\n", is_l, is_header);
                 let str_lit = tok::StringLiteral { span, name };
                 return Some(Ok(tok::PreprocessingToken::StringLiteral(str_lit)));
             }
         }
 
-        if c.is_ascii_alphabetic() || c == '_' {
-            name.push(c);
-            let mut last_pos = self.pos;
-            while let Some(&next_c) = self.chars.peek() {
-                if next_c.is_ascii_alphanumeric() || next_c == '_' {
-                    name.push(self.chars.next()?);
-                    last_pos += 1;
-                } else {
-                    break;
-                }
-            }
-            span.location = (self.pos, last_pos);
-            let ident = tok::Identifier { span, name };
-            self.pos = last_pos;
-            if self.inc_stage == 2 {
-                self.inc_stage = 3;
-            }
-            return Some(Ok(tok::PreprocessingToken::Identifier(ident)));
-        }
-
         match c {
             // punctuator without trailing characters
             '[' | ']' | '(' | ')' | '{' | '}' | '!' | '?' | ',' | '~' | ':' | ';' => {
+                self.include_state = 0;
                 let span = tok::Span {
                     location: (self.pos, self.pos),
                     file_key: self.file_key,
@@ -129,7 +110,29 @@ impl Iterator for Lexer<'_> {
                 };
                 Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
             }
+            'a'..='z' | 'A'..='Z' | '_' => {
+                name.push(c);
+                let mut last_pos = self.pos;
+                while let Some(&next_c) = self.chars.peek() {
+                    if next_c.is_ascii_alphanumeric() || next_c == '_' {
+                        name.push(self.chars.next()?);
+                        last_pos += 1;
+                    } else {
+                        break;
+                    }
+                }
+                span.location = (self.pos, last_pos);
+                self.pos = last_pos;
+                if self.include_state == 2 && name == "include" {
+                    self.include_state = 3;
+                } else {
+                    self.include_state = 0;
+                }
+                let ident = tok::Identifier { span, name };
+                Some(Ok(tok::PreprocessingToken::Identifier(ident)))
+            }
             '0'..='9' => {
+                self.include_state = 0;
                 name.push(c);
                 let mut last_pos = self.pos;
                 while let Some(&next_c) = self.chars.peek() {
@@ -161,13 +164,14 @@ impl Iterator for Lexer<'_> {
             }
             '.' => {
                 // case: `.`
+                self.include_state = 0;
                 name.push(c);
-                let mut last_pos = self.pos;
                 let Some(&next_c) = self.chars.peek() else {
-                    span.location = (self.pos, last_pos);
+                    span.location = (self.pos, self.pos);
                     let punct = tok::Punctuator { span, name };
                     return Some(Ok(tok::PreprocessingToken::Punctuator(punct)));
                 };
+                let mut last_pos = self.pos;
                 if next_c == '.' {
                     // case: `..`
                     name.push(self.chars.next()?);
@@ -186,6 +190,7 @@ impl Iterator for Lexer<'_> {
                         Some(Err(LexicalError::InvalidToken(span)))
                     }
                 } else if next_c.is_ascii_digit() {
+                    // case: `.[0-9]`
                     while let Some(&next_c) = self.chars.peek() {
                         if next_c.is_ascii_digit() || next_c == '.' {
                             name.push(self.chars.next()?);
@@ -212,8 +217,27 @@ impl Iterator for Lexer<'_> {
                     let num = tok::PPNumber { span, name };
                     Some(Ok(tok::PreprocessingToken::PPNumber(num)))
                 } else {
-                    todo!();
+                    span.location = (self.pos, last_pos);
+                    self.pos = last_pos;
+                    Some(Err(LexicalError::InvalidToken(span)))
                 }
+            }
+            '#' => {
+                name.push(c);
+                if self.include_state == 1 {
+                    self.include_state = 2;
+                }
+                let last_pos;
+                if let Some('#') = self.chars.peek() {
+                    name.push(self.chars.next()?);
+                    last_pos = self.pos + 1;
+                    self.include_state = 0;
+                } else {
+                    last_pos = self.pos;
+                }
+                span.location = (self.pos, last_pos);
+                let punct = tok::Punctuator { span, name };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
             }
             _ => todo!("{}", c as i32),
         }

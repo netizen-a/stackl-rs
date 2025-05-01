@@ -1,3 +1,4 @@
+#include "hello.h"
 int main() {
 	return 0;
 }
