@@ -61,10 +61,105 @@ pub struct StringLiteral {
     pub name: String,
 }
 
+#[non_exhaustive]
 #[derive(Debug)]
-pub struct Punctuator {
-    pub span: Span,
-    pub name: String,
+pub enum Punctuator {
+    /// `[`
+    LSquare(Span),
+    /// `]`
+    RSquare(Span),
+    /// `(`
+    LParen(Span),
+    /// `)`
+    RParen(Span),
+    /// `{`
+    LCurly(Span),
+    /// `}`
+    RCurly(Span),
+    /// `.`
+    Dot(Span),
+    /// `->
+    Arrow(Span),
+    /// `++`
+    PlusPlus(Span),
+    /// --
+    MinusMinus(Span),
+    /// &
+    Amp(Span),
+    /// `*`
+    Star(Span),
+    /// `+`
+    Plus(Span),
+    /// `-`
+    Minus(Span),
+    /// `~`
+    Tilde(Span),
+    /// `!`
+    Bang(Span),
+    /// `/`
+    FSlash(Span),
+    /// `%`
+    Percent(Span),
+    /// `<<`
+    LessLess(Span),
+    /// `>>`
+    GreatGreat(Span),
+    /// `<`
+    Less(Span),
+    /// `>`
+    Great(Span),
+    /// `<=`
+    LessEqual(Span),
+    /// `>=`
+    GreatEqual(Span),
+    /// `==`
+    EqualEqual(Span),
+    /// `!=`
+    BangEqual(Span),
+    /// `^`
+    Caret(Span),
+    /// `|`
+    VBar(Span),
+    /// `&&`
+    AmpAmp(Span),
+    /// `||`
+    VBarVBar(Span),
+    /// `?`
+    QMark(Span),
+    /// `:`
+    Colon(Span),
+    /// `;`
+    SemiColon(Span),
+    /// `...`
+    Ellipsis(Span),
+    /// `=`
+    Equal(Span),
+    /// `*=`
+    StarEqual(Span),
+    /// `/=`
+    FSlashEqual(Span),
+    /// `%=`
+    PercentEqual(Span),
+    /// `+=`
+    PlusEqual(Span),
+    /// `-=`
+    MinusEqual(Span),
+    /// `<<=`
+    LessLessEqual(Span),
+    /// `>>=`
+    GreatGreatEqual(Span),
+    /// `&=`
+    AmpEqual(Span),
+    /// `^=`
+    CaretEqual(Span),
+    /// `|=`
+    VBarEqual(Span),
+    /// `,`
+    Comma(Span),
+    /// `#`
+    Hash(Span),
+    /// `##`
+    HashHash(Span),
 }
 
 #[derive(Debug)]
@@ -88,7 +183,6 @@ pub struct CharacterConstant {
 #[derive(Debug)]
 pub struct NewLine {
     pub span: Span,
-    pub name: String,
 }
 
 #[derive(Debug)]

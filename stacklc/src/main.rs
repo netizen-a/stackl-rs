@@ -10,21 +10,28 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     };
 
-    return ExitCode::SUCCESS;
+    ExitCode::SUCCESS
 }
 
 #[cfg(test)]
 mod tests {
     use super::lex;
-    use super::lex::elements as tok;
     use std::{fs, io::Read};
     #[test]
     fn lexical_analysis() {
-        let mut file = fs::File::open("tests/test01.c").unwrap();
+        let mut file = fs::File::open("tests/macro_expansion_tests.c").unwrap();
         let mut buf = String::new();
         file.read_to_string(&mut buf).unwrap();
         let lexer = lex::lexer::Lexer::new(&buf, 0);
-        let tokens: Vec<tok::PreprocessingToken> = lexer.map(|t| t.unwrap()).collect();
-        println!("tokens: {tokens:?}");
+        for token in lexer {
+            match token {
+                Ok(pp_token) => {
+                    println!("ok: {pp_token:?}");
+                }
+                Err(lex_err) => {
+                    eprintln!("err: {lex_err:?}");
+                }
+            }
+        }
     }
 }
