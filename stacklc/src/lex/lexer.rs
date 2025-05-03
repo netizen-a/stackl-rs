@@ -141,7 +141,7 @@ impl Iterator for Lexer<'_> {
                     if next_c.is_ascii_digit() || next_c == '.' {
                         name.push(self.chars.next()?);
                         last_pos += 1;
-                    } else if next_c.is_ascii_alphabetic() {
+                    } else if next_c.is_ascii_alphabetic() || next_c == '_' {
                         name.push(self.chars.next()?);
                         if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
                             let Some(&sign) = self.chars.peek() else {
@@ -197,7 +197,7 @@ impl Iterator for Lexer<'_> {
                         if next_c.is_ascii_digit() || next_c == '.' {
                             name.push(self.chars.next()?);
                             last_pos += 1;
-                        } else if next_c.is_ascii_alphabetic() {
+                        } else if next_c.is_ascii_alphabetic() || next_c == '_' {
                             name.push(self.chars.next()?);
                             if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
                                 let Some(&sign) = self.chars.peek() else {
