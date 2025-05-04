@@ -85,10 +85,43 @@ impl Iterator for Lexer<'_> {
                 let head_name = tok::HeaderName { span, name };
                 return Some(Ok(tok::PreprocessingToken::HeaderName(head_name)));
             } else {
-                println!("\nis not header: {}, {}\n", is_l, is_header);
                 let str_lit = tok::StringLiteral { span, name };
                 return Some(Ok(tok::PreprocessingToken::StringLiteral(str_lit)));
             }
+        }
+        if c == '\'' || c == 'L' && self.chars.peek().is_some_and(|&val| val == '\'') {
+            self.include_state = 0;
+            let is_l = c == 'L';
+            if is_l {
+                name.push(c);
+                c = self.chars.next()?;
+                self.pos += 1;
+            }
+            name.push(c);
+            while let Some(next_c) = self.chars.next() {
+                name.push(next_c);
+                self.pos += 1;
+                if next_c == '\\' {
+                    span.location = (start_pos, self.pos);
+                    let Some(&next_c) = self.chars.peek() else {
+                        return Some(Err(LexicalError::UnexpectedEof(span)));
+                    };
+                    match next_c {
+                        '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
+                            name.push(next_c);
+                            self.pos += 1;
+                        }
+                        _ => {
+                            return Some(Err(LexicalError::UnexpectedEscape(span)));
+                        }
+                    }
+                } else if next_c == '\'' {
+                    break;
+                }
+            }
+            span.location = (start_pos, self.pos);
+            let str_lit = tok::StringLiteral { span, name };
+            return Some(Ok(tok::PreprocessingToken::StringLiteral(str_lit)));
         }
 
         match c {
@@ -228,21 +261,15 @@ impl Iterator for Lexer<'_> {
                     self.include_state = 0;
                     self.pos += 1;
                     span.location = (start_pos, self.pos);
-                    let punct = tok::Punctuator {
-                        span,
-                        term: tok::PunctuatorTerminal::HashHash,
-                    };
-                    Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
-                } else {
-                    let punct = tok::Punctuator {
-                        span,
-                        term: tok::PunctuatorTerminal::Hash,
-                    };
-                    Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
                 }
+                let punct = tok::Punctuator {
+                    span,
+                    term: tok::PunctuatorTerminal::Hash,
+                };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
             }
             '<' => {
-                if self.include_state == 3 {
+                let term = if self.include_state == 3 {
                     while let Some(next_c) = self.chars.next_if(|&c| c != '>' && c != '\n') {
                         name.push(next_c);
                         self.pos += 1;
@@ -251,33 +278,36 @@ impl Iterator for Lexer<'_> {
                     if let Some(c) = self.chars.next_if_eq(&'>') {
                         name.push(c);
                         let hname = tok::HeaderName { span, name };
-                        Some(Ok(tok::PreprocessingToken::HeaderName(hname)))
+                        return Some(Ok(tok::PreprocessingToken::HeaderName(hname)));
                     } else if let Some(&'\n') = self.chars.peek() {
-                        Some(Err(LexicalError::InvalidToken(span)))
+                        return Some(Err(LexicalError::InvalidToken(span)));
                     } else {
-                        Some(Err(LexicalError::UnexpectedEof(span)))
+                        return Some(Err(LexicalError::UnexpectedEof(span)));
                     }
                 } else if self.chars.next_if_eq(&'<').is_some() {
                     // case: `<<`
-                    todo!()
+                    todo!("<<")
                 } else if self.chars.next_if_eq(&':').is_some() {
-                    // case: `<:`
-                    name.clear();
+                    // case: `<:` => `[`
                     self.pos += 1;
-                    todo!()
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::LSquare
                 } else if self.chars.next_if_eq(&'%').is_some() {
-                    // case: `<%`
-                    name.clear();
-                    name.push('{');
+                    // case: `<%` => `{`
                     self.pos += 1;
-                    todo!();
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::LCurly
                 } else {
                     // case: `<`
-                    todo!();
-                }
+                    tok::PunctuatorTerminal::Less
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
             }
             '/' => {
-                if self.chars.next_if_eq(&'/').is_some() {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'/').is_some() {
+                    // case: `//`
                     self.pos += 1;
                     while self.chars.next_if(|c| *c != '\n').is_some() {
                         self.pos += 1;
@@ -287,21 +317,115 @@ impl Iterator for Lexer<'_> {
                         self.pos += 1;
                         span.location = (self.pos - 1, self.pos);
                         let new_line = tok::NewLine { span };
-                        Some(Ok(tok::PreprocessingToken::NewLine(new_line)))
+                        return Some(Ok(tok::PreprocessingToken::NewLine(new_line)));
                     } else {
-                        None
+                        return None;
                     }
                 } else if self.chars.next_if_eq(&'=').is_some() {
-                    todo!("'/='")
+                    // case: `/=`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::PlusEqual
                 } else {
-                    todo!()
-                }
+                    tok::PunctuatorTerminal::Plus
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
             }
-            // '+' => {
-            //     if self.chars.next_if_eq(&'+') {
-            //         self.pos += 1;
-            //     }
-            // }
+            '+' => {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'+').is_some() {
+                    // case: `++`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::PlusPlus
+                } else if self.chars.next_if_eq(&'=').is_some() {
+                    // case: `+=`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::PlusEqual
+                } else {
+                    // case: `+`
+                    tok::PunctuatorTerminal::Plus
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
+            '-' => {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'-').is_some() {
+                    // case: `--`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::MinusMinus
+                } else if self.chars.next_if_eq(&'=').is_some() {
+                    // case: `+=`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::MinusEqual
+                } else {
+                    // case: `+`
+                    tok::PunctuatorTerminal::Minus
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
+            '=' => {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'=').is_some() {
+                    // case: `==`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::EqualEqual
+                } else {
+                    // case: `=`
+                    tok::PunctuatorTerminal::Equal
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
+            '*' => {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'=').is_some() {
+                    // case: `*=`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::StarEqual
+                } else {
+                    // case: `*`
+                    tok::PunctuatorTerminal::Star
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
+            ':' => {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'>').is_some() {
+                    // case: `:>`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::RSquare
+                } else {
+                    // case: `:`
+                    tok::PunctuatorTerminal::Colon
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
+            '!' => {
+                self.include_state = 0;
+                let term = if self.chars.next_if_eq(&'=').is_some() {
+                    // case: `!=`
+                    self.pos += 1;
+                    span.location = (start_pos, self.pos);
+                    tok::PunctuatorTerminal::BangEqual
+                } else {
+                    // case: `!`
+                    tok::PunctuatorTerminal::Bang
+                };
+                let punct = tok::Punctuator { span, term };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
             _ => todo!("{}", c as i32),
         }
     }
