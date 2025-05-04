@@ -38,8 +38,32 @@ impl<'a> Lexer<'a> {
         todo!("header-name")
     }
     #[allow(dead_code)]
-    fn identifier(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
-        todo!("identifier")
+    fn identifier(
+        &mut self,
+        c: char,
+        start_pos: isize,
+    ) -> Result<tok::PreprocessingToken, LexicalError> {
+        let mut span = tok::Span {
+            location: (start_pos, self.pos),
+            file_key: self.file_key,
+        };
+        let mut name = String::new();
+        name.push(c);
+        while let Some(next_c) = self
+            .chars
+            .next_if(|&c| c.is_ascii_alphanumeric() || c == '_')
+        {
+            name.push(next_c);
+            self.pos += 1;
+        }
+        span.location = (start_pos, self.pos);
+        if self.include_state == 2 && name == "include" {
+            self.include_state = 3;
+        } else {
+            self.include_state = 0;
+        }
+        let ident = tok::Identifier { span, name };
+        Ok(tok::PreprocessingToken::Identifier(ident))
     }
     #[allow(dead_code)]
     fn pp_number(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
@@ -181,7 +205,6 @@ impl Iterator for Lexer<'_> {
         {
             self.pos += 1;
         }
-        let mut name = String::new();
         let c = self.chars.next()?;
         let start_pos = self.pos;
         self.pos += 1;
@@ -197,6 +220,7 @@ impl Iterator for Lexer<'_> {
             return Some(self.character_constant(c, start_pos));
         }
 
+        let mut name = String::new();
         match c {
             '\n' => {
                 self.include_state = 1;
@@ -217,25 +241,7 @@ impl Iterator for Lexer<'_> {
             }
 
             // identifier
-            'a'..='z' | 'A'..='Z' | '_' => {
-                name.push(c);
-                while let Some(&next_c) = self.chars.peek() {
-                    if next_c.is_ascii_alphanumeric() || next_c == '_' {
-                        name.push(self.chars.next()?);
-                        self.pos += 1;
-                    } else {
-                        break;
-                    }
-                }
-                span.location = (start_pos, self.pos);
-                if self.include_state == 2 && name == "include" {
-                    self.include_state = 3;
-                } else {
-                    self.include_state = 0;
-                }
-                let ident = tok::Identifier { span, name };
-                Some(Ok(tok::PreprocessingToken::Identifier(ident)))
-            }
+            'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier(c, start_pos)),
             // pp-number
             '0'..='9' => {
                 self.include_state = 0;
