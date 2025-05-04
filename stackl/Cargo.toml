@@ -27,7 +27,7 @@ path = "src/lib/mod.rs"
 
 [[bin]]
 name="stackl"
-path="src/bin/stackl/main.rs"
+path="src/bin/stackl-vm/main.rs"
 
 [[bin]]
 name="stackl-as"
