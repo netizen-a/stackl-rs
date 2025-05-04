@@ -98,33 +98,7 @@ impl<'a> Lexer<'a> {
             self.pos += 1;
         }
         name.push(c);
-        while let Some(next_c) = self.chars.next() {
-            name.push(next_c);
-            self.pos += 1;
-            if next_c == '\\' {
-                span.location.1 = self.pos;
-                let Some(&next_c) = self.chars.peek() else {
-                    return Err(LexicalError {
-                        kind: LexicalErrorKind::UnexpectedEof,
-                        span,
-                    });
-                };
-                match next_c {
-                    '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
-                        name.push(next_c);
-                        self.pos += 1;
-                    }
-                    _ => {
-                        return Err(LexicalError {
-                            kind: LexicalErrorKind::UnexpectedEscape,
-                            span,
-                        });
-                    }
-                }
-            } else if next_c == '\'' {
-                break;
-            }
-        }
+        name.push_str(&self.c_char_sequence(start_pos)?);
         span.location.1 = self.pos;
         let str_lit = tok::CharacterConstant { span, name };
         Ok(tok::PreprocessingToken::CharacterConstant(str_lit))
@@ -191,6 +165,8 @@ impl<'a> Lexer<'a> {
             '0'..='7' => todo!("octal-escape-sequence"),
             // [c89] hexadecimal-escape-sequence
             'x' => todo!("hexadecimal-escape-sequence"),
+            // [c99] universal-character-name
+            // 'u' | 'U' => todo!("universal-character-name"),
             _ => Err(LexicalError {
                 kind: LexicalErrorKind::UnexpectedEscape,
                 span,
@@ -201,6 +177,18 @@ impl<'a> Lexer<'a> {
     fn s_char_sequence(&mut self, start_pos: isize) -> Result<String, LexicalError> {
         let mut seq = String::new();
         while let Some(c) = self.chars.next_if(|&c| c != '\"' && c != '\n') {
+            let s_char = if c == '\\' {
+                self.escape_sequence(start_pos)?
+            } else {
+                c
+            };
+            seq.push(s_char)
+        }
+        Ok(seq)
+    }
+    fn c_char_sequence(&mut self, start_pos: isize) -> Result<String, LexicalError> {
+        let mut seq = String::new();
+        while let Some(c) = self.chars.next_if(|&c| c != '\'' && c != '\n') {
             let s_char = if c == '\\' {
                 self.escape_sequence(start_pos)?
             } else {

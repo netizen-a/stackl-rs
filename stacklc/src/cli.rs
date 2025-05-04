@@ -12,6 +12,7 @@ pub struct Args {
     pub in_file: PathBuf,
     pub out_file: Option<PathBuf>,
     pub standard: Standard,
+    pub stdout_pp: bool,
 }
 
 impl Args {
@@ -23,6 +24,7 @@ impl Args {
                 .default_value("c89")
                 .value_names(["c89"]),
             clap::Arg::new("output").short('o'),
+            clap::Arg::new("stdout-preproc").short('E'),
         ];
 
         let cmd = clap::Command::new("stacklc")
@@ -49,10 +51,13 @@ impl Args {
             .cloned()
             .map(PathBuf::from);
 
+        let stdout_pp = *matches.get_one::<bool>("stdout-preproc").unwrap();
+
         Self {
             in_file,
             out_file,
             standard,
+            stdout_pp,
         }
     }
 }
