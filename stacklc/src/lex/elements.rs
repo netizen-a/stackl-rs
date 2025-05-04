@@ -63,103 +63,129 @@ pub struct StringLiteral {
 
 #[non_exhaustive]
 #[derive(Debug)]
-pub enum Punctuator {
+pub enum PunctuatorTerminal {
     /// `[`
-    LSquare(Span),
+    LSquare,
     /// `]`
-    RSquare(Span),
+    RSquare,
     /// `(`
-    LParen(Span),
+    LParen,
     /// `)`
-    RParen(Span),
+    RParen,
     /// `{`
-    LCurly(Span),
+    LCurly,
     /// `}`
-    RCurly(Span),
+    RCurly,
     /// `.`
-    Dot(Span),
+    Dot,
     /// `->
-    Arrow(Span),
+    Arrow,
     /// `++`
-    PlusPlus(Span),
+    PlusPlus,
     /// --
-    MinusMinus(Span),
+    MinusMinus,
     /// &
-    Amp(Span),
+    Amp,
     /// `*`
-    Star(Span),
+    Star,
     /// `+`
-    Plus(Span),
+    Plus,
     /// `-`
-    Minus(Span),
+    Minus,
     /// `~`
-    Tilde(Span),
+    Tilde,
     /// `!`
-    Bang(Span),
+    Bang,
     /// `/`
-    FSlash(Span),
+    FSlash,
     /// `%`
-    Percent(Span),
+    Percent,
     /// `<<`
-    LessLess(Span),
+    LessLess,
     /// `>>`
-    GreatGreat(Span),
+    GreatGreat,
     /// `<`
-    Less(Span),
+    Less,
     /// `>`
-    Great(Span),
+    Great,
     /// `<=`
-    LessEqual(Span),
+    LessEqual,
     /// `>=`
-    GreatEqual(Span),
+    GreatEqual,
     /// `==`
-    EqualEqual(Span),
+    EqualEqual,
     /// `!=`
-    BangEqual(Span),
+    BangEqual,
     /// `^`
-    Caret(Span),
+    Caret,
     /// `|`
-    VBar(Span),
+    VBar,
     /// `&&`
-    AmpAmp(Span),
+    AmpAmp,
     /// `||`
-    VBarVBar(Span),
+    VBarVBar,
     /// `?`
-    QMark(Span),
+    QMark,
     /// `:`
-    Colon(Span),
+    Colon,
     /// `;`
-    SemiColon(Span),
+    SemiColon,
     /// `...`
-    Ellipsis(Span),
+    Ellipsis,
     /// `=`
-    Equal(Span),
+    Equal,
     /// `*=`
-    StarEqual(Span),
+    StarEqual,
     /// `/=`
-    FSlashEqual(Span),
+    FSlashEqual,
     /// `%=`
-    PercentEqual(Span),
+    PercentEqual,
     /// `+=`
-    PlusEqual(Span),
+    PlusEqual,
     /// `-=`
-    MinusEqual(Span),
+    MinusEqual,
     /// `<<=`
-    LessLessEqual(Span),
+    LessLessEqual,
     /// `>>=`
-    GreatGreatEqual(Span),
+    GreatGreatEqual,
     /// `&=`
-    AmpEqual(Span),
+    AmpEqual,
     /// `^=`
-    CaretEqual(Span),
+    CaretEqual,
     /// `|=`
-    VBarEqual(Span),
+    VBarEqual,
     /// `,`
-    Comma(Span),
+    Comma,
     /// `#`
-    Hash(Span),
+    Hash,
     /// `##`
-    HashHash(Span),
+    HashHash,
+}
+
+impl TryFrom<char> for PunctuatorTerminal {
+    type Error = super::error::TryFromCharError;
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        use PunctuatorTerminal::*;
+        match value {
+            '[' => Ok(LSquare),
+            ']' => Ok(RSquare),
+            '(' => Ok(LParen),
+            ')' => Ok(RParen),
+            '{' => Ok(LCurly),
+            '}' => Ok(RCurly),
+            '?' => Ok(QMark),
+            ',' => Ok(Comma),
+            '~' => Ok(Tilde),
+            ';' => Ok(SemiColon),
+            _ => Err(super::error::TryFromCharError(())),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Punctuator {
+    pub span: Span,
+    pub term: PunctuatorTerminal,
 }
 
 #[derive(Debug)]

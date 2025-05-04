@@ -3,15 +3,6 @@ use std::str::Chars;
 
 use super::elements as tok;
 
-macro_rules! punctuator_token {
-    ($this:ident, $punct:ident, $span:ident, $start_pos:ident) => {{
-        $this.include_state = 0;
-        $span.location = ($start_pos, $this.pos);
-        let punct = tok::Punctuator::$punct($span);
-        Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
-    }};
-}
-
 #[derive(Debug)]
 pub enum LexicalError {
     UnexpectedEof(tok::Span),
@@ -109,16 +100,15 @@ impl Iterator for Lexer<'_> {
                 Some(Ok(tok::PreprocessingToken::NewLine(new_line)))
             }
             // punctuators without trailing characters
-            '[' => punctuator_token!(self, LSquare, span, start_pos),
-            ']' => punctuator_token!(self, RSquare, span, start_pos),
-            '(' => punctuator_token!(self, LParen, span, start_pos),
-            ')' => punctuator_token!(self, RParen, span, start_pos),
-            '{' => punctuator_token!(self, LCurly, span, start_pos),
-            '}' => punctuator_token!(self, RCurly, span, start_pos),
-            '?' => punctuator_token!(self, QMark, span, start_pos),
-            ',' => punctuator_token!(self, QMark, span, start_pos),
-            '~' => punctuator_token!(self, QMark, span, start_pos),
-            ';' => punctuator_token!(self, QMark, span, start_pos),
+            '[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
+                self.include_state = 0;
+                span.location = (start_pos, self.pos);
+                let punct = tok::Punctuator {
+                    span,
+                    term: tok::PunctuatorTerminal::try_from(c).unwrap(),
+                };
+                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
 
             // identifier
             'a'..='z' | 'A'..='Z' | '_' => {
@@ -176,7 +166,10 @@ impl Iterator for Lexer<'_> {
                 name.push(c);
                 let Some(&next_c) = self.chars.peek() else {
                     span.location = (self.pos, self.pos);
-                    let punct = tok::Punctuator::Dot(span);
+                    let punct = tok::Punctuator {
+                        span,
+                        term: tok::PunctuatorTerminal::Dot,
+                    };
                     return Some(Ok(tok::PreprocessingToken::Punctuator(punct)));
                 };
                 if next_c == '.' {
@@ -235,10 +228,16 @@ impl Iterator for Lexer<'_> {
                     self.include_state = 0;
                     self.pos += 1;
                     span.location = (start_pos, self.pos);
-                    let punct = tok::Punctuator::HashHash(span);
+                    let punct = tok::Punctuator {
+                        span,
+                        term: tok::PunctuatorTerminal::HashHash,
+                    };
                     Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
                 } else {
-                    let punct = tok::Punctuator::Hash(span);
+                    let punct = tok::Punctuator {
+                        span,
+                        term: tok::PunctuatorTerminal::Hash,
+                    };
                     Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
                 }
             }
