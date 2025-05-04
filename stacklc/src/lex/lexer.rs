@@ -102,8 +102,67 @@ impl<'a> Lexer<'a> {
         Ok(tok::PreprocessingToken::StringLiteral(str_lit))
     }
     #[allow(dead_code)]
-    fn string_literal(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
-        todo!("string-literal")
+    fn string_literal(
+        &mut self,
+        mut c: char,
+        start_pos: isize,
+    ) -> Result<tok::PreprocessingToken, LexicalError> {
+        let mut span = tok::Span {
+            location: (start_pos, self.pos),
+            file_key: self.file_key,
+        };
+        let mut name = String::new();
+        let is_l = c == 'L';
+        if is_l {
+            name.push(c);
+            if let Some(next_c) = self.chars.next() {
+                c = next_c;
+            } else {
+                return Err(LexicalError {
+                    kind: LexicalErrorKind::UnexpectedEof,
+                    span,
+                });
+            }
+            self.pos += 1;
+        }
+        name.push(c);
+        while let Some(next_c) = self.chars.next() {
+            name.push(next_c);
+            self.pos += 1;
+            if next_c == '\\' {
+                span.location = (start_pos, self.pos);
+                let Some(&next_c) = self.chars.peek() else {
+                    return Err(LexicalError {
+                        kind: LexicalErrorKind::UnexpectedEof,
+                        span,
+                    });
+                };
+                match next_c {
+                    '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
+                        name.push(next_c);
+                        self.pos += 1;
+                    }
+                    _ => {
+                        return Err(LexicalError {
+                            kind: LexicalErrorKind::UnexpectedEscape,
+                            span,
+                        });
+                    }
+                }
+            } else if next_c == '"' {
+                break;
+            }
+        }
+        span.location = (start_pos, self.pos);
+        let is_header = self.include_state == 3;
+        self.include_state = 0;
+        if !is_l && is_header {
+            let head_name = tok::HeaderName { span, name };
+            Ok(tok::PreprocessingToken::HeaderName(head_name))
+        } else {
+            let str_lit = tok::StringLiteral { span, name };
+            Ok(tok::PreprocessingToken::StringLiteral(str_lit))
+        }
     }
     #[allow(dead_code)]
     fn punctuator(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
@@ -123,7 +182,7 @@ impl Iterator for Lexer<'_> {
             self.pos += 1;
         }
         let mut name = String::new();
-        let mut c = self.chars.next()?;
+        let c = self.chars.next()?;
         let start_pos = self.pos;
         self.pos += 1;
         let mut span = tok::Span {
@@ -132,50 +191,7 @@ impl Iterator for Lexer<'_> {
         };
 
         if c == '"' || c == 'L' && self.chars.peek().is_some_and(|&val| val == '"') {
-            let is_l = c == 'L';
-            if is_l {
-                name.push(c);
-                c = self.chars.next()?;
-                self.pos += 1;
-            }
-            name.push(c);
-            while let Some(next_c) = self.chars.next() {
-                name.push(next_c);
-                self.pos += 1;
-                if next_c == '\\' {
-                    span.location = (start_pos, self.pos);
-                    let Some(&next_c) = self.chars.peek() else {
-                        return Some(Err(LexicalError {
-                            kind: LexicalErrorKind::UnexpectedEof,
-                            span,
-                        }));
-                    };
-                    match next_c {
-                        '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
-                            name.push(next_c);
-                            self.pos += 1;
-                        }
-                        _ => {
-                            return Some(Err(LexicalError {
-                                kind: LexicalErrorKind::UnexpectedEscape,
-                                span,
-                            }));
-                        }
-                    }
-                } else if next_c == '"' {
-                    break;
-                }
-            }
-            span.location = (start_pos, self.pos);
-            let is_header = self.include_state == 3;
-            self.include_state = 0;
-            if !is_l && is_header {
-                let head_name = tok::HeaderName { span, name };
-                return Some(Ok(tok::PreprocessingToken::HeaderName(head_name)));
-            } else {
-                let str_lit = tok::StringLiteral { span, name };
-                return Some(Ok(tok::PreprocessingToken::StringLiteral(str_lit)));
-            }
+            return Some(self.string_literal(c, start_pos));
         }
         if c == '\'' || c == 'L' && self.chars.peek().is_some_and(|&val| val == '\'') {
             return Some(self.character_constant(c, start_pos));
