@@ -4,10 +4,16 @@ use std::str::Chars;
 use super::elements as tok;
 
 #[derive(Debug)]
-pub enum LexicalError {
-    UnexpectedEof(tok::Span),
-    UnexpectedEscape(tok::Span),
-    InvalidToken(tok::Span),
+pub enum LexicalErrorKind {
+    UnexpectedEof,
+    UnexpectedEscape,
+    InvalidToken,
+}
+
+#[derive(Debug)]
+pub struct LexicalError {
+    pub kind: LexicalErrorKind,
+    pub span: tok::Span,
 }
 
 #[derive(Debug)]
@@ -26,6 +32,82 @@ impl<'a> Lexer<'a> {
             file_key,
             include_state: 1,
         }
+    }
+    #[allow(dead_code)]
+    fn header_name(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+        todo!("header-name")
+    }
+    #[allow(dead_code)]
+    fn identifier(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+        todo!("identifier")
+    }
+    #[allow(dead_code)]
+    fn pp_number(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+        todo!("pp-number")
+    }
+    fn character_constant(
+        &mut self,
+        mut c: char,
+        start_pos: isize,
+    ) -> Result<tok::PreprocessingToken, LexicalError> {
+        let mut span = tok::Span {
+            location: (start_pos, self.pos),
+            file_key: self.file_key,
+        };
+        let mut name = String::new();
+        self.include_state = 0;
+        let is_l = c == 'L';
+        if is_l {
+            name.push(c);
+            if let Some(next_c) = self.chars.next() {
+                c = next_c;
+            } else {
+                return Err(LexicalError {
+                    kind: LexicalErrorKind::UnexpectedEof,
+                    span,
+                });
+            }
+            self.pos += 1;
+        }
+        name.push(c);
+        while let Some(next_c) = self.chars.next() {
+            name.push(next_c);
+            self.pos += 1;
+            if next_c == '\\' {
+                span.location.1 = self.pos;
+                let Some(&next_c) = self.chars.peek() else {
+                    return Err(LexicalError {
+                        kind: LexicalErrorKind::UnexpectedEof,
+                        span,
+                    });
+                };
+                match next_c {
+                    '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
+                        name.push(next_c);
+                        self.pos += 1;
+                    }
+                    _ => {
+                        return Err(LexicalError {
+                            kind: LexicalErrorKind::UnexpectedEscape,
+                            span,
+                        });
+                    }
+                }
+            } else if next_c == '\'' {
+                break;
+            }
+        }
+        span.location.1 = self.pos;
+        let str_lit = tok::StringLiteral { span, name };
+        Ok(tok::PreprocessingToken::StringLiteral(str_lit))
+    }
+    #[allow(dead_code)]
+    fn string_literal(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+        todo!("string-literal")
+    }
+    #[allow(dead_code)]
+    fn punctuator(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+        todo!("punctuator")
     }
 }
 
@@ -63,7 +145,10 @@ impl Iterator for Lexer<'_> {
                 if next_c == '\\' {
                     span.location = (start_pos, self.pos);
                     let Some(&next_c) = self.chars.peek() else {
-                        return Some(Err(LexicalError::UnexpectedEof(span)));
+                        return Some(Err(LexicalError {
+                            kind: LexicalErrorKind::UnexpectedEof,
+                            span,
+                        }));
                     };
                     match next_c {
                         '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
@@ -71,7 +156,10 @@ impl Iterator for Lexer<'_> {
                             self.pos += 1;
                         }
                         _ => {
-                            return Some(Err(LexicalError::UnexpectedEscape(span)));
+                            return Some(Err(LexicalError {
+                                kind: LexicalErrorKind::UnexpectedEscape,
+                                span,
+                            }));
                         }
                     }
                 } else if next_c == '"' {
@@ -90,38 +178,7 @@ impl Iterator for Lexer<'_> {
             }
         }
         if c == '\'' || c == 'L' && self.chars.peek().is_some_and(|&val| val == '\'') {
-            self.include_state = 0;
-            let is_l = c == 'L';
-            if is_l {
-                name.push(c);
-                c = self.chars.next()?;
-                self.pos += 1;
-            }
-            name.push(c);
-            while let Some(next_c) = self.chars.next() {
-                name.push(next_c);
-                self.pos += 1;
-                if next_c == '\\' {
-                    span.location = (start_pos, self.pos);
-                    let Some(&next_c) = self.chars.peek() else {
-                        return Some(Err(LexicalError::UnexpectedEof(span)));
-                    };
-                    match next_c {
-                        '\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
-                            name.push(next_c);
-                            self.pos += 1;
-                        }
-                        _ => {
-                            return Some(Err(LexicalError::UnexpectedEscape(span)));
-                        }
-                    }
-                } else if next_c == '\'' {
-                    break;
-                }
-            }
-            span.location = (start_pos, self.pos);
-            let str_lit = tok::StringLiteral { span, name };
-            return Some(Ok(tok::PreprocessingToken::StringLiteral(str_lit)));
+            return Some(self.character_constant(c, start_pos));
         }
 
         match c {
@@ -176,7 +233,10 @@ impl Iterator for Lexer<'_> {
                         if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
                             let Some(&sign) = self.chars.peek() else {
                                 span.location = (start_pos, self.pos);
-                                return Some(Err(LexicalError::UnexpectedEof(span)));
+                                return Some(Err(LexicalError {
+                                    kind: LexicalErrorKind::UnexpectedEof,
+                                    span,
+                                }));
                             };
                             if matches!(sign, '-' | '+' | '0'..='9') {
                                 name.push(self.chars.next()?);
@@ -218,7 +278,10 @@ impl Iterator for Lexer<'_> {
                         Some(Ok(tok::PreprocessingToken::PPNumber(num)))
                     } else {
                         span.location = (start_pos, self.pos);
-                        Some(Err(LexicalError::InvalidToken(span)))
+                        Some(Err(LexicalError {
+                            kind: LexicalErrorKind::InvalidToken,
+                            span,
+                        }))
                     }
                 } else if next_c.is_ascii_digit() {
                     // case: `.[0-9]`
@@ -231,7 +294,10 @@ impl Iterator for Lexer<'_> {
                             if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
                                 let Some(&sign) = self.chars.peek() else {
                                     span.location = (start_pos, self.pos);
-                                    return Some(Err(LexicalError::UnexpectedEof(span)));
+                                    return Some(Err(LexicalError {
+                                        kind: LexicalErrorKind::UnexpectedEof,
+                                        span,
+                                    }));
                                 };
                                 if matches!(sign, '-' | '+' | '0'..='9') {
                                     name.push(self.chars.next()?);
@@ -249,7 +315,10 @@ impl Iterator for Lexer<'_> {
                     Some(Ok(tok::PreprocessingToken::PPNumber(num)))
                 } else {
                     span.location = (start_pos, self.pos);
-                    Some(Err(LexicalError::InvalidToken(span)))
+                    Some(Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span,
+                    }))
                 }
             }
             '#' => {
@@ -280,9 +349,15 @@ impl Iterator for Lexer<'_> {
                         let hname = tok::HeaderName { span, name };
                         return Some(Ok(tok::PreprocessingToken::HeaderName(hname)));
                     } else if let Some(&'\n') = self.chars.peek() {
-                        return Some(Err(LexicalError::InvalidToken(span)));
+                        return Some(Err(LexicalError {
+                            kind: LexicalErrorKind::InvalidToken,
+                            span,
+                        }));
                     } else {
-                        return Some(Err(LexicalError::UnexpectedEof(span)));
+                        return Some(Err(LexicalError {
+                            kind: LexicalErrorKind::UnexpectedEof,
+                            span,
+                        }));
                     }
                 } else if self.chars.next_if_eq(&'<').is_some() {
                     // case: `<<`
