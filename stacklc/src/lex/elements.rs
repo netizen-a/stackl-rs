@@ -1,46 +1,56 @@
 //! Lexical Elements
 
-#[derive(Debug)]
+use std::fmt;
+
+#[derive(Debug, Clone)]
 pub struct Span {
     pub location: (isize, isize),
     pub file_key: usize,
+    pub leading_tabs: usize,
+    pub leading_spaces: usize,
 }
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum Keyword {
-    Auto(Span),
-    Break(Span),
-    Case(Span),
-    Char(Span),
-    Const(Span),
-    Continue(Span),
-    Default(Span),
-    Do(Span),
-    Double(Span),
-    Else(Span),
-    Enum(Span),
-    Extern(Span),
-    Float(Span),
-    For(Span),
-    Goto(Span),
-    If(Span),
-    Int(Span),
-    Long(Span),
-    Register(Span),
-    Return(Span),
-    Short(Span),
-    Signed(Span),
-    SizeOf(Span),
-    Static(Span),
-    Struct(Span),
-    Switch(Span),
-    TypeDef(Span),
-    Union(Span),
-    Unsigned(Span),
-    Void(Span),
-    Volatile(Span),
-    While(Span),
+pub enum KeywordTerminal {
+    Auto,
+    Break,
+    Case,
+    Char,
+    Const,
+    Continue,
+    Default,
+    Do,
+    Double,
+    Else,
+    Enum,
+    Extern,
+    Float,
+    For,
+    Goto,
+    If,
+    Int,
+    Long,
+    Register,
+    Return,
+    Short,
+    Signed,
+    SizeOf,
+    Static,
+    Struct,
+    Switch,
+    TypeDef,
+    Union,
+    Unsigned,
+    Void,
+    Volatile,
+    While,
+}
+
+#[derive(Debug)]
+pub struct Keyword {
+    pub span: Span,
+    pub term: KeywordTerminal,
 }
 
 #[derive(Debug)]
@@ -50,9 +60,11 @@ pub struct Identifier {
 }
 
 #[derive(Debug)]
-pub struct Constant {
-    pub span: Span,
-    pub name: String,
+pub enum Constant {
+    Integer,
+    Floating,
+    Enumeration,
+    Character(CharacterConstant),
 }
 
 #[derive(Debug)]
@@ -162,6 +174,63 @@ pub enum PunctuatorTerminal {
     HashHash,
 }
 
+impl fmt::Display for PunctuatorTerminal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use PunctuatorTerminal::*;
+        let symbol = match self {
+            LSquare => "[",
+            RSquare => "]",
+            LParen => "(",
+            RParen => ")",
+            LCurly => "{",
+            RCurly => "}",
+            Dot => ".",
+            Arrow => "->",
+            PlusPlus => "++",
+            MinusMinus => "--",
+            Amp => "&",
+            Star => "*",
+            Plus => "+",
+            Minus => "-",
+            Tilde => "~",
+            Bang => "!",
+            FSlash => "/",
+            Percent => "%",
+            LessLess => "<<",
+            GreatGreat => ">>",
+            Less => "<",
+            Great => ">",
+            LessEqual => "<=",
+            GreatEqual => ">=",
+            EqualEqual => "==",
+            BangEqual => "!=",
+            Caret => "^",
+            VBar => "|",
+            AmpAmp => "&&",
+            VBarVBar => "||",
+            QMark => "?",
+            Colon => ":",
+            SemiColon => ";",
+            Ellipsis => "...",
+            Equal => "=",
+            StarEqual => "*=",
+            FSlashEqual => "/=",
+            PercentEqual => "%=",
+            PlusEqual => "+=",
+            MinusEqual => "-=",
+            LessLessEqual => "<<=",
+            GreatGreatEqual => ">>=",
+            AmpEqual => "&=",
+            CaretEqual => "^=",
+            VBarEqual => "|=",
+            Comma => ",",
+            Hash => "#",
+            HashHash => "##",
+        };
+        write!(f, "{}", symbol)
+    }
+}
+
 impl TryFrom<char> for PunctuatorTerminal {
     type Error = super::error::TryFromCharError;
     fn try_from(value: char) -> Result<Self, Self::Error> {
@@ -212,6 +281,11 @@ pub struct NewLine {
 }
 
 #[derive(Debug)]
+pub struct Comment {
+    pub span: Span,
+}
+
+#[derive(Debug)]
 pub enum Token {
     Keyword(Keyword),
     Identifier(Identifier),
@@ -230,4 +304,5 @@ pub enum PreprocessingToken {
     StringLiteral(StringLiteral),
     Punctuator(Punctuator),
     NewLine(NewLine),
+    Comment(Comment),
 }

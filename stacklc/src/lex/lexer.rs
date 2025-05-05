@@ -40,12 +40,8 @@ impl<'a> Lexer<'a> {
     fn header_name(
         &mut self,
         c: char,
-        start_pos: isize,
+        span: tok::Span,
     ) -> Result<tok::PreprocessingToken, LexicalError> {
-        let mut span = tok::Span {
-            location: (start_pos, self.pos),
-            file_key: self.file_key,
-        };
         let mut name = String::new();
         name.push(c);
         let char_seq = match c {
@@ -76,7 +72,6 @@ impl<'a> Lexer<'a> {
             _ => unreachable!(),
         };
         name.push_str(&char_seq);
-        span.location = (start_pos, self.pos);
         self.include_state = 0;
         let head_name = tok::HeaderName { span, name };
         Ok(tok::PreprocessingToken::HeaderName(head_name))
@@ -85,12 +80,8 @@ impl<'a> Lexer<'a> {
     fn identifier(
         &mut self,
         c: char,
-        start_pos: isize,
+        mut span: tok::Span,
     ) -> Result<tok::PreprocessingToken, LexicalError> {
-        let mut span = tok::Span {
-            location: (start_pos, self.pos),
-            file_key: self.file_key,
-        };
         let mut name = String::new();
         name.push(c);
         while let Some(next_c) = self
@@ -100,7 +91,7 @@ impl<'a> Lexer<'a> {
             name.push(next_c);
             self.pos += 1;
         }
-        span.location = (start_pos, self.pos);
+        span.location.1 = self.pos;
         if self.include_state == 2 && name == "include" {
             self.include_state = 3;
         } else {
@@ -118,12 +109,8 @@ impl<'a> Lexer<'a> {
     fn character_constant(
         &mut self,
         mut c: char,
-        start_pos: isize,
+        mut span: tok::Span,
     ) -> Result<tok::PreprocessingToken, LexicalError> {
-        let mut span = tok::Span {
-            location: (start_pos, self.pos),
-            file_key: self.file_key,
-        };
         let mut name = String::new();
         self.include_state = 0;
         let is_l = c == 'L';
@@ -140,7 +127,7 @@ impl<'a> Lexer<'a> {
             self.pos += 1;
         }
         name.push(c);
-        name.push_str(&self.c_char_sequence(start_pos)?);
+        name.push_str(&self.c_char_sequence(&mut span)?);
         if self.chars.next_if_eq(&'\'').is_some() {
             name.push('\'');
         } else {
@@ -158,12 +145,8 @@ impl<'a> Lexer<'a> {
     fn string_literal(
         &mut self,
         mut c: char,
-        start_pos: isize,
+        mut span: tok::Span,
     ) -> Result<tok::PreprocessingToken, LexicalError> {
-        let mut span = tok::Span {
-            location: (start_pos, self.pos),
-            file_key: self.file_key,
-        };
         let mut name = String::new();
         let is_l = c == 'L';
         if is_l {
@@ -173,24 +156,26 @@ impl<'a> Lexer<'a> {
             } else {
                 return Err(LexicalError {
                     kind: LexicalErrorKind::UnexpectedEof,
-                    span,
+                    span: span.clone(),
                 });
             }
             self.pos += 1;
         }
         name.push(c);
-        name.push_str(&self.s_char_sequence(start_pos)?);
+        name.push_str(&self.s_char_sequence(&mut span)?);
         if self.chars.next_if_eq(&'"').is_some() {
             name.push('"');
         } else {
             return Err(LexicalError {
                 kind: LexicalErrorKind::InvalidToken,
-                span,
+                span: span.clone(),
             });
         }
 
-        span.location = (start_pos, self.pos);
-        let str_lit = tok::StringLiteral { span, name };
+        let str_lit = tok::StringLiteral {
+            span: span.clone(),
+            name,
+        };
         Ok(tok::PreprocessingToken::StringLiteral(str_lit))
     }
     #[allow(dead_code)]
@@ -198,15 +183,11 @@ impl<'a> Lexer<'a> {
         todo!("punctuator")
     }
 
-    fn escape_sequence(&mut self, start_pos: isize) -> Result<char, LexicalError> {
-        let span = tok::Span {
-            location: (start_pos, self.pos),
-            file_key: self.file_key,
-        };
+    fn escape_sequence(&mut self, span: &mut tok::Span) -> Result<char, LexicalError> {
         let Some(term) = self.chars.peek() else {
             return Err(LexicalError {
                 kind: LexicalErrorKind::UnexpectedEscape,
-                span,
+                span: span.clone(),
             });
         };
         match term {
@@ -222,16 +203,16 @@ impl<'a> Lexer<'a> {
             // 'u' | 'U' => todo!("universal-character-name"),
             _ => Err(LexicalError {
                 kind: LexicalErrorKind::UnexpectedEscape,
-                span,
+                span: span.clone(),
             }),
         }
     }
 
-    fn s_char_sequence(&mut self, start_pos: isize) -> Result<String, LexicalError> {
+    fn s_char_sequence(&mut self, span: &mut tok::Span) -> Result<String, LexicalError> {
         let mut seq = String::new();
         while let Some(c) = self.chars.next_if(|&c| c != '"' && c != '\n') {
             let s_char = if c == '\\' {
-                self.escape_sequence(start_pos)?
+                self.escape_sequence(span)?
             } else {
                 c
             };
@@ -240,11 +221,11 @@ impl<'a> Lexer<'a> {
         }
         Ok(seq)
     }
-    fn c_char_sequence(&mut self, start_pos: isize) -> Result<String, LexicalError> {
+    fn c_char_sequence(&mut self, span: &mut tok::Span) -> Result<String, LexicalError> {
         let mut seq = String::new();
         while let Some(c) = self.chars.next_if(|&c| c != '\'' && c != '\n') {
             let c_char = if c == '\\' {
-                self.escape_sequence(start_pos)?
+                self.escape_sequence(span)?
             } else {
                 c
             };
@@ -274,12 +255,17 @@ impl<'a> Lexer<'a> {
 impl Iterator for Lexer<'_> {
     type Item = Result<tok::PreprocessingToken, LexicalError>;
     fn next(&mut self) -> Option<Self::Item> {
+        let (mut leading_tabs, mut leading_spaces) = (0, 0);
         // skip whitespace
-        while self
+        while let Some(whitespace) = self
             .chars
             .next_if(|&c| c != '\n' && c.is_ascii_whitespace())
-            .is_some()
         {
+            match whitespace {
+                ' ' => leading_spaces += 1,
+                '\t' => leading_tabs += 1,
+                _ => (),
+            }
             self.pos += 1;
         }
         let c = self.chars.next()?;
@@ -288,20 +274,22 @@ impl Iterator for Lexer<'_> {
         let mut span = tok::Span {
             location: (start_pos, self.pos),
             file_key: self.file_key,
+            leading_spaces,
+            leading_tabs,
         };
 
         if c == '"' {
             if self.include_state == 3 {
-                return Some(self.header_name(c, start_pos));
+                return Some(self.header_name(c, span));
             } else {
-                return Some(self.string_literal(c, start_pos));
+                return Some(self.string_literal(c, span));
             }
         }
         if c == 'L' && self.chars.peek().is_some_and(|&val| val == '"') {
-            return Some(self.string_literal(c, start_pos));
+            return Some(self.string_literal(c, span));
         }
         if c == '\'' || c == 'L' && self.chars.peek().is_some_and(|&val| val == '\'') {
-            return Some(self.character_constant(c, start_pos));
+            return Some(self.character_constant(c, span));
         }
 
         let mut name = String::new();
@@ -325,7 +313,7 @@ impl Iterator for Lexer<'_> {
             }
 
             // identifier
-            'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier(c, start_pos)),
+            'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier(c, span)),
             // pp-number
             '0'..='9' => {
                 self.include_state = 0;
@@ -440,7 +428,7 @@ impl Iterator for Lexer<'_> {
             }
             '<' => {
                 let term = if self.include_state == 3 {
-                    return Some(self.header_name(c, start_pos));
+                    return Some(self.header_name(c, span));
                 } else if self.chars.next_if_eq(&'<').is_some() {
                     // case: `<<`
                     todo!("<<")
@@ -466,18 +454,13 @@ impl Iterator for Lexer<'_> {
                 let term = if self.chars.next_if_eq(&'/').is_some() {
                     // case: `//`
                     self.pos += 1;
-                    while self.chars.next_if(|c| *c != '\n').is_some() {
+                    name.push_str("//");
+                    while let Some(c) = self.chars.next_if(|c| *c != '\n') {
+                        name.push(c);
                         self.pos += 1;
                     }
-                    //todo jump to handle newline
-                    if self.chars.next_if_eq(&'\n').is_some() {
-                        self.pos += 1;
-                        span.location = (self.pos - 1, self.pos);
-                        let new_line = tok::NewLine { span };
-                        return Some(Ok(tok::PreprocessingToken::NewLine(new_line)));
-                    } else {
-                        return None;
-                    }
+                    let comment = tok::Comment { span };
+                    return Some(Ok(tok::PreprocessingToken::Comment(comment)));
                 } else if self.chars.next_if_eq(&'=').is_some() {
                     // case: `/=`
                     self.pos += 1;

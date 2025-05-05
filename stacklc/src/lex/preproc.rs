@@ -3,6 +3,7 @@ use super::lexer as lex;
 use std::io::Read;
 use std::{fs, io, path};
 
+#[derive(Debug)]
 pub enum ParseError {
     LexicalErrors(Vec<lex::LexicalError>),
     IOError(io::Error),
@@ -10,16 +11,17 @@ pub enum ParseError {
 
 pub struct Preprocessor {
     file_map: bimap::BiHashMap<usize, path::PathBuf>,
+    stdout: bool,
 }
 
 impl Preprocessor {
-    pub fn new<P>(file_path: P) -> Self
+    pub fn new<P>(file_path: P, stdout: bool) -> Self
     where
         P: AsRef<path::Path>,
     {
         let mut file_map = bimap::BiHashMap::new();
         file_map.insert(0, file_path.as_ref().to_owned());
-        Self { file_map }
+        Self { file_map, stdout }
     }
     pub fn parse(&mut self) -> Result<Vec<tok::Token>, ParseError> {
         let file_path = self.file_map.get_by_left(&0).unwrap();
@@ -43,6 +45,50 @@ impl Preprocessor {
         }
     }
     fn tokenize(&mut self, pp_token: tok::PreprocessingToken) -> Vec<tok::Token> {
-        todo!("{pp_token:?}")
+        use tok::PreprocessingToken as PPToken;
+        use tok::Token;
+        match pp_token {
+            PPToken::NewLine(token) => {
+                if self.stdout {
+                    print_whitespace(&token.span);
+                    println!();
+                }
+                vec![]
+            }
+            PPToken::Comment(_) => vec![],
+            PPToken::Identifier(token) => {
+                if self.stdout {
+                    print_whitespace(&token.span);
+                    print!("{}", token.name);
+                }
+                vec![Token::Identifier(token)]
+            }
+            PPToken::Punctuator(token) => {
+                if self.stdout {
+                    print_whitespace(&token.span);
+                    print!("{}", token.term);
+                }
+                vec![Token::Punctuator(token)]
+            }
+            PPToken::StringLiteral(token) => {
+                if self.stdout {
+                    print_whitespace(&token.span);
+                    print!("{}", token.name);
+                }
+                vec![Token::StringLiteral(token)]
+            }
+            PPToken::CharacterConstant(token) => {
+                if self.stdout {
+                    print_whitespace(&token.span);
+                    print!("{}", token.name);
+                }
+                vec![Token::Constant(tok::Constant::Character(token))]
+            }
+            _ => todo!("{pp_token:?}"),
+        }
     }
+}
+fn print_whitespace(span: &tok::Span) {
+    print!("{}", "\t".repeat(span.leading_tabs));
+    print!("{}", " ".repeat(span.leading_spaces));
 }

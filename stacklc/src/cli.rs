@@ -24,7 +24,10 @@ impl Args {
                 .default_value("c89")
                 .value_names(["c89"]),
             clap::Arg::new("output").short('o'),
-            clap::Arg::new("stdout-preproc").short('E'),
+            clap::Arg::new("stdout-preproc")
+                .short('E')
+                .required(false)
+                .action(clap::ArgAction::SetTrue),
         ];
 
         let cmd = clap::Command::new("stacklc")
@@ -51,7 +54,7 @@ impl Args {
             .cloned()
             .map(PathBuf::from);
 
-        let stdout_pp = *matches.get_one::<bool>("stdout-preproc").unwrap();
+        let stdout_pp = matches.get_flag("stdout-preproc");
 
         Self {
             in_file,
