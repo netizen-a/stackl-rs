@@ -19,7 +19,7 @@ mod tests {
     use std::{fs, io::Read};
     #[test]
     fn lexical_analysis() {
-        let mut file = fs::File::open("tests/macro_expansion_tests.c").unwrap();
+        let mut file = fs::File::open("tests/test01.c").unwrap();
         let mut buf = String::new();
         file.read_to_string(&mut buf).unwrap();
         let lexer = lex::lexer::Lexer::new(&buf, 0);
