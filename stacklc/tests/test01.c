@@ -1,5 +1,11 @@
+// this is a basic program
 int main() {
-	const char* s = "hello world";
+	/*
+	const char* s = "hello world"; // test string
+	/*hello world
+		how are you?
+	*/
 	const wchar_t* sl = L"another string";
+	// a character I guess..
 	char k = '5';
 }

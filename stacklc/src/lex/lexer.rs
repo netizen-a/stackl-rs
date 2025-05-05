@@ -455,19 +455,39 @@ impl Iterator for Lexer<'_> {
                     // case: `//`
                     self.pos += 1;
                     name.push_str("//");
-                    while let Some(c) = self.chars.next_if(|c| *c != '\n') {
+                    while let Some(c) = self.chars.next_if(|&c| c != '\n') {
                         name.push(c);
                         self.pos += 1;
                     }
-                    let comment = tok::Comment { span };
+                    let comment = tok::Comment { span, name };
                     return Some(Ok(tok::PreprocessingToken::Comment(comment)));
                 } else if self.chars.next_if_eq(&'=').is_some() {
                     // case: `/=`
                     self.pos += 1;
                     span.location = (start_pos, self.pos);
                     tok::PunctuatorTerminal::PlusEqual
+                } else if self.chars.next_if_eq(&'*').is_some() {
+                    self.pos += 1;
+                    name.push_str("/*");
+                    let Some(mut last_c) = self.chars.next() else {
+                        return Some(Err(LexicalError {
+                            span,
+                            kind: LexicalErrorKind::UnexpectedEof,
+                        }));
+                    };
+                    name.push(last_c);
+                    for c in self.chars.by_ref() {
+                        name.push(c);
+                        self.pos += 1;
+                        if last_c == '*' && c == '/' {
+                            break;
+                        }
+                        last_c = c;
+                    }
+                    let comment = tok::Comment { span, name };
+                    return Some(Ok(tok::PreprocessingToken::Comment(comment)));
                 } else {
-                    tok::PunctuatorTerminal::Plus
+                    tok::PunctuatorTerminal::FSlash
                 };
                 let punct = tok::Punctuator { span, term };
                 Some(Ok(tok::PreprocessingToken::Punctuator(punct)))

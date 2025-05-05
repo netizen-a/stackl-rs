@@ -12,16 +12,21 @@ pub enum ParseError {
 pub struct Preprocessor {
     file_map: bimap::BiHashMap<usize, path::PathBuf>,
     stdout: bool,
+    comments: bool,
 }
 
 impl Preprocessor {
-    pub fn new<P>(file_path: P, stdout: bool) -> Self
+    pub fn new<P>(file_path: P, stdout: bool, comments: bool) -> Self
     where
         P: AsRef<path::Path>,
     {
         let mut file_map = bimap::BiHashMap::new();
         file_map.insert(0, file_path.as_ref().to_owned());
-        Self { file_map, stdout }
+        Self {
+            file_map,
+            stdout,
+            comments,
+        }
     }
     pub fn parse(&mut self) -> Result<Vec<tok::Token>, ParseError> {
         let file_path = self.file_map.get_by_left(&0).unwrap();
@@ -55,7 +60,13 @@ impl Preprocessor {
                 }
                 vec![]
             }
-            PPToken::Comment(_) => vec![],
+            PPToken::Comment(token) => {
+                if self.stdout && self.comments {
+                    print_whitespace(&token.span);
+                    print!("{}", token.name);
+                }
+                vec![]
+            }
             PPToken::Identifier(token) => {
                 if self.stdout {
                     print_whitespace(&token.span);

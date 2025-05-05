@@ -13,6 +13,7 @@ pub struct Args {
     pub out_file: Option<PathBuf>,
     pub standard: Standard,
     pub stdout_pp: bool,
+    pub include_comments: bool,
 }
 
 impl Args {
@@ -27,6 +28,10 @@ impl Args {
             clap::Arg::new("stdout-preproc")
                 .short('E')
                 .required(false)
+                .action(clap::ArgAction::SetTrue),
+            clap::Arg::new("include-comments")
+                .long("include-comments")
+                .requires("stdout-preproc")
                 .action(clap::ArgAction::SetTrue),
         ];
 
@@ -56,11 +61,14 @@ impl Args {
 
         let stdout_pp = matches.get_flag("stdout-preproc");
 
+        let include_comments = matches.get_flag("include-comments");
+
         Self {
             in_file,
             out_file,
             standard,
             stdout_pp,
+            include_comments,
         }
     }
 }

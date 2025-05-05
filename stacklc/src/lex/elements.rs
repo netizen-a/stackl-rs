@@ -283,6 +283,7 @@ pub struct NewLine {
 #[derive(Debug)]
 pub struct Comment {
     pub span: Span,
+    pub name: String,
 }
 
 #[derive(Debug)]
