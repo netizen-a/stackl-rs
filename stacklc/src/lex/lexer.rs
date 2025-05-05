@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::iter;
 use std::str::Chars;
 
@@ -48,8 +49,30 @@ impl<'a> Lexer<'a> {
         let mut name = String::new();
         name.push(c);
         let char_seq = match c {
-            '<' => self.h_char_sequence()?,
-            '"' => self.q_char_sequence()?,
+            '<' => {
+                let mut seq = self.h_char_sequence()?;
+                if self.chars.next_if_eq(&'>').is_some() {
+                    seq.push('>');
+                } else {
+                    return Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span,
+                    });
+                }
+                seq
+            }
+            '"' => {
+                let mut seq = self.q_char_sequence()?;
+                if self.chars.next_if_eq(&'"').is_some() {
+                    seq.push('"');
+                } else {
+                    return Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span,
+                    });
+                }
+                seq
+            }
             _ => unreachable!(),
         };
         name.push_str(&char_seq);
@@ -118,6 +141,15 @@ impl<'a> Lexer<'a> {
         }
         name.push(c);
         name.push_str(&self.c_char_sequence(start_pos)?);
+        if self.chars.next_if_eq(&'\'').is_some() {
+            name.push('\'');
+        } else {
+            return Err(LexicalError {
+                kind: LexicalErrorKind::InvalidToken,
+                span,
+            });
+        }
+
         span.location.1 = self.pos;
         let str_lit = tok::CharacterConstant { span, name };
         Ok(tok::PreprocessingToken::CharacterConstant(str_lit))
@@ -148,6 +180,15 @@ impl<'a> Lexer<'a> {
         }
         name.push(c);
         name.push_str(&self.s_char_sequence(start_pos)?);
+        if self.chars.next_if_eq(&'"').is_some() {
+            name.push('"');
+        } else {
+            return Err(LexicalError {
+                kind: LexicalErrorKind::InvalidToken,
+                span,
+            });
+        }
+
         span.location = (start_pos, self.pos);
         let str_lit = tok::StringLiteral { span, name };
         Ok(tok::PreprocessingToken::StringLiteral(str_lit))
@@ -188,7 +229,7 @@ impl<'a> Lexer<'a> {
 
     fn s_char_sequence(&mut self, start_pos: isize) -> Result<String, LexicalError> {
         let mut seq = String::new();
-        while let Some(c) = self.chars.next_if(|&c| c != '\n') {
+        while let Some(c) = self.chars.next_if(|&c| c != '"' && c != '\n') {
             let s_char = if c == '\\' {
                 self.escape_sequence(start_pos)?
             } else {
@@ -196,15 +237,12 @@ impl<'a> Lexer<'a> {
             };
             self.pos += 1;
             seq.push(s_char);
-            if s_char == '"' {
-                break;
-            }
         }
         Ok(seq)
     }
     fn c_char_sequence(&mut self, start_pos: isize) -> Result<String, LexicalError> {
         let mut seq = String::new();
-        while let Some(c) = self.chars.next_if(|&c| c != '\n') {
+        while let Some(c) = self.chars.next_if(|&c| c != '\'' && c != '\n') {
             let c_char = if c == '\\' {
                 self.escape_sequence(start_pos)?
             } else {
@@ -212,31 +250,22 @@ impl<'a> Lexer<'a> {
             };
             self.pos += 1;
             seq.push(c_char);
-            if c_char == '\'' {
-                break;
-            }
         }
         Ok(seq)
     }
     fn h_char_sequence(&mut self) -> Result<String, LexicalError> {
         let mut seq = String::new();
-        while let Some(h_char) = self.chars.next_if(|&c| c != '\n') {
+        while let Some(h_char) = self.chars.next_if(|&c| c != '>' && c != '\n') {
             self.pos += 1;
             seq.push(h_char);
-            if h_char == '>' {
-                break;
-            }
         }
         Ok(seq)
     }
     fn q_char_sequence(&mut self) -> Result<String, LexicalError> {
         let mut seq = String::new();
-        while let Some(q_char) = self.chars.next_if(|&c| c != '\n') {
+        while let Some(q_char) = self.chars.next_if(|&c| c != '"' && c != '\n') {
             self.pos += 1;
             seq.push(q_char);
-            if q_char == '\"' {
-                break;
-            }
         }
         Ok(seq)
     }
