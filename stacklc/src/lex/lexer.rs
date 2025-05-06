@@ -3,6 +3,7 @@ use std::iter;
 use std::str::Chars;
 
 use super::elements as tok;
+use super::elements::Spanned;
 
 #[derive(Debug)]
 pub enum LexicalErrorKind {
@@ -491,6 +492,24 @@ impl Iterator for Lexer<'_> {
                 };
                 let punct = tok::Punctuator { span, term };
                 Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+            }
+            '\\' => {
+                // nuke the newline out of existance!
+                if self.chars.next_if_eq(&'\n').is_some() {
+                    let result = self.next()?.map(|mut value| {
+                        let mut span = value.span();
+                        span.leading_spaces += leading_spaces;
+                        span.leading_tabs += leading_tabs;
+                        value.set_span(span);
+                        value
+                    });
+                    Some(result)
+                } else {
+                    Some(Err(LexicalError {
+                        span,
+                        kind: LexicalErrorKind::InvalidToken,
+                    }))
+                }
             }
             '+' => {
                 self.include_state = 0;

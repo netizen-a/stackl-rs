@@ -7,5 +7,6 @@ int main() {
 	*/
 	const wchar_t* sl = L"another string";
 	// a character I guess..
-	char k = '5';
+	char k = '5'; \
+	char A = 'A';
 }

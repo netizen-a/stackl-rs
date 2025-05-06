@@ -10,6 +10,11 @@ pub struct Span {
     pub leading_spaces: usize,
 }
 
+pub trait Spanned {
+    fn span(&self) -> Span;
+    fn set_span(&mut self, span: Span);
+}
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum KeywordTerminal {
@@ -306,4 +311,31 @@ pub enum PreprocessingToken {
     Punctuator(Punctuator),
     NewLine(NewLine),
     Comment(Comment),
+}
+
+impl Spanned for PreprocessingToken {
+    fn span(&self) -> Span {
+        match self {
+            Self::HeaderName(value) => value.span.clone(),
+            Self::Identifier(value) => value.span.clone(),
+            Self::PPNumber(value) => value.span.clone(),
+            Self::CharacterConstant(value) => value.span.clone(),
+            Self::StringLiteral(value) => value.span.clone(),
+            Self::Punctuator(value) => value.span.clone(),
+            Self::NewLine(value) => value.span.clone(),
+            Self::Comment(value) => value.span.clone(),
+        }
+    }
+    fn set_span(&mut self, span: Span) {
+        match self {
+            Self::HeaderName(value) => value.span = span,
+            Self::Identifier(value) => value.span = span,
+            Self::PPNumber(value) => value.span = span,
+            Self::CharacterConstant(value) => value.span = span,
+            Self::StringLiteral(value) => value.span = span,
+            Self::Punctuator(value) => value.span = span,
+            Self::NewLine(value) => value.span = span,
+            Self::Comment(value) => value.span = span,
+        }
+    }
 }
