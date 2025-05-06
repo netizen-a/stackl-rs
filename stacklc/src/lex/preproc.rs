@@ -1,5 +1,6 @@
 use super::elements as tok;
 use super::lexer as lex;
+use std::io::BufReader;
 use std::io::Read;
 use std::{fs, io, path};
 
@@ -30,9 +31,13 @@ impl Preprocessor {
     }
     pub fn parse(&mut self) -> Result<Vec<tok::Token>, ParseError> {
         let file_path = self.file_map.get_by_left(&0).unwrap();
-        let mut file = fs::File::open(file_path).map_err(ParseError::IOError)?;
+        let file = fs::File::open(file_path).map_err(ParseError::IOError)?;
+        let mut reader = BufReader::new(file);
         let mut buf = String::new();
-        file.read_to_string(&mut buf).map_err(ParseError::IOError)?;
+        reader
+            .read_to_string(&mut buf)
+            .map_err(ParseError::IOError)?;
+        drop(reader);
         let lexer = lex::Lexer::new(&buf, 0);
 
         let mut errors = vec![];
