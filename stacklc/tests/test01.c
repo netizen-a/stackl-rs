@@ -9,4 +9,5 @@ int main() {
 	// a character I guess..
 	char k = '5'; \
 	char A = 'A';
+	int value = 45;
 }

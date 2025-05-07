@@ -44,7 +44,10 @@ impl Preprocessor {
         let mut tokens = vec![];
         for result in lexer {
             match result {
-                Ok(pp_token) => tokens.append(&mut self.tokenize(pp_token)),
+                Ok(pp_token) => match self.tokenize(pp_token) {
+                    Ok(mut processed_tokens) => tokens.append(&mut processed_tokens),
+                    Err(processed_errors) => errors.push(processed_errors),
+                },
                 Err(lex_error) => errors.push(lex_error),
             }
         }
@@ -54,7 +57,10 @@ impl Preprocessor {
             Ok(tokens)
         }
     }
-    fn tokenize(&mut self, pp_token: tok::PreprocessingToken) -> Vec<tok::Token> {
+    fn tokenize(
+        &mut self,
+        pp_token: tok::PreprocessingToken,
+    ) -> Result<Vec<tok::Token>, lex::LexicalError> {
         use tok::PreprocessingToken as PPToken;
         use tok::Token;
         match pp_token {
@@ -63,56 +69,61 @@ impl Preprocessor {
                     print_whitespace(&token.span);
                     println!();
                 }
-                vec![]
+                Ok(vec![])
             }
             PPToken::Comment(token) => {
                 if self.stdout && self.comments {
                     print_whitespace(&token.span);
                     print!("{}", token.name);
                 }
-                vec![]
+                Ok(vec![])
             }
             PPToken::Identifier(token) => {
                 if self.stdout {
                     print_whitespace(&token.span);
                     print!("{}", token.name);
                 }
-                vec![Token::Identifier(token)]
+                Ok(vec![Token::Identifier(token)])
             }
             PPToken::Punctuator(token) => {
                 if self.stdout {
                     print_whitespace(&token.span);
                     print!("{}", token.term);
                 }
-                vec![Token::Punctuator(token)]
+                Ok(vec![Token::Punctuator(token)])
             }
             PPToken::StringLiteral(token) => {
                 if self.stdout {
                     print_whitespace(&token.span);
                     print!("{}", token.name);
                 }
-                vec![Token::StringLiteral(token)]
+                Ok(vec![Token::StringLiteral(token)])
             }
             PPToken::CharacterConstant(token) => {
                 if self.stdout {
                     print_whitespace(&token.span);
                     print!("{}", token.name);
                 }
-                vec![Token::Constant(tok::Constant::Character(token))]
+                Ok(vec![Token::Constant(tok::Constant::Character(token))])
             }
             PPToken::PPNumber(token) => {
-                let _ = is_floating_constant(token);
-                todo!("pp-number");
+                if is_floating_constant(&token)? {
+                    Ok(vec![floating_constant(token)?])
+                } else {
+                    Ok(vec![integer_constant(token)?])
+                }
             }
-            _ => todo!("{pp_token:?}"),
+            PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
         }
     }
 }
+
 fn print_whitespace(span: &tok::Span) {
     print!("{}", "\t".repeat(span.leading_tabs));
     print!("{}", " ".repeat(span.leading_spaces));
 }
-fn is_floating_constant(pp_number: tok::PPNumber) -> Result<bool, lex::LexicalError> {
+
+fn is_floating_constant(pp_number: &tok::PPNumber) -> Result<bool, lex::LexicalError> {
     if pp_number.name.contains('.') {
         // fractional-constant | hexadecimal-fractional-constant
         return Ok(true);
@@ -120,11 +131,21 @@ fn is_floating_constant(pp_number: tok::PPNumber) -> Result<bool, lex::LexicalEr
     let mut chars = pp_number.name.chars().peekable();
     let c = chars.next().ok_or(lex::LexicalError {
         kind: lex::LexicalErrorKind::InvalidToken,
-        span: pp_number.span,
+        span: pp_number.span.clone(),
     })?;
     if c == '0' && chars.next_if_eq(&'x').or(chars.next_if_eq(&'X')).is_some() {
+        // binary-exponent-part
         Ok(chars.any(|c| c == 'p' || c == 'P'))
     } else {
+        // exponent-part
         Ok(chars.any(|c| c == 'e' || c == 'E'))
     }
+}
+
+fn floating_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::LexicalError> {
+    todo!("floating-constant")
+}
+
+fn integer_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::LexicalError> {
+    todo!("integer-constant")
 }
