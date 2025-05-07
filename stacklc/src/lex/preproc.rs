@@ -124,11 +124,8 @@ fn is_floating_constant(pp_number: &tok::PPNumber) -> Result<bool, lex::LexicalE
         return Ok(true);
     }
     let mut chars = pp_number.name.chars().peekable();
-    let c = chars.next().ok_or(lex::LexicalError {
-        kind: lex::LexicalErrorKind::InvalidToken,
-        span: pp_number.span.clone(),
-    })?;
-    if c == '0' && chars.next_if_eq(&'x').or(chars.next_if_eq(&'X')).is_some() {
+    let c = chars.next().expect("empty pp-number");
+    if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
         // binary-exponent-part
         Ok(chars.any(|c| c == 'p' || c == 'P'))
     } else {
@@ -138,9 +135,31 @@ fn is_floating_constant(pp_number: &tok::PPNumber) -> Result<bool, lex::LexicalE
 }
 
 fn floating_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::LexicalError> {
-    todo!("floating-constant")
+    let mut chars = pp_number.name.chars().peekable();
+    let c = chars.next().expect("empty pp-number");
+    if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
+        todo!("hexadecimal-floating-constant")
+    } else {
+        todo!("decimal-floating-constant")
+    }
 }
 
 fn integer_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::LexicalError> {
-    todo!("integer-constant")
+    let mut chars = pp_number.name.chars().peekable();
+    match chars.next().expect("empty pp-number") {
+        '0' => {
+            if chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
+                todo!("hexadecimal-constant")
+            } else {
+                todo!("octal-constant")
+            }
+        }
+        '1'..='9' => {
+            todo!("decimal-constant")
+        }
+        _ => Err(lex::LexicalError {
+            kind: lex::LexicalErrorKind::InvalidToken,
+            span: pp_number.span,
+        }),
+    }
 }
