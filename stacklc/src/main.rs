@@ -5,10 +5,9 @@ mod lex;
 
 fn main() -> ExitCode {
     let args = cli::Args::parse();
-    let mut preproc =
-        lex::preproc::Preprocessor::new(args.in_file, args.stdout_pp, args.include_comments);
+    let mut preproc = lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout);
     let _tokens = preproc.parse().unwrap();
-    if args.stdout_pp {
+    if args.pp_stdout > 0 {
         return ExitCode::SUCCESS;
     }
     ExitCode::SUCCESS

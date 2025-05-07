@@ -12,8 +12,7 @@ pub struct Args {
     pub in_file: PathBuf,
     pub out_file: Option<PathBuf>,
     pub standard: Standard,
-    pub stdout_pp: bool,
-    pub include_comments: bool,
+    pub pp_stdout: i32,
 }
 
 impl Args {
@@ -59,16 +58,15 @@ impl Args {
             .cloned()
             .map(PathBuf::from);
 
-        let stdout_pp = matches.get_flag("stdout-preproc");
-
-        let include_comments = matches.get_flag("include-comments");
+        let stdout_preproc = matches.get_flag("stdout-preproc") as i32;
+        let include_comments = matches.get_flag("include-comments") as i32;
+        let pp_stdout = stdout_preproc + include_comments;
 
         Self {
             in_file,
             out_file,
             standard,
-            stdout_pp,
-            include_comments,
+            pp_stdout,
         }
     }
 }
