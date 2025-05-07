@@ -2,16 +2,17 @@ use clap::crate_version;
 use std::{path::PathBuf, process};
 
 #[derive(Debug)]
+#[repr(i32)]
 #[non_exhaustive]
-pub enum Standard {
-    C89,
+pub enum StandardVersion {
+    C99 = 199901,
 }
 
 #[derive(Debug)]
 pub struct Args {
     pub in_file: PathBuf,
     pub out_file: Option<PathBuf>,
-    pub standard: Standard,
+    pub std: StandardVersion,
     pub pp_stdout: i32,
 }
 
@@ -21,8 +22,8 @@ impl Args {
             clap::Arg::new("file").required(true),
             clap::Arg::new("standard")
                 .long("std")
-                .default_value("c89")
-                .value_names(["c89"]),
+                .default_value("c99")
+                .value_names(["c99"]),
             clap::Arg::new("output").short('o'),
             clap::Arg::new("stdout-preproc")
                 .short('E')
@@ -43,8 +44,8 @@ impl Args {
         let matches = cmd.get_matches();
 
         let maybe_std = matches.get_one::<String>("standard").unwrap();
-        let standard = match maybe_std.as_str() {
-            "c89" | "c90" => Standard::C89,
+        let std = match maybe_std.as_str() {
+            "c99" => StandardVersion::C99,
             other => {
                 eprintln!("Invalid standard `{other}`");
                 process::exit(-1);
@@ -65,7 +66,7 @@ impl Args {
         Self {
             in_file,
             out_file,
-            standard,
+            std,
             pp_stdout,
         }
     }
