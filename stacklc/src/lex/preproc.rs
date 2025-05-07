@@ -100,6 +100,10 @@ impl Preprocessor {
                 }
                 vec![Token::Constant(tok::Constant::Character(token))]
             }
+            PPToken::PPNumber(token) => {
+                let _ = is_floating_constant(token);
+                todo!("pp-number");
+            }
             _ => todo!("{pp_token:?}"),
         }
     }
@@ -107,4 +111,20 @@ impl Preprocessor {
 fn print_whitespace(span: &tok::Span) {
     print!("{}", "\t".repeat(span.leading_tabs));
     print!("{}", " ".repeat(span.leading_spaces));
+}
+fn is_floating_constant(pp_number: tok::PPNumber) -> Result<bool, lex::LexicalError> {
+    if pp_number.name.contains('.') {
+        // fractional-constant | hexadecimal-fractional-constant
+        return Ok(true);
+    }
+    let mut chars = pp_number.name.chars().peekable();
+    let c = chars.next().ok_or(lex::LexicalError {
+        kind: lex::LexicalErrorKind::InvalidToken,
+        span: pp_number.span,
+    })?;
+    if c == '0' && chars.next_if_eq(&'x').or(chars.next_if_eq(&'X')).is_some() {
+        Ok(chars.any(|c| c == 'p' || c == 'P'))
+    } else {
+        Ok(chars.any(|c| c == 'e' || c == 'E'))
+    }
 }
