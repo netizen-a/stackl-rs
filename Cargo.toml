@@ -39,8 +39,8 @@ name="stackl-ln"
 path="src/bin/stackl-ln/main.rs"
 
 [[bin]]
-name="stackl-img"
-path="src/bin/stackl-img/main.rs"
+name="stackl-im"
+path="src/bin/stackl-im/main.rs"
 
 [[bin]]
 name="stackl-cc"
