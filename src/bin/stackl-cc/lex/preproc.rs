@@ -16,6 +16,8 @@ pub enum ParseError {
 pub struct Preprocessor {
     file_map: bimap::BiHashMap<usize, path::PathBuf>,
     stdout: i32,
+    is_newline: bool,
+    is_preproc: bool,
 }
 
 impl Preprocessor {
@@ -25,7 +27,12 @@ impl Preprocessor {
     {
         let mut file_map = bimap::BiHashMap::new();
         file_map.insert(0, file_path.as_ref().to_owned());
-        Self { file_map, stdout }
+        Self {
+            file_map,
+            stdout,
+            is_newline: true,
+            is_preproc: false,
+        }
     }
     pub fn parse(&mut self) -> Result<Vec<tok::Token>, ParseError> {
         let file_path = self.file_map.get_by_left(&0).unwrap();
@@ -67,6 +74,8 @@ impl Preprocessor {
                     token.span.print_whitespace();
                     println!();
                 }
+                self.is_preproc = false;
+                self.is_newline = true;
                 Ok(vec![])
             }
             PPToken::Comment(token) => {
@@ -81,7 +90,9 @@ impl Preprocessor {
                     token.span.print_whitespace();
                     print!("{}", token.name);
                 }
-                if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
+                if self.is_preproc {
+                    todo!("preproc")
+                } else if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
                     Ok(vec![Token::Keyword(kw)])
                 } else {
                     Ok(vec![Token::Identifier(token)])
@@ -92,9 +103,16 @@ impl Preprocessor {
                     token.span.print_whitespace();
                     print!("{}", token.term);
                 }
-                Ok(vec![Token::Punctuator(token)])
+                if let tok::PunctuatorTerminal::Hash = token.term {
+                    self.is_preproc = self.is_newline;
+                    self.is_newline = false;
+                    Ok(vec![])
+                } else {
+                    Ok(vec![Token::Punctuator(token)])
+                }
             }
             PPToken::StringLiteral(token) => {
+                self.is_newline = false;
                 if self.stdout > 0 {
                     token.span.print_whitespace();
                     print!("{}", token.name);
@@ -102,6 +120,7 @@ impl Preprocessor {
                 Ok(vec![Token::StringLiteral(token)])
             }
             PPToken::CharacterConstant(token) => {
+                self.is_newline = false;
                 if self.stdout > 0 {
                     token.span.print_whitespace();
                     print!("{}", token.name);
@@ -109,6 +128,7 @@ impl Preprocessor {
                 Ok(vec![Token::Constant(tok::Constant::Character(token))])
             }
             PPToken::PPNumber(token) => {
+                self.is_newline = false;
                 if token.is_float() {
                     Ok(vec![floating_constant(token)?])
                 } else {
