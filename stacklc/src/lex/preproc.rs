@@ -1,7 +1,10 @@
 use super::elements as tok;
+use super::elements::Spanned;
 use super::lexer as lex;
 use std::io::BufReader;
 use std::io::Read;
+use std::iter::Peekable;
+use std::str::Chars;
 use std::{fs, io, path};
 
 #[derive(Debug)]
@@ -105,7 +108,12 @@ impl Preprocessor {
                 if is_floating_constant(&token)? {
                     Ok(vec![floating_constant(token)?])
                 } else {
-                    Ok(vec![integer_constant(token)?])
+                    let token = integer_constant(token)?;
+                    if self.stdout > 0 {
+                        print_whitespace(&token.span());
+                        print!("{token}");
+                    }
+                    Ok(vec![token])
                 }
             }
             PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
@@ -154,12 +162,42 @@ fn integer_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::Lexical
                 todo!("octal-constant")
             }
         }
-        '1'..='9' => {
-            todo!("decimal-constant")
+        c @ '1'..='9' => {
+            let name = String::from(c);
+            decimal_constant(&pp_number, name, chars)
         }
         _ => Err(lex::LexicalError {
             kind: lex::LexicalErrorKind::InvalidToken,
             span: pp_number.span,
         }),
+    }
+}
+
+fn decimal_constant(
+    pp_number: &tok::PPNumber,
+    mut name: String,
+    mut chars: Peekable<Chars>,
+) -> Result<tok::Token, lex::LexicalError> {
+    while let Some(digit) = chars.next_if(char::is_ascii_digit) {
+        name.push(digit);
+    }
+    let data = name.parse::<i128>().or(Err(lex::LexicalError {
+        kind: lex::LexicalErrorKind::InvalidToken,
+        span: pp_number.span.clone(),
+    }))?;
+    if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
+        todo!("unsigned-suffix")
+    } else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
+        todo!("long-suffix")
+    } else if chars.peek().is_none() {
+        let integer = tok::IntegerConstant {
+            span: pp_number.span.clone(),
+            data,
+            suff: tok::IntegerSuffix::None,
+        };
+        let constant = tok::Constant::Integer(integer);
+        Ok(tok::Token::Constant(constant))
+    } else {
+        todo!("error")
     }
 }

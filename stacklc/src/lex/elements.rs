@@ -52,10 +52,56 @@ pub enum KeywordTerminal {
     While,
 }
 
+impl fmt::Display for KeywordTerminal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::Auto => "auto",
+            Self::Break => "break",
+            Self::Case => "case",
+            Self::Char => "char",
+            Self::Const => "const",
+            Self::Continue => "continue",
+            Self::Default => "default",
+            Self::Do => "do",
+            Self::Double => "double",
+            Self::Else => "else",
+            Self::Enum => "enum",
+            Self::Extern => "extern",
+            Self::Float => "float",
+            Self::For => "for",
+            Self::Goto => "goto",
+            Self::If => "if",
+            Self::Int => "int",
+            Self::Long => "long",
+            Self::Register => "register",
+            Self::Return => "return",
+            Self::Short => "short",
+            Self::Signed => "signed",
+            Self::SizeOf => "sizeof",
+            Self::Static => "static",
+            Self::Struct => "struct",
+            Self::Switch => "switch",
+            Self::TypeDef => "typedef",
+            Self::Union => "union",
+            Self::Unsigned => "unsigned",
+            Self::Void => "void",
+            Self::Volatile => "volatile",
+            Self::While => "while",
+        };
+        write!(f, "{name}")
+    }
+}
+
 #[derive(Debug)]
 pub struct Keyword {
     pub span: Span,
     pub term: KeywordTerminal,
+}
+
+impl fmt::Display for Keyword {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.term)
+    }
 }
 
 #[derive(Debug)]
@@ -64,18 +110,97 @@ pub struct Identifier {
     pub name: String,
 }
 
+impl fmt::Display for Identifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Debug)]
+pub enum IntegerSuffix {
+    None,
+    U,
+    L,
+    UL,
+    LL,
+    ULL,
+}
+
+impl fmt::Display for IntegerSuffix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::None => "",
+            Self::U => "U",
+            Self::L => "L",
+            Self::UL => "UL",
+            Self::LL => "LL",
+            Self::ULL => "ULL",
+        };
+        write!(f, "{name}")
+    }
+}
+
+#[derive(Debug)]
+pub struct IntegerConstant {
+    pub span: Span,
+    pub data: i128,
+    pub suff: IntegerSuffix,
+}
+
+impl fmt::Display for IntegerConstant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.data, self.suff)
+    }
+}
+
 #[derive(Debug)]
 pub enum Constant {
-    Integer,
+    Integer(IntegerConstant),
     Floating,
     Enumeration,
     Character(CharacterConstant),
+}
+
+impl fmt::Display for Constant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Integer(token) => write!(f, "{token}"),
+            Self::Floating => todo!("floating"),
+            Self::Enumeration => todo!("enumeration"),
+            Self::Character(token) => write!(f, "{token}"),
+        }
+    }
+}
+
+impl Spanned for Constant {
+    fn span(&self) -> Span {
+        match self {
+            Self::Integer(token) => token.span.clone(),
+            Self::Floating => todo!("floating span"),
+            Self::Enumeration => todo!("enumeration span"),
+            Self::Character(token) => token.span.clone(),
+        }
+    }
+    fn set_span(&mut self, span: Span) {
+        match self {
+            Self::Integer(token) => token.span = span,
+            Self::Floating => todo!("floating span"),
+            Self::Enumeration => todo!("enumeration span"),
+            Self::Character(token) => token.span = span,
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct StringLiteral {
     pub span: Span,
     pub name: String,
+}
+
+impl fmt::Display for StringLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[non_exhaustive]
@@ -262,6 +387,12 @@ pub struct Punctuator {
     pub term: PunctuatorTerminal,
 }
 
+impl fmt::Display for Punctuator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.term)
+    }
+}
+
 #[derive(Debug)]
 pub struct HeaderName {
     pub span: Span,
@@ -278,6 +409,12 @@ pub struct PPNumber {
 pub struct CharacterConstant {
     pub span: Span,
     pub name: String,
+}
+
+impl fmt::Display for CharacterConstant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[derive(Debug)]
@@ -298,6 +435,39 @@ pub enum Token {
     Constant(Constant),
     StringLiteral(StringLiteral),
     Punctuator(Punctuator),
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Keyword(token) => write!(f, "{token}"),
+            Self::Identifier(token) => write!(f, "{token}"),
+            Self::Constant(token) => write!(f, "{token}"),
+            Self::StringLiteral(token) => write!(f, "{token}"),
+            Self::Punctuator(token) => write!(f, "{token}"),
+        }
+    }
+}
+
+impl Spanned for Token {
+    fn span(&self) -> Span {
+        match self {
+            Self::Keyword(value) => value.span.clone(),
+            Self::Identifier(value) => value.span.clone(),
+            Self::Constant(value) => value.span(),
+            Self::StringLiteral(value) => value.span.clone(),
+            Self::Punctuator(value) => value.span.clone(),
+        }
+    }
+    fn set_span(&mut self, span: Span) {
+        match self {
+            Self::Keyword(value) => value.span = span,
+            Self::Identifier(value) => value.span = span,
+            Self::Constant(value) => value.set_span(span),
+            Self::StringLiteral(value) => value.span = span,
+            Self::Punctuator(value) => value.span = span,
+        }
+    }
 }
 
 #[derive(Debug)]
