@@ -52,6 +52,59 @@ pub enum KeywordTerminal {
     While,
 }
 
+pub struct TryFromIdentifierError(());
+impl fmt::Display for TryFromIdentifierError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "identifier is not a keyword".fmt(f)
+    }
+}
+
+impl TryFrom<Identifier> for Keyword {
+    type Error = TryFromIdentifierError;
+    fn try_from(value: Identifier) -> Result<Self, Self::Error> {
+        use KeywordTerminal as Term;
+        let terminal = match value.name.as_str() {
+            "auto" => Term::Auto,
+            "break" => Term::Break,
+            "case" => Term::Case,
+            "char" => Term::Char,
+            "const" => Term::Const,
+            "continue" => Term::Continue,
+            "default" => Term::Default,
+            "do" => Term::Do,
+            "double" => Term::Double,
+            "else" => Term::Else,
+            "enum" => Term::Enum,
+            "extern" => Term::Extern,
+            "float" => Term::Float,
+            "for" => Term::For,
+            "goto" => Term::Goto,
+            "if" => Term::If,
+            "int" => Term::Int,
+            "long" => Term::Long,
+            "register" => Term::Register,
+            "return" => Term::Return,
+            "short" => Term::Short,
+            "signed" => Term::Signed,
+            "sizeof" => Term::SizeOf,
+            "static" => Term::Static,
+            "struct" => Term::Struct,
+            "switch" => Term::Switch,
+            "typedef" => Term::TypeDef,
+            "union" => Term::Union,
+            "unsigned" => Term::Unsigned,
+            "void" => Term::Void,
+            "volatile" => Term::Volatile,
+            "while" => Term::While,
+            _ => return Err(TryFromIdentifierError(())),
+        };
+        Ok(Keyword {
+            span: value.span,
+            term: terminal,
+        })
+    }
+}
+
 impl fmt::Display for KeywordTerminal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = match self {
@@ -104,7 +157,7 @@ impl fmt::Display for Keyword {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier {
     pub span: Span,
     pub name: String,

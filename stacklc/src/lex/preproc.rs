@@ -81,7 +81,11 @@ impl Preprocessor {
                     print_whitespace(&token.span);
                     print!("{}", token.name);
                 }
-                Ok(vec![Token::Identifier(token)])
+                if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
+                    Ok(vec![Token::Keyword(kw)])
+                } else {
+                    Ok(vec![Token::Identifier(token)])
+                }
             }
             PPToken::Punctuator(token) => {
                 if self.stdout > 0 {

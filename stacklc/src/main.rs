@@ -10,5 +10,8 @@ fn main() -> ExitCode {
     if args.pp_stdout > 0 {
         return ExitCode::SUCCESS;
     }
+    for token in _tokens {
+        println!("{token} :: {token:?}");
+    }
     ExitCode::SUCCESS
 }
