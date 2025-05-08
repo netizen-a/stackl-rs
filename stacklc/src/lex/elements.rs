@@ -1,5 +1,6 @@
 //! Lexical Elements
 
+use super::error::TryFromIdentifierError;
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -50,13 +51,6 @@ pub enum KeywordTerminal {
     Void,
     Volatile,
     While,
-}
-
-pub struct TryFromIdentifierError(());
-impl fmt::Display for TryFromIdentifierError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "identifier is not a keyword".fmt(f)
-    }
 }
 
 impl TryFrom<Identifier> for Keyword {
