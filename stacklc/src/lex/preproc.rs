@@ -64,21 +64,21 @@ impl Preprocessor {
         match pp_token {
             PPToken::NewLine(token) => {
                 if self.stdout > 0 {
-                    print_whitespace(&token.span);
+                    token.span.print_whitespace();
                     println!();
                 }
                 Ok(vec![])
             }
             PPToken::Comment(token) => {
                 if self.stdout > 1 {
-                    print_whitespace(&token.span);
+                    token.span.print_whitespace();
                     print!("{}", token.name);
                 }
                 Ok(vec![])
             }
             PPToken::Identifier(token) => {
                 if self.stdout > 0 {
-                    print_whitespace(&token.span);
+                    token.span.print_whitespace();
                     print!("{}", token.name);
                 }
                 if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
@@ -89,32 +89,32 @@ impl Preprocessor {
             }
             PPToken::Punctuator(token) => {
                 if self.stdout > 0 {
-                    print_whitespace(&token.span);
+                    token.span.print_whitespace();
                     print!("{}", token.term);
                 }
                 Ok(vec![Token::Punctuator(token)])
             }
             PPToken::StringLiteral(token) => {
                 if self.stdout > 0 {
-                    print_whitespace(&token.span);
+                    token.span.print_whitespace();
                     print!("{}", token.name);
                 }
                 Ok(vec![Token::StringLiteral(token)])
             }
             PPToken::CharacterConstant(token) => {
                 if self.stdout > 0 {
-                    print_whitespace(&token.span);
+                    token.span.print_whitespace();
                     print!("{}", token.name);
                 }
                 Ok(vec![Token::Constant(tok::Constant::Character(token))])
             }
             PPToken::PPNumber(token) => {
-                if is_floating_constant(&token)? {
+                if token.is_float() {
                     Ok(vec![floating_constant(token)?])
                 } else {
                     let token = integer_constant(token)?;
                     if self.stdout > 0 {
-                        print_whitespace(&token.span());
+                        token.span().print_whitespace();
                         print!("{token}");
                     }
                     Ok(vec![token])
@@ -122,27 +122,6 @@ impl Preprocessor {
             }
             PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
         }
-    }
-}
-
-fn print_whitespace(span: &tok::Span) {
-    print!("{}", "\t".repeat(span.leading_tabs));
-    print!("{}", " ".repeat(span.leading_spaces));
-}
-
-fn is_floating_constant(pp_number: &tok::PPNumber) -> Result<bool, lex::LexicalError> {
-    if pp_number.name.contains('.') {
-        // fractional-constant | hexadecimal-fractional-constant
-        return Ok(true);
-    }
-    let mut chars = pp_number.name.chars().peekable();
-    let c = chars.next().expect("empty pp-number");
-    if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
-        // binary-exponent-part
-        Ok(chars.any(|c| c == 'p' || c == 'P'))
-    } else {
-        // exponent-part
-        Ok(chars.any(|c| c == 'e' || c == 'E'))
     }
 }
 

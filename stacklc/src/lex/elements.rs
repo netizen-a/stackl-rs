@@ -10,6 +10,12 @@ pub struct Span {
     pub leading_tabs: usize,
     pub leading_spaces: usize,
 }
+impl Span {
+    pub fn print_whitespace(&self) {
+        print!("{}", "\t".repeat(self.leading_tabs));
+        print!("{}", " ".repeat(self.leading_spaces));
+    }
+}
 
 pub trait Spanned {
     fn span(&self) -> Span;
@@ -450,6 +456,25 @@ pub struct HeaderName {
 pub struct PPNumber {
     pub span: Span,
     pub name: String,
+}
+impl PPNumber {
+    pub fn is_float(&self) -> bool {
+        if self.name.contains('.') {
+            // fractional-constant | hexadecimal-fractional-constant
+            return true;
+        }
+        let mut chars = self.name.chars().peekable();
+        let Some(c) = chars.next() else {
+            return false;
+        };
+        if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
+            // binary-exponent-part
+            chars.any(|c| c == 'p' || c == 'P')
+        } else {
+            // exponent-part
+            chars.any(|c| c == 'e' || c == 'E')
+        }
+    }
 }
 
 #[derive(Debug)]
