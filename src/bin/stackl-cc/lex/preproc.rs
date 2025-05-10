@@ -1,11 +1,12 @@
-use super::elements as tok;
-use super::elements::Spanned;
 use super::lexer as lex;
+use super::tok::{self, Spanned};
 use std::io::BufReader;
 use std::io::Read;
 use std::iter::Peekable;
 use std::str::Chars;
 use std::{fs, io, path};
+use tok::PPToken;
+use tok::Token;
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -46,28 +47,29 @@ impl Preprocessor {
         let lexer = lex::Lexer::new(&buf, 0);
 
         let mut errors = vec![];
-        let mut tokens = vec![];
+        let mut pp_tokens = vec![];
         for result in lexer {
             match result {
-                Ok(pp_token) => match self.tokenize(pp_token) {
-                    Ok(mut processed_tokens) => tokens.append(&mut processed_tokens),
-                    Err(processed_errors) => errors.push(processed_errors),
-                },
+                Ok(pp_token) => pp_tokens.push(pp_token),
                 Err(lex_error) => errors.push(lex_error),
             }
         }
+
+        let mut tokens = vec![];
+        for pp_token in pp_tokens {
+            match self.tokenize(pp_token) {
+                Ok(mut processed_tokens) => tokens.append(&mut processed_tokens),
+                Err(processed_errors) => errors.push(processed_errors),
+            }
+        }
+
         if !errors.is_empty() {
             Err(ParseError::LexicalErrors(errors))
         } else {
             Ok(tokens)
         }
     }
-    fn tokenize(
-        &mut self,
-        pp_token: tok::PreprocessingToken,
-    ) -> Result<Vec<tok::Token>, lex::LexicalError> {
-        use tok::PreprocessingToken as PPToken;
-        use tok::Token;
+    fn tokenize(&mut self, pp_token: PPToken) -> Result<Vec<tok::Token>, lex::LexicalError> {
         match pp_token {
             PPToken::NewLine(token) => {
                 if self.stdout > 0 {

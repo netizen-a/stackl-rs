@@ -2,8 +2,7 @@ use std::fmt::Debug;
 use std::iter;
 use std::str::Chars;
 
-use super::elements as tok;
-use super::elements::Spanned;
+use super::tok::{self, Spanned};
 
 #[derive(Debug)]
 pub enum LexicalErrorKind {
@@ -38,11 +37,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[allow(dead_code)]
-    fn header_name(
-        &mut self,
-        c: char,
-        span: tok::Span,
-    ) -> Result<tok::PreprocessingToken, LexicalError> {
+    fn header_name(&mut self, c: char, span: tok::Span) -> Result<tok::PPToken, LexicalError> {
         let mut name = String::new();
         name.push(c);
         let char_seq = match c {
@@ -75,14 +70,10 @@ impl<'a> Lexer<'a> {
         name.push_str(&char_seq);
         self.include_state = 0;
         let head_name = tok::HeaderName { span, name };
-        Ok(tok::PreprocessingToken::HeaderName(head_name))
+        Ok(tok::PPToken::HeaderName(head_name))
     }
 
-    fn identifier(
-        &mut self,
-        c: char,
-        mut span: tok::Span,
-    ) -> Result<tok::PreprocessingToken, LexicalError> {
+    fn identifier(&mut self, c: char, mut span: tok::Span) -> Result<tok::PPToken, LexicalError> {
         let mut name = String::new();
         name.push(c);
         while let Some(next_c) = self
@@ -99,11 +90,11 @@ impl<'a> Lexer<'a> {
             self.include_state = 0;
         }
         let ident = tok::Identifier { span, name };
-        Ok(tok::PreprocessingToken::Identifier(ident))
+        Ok(tok::PPToken::Identifier(ident))
     }
 
     #[allow(dead_code)]
-    fn pp_number(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+    fn pp_number(&mut self) -> Result<tok::PPToken, LexicalError> {
         todo!("pp-number")
     }
 
@@ -111,7 +102,7 @@ impl<'a> Lexer<'a> {
         &mut self,
         mut c: char,
         mut span: tok::Span,
-    ) -> Result<tok::PreprocessingToken, LexicalError> {
+    ) -> Result<tok::PPToken, LexicalError> {
         let mut name = String::new();
         self.include_state = 0;
         let is_l = c == 'L';
@@ -140,14 +131,14 @@ impl<'a> Lexer<'a> {
 
         span.location.1 = self.pos;
         let str_lit = tok::CharacterConstant { span, name };
-        Ok(tok::PreprocessingToken::CharacterConstant(str_lit))
+        Ok(tok::PPToken::CharacterConstant(str_lit))
     }
 
     fn string_literal(
         &mut self,
         mut c: char,
         mut span: tok::Span,
-    ) -> Result<tok::PreprocessingToken, LexicalError> {
+    ) -> Result<tok::PPToken, LexicalError> {
         let mut name = String::new();
         let is_l = c == 'L';
         if is_l {
@@ -177,10 +168,10 @@ impl<'a> Lexer<'a> {
             span: span.clone(),
             name,
         };
-        Ok(tok::PreprocessingToken::StringLiteral(str_lit))
+        Ok(tok::PPToken::StringLiteral(str_lit))
     }
     #[allow(dead_code)]
-    fn punctuator(&mut self) -> Result<tok::PreprocessingToken, LexicalError> {
+    fn punctuator(&mut self) -> Result<tok::PPToken, LexicalError> {
         todo!("punctuator")
     }
 
@@ -254,7 +245,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl Iterator for Lexer<'_> {
-    type Item = Result<tok::PreprocessingToken, LexicalError>;
+    type Item = Result<tok::PPToken, LexicalError>;
     fn next(&mut self) -> Option<Self::Item> {
         let (mut leading_tabs, mut leading_spaces) = (0, 0);
         // skip whitespace
@@ -300,7 +291,7 @@ impl Iterator for Lexer<'_> {
                 span.location = (start_pos, self.pos);
                 name.push(c);
                 let new_line = tok::NewLine { span };
-                Some(Ok(tok::PreprocessingToken::NewLine(new_line)))
+                Some(Ok(tok::PPToken::NewLine(new_line)))
             }
             // punctuators without trailing characters
             '[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
@@ -310,7 +301,7 @@ impl Iterator for Lexer<'_> {
                     span,
                     term: tok::PunctuatorTerminal::try_from(c).unwrap(),
                 };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
 
             // identifier
@@ -346,7 +337,7 @@ impl Iterator for Lexer<'_> {
                 }
                 span.location = (start_pos, self.pos);
                 let num = tok::PPNumber { span, name };
-                Some(Ok(tok::PreprocessingToken::PPNumber(num)))
+                Some(Ok(tok::PPToken::PPNumber(num)))
             }
             // `.` or `...` or pp-number
             '.' => {
@@ -364,7 +355,7 @@ impl Iterator for Lexer<'_> {
                             term: tok::PunctuatorTerminal::Ellipsis,
                             span,
                         };
-                        Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                        Some(Ok(tok::PPToken::Punctuator(punct)))
                     } else {
                         span.location = (start_pos, self.pos);
                         Some(Err(LexicalError {
@@ -402,7 +393,7 @@ impl Iterator for Lexer<'_> {
                     }
                     span.location = (start_pos, self.pos);
                     let num = tok::PPNumber { span, name };
-                    Some(Ok(tok::PreprocessingToken::PPNumber(num)))
+                    Some(Ok(tok::PPToken::PPNumber(num)))
                 } else {
                     span.location = (start_pos, self.pos);
                     Some(Err(LexicalError {
@@ -425,7 +416,7 @@ impl Iterator for Lexer<'_> {
                     span,
                     term: tok::PunctuatorTerminal::Hash,
                 };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '<' => {
                 let term = if self.include_state == 3 {
@@ -448,7 +439,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Less
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '/' => {
                 self.include_state = 0;
@@ -461,7 +452,7 @@ impl Iterator for Lexer<'_> {
                         self.pos += 1;
                     }
                     let comment = tok::Comment { span, name };
-                    return Some(Ok(tok::PreprocessingToken::Comment(comment)));
+                    return Some(Ok(tok::PPToken::Comment(comment)));
                 } else if self.chars.next_if_eq(&'=').is_some() {
                     // case: `/=`
                     self.pos += 1;
@@ -486,12 +477,12 @@ impl Iterator for Lexer<'_> {
                         last_c = c;
                     }
                     let comment = tok::Comment { span, name };
-                    return Some(Ok(tok::PreprocessingToken::Comment(comment)));
+                    return Some(Ok(tok::PPToken::Comment(comment)));
                 } else {
                     tok::PunctuatorTerminal::FSlash
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '\\' => {
                 // nuke the newline out of existance!
@@ -528,7 +519,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Plus
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '-' => {
                 self.include_state = 0;
@@ -547,7 +538,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Minus
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '=' => {
                 self.include_state = 0;
@@ -561,7 +552,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Equal
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '*' => {
                 self.include_state = 0;
@@ -575,7 +566,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Star
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             ':' => {
                 self.include_state = 0;
@@ -589,7 +580,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Colon
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '!' => {
                 self.include_state = 0;
@@ -603,7 +594,7 @@ impl Iterator for Lexer<'_> {
                     tok::PunctuatorTerminal::Bang
                 };
                 let punct = tok::Punctuator { span, term };
-                Some(Ok(tok::PreprocessingToken::Punctuator(punct)))
+                Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             _ => todo!("{}", c as i32),
         }

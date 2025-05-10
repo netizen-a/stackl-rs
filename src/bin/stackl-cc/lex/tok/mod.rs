@@ -206,7 +206,7 @@ impl Spanned for Token {
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum PreprocessingToken {
+pub enum PPToken {
     HeaderName(HeaderName),
     Identifier(Identifier),
     PPNumber(PPNumber),
@@ -217,7 +217,7 @@ pub enum PreprocessingToken {
     Comment(Comment),
 }
 
-impl Spanned for PreprocessingToken {
+impl Spanned for PPToken {
     fn span(&self) -> Span {
         match self {
             Self::HeaderName(value) => value.span.clone(),
