@@ -3,6 +3,7 @@ use super::tok::{self, Spanned};
 use std::io::BufReader;
 use std::io::Read;
 use std::iter::Peekable;
+use std::slice::Iter;
 use std::str::Chars;
 use std::{fs, io, path};
 use tok::PPToken;
@@ -55,9 +56,10 @@ impl Preprocessor {
             }
         }
 
+        let mut pp_iter = pp_tokens.iter();
         let mut tokens = vec![];
-        for pp_token in pp_tokens {
-            match self.tokenize(pp_token) {
+        while let Some(pp_token) = pp_iter.next() {
+            match self.tokenize(pp_token.clone(), &pp_iter) {
                 Ok(mut processed_tokens) => tokens.append(&mut processed_tokens),
                 Err(processed_errors) => errors.push(processed_errors),
             }
@@ -69,11 +71,15 @@ impl Preprocessor {
             Ok(tokens)
         }
     }
-    fn tokenize(&mut self, pp_token: PPToken) -> Result<Vec<tok::Token>, lex::LexicalError> {
+    fn tokenize(
+        &mut self,
+        pp_token: PPToken,
+        pp_iter: &Iter<PPToken>,
+    ) -> Result<Vec<tok::Token>, lex::LexicalError> {
         match pp_token {
             PPToken::NewLine(token) => {
                 if self.stdout > 0 {
-                    token.span.print_whitespace();
+                    token.span().print_whitespace();
                     println!();
                 }
                 self.is_preproc = false;
@@ -82,14 +88,14 @@ impl Preprocessor {
             }
             PPToken::Comment(token) => {
                 if self.stdout > 1 {
-                    token.span.print_whitespace();
+                    token.span().print_whitespace();
                     print!("{}", token.name);
                 }
                 Ok(vec![])
             }
             PPToken::Identifier(token) => {
                 if self.stdout > 0 {
-                    token.span.print_whitespace();
+                    token.span().print_whitespace();
                     print!("{}", token.name);
                 }
                 if self.is_preproc {
@@ -102,7 +108,7 @@ impl Preprocessor {
             }
             PPToken::Punctuator(token) => {
                 if self.stdout > 0 {
-                    token.span.print_whitespace();
+                    token.span().print_whitespace();
                     print!("{}", token.term);
                 }
                 if let tok::PunctuatorTerminal::Hash = token.term {
@@ -116,7 +122,7 @@ impl Preprocessor {
             PPToken::StringLiteral(token) => {
                 self.is_newline = false;
                 if self.stdout > 0 {
-                    token.span.print_whitespace();
+                    token.span().print_whitespace();
                     print!("{}", token.name);
                 }
                 Ok(vec![Token::StringLiteral(token)])
@@ -124,7 +130,7 @@ impl Preprocessor {
             PPToken::CharacterConstant(token) => {
                 self.is_newline = false;
                 if self.stdout > 0 {
-                    token.span.print_whitespace();
+                    token.span().print_whitespace();
                     print!("{}", token.name);
                 }
                 Ok(vec![Token::Constant(tok::Constant::Character(token))])
@@ -173,7 +179,7 @@ fn integer_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::Lexical
         }
         _ => Err(lex::LexicalError {
             kind: lex::LexicalErrorKind::InvalidToken,
-            span: pp_number.span,
+            span: pp_number.span(),
         }),
     }
 }
@@ -188,7 +194,7 @@ fn decimal_constant(
     }
     let data = name.parse::<i128>().or(Err(lex::LexicalError {
         kind: lex::LexicalErrorKind::InvalidToken,
-        span: pp_number.span.clone(),
+        span: pp_number.span(),
     }))?;
     if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
         todo!("unsigned-suffix")
@@ -196,7 +202,7 @@ fn decimal_constant(
         todo!("long-suffix")
     } else if chars.peek().is_none() {
         let integer = tok::IntegerConstant {
-            span: pp_number.span.clone(),
+            span: pp_number.span(),
             data,
             suff: tok::IntegerSuffix::None,
         };

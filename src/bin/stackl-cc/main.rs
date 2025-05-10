@@ -1,4 +1,4 @@
-use std::{fs, process::ExitCode};
+use std::process::ExitCode;
 
 mod cli;
 mod lex;

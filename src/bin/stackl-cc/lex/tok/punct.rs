@@ -1,9 +1,9 @@
-use super::Span;
+use super::span;
 use crate::lex::error;
 use std::fmt;
 
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum PunctuatorTerminal {
     /// `[`
     LSquare,
@@ -180,10 +180,19 @@ impl TryFrom<char> for PunctuatorTerminal {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Punctuator {
-    pub span: Span,
+    pub span: span::Span,
     pub term: PunctuatorTerminal,
+}
+
+impl span::Spanned for Punctuator {
+    fn span(&self) -> span::Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: span::Span) {
+        self.span = span;
+    }
 }
 
 impl fmt::Display for Punctuator {

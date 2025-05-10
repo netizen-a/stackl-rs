@@ -1,4 +1,4 @@
-use super::span::Span;
+use super::span;
 use super::Identifier;
 use crate::lex::error::TryFromIdentifierError;
 use std::fmt;
@@ -82,8 +82,17 @@ impl fmt::Display for KeywordTerminal {
 
 #[derive(Debug)]
 pub struct Keyword {
-    pub span: Span,
+    span: span::Span,
     pub term: KeywordTerminal,
+}
+
+impl span::Spanned for Keyword {
+    fn span(&self) -> span::Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: span::Span) {
+        self.span = span;
+    }
 }
 
 impl TryFrom<Identifier> for Keyword {

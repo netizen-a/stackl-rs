@@ -15,6 +15,15 @@ pub struct Identifier {
     pub name: String,
 }
 
+impl span::Spanned for Identifier {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
+}
+
 impl fmt::Display for Identifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
@@ -28,6 +37,7 @@ pub enum IntegerSuffix {
     L,
     UL,
     LL,
+    #[allow(clippy::upper_case_acronyms)]
     ULL,
 }
 
@@ -96,10 +106,19 @@ impl Spanned for Constant {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StringLiteral {
     pub span: Span,
     pub name: String,
+}
+
+impl span::Spanned for StringLiteral {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
 }
 
 impl fmt::Display for StringLiteral {
@@ -108,17 +127,27 @@ impl fmt::Display for StringLiteral {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HeaderName {
     pub span: Span,
     pub name: String,
 }
 
-#[derive(Debug)]
+impl span::Spanned for HeaderName {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct PPNumber {
     pub span: Span,
     pub name: String,
 }
+
 impl PPNumber {
     pub fn is_float(&self) -> bool {
         if self.name.contains('.') {
@@ -139,10 +168,28 @@ impl PPNumber {
     }
 }
 
-#[derive(Debug)]
+impl span::Spanned for PPNumber {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct CharacterConstant {
     pub span: Span,
     pub name: String,
+}
+
+impl span::Spanned for CharacterConstant {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
 }
 
 impl fmt::Display for CharacterConstant {
@@ -151,15 +198,34 @@ impl fmt::Display for CharacterConstant {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct NewLine {
-    pub span: Span,
+    pub span: span::Span,
 }
 
-#[derive(Debug)]
+impl span::Spanned for NewLine {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Comment {
     pub span: Span,
     pub name: String,
+}
+
+impl span::Spanned for Comment {
+    fn span(&self) -> Span {
+        self.span.clone()
+    }
+    fn set_span(&mut self, span: Span) {
+        self.span = span;
+    }
 }
 
 #[derive(Debug)]
@@ -186,25 +252,25 @@ impl fmt::Display for Token {
 impl Spanned for Token {
     fn span(&self) -> Span {
         match self {
-            Self::Keyword(value) => value.span.clone(),
-            Self::Identifier(value) => value.span.clone(),
+            Self::Keyword(value) => value.span(),
+            Self::Identifier(value) => value.span(),
             Self::Constant(value) => value.span(),
-            Self::StringLiteral(value) => value.span.clone(),
-            Self::Punctuator(value) => value.span.clone(),
+            Self::StringLiteral(value) => value.span(),
+            Self::Punctuator(value) => value.span(),
         }
     }
     fn set_span(&mut self, span: Span) {
         match self {
-            Self::Keyword(value) => value.span = span,
-            Self::Identifier(value) => value.span = span,
+            Self::Keyword(value) => value.set_span(span),
+            Self::Identifier(value) => value.set_span(span),
             Self::Constant(value) => value.set_span(span),
-            Self::StringLiteral(value) => value.span = span,
-            Self::Punctuator(value) => value.span = span,
+            Self::StringLiteral(value) => value.set_span(span),
+            Self::Punctuator(value) => value.set_span(span),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum PPToken {
     HeaderName(HeaderName),
@@ -220,26 +286,26 @@ pub enum PPToken {
 impl Spanned for PPToken {
     fn span(&self) -> Span {
         match self {
-            Self::HeaderName(value) => value.span.clone(),
-            Self::Identifier(value) => value.span.clone(),
-            Self::PPNumber(value) => value.span.clone(),
-            Self::CharacterConstant(value) => value.span.clone(),
-            Self::StringLiteral(value) => value.span.clone(),
-            Self::Punctuator(value) => value.span.clone(),
-            Self::NewLine(value) => value.span.clone(),
-            Self::Comment(value) => value.span.clone(),
+            Self::HeaderName(value) => value.span(),
+            Self::Identifier(value) => value.span(),
+            Self::PPNumber(value) => value.span(),
+            Self::CharacterConstant(value) => value.span(),
+            Self::StringLiteral(value) => value.span(),
+            Self::Punctuator(value) => value.span(),
+            Self::NewLine(value) => value.span(),
+            Self::Comment(value) => value.span(),
         }
     }
     fn set_span(&mut self, span: Span) {
         match self {
-            Self::HeaderName(value) => value.span = span,
-            Self::Identifier(value) => value.span = span,
-            Self::PPNumber(value) => value.span = span,
-            Self::CharacterConstant(value) => value.span = span,
-            Self::StringLiteral(value) => value.span = span,
-            Self::Punctuator(value) => value.span = span,
-            Self::NewLine(value) => value.span = span,
-            Self::Comment(value) => value.span = span,
+            Self::HeaderName(value) => value.set_span(span),
+            Self::Identifier(value) => value.set_span(span),
+            Self::PPNumber(value) => value.set_span(span),
+            Self::CharacterConstant(value) => value.set_span(span),
+            Self::StringLiteral(value) => value.set_span(span),
+            Self::Punctuator(value) => value.set_span(span),
+            Self::NewLine(value) => value.set_span(span),
+            Self::Comment(value) => value.set_span(span),
         }
     }
 }
