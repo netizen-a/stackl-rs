@@ -137,16 +137,16 @@ impl Preprocessor {
             }
             PPToken::PPNumber(token) => {
                 self.is_newline = false;
-                if token.is_float() {
-                    Ok(vec![floating_constant(token)?])
+                let token = if token.is_float() {
+                    floating_constant(token)?
                 } else {
-                    let token = integer_constant(token)?;
-                    if self.stdout > 0 {
-                        token.span().print_whitespace();
-                        print!("{token}");
-                    }
-                    Ok(vec![token])
+                    integer_constant(token)?
+                };
+                if self.stdout > 0 {
+                    token.span().print_whitespace();
+                    print!("{token}");
                 }
+                Ok(vec![token])
             }
             PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
         }
