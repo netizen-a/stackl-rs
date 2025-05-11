@@ -137,11 +137,7 @@ impl Preprocessor {
             }
             PPToken::PPNumber(token) => {
                 self.is_newline = false;
-                let token = if token.is_float() {
-                    floating_constant(token)?
-                } else {
-                    integer_constant(token)?
-                };
+                let token = Token::try_from(token)?;
                 if self.stdout > 0 {
                     token.span().print_whitespace();
                     print!("{token}");
@@ -150,65 +146,5 @@ impl Preprocessor {
             }
             PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
         }
-    }
-}
-
-fn floating_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::LexicalError> {
-    let mut chars = pp_number.name.chars().peekable();
-    let c = chars.next().expect("empty pp-number");
-    if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
-        todo!("hexadecimal-floating-constant")
-    } else {
-        todo!("decimal-floating-constant")
-    }
-}
-
-fn integer_constant(pp_number: tok::PPNumber) -> Result<tok::Token, lex::LexicalError> {
-    let mut chars = pp_number.name.chars().peekable();
-    match chars.next().expect("empty pp-number") {
-        '0' => {
-            if chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
-                todo!("hexadecimal-constant")
-            } else {
-                todo!("octal-constant")
-            }
-        }
-        c @ '1'..='9' => {
-            let name = String::from(c);
-            decimal_constant(&pp_number, name, chars)
-        }
-        _ => Err(lex::LexicalError {
-            kind: lex::LexicalErrorKind::InvalidToken,
-            span: pp_number.span(),
-        }),
-    }
-}
-
-fn decimal_constant(
-    pp_number: &tok::PPNumber,
-    mut name: String,
-    mut chars: Peekable<Chars>,
-) -> Result<tok::Token, lex::LexicalError> {
-    while let Some(digit) = chars.next_if(char::is_ascii_digit) {
-        name.push(digit);
-    }
-    let data = name.parse::<i128>().or(Err(lex::LexicalError {
-        kind: lex::LexicalErrorKind::InvalidToken,
-        span: pp_number.span(),
-    }))?;
-    if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
-        todo!("unsigned-suffix")
-    } else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
-        todo!("long-suffix")
-    } else if chars.peek().is_none() {
-        let integer = tok::IntegerConstant {
-            span: pp_number.span(),
-            data,
-            suff: tok::IntegerSuffix::None,
-        };
-        let constant = tok::Constant::Integer(integer);
-        Ok(tok::Token::Constant(constant))
-    } else {
-        todo!("error")
     }
 }

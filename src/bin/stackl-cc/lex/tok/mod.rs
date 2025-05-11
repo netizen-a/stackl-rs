@@ -4,10 +4,13 @@ pub mod keyword;
 pub mod punct;
 pub mod span;
 
+use crate::lex::lexer as lex;
 pub use keyword::*;
 pub use punct::*;
 pub use span::*;
 use std::fmt;
+use std::iter::Peekable;
+use std::str::Chars;
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
@@ -166,6 +169,65 @@ impl PPNumber {
             chars.any(|c| c == 'e' || c == 'E')
         }
     }
+    fn floating_constant(&self) -> Result<Token, lex::LexicalError> {
+        let mut chars = self.name.chars().peekable();
+        let c = chars.next().expect("empty pp-number");
+        if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
+            todo!("hexadecimal-floating-constant")
+        } else {
+            todo!("decimal-floating-constant")
+        }
+    }
+
+    fn integer_constant(&self) -> Result<Token, lex::LexicalError> {
+        let mut chars = self.name.chars().peekable();
+        match chars.next().expect("empty pp-number") {
+            '0' => {
+                if chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
+                    todo!("hexadecimal-constant")
+                } else {
+                    todo!("octal-constant")
+                }
+            }
+            c @ '1'..='9' => {
+                let name = String::from(c);
+                self.decimal_constant(name, chars)
+            }
+            _ => Err(lex::LexicalError {
+                kind: lex::LexicalErrorKind::InvalidToken,
+                span: self.span(),
+            }),
+        }
+    }
+
+    fn decimal_constant(
+        &self,
+        mut name: String,
+        mut chars: Peekable<Chars>,
+    ) -> Result<Token, lex::LexicalError> {
+        while let Some(digit) = chars.next_if(char::is_ascii_digit) {
+            name.push(digit);
+        }
+        let data = name.parse::<i128>().or(Err(lex::LexicalError {
+            kind: lex::LexicalErrorKind::InvalidToken,
+            span: self.span(),
+        }))?;
+        if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
+            todo!("unsigned-suffix")
+        } else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
+            todo!("long-suffix")
+        } else if chars.peek().is_none() {
+            let integer = IntegerConstant {
+                span: self.span(),
+                data,
+                suff: IntegerSuffix::None,
+            };
+            let constant = Constant::Integer(integer);
+            Ok(Token::Constant(constant))
+        } else {
+            todo!("error")
+        }
+    }
 }
 
 impl span::Spanned for PPNumber {
@@ -235,6 +297,17 @@ pub enum Token {
     Constant(Constant),
     StringLiteral(StringLiteral),
     Punctuator(Punctuator),
+}
+
+impl TryFrom<PPNumber> for Token {
+    type Error = lex::LexicalError;
+    fn try_from(value: PPNumber) -> Result<Self, Self::Error> {
+        if value.is_float() {
+            value.floating_constant()
+        } else {
+            value.integer_constant()
+        }
+    }
 }
 
 impl fmt::Display for Token {
