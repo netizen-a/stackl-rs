@@ -108,6 +108,8 @@ impl fmt::Display for IntegerConstant {
 pub enum FloatingConstant {
     F32 { span: Span, data: f32 },
     F64 { span: Span, data: f64 },
+    // same as F64, but higher rank
+    Long { span: Span, data: f64 },
 }
 
 impl fmt::Display for FloatingConstant {
@@ -115,6 +117,7 @@ impl fmt::Display for FloatingConstant {
         match self {
             Self::F32 { data, .. } => write!(f, "{data}F"),
             Self::F64 { data, .. } => write!(f, "{data}"),
+            Self::Long { data, .. } => write!(f, "{data}L"),
         }
     }
 }
@@ -124,12 +127,14 @@ impl Spanned for FloatingConstant {
         match self {
             Self::F32 { span, .. } => span.clone(),
             Self::F64 { span, .. } => span.clone(),
+            Self::Long { span, .. } => span.clone(),
         }
     }
     fn set_span(&mut self, value: Span) {
         match self {
             Self::F32 { span, .. } => *span = value,
             Self::F64 { span, .. } => *span = value,
+            Self::Long { span, .. } => *span = value,
         }
     }
 }
@@ -157,7 +162,7 @@ impl Spanned for Constant {
     fn span(&self) -> Span {
         match self {
             Self::Integer(token) => token.span(),
-            Self::Floating(_) => todo!("floating span"),
+            Self::Floating(token) => token.span(),
             Self::Enumeration => todo!("enumeration span"),
             Self::Character(token) => token.span.clone(),
         }
@@ -238,7 +243,62 @@ impl PPNumber {
         if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
             todo!("hexadecimal-floating-constant")
         } else {
-            todo!("decimal-floating-constant")
+            let mut decimal = String::new();
+            while let Some(c) = chars.next_if(|&c| c.is_ascii_digit() || c == '.') {
+                decimal.push(c);
+            }
+            let mut exponent: i32 = 1;
+            if chars.next_if(|&c| c == 'e' || c == 'E').is_some() {
+                let sign = chars.next_if(|&c| c == '+' || c == '-');
+                let mut digit_seq = String::new();
+                while let Some(c) = chars.next_if(|&c| c.is_ascii_digit()) {
+                    digit_seq.push(c);
+                }
+                exponent = digit_seq.parse().or(Err(LexicalError {
+                    kind: LexicalErrorKind::InvalidToken,
+                    span: self.span(),
+                }))?;
+                if let Some('-') = sign {
+                    exponent *= -1;
+                }
+            }
+            let floating = match chars.next_if(|&c| c == 'f' || c == 'F' || c == 'l' || c == 'L') {
+                Some('f' | 'F') => {
+                    let data: f32 = decimal.parse().or(Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span: self.span(),
+                    }))?;
+                    let data = data.powi(exponent);
+                    FloatingConstant::F32 {
+                        span: self.span(),
+                        data,
+                    }
+                }
+                Some('l' | 'L') => {
+                    let data: f64 = decimal.parse().or(Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span: self.span(),
+                    }))?;
+                    let data = data.powi(exponent);
+                    FloatingConstant::Long {
+                        span: self.span(),
+                        data,
+                    }
+                }
+                None => {
+                    let data: f64 = decimal.parse().or(Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span: self.span(),
+                    }))?;
+                    let data = data.powi(exponent);
+                    FloatingConstant::F64 {
+                        span: self.span(),
+                        data,
+                    }
+                }
+                _ => unreachable!(),
+            };
+            Ok(Token::Constant(Constant::Floating(floating)))
         }
     }
 
@@ -249,7 +309,7 @@ impl PPNumber {
                 if chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
                     todo!("hexadecimal-constant")
                 } else {
-                    todo!("octal-constant")
+                    self.octal_constant(chars)
                 }
             }
             c @ '1'..='9' => {
@@ -260,6 +320,43 @@ impl PPNumber {
                 kind: LexicalErrorKind::InvalidToken,
                 span: self.span(),
             }),
+        }
+    }
+    fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<Token, LexicalError> {
+        let mut name = String::new();
+        while let Some(digit) = chars.next_if(char::is_ascii_digit) {
+            name.push(digit);
+        }
+        if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
+            todo!("unsigned-suffix")
+        } else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
+            todo!("long-suffix")
+        } else if chars.peek().is_none() {
+            let integer = if let Ok(data) = i32::from_str_radix(&name, 8) {
+                IntegerConstant::I32 {
+                    span: self.span(),
+                    data,
+                }
+            } else if let Ok(data) = i64::from_str_radix(&name, 8) {
+                IntegerConstant::I64 {
+                    span: self.span(),
+                    data,
+                }
+            } else if let Ok(data) = i128::from_str_radix(&name, 8) {
+                IntegerConstant::I128 {
+                    span: self.span(),
+                    data,
+                }
+            } else {
+                return Err(LexicalError {
+                    kind: LexicalErrorKind::InvalidToken,
+                    span: self.span(),
+                });
+            };
+            let constant = Constant::Integer(integer);
+            Ok(Token::Constant(constant))
+        } else {
+            todo!("error octal-constant")
         }
     }
 
@@ -300,7 +397,7 @@ impl PPNumber {
             let constant = Constant::Integer(integer);
             Ok(Token::Constant(constant))
         } else {
-            todo!("error")
+            todo!("error decimal-constant")
         }
     }
 }

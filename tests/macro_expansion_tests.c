@@ -502,7 +502,7 @@ static int glob = (1 + FUNC(1 RPAREN );
 #define F(a,...)  __VA_OPT__(B a ## a) ## 1
 #define G(a,...)  __VA_OPT__(B a) ## 1
 26: F(,1)
-26_1: G(,1)
+26.1: G(,1)
 #undef F
 #undef G
 
@@ -512,7 +512,7 @@ static int glob = (1 + FUNC(1 RPAREN );
 #define F(a,...)  B ## __VA_OPT__(a 1) ## 1
 #define G(a,...)  B ## __VA_OPT__(a ## a 1) ## 1
 27: F(,1)
-27_1: F(A0,1)
+27.1: F(A0,1)
 28: G(,1)
 #undef F
 #undef G
