@@ -4,7 +4,7 @@ pub mod keyword;
 pub mod punct;
 pub mod span;
 
-use crate::lex::lexer as lex;
+use crate::lex::error::*;
 pub use keyword::*;
 pub use punct::*;
 pub use span::*;
@@ -59,22 +59,85 @@ impl fmt::Display for IntegerSuffix {
 }
 
 #[derive(Debug)]
-pub struct IntegerConstant {
-    pub span: Span,
-    pub data: i128,
-    pub suff: IntegerSuffix,
+pub enum IntegerConstant {
+    U32 { span: Span, data: u32 },
+    I32 { span: Span, data: i32 },
+    U64 { span: Span, data: u64 },
+    I64 { span: Span, data: i64 },
+    U128 { span: Span, data: u128 },
+    I128 { span: Span, data: i128 },
+}
+
+impl Spanned for IntegerConstant {
+    fn span(&self) -> Span {
+        match self {
+            Self::U32 { span, .. } => span.clone(),
+            Self::I32 { span, .. } => span.clone(),
+            Self::U64 { span, .. } => span.clone(),
+            Self::I64 { span, .. } => span.clone(),
+            Self::U128 { span, .. } => span.clone(),
+            Self::I128 { span, .. } => span.clone(),
+        }
+    }
+    fn set_span(&mut self, value: Span) {
+        match self {
+            Self::U32 { span, .. } => *span = value,
+            Self::I32 { span, .. } => *span = value,
+            Self::U64 { span, .. } => *span = value,
+            Self::I64 { span, .. } => *span = value,
+            Self::U128 { span, .. } => *span = value,
+            Self::I128 { span, .. } => *span = value,
+        }
+    }
 }
 
 impl fmt::Display for IntegerConstant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.data, self.suff)
+        match self {
+            Self::U32 { data, .. } => write!(f, "{data}U"),
+            Self::I32 { data, .. } => write!(f, "{data}"),
+            Self::U64 { data, .. } => write!(f, "{data}UL"),
+            Self::I64 { data, .. } => write!(f, "{data}L"),
+            Self::U128 { data, .. } => write!(f, "{data}ULL"),
+            Self::I128 { data, .. } => write!(f, "{data}LL"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum FloatingConstant {
+    F32 { span: Span, data: f32 },
+    F64 { span: Span, data: f64 },
+}
+
+impl fmt::Display for FloatingConstant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::F32 { data, .. } => write!(f, "{data}F"),
+            Self::F64 { data, .. } => write!(f, "{data}"),
+        }
+    }
+}
+
+impl Spanned for FloatingConstant {
+    fn span(&self) -> Span {
+        match self {
+            Self::F32 { span, .. } => span.clone(),
+            Self::F64 { span, .. } => span.clone(),
+        }
+    }
+    fn set_span(&mut self, value: Span) {
+        match self {
+            Self::F32 { span, .. } => *span = value,
+            Self::F64 { span, .. } => *span = value,
+        }
     }
 }
 
 #[derive(Debug)]
 pub enum Constant {
     Integer(IntegerConstant),
-    Floating,
+    Floating(FloatingConstant),
     Enumeration,
     Character(CharacterConstant),
 }
@@ -83,7 +146,7 @@ impl fmt::Display for Constant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Integer(token) => write!(f, "{token}"),
-            Self::Floating => todo!("floating"),
+            Self::Floating(token) => write!(f, "{token}"),
             Self::Enumeration => todo!("enumeration"),
             Self::Character(token) => write!(f, "{token}"),
         }
@@ -93,16 +156,16 @@ impl fmt::Display for Constant {
 impl Spanned for Constant {
     fn span(&self) -> Span {
         match self {
-            Self::Integer(token) => token.span.clone(),
-            Self::Floating => todo!("floating span"),
+            Self::Integer(token) => token.span(),
+            Self::Floating(_) => todo!("floating span"),
             Self::Enumeration => todo!("enumeration span"),
             Self::Character(token) => token.span.clone(),
         }
     }
     fn set_span(&mut self, span: Span) {
         match self {
-            Self::Integer(token) => token.span = span,
-            Self::Floating => todo!("floating span"),
+            Self::Integer(token) => token.set_span(span),
+            Self::Floating(token) => token.set_span(span),
             Self::Enumeration => todo!("enumeration span"),
             Self::Character(token) => token.span = span,
         }
@@ -169,7 +232,7 @@ impl PPNumber {
             chars.any(|c| c == 'e' || c == 'E')
         }
     }
-    fn floating_constant(&self) -> Result<Token, lex::LexicalError> {
+    fn floating_constant(&self) -> Result<Token, LexicalError> {
         let mut chars = self.name.chars().peekable();
         let c = chars.next().expect("empty pp-number");
         if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
@@ -179,7 +242,7 @@ impl PPNumber {
         }
     }
 
-    fn integer_constant(&self) -> Result<Token, lex::LexicalError> {
+    fn integer_constant(&self) -> Result<Token, LexicalError> {
         let mut chars = self.name.chars().peekable();
         match chars.next().expect("empty pp-number") {
             '0' => {
@@ -193,8 +256,8 @@ impl PPNumber {
                 let name = String::from(c);
                 self.decimal_constant(name, chars)
             }
-            _ => Err(lex::LexicalError {
-                kind: lex::LexicalErrorKind::InvalidToken,
+            _ => Err(LexicalError {
+                kind: LexicalErrorKind::InvalidToken,
                 span: self.span(),
             }),
         }
@@ -204,23 +267,35 @@ impl PPNumber {
         &self,
         mut name: String,
         mut chars: Peekable<Chars>,
-    ) -> Result<Token, lex::LexicalError> {
+    ) -> Result<Token, LexicalError> {
         while let Some(digit) = chars.next_if(char::is_ascii_digit) {
             name.push(digit);
         }
-        let data = name.parse::<i128>().or(Err(lex::LexicalError {
-            kind: lex::LexicalErrorKind::InvalidToken,
-            span: self.span(),
-        }))?;
         if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
             todo!("unsigned-suffix")
         } else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
             todo!("long-suffix")
         } else if chars.peek().is_none() {
-            let integer = IntegerConstant {
-                span: self.span(),
-                data,
-                suff: IntegerSuffix::None,
+            let integer = if let Ok(data) = name.parse::<i32>() {
+                IntegerConstant::I32 {
+                    span: self.span(),
+                    data,
+                }
+            } else if let Ok(data) = name.parse::<i64>() {
+                IntegerConstant::I64 {
+                    span: self.span(),
+                    data,
+                }
+            } else if let Ok(data) = name.parse::<i128>() {
+                IntegerConstant::I128 {
+                    span: self.span(),
+                    data,
+                }
+            } else {
+                return Err(LexicalError {
+                    kind: LexicalErrorKind::InvalidToken,
+                    span: self.span(),
+                });
             };
             let constant = Constant::Integer(integer);
             Ok(Token::Constant(constant))
@@ -300,7 +375,7 @@ pub enum Token {
 }
 
 impl TryFrom<PPNumber> for Token {
-    type Error = lex::LexicalError;
+    type Error = LexicalError;
     fn try_from(value: PPNumber) -> Result<Self, Self::Error> {
         if value.is_float() {
             value.floating_constant()

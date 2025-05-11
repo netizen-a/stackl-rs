@@ -1,3 +1,4 @@
+use super::tok;
 use std::{error::Error, fmt};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -20,3 +21,15 @@ impl fmt::Display for TryFromIdentifierError {
 }
 
 impl Error for TryFromIdentifierError {}
+#[derive(Debug)]
+pub enum LexicalErrorKind {
+    UnexpectedEof,
+    UnexpectedEscape,
+    InvalidToken,
+}
+
+#[derive(Debug)]
+pub struct LexicalError {
+    pub kind: LexicalErrorKind,
+    pub span: tok::Span,
+}

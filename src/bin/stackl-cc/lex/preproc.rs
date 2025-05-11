@@ -1,6 +1,7 @@
+use super::error::*;
 use super::lexer as lex;
 use super::tok::{self, Spanned};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
 use std::io::Read;
 use std::{fs, io, path};
@@ -9,12 +10,13 @@ use tok::Token;
 
 #[derive(Debug)]
 pub enum ParseError {
-    LexicalErrors(Vec<lex::LexicalError>),
+    LexicalErrors(Vec<LexicalError>),
     IOError(io::Error),
 }
 
 pub struct Preprocessor {
     file_map: bimap::BiHashMap<usize, path::PathBuf>,
+    macros: HashMap<String, Vec<PPToken>>,
     stdout: i32,
     pp_tokens: VecDeque<PPToken>,
     is_newline: bool,
@@ -30,6 +32,7 @@ impl Preprocessor {
         file_map.insert(0, file_path.as_ref().to_owned());
         Self {
             file_map,
+            macros: HashMap::new(),
             stdout,
             pp_tokens: VecDeque::new(),
             is_newline: true,
@@ -69,7 +72,7 @@ impl Preprocessor {
             Ok(tokens)
         }
     }
-    fn tokenize(&mut self, pp_token: PPToken) -> Result<Vec<tok::Token>, lex::LexicalError> {
+    fn tokenize(&mut self, pp_token: PPToken) -> Result<Vec<tok::Token>, LexicalError> {
         match pp_token {
             PPToken::NewLine(token) => {
                 if self.stdout > 0 {
@@ -143,17 +146,82 @@ impl Preprocessor {
             PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
         }
     }
-    fn directive(&mut self, ident: tok::Identifier) -> Result<Vec<tok::Token>, lex::LexicalError> {
+    fn directive(&mut self, ident: tok::Identifier) -> Result<Vec<tok::Token>, LexicalError> {
         match ident.name.as_str() {
-            "define" => self.pp_define(),
+            "define" => self.pp_define(ident.span).and(Ok(vec![])),
+            "undef" => self.pp_undef(ident.span).and(Ok(vec![])),
             "include" => self.pp_include(),
             _ => todo!("undefined directive"),
         }
     }
-    fn pp_define(&self) -> Result<Vec<tok::Token>, lex::LexicalError> {
-        todo!("define")
+    fn pp_define(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
+        let pp_token = match self.pp_tokens.pop_front() {
+            Some(pp_token) => pp_token,
+            None => {
+                let (_, hi) = last_span.location;
+                let span = tok::Span {
+                    location: (hi + 1, hi + 1),
+                    file_key: last_span.file_key,
+                    leading_tabs: 0,
+                    leading_spaces: 0,
+                };
+                return Err(LexicalError {
+                    kind: LexicalErrorKind::UnexpectedEof,
+                    span,
+                });
+            }
+        };
+        let tok::PPToken::Identifier(ident) = pp_token else {
+            return Err(LexicalError {
+                kind: LexicalErrorKind::InvalidToken,
+                span: pp_token.span(),
+            });
+        };
+        let mut def = vec![];
+        while let Some(pp_token) = self.pp_tokens.pop_front() {
+            if let PPToken::NewLine(_) = pp_token {
+                self.tokenize(pp_token)?;
+                break;
+            }
+            def.push(pp_token);
+        }
+        self.macros.insert(ident.name, def);
+        Ok(())
     }
-    fn pp_include(&self) -> Result<Vec<tok::Token>, lex::LexicalError> {
+    fn pp_undef(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
+        let pp_token = match self.pp_tokens.pop_front() {
+            Some(pp_token) => pp_token,
+            None => {
+                let (_, hi) = last_span.location;
+                let span = tok::Span {
+                    location: (hi + 1, hi + 1),
+                    file_key: last_span.file_key,
+                    leading_tabs: 0,
+                    leading_spaces: 0,
+                };
+                return Err(LexicalError {
+                    kind: LexicalErrorKind::UnexpectedEof,
+                    span,
+                });
+            }
+        };
+        let tok::PPToken::Identifier(ident) = pp_token else {
+            return Err(LexicalError {
+                kind: LexicalErrorKind::InvalidToken,
+                span: pp_token.span(),
+            });
+        };
+        let _ = self.macros.remove(ident.name.as_str());
+        while let Some(pp_token) = self.pp_tokens.pop_front() {
+            if let PPToken::NewLine(_) = pp_token {
+                self.tokenize(pp_token)?;
+                break;
+            }
+        }
+
+        Ok(())
+    }
+    fn pp_include(&self) -> Result<Vec<tok::Token>, LexicalError> {
         todo!("include")
     }
 }

@@ -1,21 +1,9 @@
+use super::error::*;
 use std::fmt::Debug;
 use std::iter;
 use std::str::Chars;
 
 use super::tok::{self, Spanned};
-
-#[derive(Debug)]
-pub enum LexicalErrorKind {
-    UnexpectedEof,
-    UnexpectedEscape,
-    InvalidToken,
-}
-
-#[derive(Debug)]
-pub struct LexicalError {
-    pub kind: LexicalErrorKind,
-    pub span: tok::Span,
-}
 
 #[derive(Debug)]
 pub struct Lexer<'a> {
