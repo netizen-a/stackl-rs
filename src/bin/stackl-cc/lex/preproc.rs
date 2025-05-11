@@ -1,5 +1,7 @@
 use super::error::*;
 use super::lexer as lex;
+use super::tok::Punctuator;
+use super::tok::PunctuatorTerminal;
 use super::tok::{self, Spanned};
 use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
@@ -14,9 +16,25 @@ pub enum ParseError {
     IOError(io::Error),
 }
 
+pub struct MacroArgs {
+    ident_list: Vec<tok::Identifier>,
+    ellipsis: bool,
+}
+
+impl MacroArgs {
+    fn is_obj(&self) -> bool {
+        self.ident_list.is_empty() && !self.ellipsis
+    }
+}
+
+pub struct MacroDef {
+    args: MacroArgs,
+    replacement_list: Vec<PPToken>,
+}
+
 pub struct Preprocessor {
     file_map: bimap::BiHashMap<usize, path::PathBuf>,
-    macros: HashMap<String, Vec<PPToken>>,
+    macros: HashMap<String, MacroDef>,
     stdout: i32,
     pp_tokens: VecDeque<PPToken>,
     is_newline: bool,
@@ -75,7 +93,7 @@ impl Preprocessor {
     fn tokenize(&mut self, pp_token: PPToken) -> Result<Vec<tok::Token>, LexicalError> {
         match pp_token {
             PPToken::NewLine(token) => {
-                if self.stdout > 0 {
+                if self.stdout > 0 && !token.is_deleted {
                     token.span().print_whitespace();
                     println!();
                 }
@@ -93,6 +111,8 @@ impl Preprocessor {
             PPToken::Identifier(token) => {
                 if self.is_preproc {
                     self.directive(token)
+                } else if self.macros.contains_key(&token.name) {
+                    self.expand_macro(token)
                 } else {
                     if self.stdout > 0 {
                         token.span().print_whitespace();
@@ -146,12 +166,23 @@ impl Preprocessor {
             PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
         }
     }
+    fn expand_macro(&mut self, ident: tok::Identifier) -> Result<Vec<tok::Token>, LexicalError> {
+        let macro_def = self.macros.get(&ident.name).unwrap();
+        if macro_def.args.is_obj() {
+            for pp_tok in macro_def.replacement_list.iter() {
+                self.pp_tokens.push_front(pp_tok.clone());
+            }
+            Ok(vec![])
+        } else {
+            todo!("macro arguments")
+        }
+    }
     fn directive(&mut self, ident: tok::Identifier) -> Result<Vec<tok::Token>, LexicalError> {
         match ident.name.as_str() {
             "define" => self.pp_define(ident.span).and(Ok(vec![])),
             "undef" => self.pp_undef(ident.span).and(Ok(vec![])),
             "include" => self.pp_include(),
-            _ => todo!("undefined directive"),
+            _ => todo!("undefined directive: `{}`", ident.name),
         }
     }
     fn pp_define(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
@@ -177,15 +208,88 @@ impl Preprocessor {
                 span: pp_token.span(),
             });
         };
-        let mut def = vec![];
+
+        let mut args = MacroArgs {
+            ident_list: vec![],
+            ellipsis: false,
+        };
+
+        if let Some(PPToken::Punctuator(Punctuator {
+            term: PunctuatorTerminal::LParen,
+            ..
+        })) = self.pp_tokens.front()
+        {
+            // consume `(`
+            self.pp_tokens.pop_front();
+            let mut expected_ident = true;
+            let mut expected_rparen = false;
+            while let Some(pp_token) = self.pp_tokens.pop_front() {
+                match pp_token {
+                    PPToken::Identifier(ident) => {
+                        if !expected_ident || expected_rparen {
+                            return Err(LexicalError {
+                                kind: LexicalErrorKind::InvalidToken,
+                                span: ident.span,
+                            });
+                        }
+                        if expected_ident {
+                            args.ident_list.push(ident);
+                            expected_ident = false;
+                        }
+                    }
+                    PPToken::Punctuator(Punctuator {
+                        term: PunctuatorTerminal::RParen,
+                        ..
+                    }) => {
+                        break;
+                    }
+                    PPToken::Punctuator(Punctuator {
+                        term: PunctuatorTerminal::Comma,
+                        span,
+                    }) => {
+                        if expected_ident || expected_rparen {
+                            return Err(LexicalError {
+                                kind: LexicalErrorKind::InvalidToken,
+                                span,
+                            });
+                        }
+                        expected_ident = true;
+                    }
+                    PPToken::Punctuator(Punctuator {
+                        term: PunctuatorTerminal::Ellipsis,
+                        span,
+                    }) => {
+                        if expected_ident || expected_rparen {
+                            return Err(LexicalError {
+                                kind: LexicalErrorKind::InvalidToken,
+                                span,
+                            });
+                        }
+                        expected_rparen = true;
+                    }
+                    other => {
+                        return Err(LexicalError {
+                            kind: LexicalErrorKind::InvalidToken,
+                            span: other.span(),
+                        });
+                    }
+                }
+            }
+        }
+
+        let mut replacement_list = vec![];
         while let Some(pp_token) = self.pp_tokens.pop_front() {
             if let PPToken::NewLine(_) = pp_token {
                 self.tokenize(pp_token)?;
                 break;
             }
-            def.push(pp_token);
+            replacement_list.push(pp_token);
         }
-        self.macros.insert(ident.name, def);
+        let macro_def = MacroDef {
+            args,
+            replacement_list,
+        };
+        self.macros.insert(ident.name, macro_def);
         Ok(())
     }
     fn pp_undef(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {

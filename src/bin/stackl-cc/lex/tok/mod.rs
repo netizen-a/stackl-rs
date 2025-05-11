@@ -433,9 +433,9 @@ impl fmt::Display for CharacterConstant {
 }
 
 #[derive(Debug, Clone)]
-#[repr(transparent)]
 pub struct NewLine {
     pub span: span::Span,
+    pub is_deleted: bool,
 }
 
 impl span::Spanned for NewLine {

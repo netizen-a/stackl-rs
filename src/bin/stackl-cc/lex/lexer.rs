@@ -278,7 +278,10 @@ impl Iterator for Lexer<'_> {
                 self.include_state = 1;
                 span.location = (start_pos, self.pos);
                 name.push(c);
-                let new_line = tok::NewLine { span };
+                let new_line = tok::NewLine {
+                    span,
+                    is_deleted: false,
+                };
                 Some(Ok(tok::PPToken::NewLine(new_line)))
             }
             // punctuators without trailing characters
@@ -473,16 +476,12 @@ impl Iterator for Lexer<'_> {
                 Some(Ok(tok::PPToken::Punctuator(punct)))
             }
             '\\' => {
-                // nuke the newline out of existance!
                 if self.chars.next_if_eq(&'\n').is_some() {
-                    let result = self.next()?.map(|mut value| {
-                        let mut span = value.span();
-                        span.leading_spaces += leading_spaces;
-                        span.leading_tabs += leading_tabs;
-                        value.set_span(span);
-                        value
+                    let new_line = tok::PPToken::NewLine(tok::NewLine {
+                        span,
+                        is_deleted: true,
                     });
-                    Some(result)
+                    Some(Ok(new_line))
                 } else {
                     Some(Err(LexicalError {
                         span,
