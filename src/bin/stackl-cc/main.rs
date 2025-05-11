@@ -18,14 +18,16 @@ fn main() -> ExitCode {
                 println!("{token} :: {token:?}");
             }
         }
-        Err(error) => match error {
-            ParseError::IOError(io_error) => eprintln!("io error: {io_error}"),
-            ParseError::LexicalErrors(error_list) => {
-                for err in error_list {
-                    eprintln!("{err:?}");
+        Err(error_list) => {
+            for error in error_list {
+                match error {
+                    ParseError::IOError(io_error) => eprintln!("io error: {io_error}"),
+                    ParseError::LexError(lex_error) => {
+                        eprintln!("{lex_error:?}");
+                    }
                 }
             }
-        },
+        }
     }
     ExitCode::SUCCESS
 }

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::iter;
 use std::str::Chars;
 
-use super::tok::{self, Spanned};
+use super::tok;
 
 #[derive(Debug)]
 pub struct Lexer<'a> {
@@ -27,13 +27,13 @@ impl<'a> Lexer<'a> {
     #[allow(dead_code)]
     fn header_name(&mut self, c: char, span: tok::Span) -> Result<tok::PPToken, LexicalError> {
         let mut name = String::new();
-        name.push(c);
+        // name.push(c);
+        let is_std;
         let char_seq = match c {
             '<' => {
-                let mut seq = self.h_char_sequence()?;
-                if self.chars.next_if_eq(&'>').is_some() {
-                    seq.push('>');
-                } else {
+                is_std = true;
+                let seq = self.h_char_sequence()?;
+                if self.chars.next_if_eq(&'>').is_none() {
                     return Err(LexicalError {
                         kind: LexicalErrorKind::InvalidToken,
                         span,
@@ -42,10 +42,9 @@ impl<'a> Lexer<'a> {
                 seq
             }
             '"' => {
-                let mut seq = self.q_char_sequence()?;
-                if self.chars.next_if_eq(&'"').is_some() {
-                    seq.push('"');
-                } else {
+                is_std = false;
+                let seq = self.q_char_sequence()?;
+                if self.chars.next_if_eq(&'"').is_none() {
                     return Err(LexicalError {
                         kind: LexicalErrorKind::InvalidToken,
                         span,
@@ -57,7 +56,7 @@ impl<'a> Lexer<'a> {
         };
         name.push_str(&char_seq);
         self.include_state = 0;
-        let head_name = tok::HeaderName { span, name };
+        let head_name = tok::HeaderName { span, is_std, name };
         Ok(tok::PPToken::HeaderName(head_name))
     }
 

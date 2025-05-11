@@ -201,7 +201,18 @@ impl fmt::Display for StringLiteral {
 #[derive(Debug, Clone)]
 pub struct HeaderName {
     pub span: Span,
+    pub is_std: bool,
     pub name: String,
+}
+
+impl fmt::Display for HeaderName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_std {
+            write!(f, "<{}>", self.name)
+        } else {
+            write!(f, "\"{}\"", self.name)
+        }
+    }
 }
 
 impl span::Spanned for HeaderName {
