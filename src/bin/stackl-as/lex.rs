@@ -5,24 +5,24 @@ use crate::tok::{LexicalError, Token};
 type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
 pub(super) struct Lexer<'input> {
-    // instead of an iterator over characters, we have a token iterator
-    token_stream: SpannedIter<'input, Token>,
+	// instead of an iterator over characters, we have a token iterator
+	token_stream: SpannedIter<'input, Token>,
 }
 
 impl<'input> Lexer<'input> {
-    pub fn new(input: &'input str) -> Self {
-        Self {
-            token_stream: Token::lexer(input).spanned(),
-        }
-    }
+	pub fn new(input: &'input str) -> Self {
+		Self {
+			token_stream: Token::lexer(input).spanned(),
+		}
+	}
 }
 
 impl Iterator for Lexer<'_> {
-    type Item = Spanned<Token, usize, LexicalError>;
+	type Item = Spanned<Token, usize, LexicalError>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.token_stream
-            .next()
-            .map(|(token, span)| Ok((span.start, token?, span.end)))
-    }
+	fn next(&mut self) -> Option<Self::Item> {
+		self.token_stream
+			.next()
+			.map(|(token, span)| Ok((span.start, token?, span.end)))
+	}
 }

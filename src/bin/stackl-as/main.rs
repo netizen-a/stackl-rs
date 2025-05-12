@@ -15,84 +15,84 @@ mod sym;
 mod tok;
 
 lalrpop_mod! {
-    #[allow(clippy::ptr_arg)]
-    grammar
+	#[allow(clippy::ptr_arg)]
+	grammar
 }
 
 #[derive(Parser, Debug)]
 struct Args {
-    asmfile: path::PathBuf,
-    #[arg(short)]
-    outfile: Option<path::PathBuf>,
+	asmfile: path::PathBuf,
+	#[arg(short)]
+	outfile: Option<path::PathBuf>,
 }
 
 fn main() -> ExitCode {
-    let args = Args::parse();
-    let source = match fs::read_to_string(&args.asmfile) {
-        Ok(file) => file,
-        Err(err) => {
-            eprintln!(
-                "stackl-as: fatal: can't open '{}' for reading: {}",
-                args.asmfile.to_string_lossy(),
-                err
-            );
-            return ExitCode::FAILURE;
-        }
-    };
+	let args = Args::parse();
+	let source = match fs::read_to_string(&args.asmfile) {
+		Ok(file) => file,
+		Err(err) => {
+			eprintln!(
+				"stackl-as: fatal: can't open '{}' for reading: {}",
+				args.asmfile.to_string_lossy(),
+				err
+			);
+			return ExitCode::FAILURE;
+		}
+	};
 
-    let mut ast = match parse_grammar(&source) {
-        Ok(ast) => ast,
-        Err(err) => {
-            error::print_errors(&args.asmfile, err, &source);
-            return ExitCode::FAILURE;
-        }
-    };
+	let mut ast = match parse_grammar(&source) {
+		Ok(ast) => ast,
+		Err(err) => {
+			error::print_errors(&args.asmfile, err, &source);
+			return ExitCode::FAILURE;
+		}
+	};
 
-    sym::fixup_labels(&mut ast);
-    sym::fixup_start(&mut ast);
+	sym::fixup_labels(&mut ast);
+	sym::fixup_start(&mut ast);
 
-    // TODO: add fixup_sections, which will combine section blocks
+	// TODO: add fixup_sections, which will combine section blocks
 
-    let code = code_gen::ast_to_fmt2(ast).unwrap();
-    let outfile = match args.outfile {
-        Some(o) => o,
-        None => {
-            let outfile = args.asmfile.with_extension("stackl");
-            let outfile = outfile.file_name().unwrap();
-            path::PathBuf::from(outfile)
-        }
-    };
-    fs::write(outfile, code.to_vec()).unwrap();
+	let code = code_gen::ast_to_fmt2(ast).unwrap();
+	let outfile = match args.outfile {
+		Some(o) => o,
+		None => {
+			let outfile = args.asmfile.with_extension("stackl");
+			let outfile = outfile.file_name().unwrap();
+			path::PathBuf::from(outfile)
+		}
+	};
+	fs::write(outfile, code.to_vec()).unwrap();
 
-    ExitCode::SUCCESS
+	ExitCode::SUCCESS
 }
 
 pub fn parse_grammar(
-    input: &str,
+	input: &str,
 ) -> Result<Vec<stackl::ast::Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
-    let tokens = lex::Lexer::new(input);
-    let mut errors = Vec::new();
-    let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
-        Ok(v) => v,
-        Err(parse_error) => {
-            errors.push(ErrorRecovery {
-                error: parse_error,
-                dropped_tokens: vec![],
-            });
-            return Err(errors);
-        }
-    };
-    // prepend .text directive in case fixup rotates vector
-    ast.insert(
-        0,
-        stackl::ast::Stmt::new(stackl::ast::Inst::Directive(
-            stackl::ast::Directive::Segment,
-            vec![".text".to_string()],
-        )),
-    );
-    if errors.is_empty() {
-        Ok(ast)
-    } else {
-        Err(errors)
-    }
+	let tokens = lex::Lexer::new(input);
+	let mut errors = Vec::new();
+	let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
+		Ok(v) => v,
+		Err(parse_error) => {
+			errors.push(ErrorRecovery {
+				error: parse_error,
+				dropped_tokens: vec![],
+			});
+			return Err(errors);
+		}
+	};
+	// prepend .text directive in case fixup rotates vector
+	ast.insert(
+		0,
+		stackl::ast::Stmt::new(stackl::ast::Inst::Directive(
+			stackl::ast::Directive::Segment,
+			vec![".text".to_string()],
+		)),
+	);
+	if errors.is_empty() {
+		Ok(ast)
+	} else {
+		Err(errors)
+	}
 }

@@ -5,9 +5,9 @@ use std::{error::Error, fmt};
 pub struct TryFromCharError(pub(crate) ());
 
 impl fmt::Display for TryFromCharError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "unicode code point out of range".fmt(f)
-    }
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		"unicode code point out of range".fmt(f)
+	}
 }
 
 impl Error for TryFromCharError {}
@@ -15,21 +15,21 @@ impl Error for TryFromCharError {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TryFromIdentifierError(pub(crate) ());
 impl fmt::Display for TryFromIdentifierError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "identifier is not a keyword".fmt(f)
-    }
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		"identifier is not a keyword".fmt(f)
+	}
 }
 
 impl Error for TryFromIdentifierError {}
 #[derive(Debug)]
 pub enum LexicalErrorKind {
-    UnexpectedEof,
-    UnexpectedEscape,
-    InvalidToken,
+	UnexpectedEof,
+	UnexpectedEscape,
+	InvalidToken,
 }
 
 #[derive(Debug)]
 pub struct LexicalError {
-    pub kind: LexicalErrorKind,
-    pub span: tok::Span,
+	pub kind: LexicalErrorKind,
+	pub span: tok::Span,
 }

@@ -5,69 +5,69 @@ use std::{path::PathBuf, process};
 #[repr(i32)]
 #[non_exhaustive]
 pub enum StandardVersion {
-    C99 = 199901,
+	C99 = 199901,
 }
 
 #[derive(Debug)]
 pub struct Args {
-    pub in_file: PathBuf,
-    pub out_file: Option<PathBuf>,
-    pub std: StandardVersion,
-    pub pp_stdout: i32,
+	pub in_file: PathBuf,
+	pub out_file: Option<PathBuf>,
+	pub std: StandardVersion,
+	pub pp_stdout: i32,
 }
 
 impl Args {
-    pub fn parse() -> Self {
-        let arg_list = [
-            clap::Arg::new("file").required(true),
-            clap::Arg::new("standard")
-                .long("std")
-                .default_value("c99")
-                .value_names(["c99"]),
-            clap::Arg::new("output").short('o'),
-            clap::Arg::new("stdout-preproc")
-                .short('E')
-                .required(false)
-                .action(clap::ArgAction::SetTrue),
-            clap::Arg::new("include-comments")
-                .long("include-comments")
-                .requires("stdout-preproc")
-                .action(clap::ArgAction::SetTrue),
-        ];
+	pub fn parse() -> Self {
+		let arg_list = [
+			clap::Arg::new("file").required(true),
+			clap::Arg::new("standard")
+				.long("std")
+				.default_value("c99")
+				.value_names(["c99"]),
+			clap::Arg::new("output").short('o'),
+			clap::Arg::new("stdout-preproc")
+				.short('E')
+				.required(false)
+				.action(clap::ArgAction::SetTrue),
+			clap::Arg::new("include-comments")
+				.long("include-comments")
+				.requires("stdout-preproc")
+				.action(clap::ArgAction::SetTrue),
+		];
 
-        let cmd = clap::Command::new("stacklc")
-            .version(crate_version!())
-            .about("Stackl C compiler")
-            .args(arg_list)
-            .arg_required_else_help(true);
+		let cmd = clap::Command::new("stacklc")
+			.version(crate_version!())
+			.about("Stackl C compiler")
+			.args(arg_list)
+			.arg_required_else_help(true);
 
-        let matches = cmd.get_matches();
+		let matches = cmd.get_matches();
 
-        let maybe_std = matches.get_one::<String>("standard").unwrap();
-        let std = match maybe_std.as_str() {
-            "c99" => StandardVersion::C99,
-            other => {
-                eprintln!("Invalid standard `{other}`");
-                process::exit(-1);
-            }
-        };
-        let in_file = matches.get_one::<String>("file").unwrap();
-        let in_file = PathBuf::from(in_file);
+		let maybe_std = matches.get_one::<String>("standard").unwrap();
+		let std = match maybe_std.as_str() {
+			"c99" => StandardVersion::C99,
+			other => {
+				eprintln!("Invalid standard `{other}`");
+				process::exit(-1);
+			}
+		};
+		let in_file = matches.get_one::<String>("file").unwrap();
+		let in_file = PathBuf::from(in_file);
 
-        let out_file = matches
-            .get_one::<String>("output")
-            .cloned()
-            .map(PathBuf::from);
+		let out_file = matches
+			.get_one::<String>("output")
+			.cloned()
+			.map(PathBuf::from);
 
-        let stdout_preproc = matches.get_flag("stdout-preproc") as i32;
-        let include_comments = matches.get_flag("include-comments") as i32;
-        let pp_stdout = stdout_preproc + include_comments;
+		let stdout_preproc = matches.get_flag("stdout-preproc") as i32;
+		let include_comments = matches.get_flag("include-comments") as i32;
+		let pp_stdout = stdout_preproc + include_comments;
 
-        Self {
-            in_file,
-            out_file,
-            std,
-            pp_stdout,
-        }
-    }
+		Self {
+			in_file,
+			out_file,
+			std,
+			pp_stdout,
+		}
+	}
 }
