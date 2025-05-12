@@ -163,18 +163,17 @@ impl fmt::Display for PunctuatorTerminal {
 impl TryFrom<char> for PunctuatorTerminal {
     type Error = error::TryFromCharError;
     fn try_from(value: char) -> Result<Self, Self::Error> {
-        use PunctuatorTerminal::*;
         match value {
-            '[' => Ok(LSquare),
-            ']' => Ok(RSquare),
-            '(' => Ok(LParen),
-            ')' => Ok(RParen),
-            '{' => Ok(LCurly),
-            '}' => Ok(RCurly),
-            '?' => Ok(QMark),
-            ',' => Ok(Comma),
-            '~' => Ok(Tilde),
-            ';' => Ok(SemiColon),
+            '[' => Ok(Self::LSquare),
+            ']' => Ok(Self::RSquare),
+            '(' => Ok(Self::LParen),
+            ')' => Ok(Self::RParen),
+            '{' => Ok(Self::LCurly),
+            '}' => Ok(Self::RCurly),
+            '?' => Ok(Self::QMark),
+            ',' => Ok(Self::Comma),
+            '~' => Ok(Self::Tilde),
+            ';' => Ok(Self::SemiColon),
             _ => Err(error::TryFromCharError(())),
         }
     }

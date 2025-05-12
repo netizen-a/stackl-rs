@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::iter;
 use std::str::Chars;
 
-use super::tok;
+use crate::tok;
 
 #[derive(Debug)]
 pub struct Lexer<'a> {

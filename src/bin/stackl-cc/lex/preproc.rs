@@ -1,8 +1,6 @@
 use super::error::*;
 use super::lexer as lex;
-use super::tok::Punctuator;
-use super::tok::PunctuatorTerminal;
-use super::tok::{self, Spanned};
+use crate::tok::{self, Spanned};
 use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
 use std::io::Read;
@@ -201,8 +199,8 @@ impl Preprocessor {
                 args,
                 replacement_list,
             }) => {
-                if let Some(PPToken::Punctuator(Punctuator {
-                    term: PunctuatorTerminal::LParen,
+                if let Some(PPToken::Punctuator(tok::Punctuator {
+                    term: tok::PunctuatorTerminal::LParen,
                     ..
                 })) = self.pp_tokens.front()
                 {
@@ -217,8 +215,8 @@ impl Preprocessor {
                 let mut param_list = vec![];
                 while let Some(pp_token) = self.pp_tokens.pop_front() {
                     match pp_token {
-                        PPToken::Punctuator(Punctuator {
-                            term: PunctuatorTerminal::RParen,
+                        PPToken::Punctuator(tok::Punctuator {
+                            term: tok::PunctuatorTerminal::RParen,
                             span,
                         }) => {
                             if !args.params.is_empty() {
@@ -228,15 +226,15 @@ impl Preprocessor {
                             paren_level -= 1;
                             last_span = span;
                         }
-                        PPToken::Punctuator(Punctuator {
-                            term: PunctuatorTerminal::LParen,
+                        PPToken::Punctuator(tok::Punctuator {
+                            term: tok::PunctuatorTerminal::LParen,
                             span,
                         }) => {
                             paren_level += 1;
                             last_span = span;
                         }
-                        PPToken::Punctuator(Punctuator {
-                            term: PunctuatorTerminal::Comma,
+                        PPToken::Punctuator(tok::Punctuator {
+                            term: tok::PunctuatorTerminal::Comma,
                             span,
                         }) => {
                             if paren_level == 1 {
@@ -342,8 +340,8 @@ impl Preprocessor {
         };
         let mut is_obj = true;
 
-        if let Some(PPToken::Punctuator(Punctuator {
-            term: PunctuatorTerminal::LParen,
+        if let Some(PPToken::Punctuator(tok::Punctuator {
+            term: tok::PunctuatorTerminal::LParen,
             ..
         })) = self.pp_tokens.front()
         {
@@ -366,14 +364,14 @@ impl Preprocessor {
                             expected_ident = false;
                         }
                     }
-                    PPToken::Punctuator(Punctuator {
-                        term: PunctuatorTerminal::RParen,
+                    PPToken::Punctuator(tok::Punctuator {
+                        term: tok::PunctuatorTerminal::RParen,
                         ..
                     }) => {
                         break;
                     }
-                    PPToken::Punctuator(Punctuator {
-                        term: PunctuatorTerminal::Comma,
+                    PPToken::Punctuator(tok::Punctuator {
+                        term: tok::PunctuatorTerminal::Comma,
                         span,
                     }) => {
                         if expected_ident || expected_rparen {
@@ -385,8 +383,8 @@ impl Preprocessor {
                         }
                         expected_ident = true;
                     }
-                    PPToken::Punctuator(Punctuator {
-                        term: PunctuatorTerminal::Ellipsis,
+                    PPToken::Punctuator(tok::Punctuator {
+                        term: tok::PunctuatorTerminal::Ellipsis,
                         span,
                     }) => {
                         if expected_ident || expected_rparen {

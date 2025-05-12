@@ -2,6 +2,7 @@ use std::process::ExitCode;
 
 mod cli;
 mod lex;
+mod tok;
 
 use crate::lex::preproc::ParseError;
 

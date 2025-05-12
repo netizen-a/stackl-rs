@@ -1,4 +1,4 @@
-use super::tok;
+use crate::tok;
 use std::{error::Error, fmt};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
