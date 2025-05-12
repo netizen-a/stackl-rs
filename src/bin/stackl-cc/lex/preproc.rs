@@ -115,17 +115,24 @@ impl Preprocessor {
                 if self.is_preproc {
                     self.directive(token)?;
                     Ok(vec![])
-                } else if self.macros.contains_key(&token.name) {
-                    self.expand_macro(token).map_err(|e| vec![e])
                 } else {
-                    if self.stdout > 0 {
-                        token.span().print_whitespace();
-                        print!("{}", token);
-                    }
-                    if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
-                        Ok(vec![Token::Keyword(kw)])
-                    } else {
-                        Ok(vec![Token::Identifier(token)])
+                    match self.expand_macro(token.clone()) {
+                        // not a macro
+                        Ok(false) => {
+                            if self.stdout > 0 {
+                                token.span().print_whitespace();
+                                print!("{}", token);
+                            }
+                            if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
+                                Ok(vec![Token::Keyword(kw)])
+                            } else {
+                                Ok(vec![Token::Identifier(token)])
+                            }
+                        }
+                        // is a macro
+                        Ok(true) => Ok(vec![]),
+                        // macro had errors
+                        Err(error) => Err(vec![error]),
                     }
                 }
             }
@@ -178,39 +185,31 @@ impl Preprocessor {
         self.is_preproc = false;
         self.is_newline = true;
     }
-    fn expand_macro(&mut self, macro_name: tok::Identifier) -> Result<Vec<tok::Token>, ParseError> {
-        let macro_def = self.macros.get(&macro_name.name).unwrap();
-        match macro_def {
-            MacroDef::Object(replacement_list) => {
+    fn expand_macro(&mut self, macro_name: tok::Identifier) -> Result<bool, ParseError> {
+        match self.macros.get(&macro_name.name) {
+            // not a macro
+            None => Ok(false),
+            // object-like macro
+            Some(MacroDef::Object(replacement_list)) => {
                 for pp_token in replacement_list {
                     self.pp_tokens.push_front(pp_token.clone());
                 }
-                Ok(vec![])
+                Ok(true)
             }
-            MacroDef::Function {
+            // function-like macro
+            Some(MacroDef::Function {
                 args,
                 replacement_list,
-            } => {
-                match self.pp_tokens.front() {
-                    Some(PPToken::Punctuator(Punctuator {
-                        term: PunctuatorTerminal::LParen,
-                        ..
-                    })) => {
-                        // consume `(`
-                        self.pp_tokens.pop_front();
-                    }
-                    // not a macro
-                    _ => {
-                        if self.stdout > 0 {
-                            macro_name.span().print_whitespace();
-                            print!("{}", macro_name);
-                        }
-                        if let Ok(kw) = tok::Keyword::try_from(macro_name.clone()) {
-                            return Ok(vec![Token::Keyword(kw)]);
-                        } else {
-                            return Ok(vec![Token::Identifier(macro_name)]);
-                        }
-                    }
+            }) => {
+                if let Some(PPToken::Punctuator(Punctuator {
+                    term: PunctuatorTerminal::LParen,
+                    ..
+                })) = self.pp_tokens.front()
+                {
+                    // consume `(`
+                    self.pp_tokens.pop_front();
+                } else {
+                    return Ok(false);
                 }
                 let mut paren_level = 1;
                 let mut last_span = macro_name.span();
@@ -299,7 +298,7 @@ impl Preprocessor {
                 for pp_token in replacer.into_iter().rev() {
                     self.pp_tokens.push_front(pp_token)
                 }
-                Ok(vec![])
+                Ok(true)
             }
         }
     }
