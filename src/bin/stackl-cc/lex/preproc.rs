@@ -24,7 +24,7 @@ impl From<LexicalError> for ParseError {
 
 #[derive(Debug)]
 pub struct MacroArgs {
-    ident_list: Vec<tok::Identifier>,
+    params: Vec<String>,
     ellipsis: bool,
 }
 
@@ -116,7 +116,7 @@ impl Preprocessor {
                     self.directive(token)?;
                     Ok(vec![])
                 } else if self.macros.contains_key(&token.name) {
-                    self.expand_macro(token)
+                    self.expand_macro(token).map_err(|e| vec![e])
                 } else {
                     if self.stdout > 0 {
                         token.span().print_whitespace();
@@ -178,8 +178,8 @@ impl Preprocessor {
         self.is_preproc = false;
         self.is_newline = true;
     }
-    fn expand_macro(&mut self, ident: tok::Identifier) -> Result<Vec<tok::Token>, Vec<ParseError>> {
-        let macro_def = self.macros.get(&ident.name).unwrap();
+    fn expand_macro(&mut self, macro_name: tok::Identifier) -> Result<Vec<tok::Token>, ParseError> {
+        let macro_def = self.macros.get(&macro_name.name).unwrap();
         match macro_def {
             MacroDef::Object(replacement_list) => {
                 for pp_token in replacement_list {
@@ -191,8 +191,115 @@ impl Preprocessor {
                 args,
                 replacement_list,
             } => {
-                // args.ident_list
-                todo!("macro arguments")
+                match self.pp_tokens.front() {
+                    Some(PPToken::Punctuator(Punctuator {
+                        term: PunctuatorTerminal::LParen,
+                        ..
+                    })) => {
+                        // consume `(`
+                        self.pp_tokens.pop_front();
+                    }
+                    // not a macro
+                    _ => {
+                        if self.stdout > 0 {
+                            macro_name.span().print_whitespace();
+                            print!("{}", macro_name);
+                        }
+                        if let Ok(kw) = tok::Keyword::try_from(macro_name.clone()) {
+                            return Ok(vec![Token::Keyword(kw)]);
+                        } else {
+                            return Ok(vec![Token::Identifier(macro_name)]);
+                        }
+                    }
+                }
+                let mut paren_level = 1;
+                let mut last_span = macro_name.span();
+                let mut arg = vec![];
+                let mut param_list = vec![];
+                while let Some(pp_token) = self.pp_tokens.pop_front() {
+                    match pp_token {
+                        PPToken::Punctuator(Punctuator {
+                            term: PunctuatorTerminal::RParen,
+                            span,
+                        }) => {
+                            if !args.params.is_empty() {
+                                param_list.push(arg);
+                                arg = vec![];
+                            }
+                            paren_level -= 1;
+                            last_span = span;
+                        }
+                        PPToken::Punctuator(Punctuator {
+                            term: PunctuatorTerminal::LParen,
+                            span,
+                        }) => {
+                            paren_level += 1;
+                            last_span = span;
+                        }
+                        PPToken::Punctuator(Punctuator {
+                            term: PunctuatorTerminal::Comma,
+                            span,
+                        }) => {
+                            if paren_level == 1 {
+                                param_list.push(arg);
+                                arg = vec![];
+                                last_span = span;
+                            }
+                        }
+                        _ => {
+                            last_span = pp_token.span();
+                            arg.push(pp_token);
+                        }
+                    }
+                    if paren_level == 0 {
+                        break;
+                    }
+                }
+                // TODO: handle ellipsis
+                if args.params.len() != param_list.len() {
+                    return Err(LexicalError {
+                        kind: LexicalErrorKind::InvalidToken,
+                        span: last_span,
+                    }
+                    .into());
+                }
+                let mut replacer = replacement_list.clone();
+                let mut index = 0;
+                while index < replacer.len() {
+                    if let PPToken::Identifier(ident) = replacer[index].clone() {
+                        for (param_name, param_arg) in args.params.iter().zip(&mut param_list) {
+                            if ident.name == *param_name {
+                                if let Some(pp_token) = param_arg.first_mut() {
+                                    let inner_span = ident.span();
+                                    let mut outer_span = pp_token.span();
+                                    outer_span.leading_spaces = inner_span.leading_spaces;
+                                    outer_span.leading_tabs = inner_span.leading_tabs;
+                                    pp_token.set_span(outer_span);
+                                }
+                                if param_arg.is_empty() {
+                                    replacer.remove(index);
+                                } else {
+                                    replacer.splice(index..=index, param_arg.clone());
+                                    index += param_arg.len();
+                                }
+                            }
+                        }
+                    }
+                    index += 1;
+                }
+                //fixup span
+                if let Some(pp_token) = replacer.first_mut() {
+                    let mut inner_span = pp_token.span();
+                    let outer_span = macro_name.span();
+                    inner_span.leading_spaces = outer_span.leading_spaces;
+                    inner_span.leading_tabs = outer_span.leading_tabs;
+                    pp_token.set_span(inner_span);
+                }
+
+                for pp_token in replacer.into_iter().rev() {
+                    self.pp_tokens.push_front(pp_token)
+                }
+                Ok(vec![])
             }
         }
     }
@@ -231,7 +338,7 @@ impl Preprocessor {
         };
 
         let mut args = MacroArgs {
-            ident_list: vec![],
+            params: vec![],
             ellipsis: false,
         };
         let mut is_obj = true;
@@ -249,15 +356,14 @@ impl Preprocessor {
             while let Some(pp_token) = self.pp_tokens.pop_front() {
                 match pp_token {
                     PPToken::Identifier(ident) => {
-                        if !expected_ident || expected_rparen {
+                        if !expected_ident || expected_rparen || args.params.contains(&ident.name) {
                             return Err(LexicalError {
                                 kind: LexicalErrorKind::InvalidToken,
                                 span: ident.span,
                             }
                             .into());
-                        }
-                        if expected_ident {
-                            args.ident_list.push(ident);
+                        } else {
+                            args.params.push(ident.name);
                             expected_ident = false;
                         }
                     }
