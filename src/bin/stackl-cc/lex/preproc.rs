@@ -304,7 +304,7 @@ impl Preprocessor {
         match ident.name.as_str() {
             "define" => self.pp_define(ident.span).map_err(|e| vec![e]),
             "undef" => self.pp_undef(ident.span).map_err(|e| vec![e]),
-            "include" => self.pp_include(),
+            "include" => self.pp_include(ident.span),
             _ => todo!("undefined directive: `{}`", ident.name),
         }
     }
@@ -461,55 +461,67 @@ impl Preprocessor {
 
         Ok(())
     }
-    fn pp_include(&mut self) -> Result<(), Vec<ParseError>> {
+    fn pp_include(&mut self, last_span: tok::Span) -> Result<(), Vec<ParseError>> {
         self.is_preproc = false;
         self.is_newline = true;
-        match self.pp_tokens.pop_front() {
-            Some(PPToken::HeaderName(header)) => {
-                if header.is_std {
-                    todo!()
-                } else {
-                    let file_path: path::PathBuf = path::PathBuf::from(header.name);
-                    let file = fs::File::open(&file_path)
-                        .map_err(ParseError::IOError)
-                        .map_err(|e| vec![e])?;
-                    let mut reader = BufReader::new(file);
-                    let mut buf = String::new();
-                    reader
-                        .read_to_string(&mut buf)
-                        .map_err(ParseError::IOError)
-                        .map_err(|e| vec![e])?;
-                    drop(reader);
+        let header = match self.pp_tokens.pop_front() {
+            Some(PPToken::HeaderName(header)) => header,
+            Some(token) => {
+                let lex_err = LexicalError {
+                    kind: LexicalErrorKind::InvalidToken,
+                    span: token.span(),
+                };
+                return Err(vec![ParseError::LexError(lex_err)]);
+            }
+            None => {
+                let lex_err = LexicalError {
+                    kind: LexicalErrorKind::UnexpectedEof,
+                    span: last_span,
+                };
+                return Err(vec![ParseError::LexError(lex_err)]);
+            }
+        };
+        if header.is_std {
+            todo!()
+        } else {
+            let file_path: path::PathBuf = path::PathBuf::from(header.name);
+            let file = fs::File::open(&file_path)
+                .map_err(ParseError::IOError)
+                .map_err(|e| vec![e])?;
+            let mut reader = BufReader::new(file);
+            let mut buf = String::new();
+            reader
+                .read_to_string(&mut buf)
+                .map_err(ParseError::IOError)
+                .map_err(|e| vec![e])?;
+            drop(reader);
 
-                    let file_key = if let Some(file_key) = self.file_map.get_by_right(&file_path) {
-                        *file_key
-                    } else {
-                        let file_key = self.file_map.len();
-                        self.file_map.insert(file_key, file_path);
-                        file_key
-                    };
+            let file_key = if let Some(file_key) = self.file_map.get_by_right(&file_path) {
+                *file_key
+            } else {
+                let file_key = self.file_map.len();
+                self.file_map.insert(file_key, file_path);
+                file_key
+            };
 
-                    let lexer = lex::Lexer::new(&buf, file_key);
-                    let mut errors = vec![];
-                    let mut pp_token_list = vec![];
-                    for pp_token in lexer.into_iter() {
-                        match pp_token {
-                            Ok(token) => pp_token_list.push(token),
-                            Err(error) => errors.push(error.into()),
-                        }
-                    }
-                    for pp_token in pp_token_list.into_iter().rev() {
-                        self.pp_tokens.push_front(pp_token)
-                    }
-
-                    if errors.is_empty() {
-                        Ok(())
-                    } else {
-                        Err(errors)
-                    }
+            let lexer = lex::Lexer::new(&buf, file_key);
+            let mut errors = vec![];
+            let mut pp_token_list = vec![];
+            for pp_token in lexer.into_iter() {
+                match pp_token {
+                    Ok(token) => pp_token_list.push(token),
+                    Err(error) => errors.push(error.into()),
                 }
             }
-            _ => todo!("header-name"),
+            for pp_token in pp_token_list.into_iter().rev() {
+                self.pp_tokens.push_front(pp_token)
+            }
+
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(errors)
+            }
         }
     }
 }
