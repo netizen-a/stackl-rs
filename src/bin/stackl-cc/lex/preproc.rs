@@ -72,7 +72,7 @@ impl Preprocessor {
 			.map_err(ParseError::IOError)
 			.map_err(|e| vec![e])?;
 		drop(reader);
-		let lexer = lex::Lexer::new(&buf, 0);
+		let lexer = lex::Lexer::new(buf, 0);
 
 		let mut errors: Vec<ParseError> = vec![];
 		for result in lexer {
@@ -504,7 +504,7 @@ impl Preprocessor {
 				file_key
 			};
 
-			let lexer = lex::Lexer::new(&buf, file_key);
+			let lexer = lex::Lexer::new(buf, file_key);
 			let mut errors = vec![];
 			let mut pp_token_list = vec![];
 			for pp_token in lexer.into_iter() {

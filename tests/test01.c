@@ -1,7 +1,4 @@
-#include "test01.h"
-// this is a basic program
 int main() {
-	/*
 	const char* s = "hello world"; // test string
 	/*hello world
 		how are you?

@@ -1,6 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct Span {
-	pub location: (isize, isize),
+	pub location: (usize, usize),
 	pub file_key: usize,
 	pub leading_tabs: usize,
 	pub leading_spaces: usize,
