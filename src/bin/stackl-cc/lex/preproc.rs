@@ -69,8 +69,10 @@ impl Preprocessor {
 		let mut tokens = vec![];
 		while let Some(pp_token) = self.pp_tokens.pop_front() {
 			match self.tokenize(pp_token.clone()) {
-				Ok(mut processed_tokens) => tokens.append(&mut processed_tokens),
+				Ok(Some(token)) => tokens.push(token),
 				Err(mut processed_errors) => errors.append(&mut processed_errors),
+				// don't care branch
+				_ => {}
 			}
 		}
 
@@ -80,22 +82,22 @@ impl Preprocessor {
 			Ok(tokens)
 		}
 	}
-	fn tokenize(&mut self, pp_token: PPToken) -> Result<Vec<tok::Token>, Vec<LexicalError>> {
+	fn tokenize(&mut self, pp_token: PPToken) -> Result<Option<tok::Token>, Vec<LexicalError>> {
 		match pp_token {
 			PPToken::NewLine(token) => {
 				self.pp_newline(token);
-				Ok(vec![])
+				Ok(None)
 			}
 			PPToken::Comment(token) => {
 				if self.stdout > 1 {
 					print!("{token}");
 				}
-				Ok(vec![])
+				Ok(None)
 			}
 			PPToken::Identifier(token) => {
 				if self.is_preproc {
 					self.directive(token)?;
-					Ok(vec![])
+					Ok(None)
 				} else {
 					match self.expand_macro(token.clone()) {
 						// not a macro
@@ -104,13 +106,13 @@ impl Preprocessor {
 								print!("{token}");
 							}
 							if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
-								Ok(vec![Token::Keyword(kw)])
+								Ok(Some(Token::Keyword(kw)))
 							} else {
-								Ok(vec![Token::Identifier(token)])
+								Ok(Some(Token::Identifier(token)))
 							}
 						}
 						// is a macro
-						Ok(true) => Ok(vec![]),
+						Ok(true) => Ok(None),
 						// macro had errors
 						Err(error) => Err(vec![error]),
 					}
@@ -120,12 +122,12 @@ impl Preprocessor {
 				if let tok::PunctuatorTerminal::Hash = token.term {
 					self.is_preproc = self.is_newline;
 					self.is_newline = false;
-					Ok(vec![])
+					Ok(None)
 				} else {
 					if self.stdout > 0 {
 						print!("{token}");
 					}
-					Ok(vec![Token::Punctuator(token)])
+					Ok(Some(Token::Punctuator(token)))
 				}
 			}
 			PPToken::StringLiteral(token) => {
@@ -133,14 +135,14 @@ impl Preprocessor {
 				if self.stdout > 0 {
 					print!("{token}");
 				}
-				Ok(vec![Token::StringLiteral(token)])
+				Ok(Some(Token::StringLiteral(token)))
 			}
 			PPToken::CharacterConstant(token) => {
 				self.is_newline = false;
 				if self.stdout > 0 {
 					print!("{token}");
 				}
-				Ok(vec![Token::Constant(tok::Constant::Character(token))])
+				Ok(Some(Token::Constant(tok::Constant::Character(token))))
 			}
 			PPToken::PPNumber(token) => {
 				self.is_newline = false;
@@ -148,7 +150,7 @@ impl Preprocessor {
 				if self.stdout > 0 {
 					print!("{token}");
 				}
-				Ok(vec![token])
+				Ok(Some(token))
 			}
 			PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
 		}
