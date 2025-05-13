@@ -20,6 +20,11 @@ impl Lexer {
 			include_state: 1,
 		}
 	}
+	fn next_char(&mut self) -> Option<char> {
+		let result = self.buf.get(self.pos);
+		self.pos += 1;
+		result.copied()
+	}
 
 	fn header_name(&mut self, c: char, span: tok::Span) -> Result<tok::PPToken, LexicalError> {
 		let mut name = String::new();
@@ -258,9 +263,8 @@ impl Iterator for Lexer {
 			leading_tabs += (c == '\t') as usize;
 			self.pos += 1;
 		}
-		let c = self.buf.get(self.pos)?;
 		let start_pos = self.pos;
-		self.pos += 1;
+		let c = self.next_char()?;
 		let mut span = tok::Span {
 			location: (start_pos, self.pos),
 			file_key: self.file_key,
@@ -268,18 +272,18 @@ impl Iterator for Lexer {
 			leading_tabs,
 		};
 
-		if *c == '"' {
+		if c == '"' {
 			if self.include_state == 3 {
-				return Some(self.header_name(*c, span));
+				return Some(self.header_name(c, span));
 			} else {
-				return Some(self.string_literal(*c, span));
+				return Some(self.string_literal(c, span));
 			}
 		}
 		// if c == 'L' && self.chars.peek().is_some_and(|&val| val == '"') {
 		// 	return Some(self.string_literal(c, span));
 		// }
-		if *c == '\'' || *c == 'L' && self.buf.get(self.pos + 1).is_some_and(|&val| val == '\'') {
-			return Some(self.character_constant(*c, span));
+		if c == '\'' || c == 'L' && self.buf.get(self.pos + 1).is_some_and(|&val| val == '\'') {
+			return Some(self.character_constant(c, span));
 		}
 
 		let mut name = String::new();
@@ -287,7 +291,7 @@ impl Iterator for Lexer {
 			'\n' => {
 				self.include_state = 1;
 				span.location = (start_pos, self.pos);
-				name.push(*c);
+				name.push(c);
 				let new_line = tok::NewLine {
 					span,
 					is_deleted: false,
@@ -300,16 +304,16 @@ impl Iterator for Lexer {
 				span.location = (start_pos, self.pos);
 				let punct = tok::Punctuator {
 					span,
-					term: tok::PunctuatorTerminal::try_from(*c).unwrap(),
+					term: tok::PunctuatorTerminal::try_from(c).unwrap(),
 				};
 				Some(Ok(tok::PPToken::Punctuator(punct)))
 			}
 			// identifier
-			'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier(*c, span)),
+			'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier(c, span)),
 			// pp-number
 			'0'..='9' => {
 				self.include_state = 0;
-				name.push(*c);
+				name.push(c);
 				while let Some(&next_c) = self.buf.get(self.pos) {
 					if next_c.is_ascii_digit() || next_c == '.' {
 						name.push(*self.buf.get(self.pos)?);
@@ -344,7 +348,7 @@ impl Iterator for Lexer {
 			'.' => {
 				// case: `.`
 				self.include_state = 0;
-				name.push(*c);
+				name.push(c);
 				if let Some('.') = self.buf.get(self.pos) {
 					// case: `..`
 					self.pos += 1;
@@ -420,7 +424,7 @@ impl Iterator for Lexer {
 			}
 			'<' => {
 				let term = if self.include_state == 3 {
-					return Some(self.header_name(*c, span));
+					return Some(self.header_name(c, span));
 				} else if let Some('<') = self.buf.get(self.pos) {
 					// case: `<<`
 					todo!("<<")
@@ -595,7 +599,7 @@ impl Iterator for Lexer {
 				let punct = tok::Punctuator { span, term };
 				Some(Ok(tok::PPToken::Punctuator(punct)))
 			}
-			_ => todo!("`{c}` : {}", *c as i32),
+			_ => todo!("`{c}` : {}", c as i32),
 		}
 	}
 }
