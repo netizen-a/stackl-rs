@@ -192,8 +192,17 @@ impl Preprocessor {
 			None => Ok(false),
 			// object-like macro
 			Some(MacroDef::Object(replacement_list)) => {
-				for pp_token in replacement_list {
-					self.pp_tokens.push_front(pp_token.clone());
+				let mut replacer = replacement_list.clone();
+				if let Some(pp_token) = replacer.first_mut() {
+					let mut inner_span = pp_token.span();
+					let outer_span = macro_name.span();
+					inner_span.leading_spaces = outer_span.leading_spaces;
+					inner_span.leading_tabs = outer_span.leading_tabs;
+					pp_token.set_span(inner_span);
+				}
+
+				for pp_token in replacer.into_iter().rev() {
+					self.pp_tokens.push_front(pp_token)
 				}
 				Ok(true)
 			}
@@ -312,22 +321,19 @@ impl Preprocessor {
 		}
 	}
 	fn pp_define(&mut self, last_span: tok::Span) -> Result<(), ParseError> {
-		let pp_token = match self.pp_tokens.pop_front() {
-			Some(pp_token) => pp_token,
-			None => {
-				let (_, hi) = last_span.location;
-				let span = tok::Span {
-					location: (hi + 1, hi + 1),
-					file_key: last_span.file_key,
-					leading_tabs: 0,
-					leading_spaces: 0,
-				};
-				return Err(LexicalError {
-					kind: LexicalErrorKind::UnexpectedEof,
-					span,
-				}
-				.into());
+		let Some(pp_token) = self.pp_tokens.pop_front() else {
+			let (_, hi) = last_span.location;
+			let span = tok::Span {
+				location: (hi + 1, hi + 1),
+				file_key: last_span.file_key,
+				leading_tabs: 0,
+				leading_spaces: 0,
+			};
+			return Err(LexicalError {
+				kind: LexicalErrorKind::UnexpectedEof,
+				span,
 			}
+			.into());
 		};
 		let tok::PPToken::Identifier(ident) = pp_token else {
 			return Err(LexicalError {
@@ -430,6 +436,7 @@ impl Preprocessor {
 		Ok(())
 	}
 	fn pp_undef(&mut self, last_span: tok::Span) -> Result<(), ParseError> {
+		print!("#undef");
 		let pp_token = match self.pp_tokens.pop_front() {
 			Some(pp_token) => pp_token,
 			None => {

@@ -310,7 +310,7 @@ impl Iterator for Lexer {
 			'0'..='9' => {
 				self.include_state = 0;
 				name.push(*c);
-				while let Some(&next_c) = self.buf.get(self.pos + 1) {
+				while let Some(&next_c) = self.buf.get(self.pos) {
 					if next_c.is_ascii_digit() || next_c == '.' {
 						name.push(*self.buf.get(self.pos)?);
 						self.pos += 1;
