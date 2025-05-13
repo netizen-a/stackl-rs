@@ -42,6 +42,7 @@ pub struct Preprocessor {
 	pp_tokens: VecDeque<PPToken>,
 	is_newline: bool,
 	is_preproc: bool,
+	line: usize,
 }
 
 impl Preprocessor {
@@ -58,6 +59,7 @@ impl Preprocessor {
 			pp_tokens: VecDeque::new(),
 			is_newline: true,
 			is_preproc: false,
+			line: 1,
 		}
 	}
 	pub fn parse(&mut self) -> Result<Vec<tok::Token>, Vec<ParseError>> {
@@ -84,7 +86,7 @@ impl Preprocessor {
 
 		let mut tokens = vec![];
 		while let Some(pp_token) = self.pp_tokens.pop_front() {
-			match self.tokenize(pp_token) {
+			match self.tokenize(pp_token.clone()) {
 				Ok(mut processed_tokens) => tokens.append(&mut processed_tokens),
 				Err(mut processed_errors) => errors.append(&mut processed_errors),
 			}
@@ -182,6 +184,7 @@ impl Preprocessor {
 		}
 		self.is_preproc = false;
 		self.is_newline = true;
+		self.line += 1;
 	}
 	fn expand_macro(&mut self, macro_name: tok::Identifier) -> Result<bool, ParseError> {
 		match self.macros.get(&macro_name.name) {
@@ -305,7 +308,7 @@ impl Preprocessor {
 			"define" => self.pp_define(ident.span).map_err(|e| vec![e]),
 			"undef" => self.pp_undef(ident.span).map_err(|e| vec![e]),
 			"include" => self.pp_include(ident.span),
-			_ => todo!("undefined directive: `{}`", ident.name),
+			_ => todo!("{} | undefined directive: `{}`", self.line, ident.name),
 		}
 	}
 	fn pp_define(&mut self, last_span: tok::Span) -> Result<(), ParseError> {

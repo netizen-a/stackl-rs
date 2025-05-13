@@ -59,10 +59,11 @@ impl Lexer {
 	fn identifier(&mut self, c: char, mut span: tok::Span) -> Result<tok::PPToken, LexicalError> {
 		let mut name = String::new();
 		name.push(c);
-		while let Some(next_c) = self.buf.get(self.pos) {
-			if !c.is_ascii_alphanumeric() || c != '_' {
-				break;
-			}
+		while let Some(next_c) = self
+			.buf
+			.get(self.pos)
+			.filter(|&&c| c.is_ascii_alphanumeric() || c == '_')
+		{
 			name.push(*next_c);
 			self.pos += 1;
 		}
@@ -406,16 +407,15 @@ impl Iterator for Lexer {
 				if self.include_state == 1 {
 					self.include_state = 2;
 				}
-				name.push(*c);
-				if let Some('#') = self.buf.get(self.pos) {
+				let term = if let Some('#') = self.buf.get(self.pos) {
 					self.include_state = 0;
 					self.pos += 1;
 					span.location = (start_pos, self.pos);
-				}
-				let punct = tok::Punctuator {
-					span,
-					term: tok::PunctuatorTerminal::Hash,
+					tok::PunctuatorTerminal::HashHash
+				} else {
+					tok::PunctuatorTerminal::Hash
 				};
+				let punct = tok::Punctuator { span, term };
 				Some(Ok(tok::PPToken::Punctuator(punct)))
 			}
 			'<' => {
