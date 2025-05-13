@@ -25,6 +25,9 @@ impl Lexer {
 		self.pos += 1;
 		result.copied()
 	}
+	fn peek_char(&self) -> Option<char> {
+		self.buf.get(self.pos).copied()
+	}
 
 	fn header_name(&mut self, c: char, span: tok::Span) -> Result<tok::PPToken, LexicalError> {
 		let mut name = String::new();
@@ -255,7 +258,7 @@ impl Iterator for Lexer {
 	fn next(&mut self) -> Option<Self::Item> {
 		let (mut leading_tabs, mut leading_spaces) = (0, 0);
 		// skip whitespace
-		while let Some(&c) = self.buf.get(self.pos) {
+		while let Some(c) = self.peek_char() {
 			if c == '\n' || !c.is_ascii_whitespace() {
 				break;
 			}
@@ -314,13 +317,11 @@ impl Iterator for Lexer {
 			'0'..='9' => {
 				self.include_state = 0;
 				name.push(c);
-				while let Some(&next_c) = self.buf.get(self.pos) {
+				while let Some(next_c) = self.peek_char() {
 					if next_c.is_ascii_digit() || next_c == '.' {
-						name.push(*self.buf.get(self.pos)?);
-						self.pos += 1;
+						name.push(self.next_char()?);
 					} else if next_c.is_ascii_alphabetic() || next_c == '_' {
-						name.push(*self.buf.get(self.pos)?);
-						self.pos += 1;
+						name.push(self.next_char()?);
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some(&sign) = self.buf.get(self.pos + 1) else {
 								span.location = (start_pos, self.pos);
@@ -493,6 +494,7 @@ impl Iterator for Lexer {
 			}
 			'\\' => {
 				if let Some('\n') = self.buf.get(self.pos) {
+					self.pos += 1;
 					let new_line = tok::PPToken::NewLine(tok::NewLine {
 						span,
 						is_deleted: true,

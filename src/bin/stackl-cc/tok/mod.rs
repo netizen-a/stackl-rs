@@ -453,7 +453,8 @@ pub struct NewLine {
 
 impl fmt::Display for NewLine {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}\n", self.span)
+		let name = if self.is_deleted { "" } else { "\n" };
+		write!(f, "{}{name}", self.span)
 	}
 }
 

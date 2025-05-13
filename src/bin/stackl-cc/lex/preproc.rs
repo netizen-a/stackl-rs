@@ -155,7 +155,7 @@ impl Preprocessor {
 		}
 	}
 	fn pp_newline(&mut self, token: tok::NewLine) {
-		if self.stdout > 0 && !token.is_deleted {
+		if self.stdout > 0 {
 			print!("{token}");
 		}
 		self.is_preproc = false;
