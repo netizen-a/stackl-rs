@@ -405,7 +405,6 @@ impl Preprocessor {
 		Ok(())
 	}
 	fn pp_undef(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
-		print!("#undef");
 		let pp_token = match self.pp_tokens.pop_front() {
 			Some(pp_token) => pp_token,
 			None => {
