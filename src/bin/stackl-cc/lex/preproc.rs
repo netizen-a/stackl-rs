@@ -97,25 +97,24 @@ impl Preprocessor {
 			PPToken::Identifier(token) => {
 				if self.is_preproc {
 					self.directive(token)?;
-					Ok(None)
-				} else {
-					match self.expand_macro(token.clone()) {
-						// not a macro
-						Ok(false) => {
-							if self.stdout > 0 {
-								print!("{token}");
-							}
-							if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
-								Ok(Some(Token::Keyword(kw)))
-							} else {
-								Ok(Some(Token::Identifier(token)))
-							}
+					return Ok(None);
+				}
+				match self.expand_macro(token.clone()) {
+					// not a macro
+					Ok(false) => {
+						if self.stdout > 0 {
+							print!("{token}");
 						}
-						// is a macro
-						Ok(true) => Ok(None),
-						// macro had errors
-						Err(error) => Err(vec![error]),
+						if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
+							Ok(Some(Token::Keyword(kw)))
+						} else {
+							Ok(Some(Token::Identifier(token)))
+						}
 					}
+					// is a macro
+					Ok(true) => Ok(None),
+					// macro had errors
+					Err(error) => Err(vec![error]),
 				}
 			}
 			PPToken::Punctuator(token) => {
