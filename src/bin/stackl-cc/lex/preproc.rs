@@ -1,5 +1,6 @@
 use super::error::*;
 use super::lexer as lex;
+use super::lexer_iter::LexerQueue;
 use crate::tok::{self, Spanned};
 use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
@@ -26,7 +27,7 @@ pub enum MacroDef {
 pub struct Preprocessor {
 	file_map: bimap::BiHashMap<usize, path::PathBuf>,
 	macros: HashMap<String, MacroDef>,
-	lexer: lex::Lexer,
+	lexer: LexerQueue,
 	stdout: i32,
 	pp_tokens: VecDeque<PPToken>,
 	is_newline: bool,
@@ -45,7 +46,9 @@ impl Preprocessor {
 		let mut reader = BufReader::new(file);
 		let mut buf = String::new();
 		reader.read_to_string(&mut buf)?;
-		let lexer = lex::Lexer::new(buf, 0);
+		let main_lexer = lex::Lexer::new(buf, 0);
+		let mut lexer = LexerQueue::new();
+		lexer.push_front(main_lexer);
 		Ok(Self {
 			file_map,
 			macros: HashMap::new(),
@@ -70,7 +73,7 @@ impl Preprocessor {
 		while let Some(pp_token) = self.pp_tokens.pop_front() {
 			match self.tokenize(pp_token.clone()) {
 				Ok(Some(token)) => tokens.push(token),
-				Err(mut processed_errors) => errors.append(&mut processed_errors),
+				Err(processed_error) => errors.push(processed_error),
 				// don't care branch
 				_ => {}
 			}
@@ -82,7 +85,7 @@ impl Preprocessor {
 			Ok(tokens)
 		}
 	}
-	fn tokenize(&mut self, pp_token: PPToken) -> Result<Option<tok::Token>, Vec<LexicalError>> {
+	fn tokenize(&mut self, pp_token: PPToken) -> Result<Option<tok::Token>, LexicalError> {
 		match pp_token {
 			PPToken::NewLine(token) => {
 				self.pp_newline(token);
@@ -114,7 +117,7 @@ impl Preprocessor {
 					// is a macro
 					Ok(true) => Ok(None),
 					// macro had errors
-					Err(error) => Err(vec![error]),
+					Err(error) => Err(error),
 				}
 			}
 			PPToken::Punctuator(token) => {
@@ -145,7 +148,7 @@ impl Preprocessor {
 			}
 			PPToken::PPNumber(token) => {
 				self.is_newline = false;
-				let token = Token::try_from(token).map_err(|e| vec![e])?;
+				let token = Token::try_from(token)?;
 				if self.stdout > 0 {
 					print!("{token}");
 				}
@@ -287,10 +290,10 @@ impl Preprocessor {
 			}
 		}
 	}
-	fn directive(&mut self, ident: tok::Identifier) -> Result<(), Vec<LexicalError>> {
+	fn directive(&mut self, ident: tok::Identifier) -> Result<(), LexicalError> {
 		match ident.name.as_str() {
-			"define" => self.pp_define(ident.span).map_err(|e| vec![e]),
-			"undef" => self.pp_undef(ident.span).map_err(|e| vec![e]),
+			"define" => self.pp_define(ident.span),
+			"undef" => self.pp_undef(ident.span),
 			"include" => self.pp_include(ident.span),
 			_ => todo!("{} | undefined directive: `{}`", self.line, ident.name),
 		}
@@ -437,7 +440,7 @@ impl Preprocessor {
 
 		Ok(())
 	}
-	fn pp_include(&mut self, last_span: tok::Span) -> Result<(), Vec<LexicalError>> {
+	fn pp_include(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
 		self.is_preproc = false;
 		self.is_newline = true;
 		let header = match self.pp_tokens.pop_front() {
@@ -447,14 +450,14 @@ impl Preprocessor {
 					kind: LexicalErrorKind::InvalidToken,
 					span: token.span(),
 				};
-				return Err(vec![lex_err]);
+				return Err(lex_err);
 			}
 			None => {
 				let lex_err = LexicalError {
 					kind: LexicalErrorKind::UnexpectedEof,
 					span: last_span,
 				};
-				return Err(vec![lex_err]);
+				return Err(lex_err);
 			}
 		};
 		if header.is_std {
@@ -462,19 +465,15 @@ impl Preprocessor {
 		} else {
 			let header_span = header.span();
 			let file_path: path::PathBuf = path::PathBuf::from(header.name);
-			let file = fs::File::open(&file_path).map_err(|_| {
-				vec![LexicalError {
-					span: header_span.clone(),
-					kind: LexicalErrorKind::HeaderNameError,
-				}]
+			let file = fs::File::open(&file_path).map_err(|_| LexicalError {
+				span: header_span.clone(),
+				kind: LexicalErrorKind::HeaderNameError,
 			})?;
 			let mut reader = BufReader::new(file);
 			let mut buf = String::new();
-			reader.read_to_string(&mut buf).map_err(|_| {
-				vec![LexicalError {
-					span: header_span,
-					kind: LexicalErrorKind::HeaderNameError,
-				}]
+			reader.read_to_string(&mut buf).map_err(|_| LexicalError {
+				span: header_span,
+				kind: LexicalErrorKind::HeaderNameError,
 			})?;
 			drop(reader);
 
@@ -486,24 +485,9 @@ impl Preprocessor {
 				file_key
 			};
 
-			let lexer = lex::Lexer::new(buf, file_key);
-			let mut errors = vec![];
-			let mut pp_token_list = vec![];
-			for pp_token in lexer.into_iter() {
-				match pp_token {
-					Ok(token) => pp_token_list.push(token),
-					Err(error) => errors.push(error),
-				}
-			}
-			for pp_token in pp_token_list.into_iter().rev() {
-				self.pp_tokens.push_front(pp_token)
-			}
-
-			if errors.is_empty() {
-				Ok(())
-			} else {
-				Err(errors)
-			}
+			let header_lexer = lex::Lexer::new(buf, file_key);
+			self.lexer.push_front(header_lexer);
+			Ok(())
 		}
 	}
 }
