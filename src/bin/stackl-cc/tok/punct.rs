@@ -196,6 +196,6 @@ impl span::Spanned for Punctuator {
 
 impl fmt::Display for Punctuator {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.term)
+		write!(f, "{}{}", self.span, self.term)
 	}
 }

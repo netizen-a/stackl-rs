@@ -106,8 +106,7 @@ impl Preprocessor {
 			}
 			PPToken::Comment(token) => {
 				if self.stdout > 1 {
-					token.span().print_whitespace();
-					print!("{}", token.name);
+					print!("{token}");
 				}
 				Ok(vec![])
 			}
@@ -120,8 +119,7 @@ impl Preprocessor {
 						// not a macro
 						Ok(false) => {
 							if self.stdout > 0 {
-								token.span().print_whitespace();
-								print!("{}", token);
+								print!("{token}");
 							}
 							if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
 								Ok(vec![Token::Keyword(kw)])
@@ -143,8 +141,7 @@ impl Preprocessor {
 					Ok(vec![])
 				} else {
 					if self.stdout > 0 {
-						token.span().print_whitespace();
-						print!("{}", token.term);
+						print!("{token}");
 					}
 					Ok(vec![Token::Punctuator(token)])
 				}
@@ -152,16 +149,14 @@ impl Preprocessor {
 			PPToken::StringLiteral(token) => {
 				self.is_newline = false;
 				if self.stdout > 0 {
-					token.span().print_whitespace();
-					print!("{}", token.name);
+					print!("{token}");
 				}
 				Ok(vec![Token::StringLiteral(token)])
 			}
 			PPToken::CharacterConstant(token) => {
 				self.is_newline = false;
 				if self.stdout > 0 {
-					token.span().print_whitespace();
-					print!("{}", token.name);
+					print!("{token}");
 				}
 				Ok(vec![Token::Constant(tok::Constant::Character(token))])
 			}
@@ -169,7 +164,6 @@ impl Preprocessor {
 				self.is_newline = false;
 				let token = Token::try_from(token).map_err(|e| vec![e.into()])?;
 				if self.stdout > 0 {
-					token.span().print_whitespace();
 					print!("{token}");
 				}
 				Ok(vec![token])
@@ -179,8 +173,7 @@ impl Preprocessor {
 	}
 	fn pp_newline(&mut self, token: tok::NewLine) {
 		if self.stdout > 0 && !token.is_deleted {
-			token.span().print_whitespace();
-			println!();
+			print!("{token}");
 		}
 		self.is_preproc = false;
 		self.is_newline = true;

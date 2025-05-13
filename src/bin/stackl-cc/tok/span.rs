@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone)]
 pub struct Span {
 	pub location: (usize, usize),
@@ -5,10 +7,14 @@ pub struct Span {
 	pub leading_tabs: usize,
 	pub leading_spaces: usize,
 }
-impl Span {
-	pub fn print_whitespace(&self) {
-		print!("{}", "\t".repeat(self.leading_tabs));
-		print!("{}", " ".repeat(self.leading_spaces));
+impl fmt::Display for Span {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(
+			f,
+			"{}{}",
+			"\t".repeat(self.leading_tabs),
+			" ".repeat(self.leading_spaces)
+		)
 	}
 }
 

@@ -143,6 +143,6 @@ impl TryFrom<Identifier> for Keyword {
 
 impl fmt::Display for Keyword {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.term)
+		write!(f, "{}{}", self.span, self.term)
 	}
 }

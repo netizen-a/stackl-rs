@@ -29,7 +29,7 @@ impl span::Spanned for Identifier {
 
 impl fmt::Display for Identifier {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.name)
+		write!(f, "{}{}", self.span, self.name)
 	}
 }
 
@@ -93,14 +93,15 @@ impl Spanned for IntegerConstant {
 
 impl fmt::Display for IntegerConstant {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match self {
-			Self::U32 { data, .. } => write!(f, "{data}U"),
-			Self::I32 { data, .. } => write!(f, "{data}"),
-			Self::U64 { data, .. } => write!(f, "{data}UL"),
-			Self::I64 { data, .. } => write!(f, "{data}L"),
-			Self::U128 { data, .. } => write!(f, "{data}ULL"),
-			Self::I128 { data, .. } => write!(f, "{data}LL"),
-		}
+		let (span, name) = match self {
+			Self::U32 { span, data } => (span, format!("{data}U")),
+			Self::I32 { span, data } => (span, format!("{data}")),
+			Self::U64 { span, data } => (span, format!("{data}UL")),
+			Self::I64 { span, data } => (span, format!("{data}L")),
+			Self::U128 { span, data } => (span, format!("{data}ULL")),
+			Self::I128 { span, data } => (span, format!("{data}LL")),
+		};
+		write!(f, "{span}{name}")
 	}
 }
 
@@ -114,11 +115,12 @@ pub enum FloatingConstant {
 
 impl fmt::Display for FloatingConstant {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match self {
-			Self::F32 { data, .. } => write!(f, "{data}F"),
-			Self::F64 { data, .. } => write!(f, "{data}"),
-			Self::Long { data, .. } => write!(f, "{data}L"),
-		}
+		let (span, name) = match self {
+			Self::F32 { span, data } => (span, format!("{data}F")),
+			Self::F64 { span, data } => (span, format!("{data}")),
+			Self::Long { span, data } => (span, format!("{data}L")),
+		};
+		write!(f, "{span}{name}")
 	}
 }
 
@@ -194,7 +196,7 @@ impl span::Spanned for StringLiteral {
 
 impl fmt::Display for StringLiteral {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.name)
+		write!(f, "{}{}", self.span, self.name)
 	}
 }
 
@@ -439,7 +441,7 @@ impl span::Spanned for CharacterConstant {
 
 impl fmt::Display for CharacterConstant {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.name)
+		write!(f, "{}{}", self.span, self.name)
 	}
 }
 
@@ -447,6 +449,12 @@ impl fmt::Display for CharacterConstant {
 pub struct NewLine {
 	pub span: span::Span,
 	pub is_deleted: bool,
+}
+
+impl fmt::Display for NewLine {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}\n", self.span)
+	}
 }
 
 impl span::Spanned for NewLine {
@@ -470,6 +478,12 @@ impl span::Spanned for Comment {
 	}
 	fn set_span(&mut self, span: Span) {
 		self.span = span;
+	}
+}
+
+impl fmt::Display for Comment {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}{}", self.span, self.name)
 	}
 }
 
