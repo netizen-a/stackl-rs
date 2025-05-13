@@ -4,11 +4,9 @@ mod cli;
 mod lex;
 mod tok;
 
-use crate::lex::preproc::ParseError;
-
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
-	let mut preproc = lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout);
+	let mut preproc = lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout).unwrap();
 	let result = preproc.parse();
 	if args.pp_stdout > 0 {
 		return ExitCode::SUCCESS;
@@ -21,12 +19,7 @@ fn main() -> ExitCode {
 		}
 		Err(error_list) => {
 			for error in error_list {
-				match error {
-					ParseError::IOError(io_error) => eprintln!("io error: {io_error}"),
-					ParseError::LexError(lex_error) => {
-						eprintln!("{lex_error:?}");
-					}
-				}
+				eprintln!("{error:?}");
 			}
 		}
 	}

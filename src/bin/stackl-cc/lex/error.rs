@@ -26,6 +26,7 @@ pub enum LexicalErrorKind {
 	UnexpectedEof,
 	UnexpectedEscape,
 	InvalidToken,
+	HeaderNameError,
 }
 
 #[derive(Debug)]
