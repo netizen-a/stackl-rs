@@ -340,107 +340,107 @@ impl Iterator for Lexer {
 				Some(Ok(tok::PPToken::PPNumber(num)))
 			}
 			// `.` or `...` or pp-number
-			// '.' => {
-			// 	// case: `.`
-			// 	self.include_state = 0;
-			// 	name.push(c);
-			// 	if self.chars.next_if_eq(&'.').is_some() {
-			// 		// case: `..`
-			// 		self.pos += 1;
-			// 		if self.chars.next_if_eq(&'.').is_some() {
-			// 			// case: `...`
-			// 			self.pos += 1;
-			// 			span.location.1 = self.pos;
-			// 			let punct = tok::Punctuator {
-			// 				term: tok::PunctuatorTerminal::Ellipsis,
-			// 				span,
-			// 			};
-			// 			Some(Ok(tok::PPToken::Punctuator(punct)))
-			// 		} else {
-			// 			span.location = (start_pos, self.pos);
-			// 			Some(Err(LexicalError {
-			// 				kind: LexicalErrorKind::InvalidToken,
-			// 				span,
-			// 			}))
-			// 		}
-			// 	} else if let Some(digit) = self.chars.next_if(|c| c.is_ascii_digit()) {
-			// 		// case: `.[0-9]`
-			// 		name.push(digit);
-			// 		while let Some(&next_c) = self.chars.peek() {
-			// 			if next_c.is_ascii_digit() || next_c == '.' {
-			// 				name.push(self.chars.next()?);
-			// 				self.pos += 1;
-			// 			} else if next_c.is_ascii_alphabetic() || next_c == '_' {
-			// 				name.push(self.chars.next()?);
-			// 				if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
-			// 					let Some(&sign) = self.chars.peek() else {
-			// 						span.location = (start_pos, self.pos);
-			// 						return Some(Err(LexicalError {
-			// 							kind: LexicalErrorKind::UnexpectedEof,
-			// 							span,
-			// 						}));
-			// 					};
-			// 					if matches!(sign, '-' | '+' | '0'..='9') {
-			// 						name.push(self.chars.next()?);
-			// 						self.pos += 2;
-			// 						continue;
-			// 					}
-			// 				}
-			// 				self.pos += 1;
-			// 			} else {
-			// 				break;
-			// 			}
-			// 		}
-			// 		span.location = (start_pos, self.pos);
-			// 		let num = tok::PPNumber { span, name };
-			// 		Some(Ok(tok::PPToken::PPNumber(num)))
-			// 	} else {
-			// 		span.location = (start_pos, self.pos);
-			// 		Some(Err(LexicalError {
-			// 			kind: LexicalErrorKind::InvalidToken,
-			// 			span,
-			// 		}))
-			// 	}
-			// }
-			// '#' => {
-			// 	if self.include_state == 1 {
-			// 		self.include_state = 2;
-			// 	}
-			// 	name.push(c);
-			// 	if self.chars.next_if_eq(&'#').is_some() {
-			// 		self.include_state = 0;
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 	}
-			// 	let punct = tok::Punctuator {
-			// 		span,
-			// 		term: tok::PunctuatorTerminal::Hash,
-			// 	};
-			// 	Some(Ok(tok::PPToken::Punctuator(punct)))
-			// }
-			// '<' => {
-			// 	let term = if self.include_state == 3 {
-			// 		return Some(self.header_name(c, span));
-			// 	} else if self.chars.next_if_eq(&'<').is_some() {
-			// 		// case: `<<`
-			// 		todo!("<<")
-			// 	} else if self.chars.next_if_eq(&':').is_some() {
-			// 		// case: `<:` => `[`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::LSquare
-			// 	} else if self.chars.next_if_eq(&'%').is_some() {
-			// 		// case: `<%` => `{`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::LCurly
-			// 	} else {
-			// 		// case: `<`
-			// 		tok::PunctuatorTerminal::Less
-			// 	};
-			// 	let punct = tok::Punctuator { span, term };
-			// 	Some(Ok(tok::PPToken::Punctuator(punct)))
-			// }
+			'.' => {
+				// case: `.`
+				self.include_state = 0;
+				name.push(*c);
+				if let Some('.') = self.buf.get(self.pos) {
+					// case: `..`
+					self.pos += 1;
+					if let Some('.') = self.buf.get(self.pos) {
+						// case: `...`
+						self.pos += 1;
+						span.location.1 = self.pos;
+						let punct = tok::Punctuator {
+							term: tok::PunctuatorTerminal::Ellipsis,
+							span,
+						};
+						Some(Ok(tok::PPToken::Punctuator(punct)))
+					} else {
+						span.location = (start_pos, self.pos);
+						Some(Err(LexicalError {
+							kind: LexicalErrorKind::InvalidToken,
+							span,
+						}))
+					}
+				} else if let Some(&digit) = self.buf.get(self.pos).filter(|c| c.is_ascii_digit()) {
+					// case: `.[0-9]`
+					name.push(digit);
+					while let Some(&next_c) = self.buf.get(self.pos + 1) {
+						if next_c.is_ascii_digit() || next_c == '.' {
+							name.push(*self.buf.get(self.pos)?);
+							self.pos += 1;
+						} else if next_c.is_ascii_alphabetic() || next_c == '_' {
+							name.push(*self.buf.get(self.pos)?);
+							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
+								let Some(&sign) = self.buf.get(self.pos + 1) else {
+									span.location = (start_pos, self.pos);
+									return Some(Err(LexicalError {
+										kind: LexicalErrorKind::UnexpectedEof,
+										span,
+									}));
+								};
+								if matches!(sign, '-' | '+' | '0'..='9') {
+									name.push(*self.buf.get(self.pos)?);
+									self.pos += 2;
+									continue;
+								}
+							}
+							self.pos += 1;
+						} else {
+							break;
+						}
+					}
+					span.location = (start_pos, self.pos);
+					let num = tok::PPNumber { span, name };
+					Some(Ok(tok::PPToken::PPNumber(num)))
+				} else {
+					span.location = (start_pos, self.pos);
+					Some(Err(LexicalError {
+						kind: LexicalErrorKind::InvalidToken,
+						span,
+					}))
+				}
+			}
+			'#' => {
+				if self.include_state == 1 {
+					self.include_state = 2;
+				}
+				name.push(*c);
+				if let Some('#') = self.buf.get(self.pos) {
+					self.include_state = 0;
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+				}
+				let punct = tok::Punctuator {
+					span,
+					term: tok::PunctuatorTerminal::Hash,
+				};
+				Some(Ok(tok::PPToken::Punctuator(punct)))
+			}
+			'<' => {
+				let term = if self.include_state == 3 {
+					return Some(self.header_name(*c, span));
+				} else if let Some('<') = self.buf.get(self.pos) {
+					// case: `<<`
+					todo!("<<")
+				} else if let Some(':') = self.buf.get(self.pos) {
+					// case: `<:` => `[`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::LSquare
+				} else if let Some('%') = self.buf.get(self.pos) {
+					// case: `<%` => `{`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::LCurly
+				} else {
+					// case: `<`
+					tok::PunctuatorTerminal::Less
+				};
+				let punct = tok::Punctuator { span, term };
+				Some(Ok(tok::PPToken::Punctuator(punct)))
+			}
 			'/' => {
 				self.include_state = 0;
 				let term = if let Some('/') = self.buf.get(self.pos) {
@@ -501,44 +501,44 @@ impl Iterator for Lexer {
 					}))
 				}
 			}
-			// '+' => {
-			// 	self.include_state = 0;
-			// 	let term = if self.chars.next_if_eq(&'+').is_some() {
-			// 		// case: `++`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::PlusPlus
-			// 	} else if self.chars.next_if_eq(&'=').is_some() {
-			// 		// case: `+=`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::PlusEqual
-			// 	} else {
-			// 		// case: `+`
-			// 		tok::PunctuatorTerminal::Plus
-			// 	};
-			// 	let punct = tok::Punctuator { span, term };
-			// 	Some(Ok(tok::PPToken::Punctuator(punct)))
-			// }
-			// '-' => {
-			// 	self.include_state = 0;
-			// 	let term = if self.chars.next_if_eq(&'-').is_some() {
-			// 		// case: `--`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::MinusMinus
-			// 	} else if self.chars.next_if_eq(&'=').is_some() {
-			// 		// case: `+=`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::MinusEqual
-			// 	} else {
-			// 		// case: `+`
-			// 		tok::PunctuatorTerminal::Minus
-			// 	};
-			// 	let punct = tok::Punctuator { span, term };
-			// 	Some(Ok(tok::PPToken::Punctuator(punct)))
-			// }
+			'+' => {
+				self.include_state = 0;
+				let term = if let Some('+') = self.buf.get(self.pos) {
+					// case: `++`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::PlusPlus
+				} else if let Some('=') = self.buf.get(self.pos) {
+					// case: `+=`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::PlusEqual
+				} else {
+					// case: `+`
+					tok::PunctuatorTerminal::Plus
+				};
+				let punct = tok::Punctuator { span, term };
+				Some(Ok(tok::PPToken::Punctuator(punct)))
+			}
+			'-' => {
+				self.include_state = 0;
+				let term = if let Some('-') = self.buf.get(self.pos) {
+					// case: `--`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::MinusMinus
+				} else if let Some('=') = self.buf.get(self.pos) {
+					// case: `+=`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::MinusEqual
+				} else {
+					// case: `+`
+					tok::PunctuatorTerminal::Minus
+				};
+				let punct = tok::Punctuator { span, term };
+				Some(Ok(tok::PPToken::Punctuator(punct)))
+			}
 			'=' => {
 				self.include_state = 0;
 				let term = if let Some('=') = self.buf.get(self.pos) {
@@ -567,34 +567,34 @@ impl Iterator for Lexer {
 				let punct = tok::Punctuator { span, term };
 				Some(Ok(tok::PPToken::Punctuator(punct)))
 			}
-			// ':' => {
-			// 	self.include_state = 0;
-			// 	let term = if self.chars.next_if_eq(&'>').is_some() {
-			// 		// case: `:>`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::RSquare
-			// 	} else {
-			// 		// case: `:`
-			// 		tok::PunctuatorTerminal::Colon
-			// 	};
-			// 	let punct = tok::Punctuator { span, term };
-			// 	Some(Ok(tok::PPToken::Punctuator(punct)))
-			// }
-			// '!' => {
-			// 	self.include_state = 0;
-			// 	let term = if self.chars.next_if_eq(&'=').is_some() {
-			// 		// case: `!=`
-			// 		self.pos += 1;
-			// 		span.location = (start_pos, self.pos);
-			// 		tok::PunctuatorTerminal::BangEqual
-			// 	} else {
-			// 		// case: `!`
-			// 		tok::PunctuatorTerminal::Bang
-			// 	};
-			// 	let punct = tok::Punctuator { span, term };
-			// 	Some(Ok(tok::PPToken::Punctuator(punct)))
-			// }
+			':' => {
+				self.include_state = 0;
+				let term = if let Some('>') = self.buf.get(self.pos) {
+					// case: `:>`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::RSquare
+				} else {
+					// case: `:`
+					tok::PunctuatorTerminal::Colon
+				};
+				let punct = tok::Punctuator { span, term };
+				Some(Ok(tok::PPToken::Punctuator(punct)))
+			}
+			'!' => {
+				self.include_state = 0;
+				let term = if let Some('=') = self.buf.get(self.pos) {
+					// case: `!=`
+					self.pos += 1;
+					span.location = (start_pos, self.pos);
+					tok::PunctuatorTerminal::BangEqual
+				} else {
+					// case: `!`
+					tok::PunctuatorTerminal::Bang
+				};
+				let punct = tok::Punctuator { span, term };
+				Some(Ok(tok::PPToken::Punctuator(punct)))
+			}
 			_ => todo!("`{c}` : {}", *c as i32),
 		}
 	}
