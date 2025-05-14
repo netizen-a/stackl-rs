@@ -496,8 +496,10 @@ impl Preprocessor {
 			todo!()
 		} else {
 			let header_span = header.span();
-			let file_path: path::PathBuf = path::PathBuf::from(header.name);
-			let file = fs::File::open(&file_path).map_err(|_| LexicalError {
+			let origin_path = self.file_map.get_by_left(&0).unwrap();
+			let header_path: path::PathBuf = path::PathBuf::from(header.name);
+			let full_path = origin_path.parent().unwrap().join(header_path);
+			let file = fs::File::open(&full_path).map_err(|_| LexicalError {
 				span: header_span.clone(),
 				kind: LexicalErrorKind::HeaderNameError,
 			})?;
@@ -509,11 +511,11 @@ impl Preprocessor {
 			})?;
 			drop(reader);
 
-			let file_key = if let Some(file_key) = self.file_map.get_by_right(&file_path) {
+			let file_key = if let Some(file_key) = self.file_map.get_by_right(&full_path) {
 				*file_key
 			} else {
 				let file_key = self.file_map.len();
-				self.file_map.insert(file_key, file_path);
+				self.file_map.insert(file_key, full_path);
 				file_key
 			};
 

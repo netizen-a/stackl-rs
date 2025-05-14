@@ -1,3 +1,5 @@
+#include "test01.h"
+
 int main() {
 	const char* s = "hello world"; // test string
 	/*hello world
