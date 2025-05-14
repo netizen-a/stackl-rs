@@ -39,20 +39,17 @@ impl Iterator for Preprocessor {
 	type Item = Result<tok::Token, LexicalError>;
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
-			match result {
-				Ok(pp_token) => {
-					if self.stdout <= PreprocStdout::Tokens {
-						if let Some(name) = pp_token.as_token_name() {
-							print!("{} ", name);
-						}
-					}
-					match self.tokenize(pp_token) {
-						Ok(Some(value)) => return Some(Ok(value)),
-						Err(error) => return Some(Err(error)),
-						Ok(None) => { /*continue*/ }
-					}
+			if let Ok(pp_token) = result {
+				if self.stdout <= PreprocStdout::Tokens {
+					print!("{} ", pp_token.as_token_name());
 				}
-				Err(tok_err) => return Some(Err(tok_err)),
+				match self.tokenize(pp_token) {
+					Ok(Some(value)) => return Some(Ok(value)),
+					Err(error) => return Some(Err(error)),
+					Ok(None) => { /*continue*/ }
+				}
+			} else if let Err(tok_err) = result {
+				return Some(Err(tok_err));
 			}
 		}
 		None

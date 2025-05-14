@@ -555,15 +555,16 @@ pub enum PPToken {
 }
 
 impl PPToken {
-	pub fn as_token_name(&self) -> Option<&str> {
+	pub fn as_token_name(&self) -> &str {
 		match self {
-			Self::HeaderName(_) => Some("header-name"),
-			Self::Identifier(_) => Some("identifier"),
-			Self::PPNumber(_) => Some("pp-number"),
-			Self::CharacterConstant(_) => Some("character-constant"),
-			Self::StringLiteral(_) => Some("string-literal"),
-			Self::Punctuator(_) => Some("punctuator"),
-			_ => None,
+			Self::HeaderName(_) => "header-name",
+			Self::Identifier(_) => "identifier",
+			Self::PPNumber(_) => "pp-number",
+			Self::CharacterConstant(_) => "character-constant",
+			Self::StringLiteral(_) => "string-literal",
+			Self::Punctuator(_) => "punctuator",
+			Self::NewLine(_) => "new-line",
+			Self::Comment(_) => "comment",
 		}
 	}
 }
