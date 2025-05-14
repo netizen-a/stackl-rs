@@ -185,16 +185,6 @@ impl Preprocessor {
 				args,
 				replacement_list,
 			}) => {
-				// if let Some(PPToken::Punctuator(tok::Punctuator {
-				// 	term: tok::PunctuatorTerminal::LParen,
-				// 	..
-				// })) = self.pp_tokens.front()
-				// {
-				// 	// consume `(`
-				// 	self.pp_tokens.pop_front();
-				// } else {
-				// 	return Ok(false);
-				// }
 				match self.pp_tokens.peek() {
 					Some(Ok(PPToken::Punctuator(tok::Punctuator {
 						term: tok::PunctuatorTerminal::LParen,
