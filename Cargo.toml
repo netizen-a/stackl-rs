@@ -19,8 +19,8 @@ lalrpop = "0.22.0"
 logos = "0.15.0"
 lalrpop-util = "0.22.0"
 clap = { version = "4.5.17", features = ["derive", "cargo"] }
-bitflags = "2.6.0"
 bimap = "0.6.3"
+bitflags = "2.9.0"
 
 [lib]
 name = "stackl"

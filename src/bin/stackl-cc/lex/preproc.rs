@@ -1,6 +1,7 @@
 use super::error::*;
 use super::lexer as lex;
 use super::pp_token_iter::PPTokenQueue;
+use crate::cli::PreprocStdout;
 use crate::tok::{self, Spanned};
 use std::collections::HashMap;
 use std::io::BufReader;
@@ -28,7 +29,7 @@ pub struct Preprocessor {
 	file_map: bimap::BiHashMap<usize, path::PathBuf>,
 	macros: HashMap<String, MacroDef>,
 	pp_tokens: PPTokenQueue,
-	stdout: i32,
+	stdout: PreprocStdout,
 	is_newline: bool,
 	is_preproc: bool,
 	line: usize,
@@ -39,11 +40,18 @@ impl Iterator for Preprocessor {
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
 			match result {
-				Ok(pp_token) => match self.tokenize(pp_token) {
-					Ok(Some(value)) => return Some(Ok(value)),
-					Err(error) => return Some(Err(error)),
-					Ok(None) => { /*continue*/ }
-				},
+				Ok(pp_token) => {
+					if self.stdout <= PreprocStdout::Tokens {
+						if let Some(name) = pp_token.as_token_name() {
+							print!("{} ", name);
+						}
+					}
+					match self.tokenize(pp_token) {
+						Ok(Some(value)) => return Some(Ok(value)),
+						Err(error) => return Some(Err(error)),
+						Ok(None) => { /*continue*/ }
+					}
+				}
 				Err(tok_err) => return Some(Err(tok_err)),
 			}
 		}
@@ -52,7 +60,7 @@ impl Iterator for Preprocessor {
 }
 
 impl Preprocessor {
-	pub fn new<P>(file_path: P, stdout: i32) -> io::Result<Self>
+	pub fn new<P>(file_path: P, stdout: PreprocStdout) -> io::Result<Self>
 	where
 		P: AsRef<path::Path>,
 	{
@@ -82,7 +90,7 @@ impl Preprocessor {
 				Ok(None)
 			}
 			PPToken::Comment(token) => {
-				if self.stdout > 1 {
+				if self.stdout == PreprocStdout::Comments {
 					print!("{token}");
 				}
 				Ok(None)
@@ -95,7 +103,7 @@ impl Preprocessor {
 				match self.expand_macro(token.clone()) {
 					// not a macro
 					Ok(false) => {
-						if self.stdout > 0 {
+						if self.stdout >= PreprocStdout::Enabled {
 							print!("{token}");
 						}
 						if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
@@ -116,7 +124,7 @@ impl Preprocessor {
 					self.is_newline = false;
 					Ok(None)
 				} else {
-					if self.stdout > 0 {
+					if self.stdout >= PreprocStdout::Enabled {
 						print!("{token}");
 					}
 					Ok(Some(Token::Punctuator(token)))
@@ -124,14 +132,14 @@ impl Preprocessor {
 			}
 			PPToken::StringLiteral(token) => {
 				self.is_newline = false;
-				if self.stdout > 0 {
+				if self.stdout >= PreprocStdout::Enabled {
 					print!("{token}");
 				}
 				Ok(Some(Token::StringLiteral(token)))
 			}
 			PPToken::CharacterConstant(token) => {
 				self.is_newline = false;
-				if self.stdout > 0 {
+				if self.stdout >= PreprocStdout::Enabled {
 					print!("{token}");
 				}
 				Ok(Some(Token::Constant(tok::Constant::Character(token))))
@@ -139,7 +147,7 @@ impl Preprocessor {
 			PPToken::PPNumber(token) => {
 				self.is_newline = false;
 				let token = Token::try_from(token)?;
-				if self.stdout > 0 {
+				if self.stdout >= PreprocStdout::Enabled {
 					print!("{token}");
 				}
 				Ok(Some(token))
@@ -148,7 +156,7 @@ impl Preprocessor {
 		}
 	}
 	fn pp_newline(&mut self, token: tok::NewLine) {
-		if self.stdout > 0 {
+		if self.stdout >= PreprocStdout::Enabled {
 			print!("{token}");
 		}
 		self.is_preproc = false;

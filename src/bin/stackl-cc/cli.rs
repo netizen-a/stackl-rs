@@ -8,12 +8,22 @@ pub enum StandardVersion {
 	C99 = 199901,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[repr(i32)]
+#[non_exhaustive]
+pub enum PreprocStdout {
+	Tokens = -1,
+	Disabled = 0,
+	Enabled = 1,
+	Comments = 2,
+}
+
 #[derive(Debug)]
 pub struct Args {
 	pub in_file: PathBuf,
 	pub out_file: Option<PathBuf>,
 	pub std: StandardVersion,
-	pub pp_stdout: i32,
+	pub pp_stdout: PreprocStdout,
 }
 
 impl Args {
@@ -25,14 +35,20 @@ impl Args {
 				.default_value("c99")
 				.value_names(["c99"]),
 			clap::Arg::new("output").short('o'),
-			clap::Arg::new("stdout-preproc")
+			clap::Arg::new("pp-stdout")
 				.short('E')
 				.required(false)
 				.action(clap::ArgAction::SetTrue),
-			clap::Arg::new("include-comments")
+			clap::Arg::new("pp-stdout-comments")
 				.long("include-comments")
-				.requires("stdout-preproc")
-				.action(clap::ArgAction::SetTrue),
+				.requires("pp-stdout")
+				.action(clap::ArgAction::SetTrue)
+				.conflicts_with("pp-stdout-tokens"),
+			clap::Arg::new("pp-stdout-tokens")
+				.long("pp-tokens")
+				.requires("pp-stdout")
+				.action(clap::ArgAction::SetTrue)
+				.conflicts_with("pp-stdout-comments"),
 		];
 
 		let cmd = clap::Command::new("stacklc")
@@ -59,9 +75,17 @@ impl Args {
 			.cloned()
 			.map(PathBuf::from);
 
-		let stdout_preproc = matches.get_flag("stdout-preproc") as i32;
-		let include_comments = matches.get_flag("include-comments") as i32;
-		let pp_stdout = stdout_preproc + include_comments;
+		let pp_stdout = if matches.get_flag("pp-stdout") {
+			if matches.get_flag("pp-stdout-comments") {
+				PreprocStdout::Comments
+			} else if matches.get_flag("pp-stdout-tokens") {
+				PreprocStdout::Tokens
+			} else {
+				PreprocStdout::Enabled
+			}
+		} else {
+			PreprocStdout::Disabled
+		};
 
 		Self {
 			in_file,

@@ -554,6 +554,20 @@ pub enum PPToken {
 	Comment(Comment),
 }
 
+impl PPToken {
+	pub fn as_token_name(&self) -> Option<&str> {
+		match self {
+			Self::HeaderName(_) => Some("header-name"),
+			Self::Identifier(_) => Some("identifier"),
+			Self::PPNumber(_) => Some("pp-number"),
+			Self::CharacterConstant(_) => Some("character-constant"),
+			Self::StringLiteral(_) => Some("string-literal"),
+			Self::Punctuator(_) => Some("punctuator"),
+			_ => None,
+		}
+	}
+}
+
 impl Spanned for PPToken {
 	fn span(&self) -> Span {
 		match self {
