@@ -185,17 +185,16 @@ impl Preprocessor {
 				args,
 				replacement_list,
 			}) => {
-				match self.pp_tokens.peek() {
-					Some(Ok(PPToken::Punctuator(tok::Punctuator {
-						term: tok::PunctuatorTerminal::LParen,
-						..
-					}))) => {
-						self.pp_tokens.next();
-					}
-					Some(Err(_)) => {
-						self.pp_tokens.next().unwrap()?;
-					}
-					_ => return Ok(false),
+				if let Some(Ok(PPToken::Punctuator(tok::Punctuator {
+					term: tok::PunctuatorTerminal::LParen,
+					..
+				}))) = self.pp_tokens.peek()
+				{
+					self.pp_tokens.next();
+				} else if let Some(Err(_)) = self.pp_tokens.peek() {
+					self.pp_tokens.next().unwrap()?;
+				} else {
+					return Ok(false);
 				}
 				let mut paren_level = 1;
 				let mut last_span = macro_name.span();
