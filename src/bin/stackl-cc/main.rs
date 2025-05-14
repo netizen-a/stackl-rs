@@ -4,6 +4,8 @@ use cli::PreprocStdout;
 
 mod cli;
 mod lex;
+mod sem;
+mod syn;
 mod tok;
 
 fn main() -> ExitCode {
