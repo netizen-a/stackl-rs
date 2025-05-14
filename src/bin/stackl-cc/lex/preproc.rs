@@ -35,12 +35,19 @@ pub struct Preprocessor {
 }
 
 impl Iterator for Preprocessor {
-	type Item = Result<Option<tok::Token>, LexicalError>;
+	type Item = Result<tok::Token, LexicalError>;
 	fn next(&mut self) -> Option<Self::Item> {
-		match self.pp_tokens.next()? {
-			Ok(pp_token) => Some(self.tokenize(pp_token)),
-			Err(tok_err) => Some(Err(tok_err)),
+		while let Some(result) = self.pp_tokens.next() {
+			match result {
+				Ok(pp_token) => match self.tokenize(pp_token) {
+					Ok(Some(value)) => return Some(Ok(value)),
+					Err(error) => return Some(Err(error)),
+					Ok(None) => { /*continue*/ }
+				},
+				Err(tok_err) => return Some(Err(tok_err)),
+			}
 		}
+		None
 	}
 }
 
