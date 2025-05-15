@@ -256,10 +256,12 @@ impl Iterator for Lexer {
 
 		let mut name = String::new();
 		match c {
-			'\n' => {
+			'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}' => {
+				if c == '\r' {
+					self.chars.next_if_eq('\n');
+				}
 				self.include_state = 1;
 				span.location = (start_pos, self.chars.pos);
-				name.push(c);
 				let new_line = tok::NewLine {
 					span,
 					is_deleted: false,
