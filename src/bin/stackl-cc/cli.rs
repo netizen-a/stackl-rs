@@ -1,11 +1,15 @@
 use clap::crate_version;
 use std::{path::PathBuf, process};
 
+#[allow(dead_code)]
 #[derive(Debug)]
 #[repr(i32)]
 #[non_exhaustive]
 pub enum StandardVersion {
 	C99 = 199901,
+	C11 = 201112,
+	C17 = 201710,
+	C23 = 202311,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
