@@ -1,6 +1,8 @@
-use std::process::ExitCode;
+use std::{process::ExitCode, sync::mpsc, thread};
 
 use cli::PreprocStdout;
+use lex::error::LexicalError;
+use tok::Token;
 
 mod cli;
 mod lex;
@@ -19,5 +21,18 @@ fn main() -> ExitCode {
 		}
 		return ExitCode::SUCCESS;
 	}
+
+	let (snd, rcv) = mpsc::channel::<Result<Token, LexicalError>>();
+	thread::scope(|s| {
+		s.spawn(|| {
+			for result in preproc {
+				snd.send(result).expect("failed to send token");
+			}
+		});
+		s.spawn(|| {
+			// syntax/semantics
+		});
+	});
+
 	ExitCode::SUCCESS
 }

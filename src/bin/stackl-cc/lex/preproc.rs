@@ -36,7 +36,7 @@ pub struct Preprocessor {
 }
 
 impl Iterator for Preprocessor {
-	type Item = Result<tok::Token, LexicalError>;
+	type Item = tok::Result<tok::Token>;
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
 			if let Ok(pp_token) = result {

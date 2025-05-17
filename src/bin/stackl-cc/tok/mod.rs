@@ -8,9 +8,11 @@ use crate::lex::error::*;
 pub use keyword::*;
 pub use punct::*;
 pub use span::*;
-use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
+use std::{fmt, result};
+
+pub type Result<T> = result::Result<T, LexicalError>;
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
@@ -250,7 +252,7 @@ impl PPNumber {
 			chars.any(|c| c == 'e' || c == 'E')
 		}
 	}
-	fn floating_constant(&self) -> Result<Token, LexicalError> {
+	fn floating_constant(&self) -> Result<Token> {
 		let mut chars = self.name.chars().peekable();
 		let c = chars.next().expect("empty pp-number");
 		if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
@@ -315,7 +317,7 @@ impl PPNumber {
 		}
 	}
 
-	fn integer_constant(&self) -> Result<Token, LexicalError> {
+	fn integer_constant(&self) -> Result<Token> {
 		let mut chars = self.name.chars().peekable();
 		match chars.next().expect("empty pp-number") {
 			'0' => {
@@ -335,7 +337,7 @@ impl PPNumber {
 			}),
 		}
 	}
-	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<Token, LexicalError> {
+	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<Token> {
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -373,11 +375,7 @@ impl PPNumber {
 		}
 	}
 
-	fn decimal_constant(
-		&self,
-		mut name: String,
-		mut chars: Peekable<Chars>,
-	) -> Result<Token, LexicalError> {
+	fn decimal_constant(&self, mut name: String, mut chars: Peekable<Chars>) -> Result<Token> {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
@@ -499,7 +497,7 @@ pub enum Token {
 
 impl TryFrom<PPNumber> for Token {
 	type Error = LexicalError;
-	fn try_from(value: PPNumber) -> Result<Self, Self::Error> {
+	fn try_from(value: PPNumber) -> Result<Self> {
 		if value.is_float() {
 			value.floating_constant()
 		} else {

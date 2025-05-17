@@ -220,7 +220,7 @@ impl Lexer {
 }
 
 impl Iterator for Lexer {
-	type Item = Result<tok::PPToken, LexicalError>;
+	type Item = tok::Result<tok::PPToken>;
 	fn next(&mut self) -> Option<Self::Item> {
 		let (mut leading_tabs, mut leading_spaces) = (0, 0);
 		// skip whitespace
