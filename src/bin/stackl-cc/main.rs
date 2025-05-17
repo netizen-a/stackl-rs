@@ -1,7 +1,6 @@
 use std::{process::ExitCode, sync::mpsc, thread};
 
 use cli::PreprocStdout;
-use lex::error::LexicalError;
 use tok::Token;
 
 mod cli;
@@ -22,7 +21,7 @@ fn main() -> ExitCode {
 		return ExitCode::SUCCESS;
 	}
 
-	let (snd, rcv) = mpsc::channel::<Result<Token, LexicalError>>();
+	let (snd, rcv) = mpsc::channel::<tok::Result<Token>>();
 	thread::scope(|s| {
 		s.spawn(|| {
 			for result in preproc {
