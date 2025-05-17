@@ -3,6 +3,7 @@ use std::{process::ExitCode, sync::mpsc, thread};
 use cli::PreprocStdout;
 use tok::Token;
 
+mod ast;
 mod cli;
 mod lex;
 mod sem;
