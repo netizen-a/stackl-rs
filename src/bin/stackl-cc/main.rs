@@ -22,17 +22,31 @@ fn main() -> ExitCode {
 		return ExitCode::SUCCESS;
 	}
 
-	let (snd, rcv) = mpsc::channel::<tok::Result<Token>>();
+	let (snd, rcv) = mpsc::channel::<Token>();
+	let syntax_parser = syn::SyntaxParser::new(rcv);
+	let mut lex_errors = vec![];
+	let mut syntax = Ok(ast::TranslationUnit::default());
 	thread::scope(|s| {
 		s.spawn(|| {
 			for result in preproc {
-				snd.send(result).expect("failed to send token");
+				if let Ok(token) = result {
+					snd.send(token).expect("failed to send token");
+				} else if let Err(error) = result {
+					lex_errors.push(error);
+				}
 			}
 		});
-		s.spawn(|| {
-			// syntax/semantics
-		});
+
+		syntax = syntax_parser.parse();
 	});
+
+	for error in lex_errors.iter() {
+		eprintln!("{:?}", error);
+	}
+
+	if !lex_errors.is_empty() {
+		return ExitCode::FAILURE;
+	}
 
 	ExitCode::SUCCESS
 }
