@@ -1,11 +1,13 @@
 use super::decl;
 use crate::tok;
 
+/// (6.5.16) assignment-expression
 pub struct AssignmentExpression {
 	assignment_expression: Vec<(UnaryExpression, AssignmentOperator)>,
 	conditional_expression: ConditionalExpression,
 }
 
+/// (6.5.3) unary-expression
 pub enum UnaryExpression {
 	PostfixExpression(Vec<PostfixExpression>),
 	Increment(Box<UnaryExpression>),
@@ -18,6 +20,7 @@ pub enum UnaryExpression {
 	Sizeof(decl::TypeName),
 }
 
+/// (6.5.3) unary-operator
 pub enum UnaryOperator {
 	/// `&`
 	Amp,
@@ -33,6 +36,7 @@ pub enum UnaryOperator {
 	Neg,
 }
 
+/// (6.5.2) postfix-expression
 pub enum PostfixExpression {
 	PrimaryExpression(PrimaryExpression),
 	Array(Expression),
@@ -44,8 +48,10 @@ pub enum PostfixExpression {
 	TypeNameInitializerList(TypeName, decl::InitializerList),
 }
 
+/// (6.5.2) argument-expression-list
 pub struct ArgumentExpressionList(Vec<AssignmentExpression>);
 
+/// (6.5.1) primary-expression
 pub enum PrimaryExpression {
 	Identifier(tok::Identifier),
 	Constant(tok::Constant),
@@ -53,8 +59,10 @@ pub enum PrimaryExpression {
 	Expression(Expression),
 }
 
+/// (6.5.17) expression
 pub struct Expression(Vec<AssignmentExpression>);
 
+/// (6.5.16) assignment-operator
 pub enum AssignmentOperator {
 	Assign,
 	MulAssign,
@@ -69,6 +77,7 @@ pub enum AssignmentOperator {
 	OrAssign,
 }
 
+/// (6.5.15) conditional-expression
 pub enum ConditionalExpression {
 	LogicalORExpression(LogicalOrExpression),
 	Ternary(LogicalOrExpression, Expression, Box<ConditionalExpression>),
@@ -104,12 +113,14 @@ pub enum AndExpression {
 	AndExpression(Box<AndExpression>, EqualityExpression),
 }
 
+/// (6.5.9) equality-expression
 pub enum EqualityExpression {
 	RelationalExpression(RelationalExpression),
 	Equal(Box<EqualityExpression>, RelationalExpression),
 	NotEqual(Box<EqualityExpression>, RelationalExpression),
 }
 
+/// (6.5.8) relational-expression
 pub enum RelationalExpression {
 	ShiftExpression(ShiftExpression),
 	Less(Box<RelationalExpression>, ShiftExpression),
@@ -118,18 +129,21 @@ pub enum RelationalExpression {
 	GreatEqual(Box<RelationalExpression>, ShiftExpression),
 }
 
+/// (6.5.7) shift-expression
 pub enum ShiftExpression {
 	AdditiveExpression(AdditiveExpression),
 	LeftShift(Box<ShiftExpression>, AdditiveExpression),
 	RightShift(Box<ShiftExpression>, AdditiveExpression),
 }
 
+/// (6.5.6) additive-expression
 pub enum AdditiveExpression {
 	MultiplicativeExpression(MultiplicativeExpression),
 	Add(Box<AdditiveExpression>, MultiplicativeExpression),
 	Sub(Box<AdditiveExpression>, MultiplicativeExpression),
 }
 
+/// (6.5.5) multiplicative-expression
 pub enum MultiplicativeExpression {
 	CastExpression(CastExpression),
 	Mul(Box<MultiplicativeExpression>, CastExpression),
@@ -137,14 +151,17 @@ pub enum MultiplicativeExpression {
 	Mod(Box<MultiplicativeExpression>, CastExpression),
 }
 
+/// (6.5.4) cast-expression
 pub enum CastExpression {
 	UnaryExpression(Box<UnaryExpression>),
 	TypeName(TypeName, Box<CastExpression>),
 }
 
+/// (6.7.6) type-name
 pub struct TypeName {
 	specifier_qualifier_list: decl::SpecifierQualifierList,
 	abstract_declarator: Option<decl::AbstractDeclarator>,
 }
 
+/// (6.6) constant-expression
 pub struct ConstantExpression(ConditionalExpression);

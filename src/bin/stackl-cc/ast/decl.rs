@@ -57,42 +57,53 @@ pub enum TypeSpecifier {
 	TypedefName(TypedefName),
 }
 
+/// (6.7.7) typedef-name
 pub struct TypedefName(tok::Identifier);
 
+/// (6.7.2.2) enum-specifier
 pub struct EnumSpecifier {
 	identifier: Option<tok::Identifier>,
 	enumerator_list: Option<EnumeratorList>,
 }
 
+/// (6.7.2.2) enumerator-list
 pub struct EnumeratorList(Vec<Enumerator>);
 
+/// (6.7.2.2) enumerator
 pub struct Enumerator {
 	enumeration_constant: EnumerationConstant,
 	constant_expression: expr::ConstantExpression,
 }
 
+/// (6.4.4.3) enumeration-constant
 pub struct EnumerationConstant(tok::Identifier);
 
+/// (6.7.2.1) struct-or-union-specifier
 pub struct StructOrUnionSpecifier {
 	struct_or_union: StructOrUnion,
 	identifier: Option<tok::Identifier>,
 	struct_declaration_list: Option<StructDeclarationList>,
 }
 
+/// (6.7.2.1) struct-declaration-list
 pub struct StructDeclarationList(Vec<StructDeclaration>);
 
+/// (6.7.2.1) struct-declaration
 pub struct StructDeclaration {
 	specifier_qualifier_list: SpecifierQualifierList,
 	struct_declaration_list: StructDeclaratorList,
 }
 
+/// (6.7.2.1) struct-declarator-list
 pub struct StructDeclaratorList(Vec<StructDeclarator>);
 
+/// (6.7.2.1) struct-declarator
 pub struct StructDeclarator {
 	declarator: Option<Declarator>,
 	constant_expression: Option<expr::ConstantExpression>,
 }
 
+/// (6.7.2.1) struct-or-union
 pub enum StructOrUnion {
 	Struct,
 	Union,
@@ -141,6 +152,7 @@ pub struct ParameterTypeList {
 	comma_ellipsis: bool,
 }
 
+/// (6.7.5) parameter-list
 pub struct ParameterList(Vec<ParameterDeclaration>);
 
 /// (6.7.5) pointer
@@ -206,6 +218,7 @@ pub struct TypeName {
 	pub abstract_declarator: Option<AbstractDeclarator>,
 }
 
+/// (6.7.2.1) specifier-qualifier-list
 pub struct SpecifierQualifierList(Vec<SpecifierQualifier>);
 
 pub enum SpecifierQualifier {
@@ -213,12 +226,16 @@ pub enum SpecifierQualifier {
 	TypeQualifier(TypeQualifier),
 }
 
+/// (6.7.8) initializer-list
 pub struct InitializerList(Vec<(Option<Designation>, Initializer)>);
 
+/// (6.7.8) designation
 pub struct Designation(DesignatorList);
 
+/// (6.7.8) designator-list
 pub struct DesignatorList(Vec<Designator>);
 
+/// (6.7.8) designator
 pub enum Designator {
 	ConstantExpression(expr::ConstantExpression),
 	Dot(tok::Identifier),
