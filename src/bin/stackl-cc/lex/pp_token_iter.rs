@@ -1,61 +1,56 @@
-use std::collections::VecDeque;
-
 use crate::tok::PPToken;
 
 use super::{error::LexicalError, lexer::Lexer};
 
 enum Queue {
-	Buffer(VecDeque<Result<PPToken, LexicalError>>),
+	Buffer(Vec<Result<PPToken, LexicalError>>),
 	Lexer(Lexer),
 }
 
 pub struct PPTokenQueue {
-	queue: VecDeque<Queue>,
+	stack: Vec<Queue>,
 	peeked: Option<Option<Result<PPToken, LexicalError>>>,
 }
 
 impl PPTokenQueue {
 	pub fn new() -> Self {
 		Self {
-			queue: VecDeque::new(),
+			stack: Vec::new(),
 			peeked: None,
 		}
 	}
 	pub fn push_lexer_front(&mut self, lexer: Lexer) {
 		if let Some(Some(pp_token)) = self.peeked.take() {
-			match self.queue.front_mut() {
-				Some(Queue::Buffer(buffer)) => buffer.push_front(pp_token),
+			match self.stack.last_mut() {
+				Some(Queue::Buffer(buffer)) => buffer.push(pp_token),
 				_ => {
-					let mut buffer = VecDeque::new();
-					buffer.push_front(pp_token);
-					self.queue.push_front(Queue::Buffer(buffer))
+					let buffer = vec![pp_token];
+					self.stack.push(Queue::Buffer(buffer))
 				}
 			}
 		}
-		self.queue.push_front(Queue::Lexer(lexer));
+		self.stack.push(Queue::Lexer(lexer));
 	}
 	pub fn push_token_front(&mut self, pp_token: PPToken) {
 		if let Some(Some(pp_token)) = self.peeked.take() {
-			match self.queue.front_mut() {
-				Some(Queue::Buffer(buffer)) => buffer.push_front(pp_token),
+			match self.stack.last_mut() {
+				Some(Queue::Buffer(buffer)) => buffer.push(pp_token),
 				_ => {
-					let mut buffer = VecDeque::new();
-					buffer.push_front(pp_token);
-					self.queue.push_front(Queue::Buffer(buffer))
+					let buffer = vec![pp_token];
+					self.stack.push(Queue::Buffer(buffer))
 				}
 			}
 		}
-		match self.queue.front_mut() {
-			Some(Queue::Buffer(buffer)) => buffer.push_front(Ok(pp_token)),
+		match self.stack.last_mut() {
+			Some(Queue::Buffer(buffer)) => buffer.push(Ok(pp_token)),
 			_ => {
-				let mut buffer = VecDeque::new();
-				buffer.push_front(Ok(pp_token));
-				self.queue.push_front(Queue::Buffer(buffer))
+				let buffer = vec![Ok(pp_token)];
+				self.stack.push(Queue::Buffer(buffer))
 			}
 		}
 	}
 	pub fn peek(&mut self) -> Option<&Result<PPToken, LexicalError>> {
-		let iter = &mut self.queue;
+		let iter = &mut self.stack;
 		self.peeked.get_or_insert_with(|| next_token(iter)).as_ref()
 	}
 }
@@ -65,15 +60,15 @@ impl Iterator for PPTokenQueue {
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.peeked.take() {
 			Some(v) => v,
-			None => next_token(&mut self.queue),
+			None => next_token(&mut self.stack),
 		}
 	}
 }
 
-fn next_token(iter: &mut VecDeque<Queue>) -> Option<Result<PPToken, LexicalError>> {
-	while let Some(queue) = iter.front_mut() {
+fn next_token(iter: &mut Vec<Queue>) -> Option<Result<PPToken, LexicalError>> {
+	while let Some(queue) = iter.last_mut() {
 		if let Queue::Buffer(buffer) = queue {
-			if let Some(result) = buffer.pop_front() {
+			if let Some(result) = buffer.pop() {
 				return Some(result);
 			}
 		} else if let Queue::Lexer(lexer) = queue {
@@ -81,7 +76,7 @@ fn next_token(iter: &mut VecDeque<Queue>) -> Option<Result<PPToken, LexicalError
 				return Some(result);
 			}
 		}
-		iter.pop_front();
+		iter.pop();
 	}
 	None
 }
