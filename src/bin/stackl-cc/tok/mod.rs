@@ -574,7 +574,7 @@ impl PPToken {
 			Self::StringLiteral(value) => value.name.clone(),
 			Self::Punctuator(value) => format!("{value}"),
 			Self::NewLine(_) => String::from("\\n"),
-			Self::Comment(_) => String::new(),
+			Self::Comment(value) => value.name.clone(),
 		}
 	}
 }

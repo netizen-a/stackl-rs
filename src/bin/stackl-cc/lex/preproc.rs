@@ -40,8 +40,11 @@ impl Iterator for Preprocessor {
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
 			if let Ok(pp_token) = result {
-				if self.stdout <= PreprocStdout::Tokens {
-					print!("{} '{}' ", pp_token.as_token_name(), pp_token.to_name());
+				let is_comment = matches!(pp_token, PPToken::Comment(_));
+				if (self.stdout == PreprocStdout::Token && !is_comment)
+					|| self.stdout == PreprocStdout::TokenComments
+				{
+					print!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
 				}
 				match self.tokenize(pp_token) {
 					Ok(Some(value)) => return Some(Ok(value)),
@@ -87,7 +90,7 @@ impl Preprocessor {
 				Ok(None)
 			}
 			PPToken::Comment(token) => {
-				if self.stdout == PreprocStdout::Comments {
+				if self.stdout == PreprocStdout::PrintComments {
 					print!("{token}");
 				}
 				Ok(None)
@@ -100,7 +103,7 @@ impl Preprocessor {
 				match self.expand_macro(token.clone()) {
 					// not a macro
 					Ok(false) => {
-						if self.stdout >= PreprocStdout::Enabled {
+						if self.stdout >= PreprocStdout::Print {
 							print!("{token}");
 						}
 						if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
@@ -121,7 +124,7 @@ impl Preprocessor {
 					self.is_newline = false;
 					Ok(None)
 				} else {
-					if self.stdout >= PreprocStdout::Enabled {
+					if self.stdout >= PreprocStdout::Print {
 						print!("{token}");
 					}
 					Ok(Some(Token::Punctuator(token)))
@@ -129,14 +132,14 @@ impl Preprocessor {
 			}
 			PPToken::StringLiteral(token) => {
 				self.is_newline = false;
-				if self.stdout >= PreprocStdout::Enabled {
+				if self.stdout >= PreprocStdout::Print {
 					print!("{token}");
 				}
 				Ok(Some(Token::StringLiteral(token)))
 			}
 			PPToken::CharacterConstant(token) => {
 				self.is_newline = false;
-				if self.stdout >= PreprocStdout::Enabled {
+				if self.stdout >= PreprocStdout::Print {
 					print!("{token}");
 				}
 				Ok(Some(Token::Constant(tok::Constant::Character(token))))
@@ -144,7 +147,7 @@ impl Preprocessor {
 			PPToken::PPNumber(token) => {
 				self.is_newline = false;
 				let token = Token::try_from(token)?;
-				if self.stdout >= PreprocStdout::Enabled {
+				if self.stdout >= PreprocStdout::Print {
 					print!("{token}");
 				}
 				Ok(Some(token))
@@ -153,7 +156,7 @@ impl Preprocessor {
 		}
 	}
 	fn pp_newline(&mut self, token: tok::NewLine) {
-		if self.stdout >= PreprocStdout::Enabled {
+		if self.stdout >= PreprocStdout::Print {
 			print!("{token}");
 		}
 		self.is_preproc = false;
