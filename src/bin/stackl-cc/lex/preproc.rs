@@ -41,7 +41,7 @@ impl Iterator for Preprocessor {
 		while let Some(result) = self.pp_tokens.next() {
 			if let Ok(pp_token) = result {
 				if self.stdout <= PreprocStdout::Tokens {
-					print!("{} ", pp_token.as_token_name());
+					print!("{} '{}' ", pp_token.as_token_name(), pp_token.to_name());
 				}
 				match self.tokenize(pp_token) {
 					Ok(Some(value)) => return Some(Ok(value)),

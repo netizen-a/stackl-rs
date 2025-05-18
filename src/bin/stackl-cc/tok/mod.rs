@@ -565,6 +565,18 @@ impl PPToken {
 			Self::Comment(_) => "comment",
 		}
 	}
+	pub fn to_name(&self) -> String {
+		match self {
+			Self::HeaderName(value) => value.name.clone(),
+			Self::Identifier(value) => value.name.clone(),
+			Self::PPNumber(value) => value.name.clone(),
+			Self::CharacterConstant(value) => value.name.clone(),
+			Self::StringLiteral(value) => value.name.clone(),
+			Self::Punctuator(value) => format!("{value}"),
+			Self::NewLine(_) => String::from("\\n"),
+			Self::Comment(_) => String::new(),
+		}
+	}
 }
 
 impl Spanned for PPToken {
