@@ -1,9 +1,10 @@
-use std::{result, sync::mpsc::Receiver};
-
-use crate::{
-	ast,
-	tok::{self, Token},
+use std::{
+	iter::Peekable,
+	result,
+	sync::mpsc::{self, Receiver},
 };
+
+use crate::{ast, tok};
 
 pub enum SyntaxError {
 	Unknown,
@@ -11,17 +12,18 @@ pub enum SyntaxError {
 
 pub type Result<T> = result::Result<T, SyntaxError>;
 
-pub struct SyntaxParser {
-	rcv_tokens: Receiver<Token>,
+pub struct SyntaxParser<'a> {
+	iter: Peekable<mpsc::Iter<'a, tok::Token>>,
 }
 
-impl SyntaxParser {
-	pub fn new(rcv_tokens: Receiver<Token>) -> Self {
-		Self { rcv_tokens }
+impl<'a> SyntaxParser<'a> {
+	pub fn new(rcv_tokens: &'a Receiver<tok::Token>) -> Self {
+		Self {
+			iter: rcv_tokens.iter().peekable(),
+		}
 	}
-	pub fn parse(&self) -> Result<ast::TranslationUnit> {
-		let mut iter = self.rcv_tokens.iter().peekable();
-		let Some(token) = iter.next() else {
+	pub fn parse(&mut self) -> Result<ast::TranslationUnit> {
+		let Some(_token) = self.iter.next() else {
 			return Ok(ast::TranslationUnit::default());
 		};
 

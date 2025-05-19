@@ -23,7 +23,7 @@ fn main() -> ExitCode {
 	}
 
 	let (snd, rcv) = mpsc::channel::<Token>();
-	let syntax_parser = syn::SyntaxParser::new(rcv);
+	let mut syntax_parser = syn::SyntaxParser::new(&rcv);
 	let mut lex_errors = vec![];
 	let mut syntax = Ok(ast::TranslationUnit::default());
 	thread::scope(|s| {
@@ -46,6 +46,9 @@ fn main() -> ExitCode {
 
 	if !lex_errors.is_empty() {
 		return ExitCode::FAILURE;
+	}
+	if syntax.is_ok() {
+		println!("yay");
 	}
 
 	ExitCode::SUCCESS
