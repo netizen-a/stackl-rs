@@ -44,9 +44,22 @@ impl Iterator for Preprocessor {
 				if (self.stdout == PreprocStdout::Token && !is_comment)
 					|| self.stdout == PreprocStdout::TokenComments
 				{
-					print!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
-					if let PPToken::NewLine(_) = pp_token {
-						println!();
+					if let PPToken::NewLine(tok::NewLine {
+						is_deleted: false, ..
+					}) = pp_token
+					{
+						println!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
+					} else if let PPToken::NewLine(tok::NewLine {
+						is_deleted: true, ..
+					}) = pp_token
+					{
+						print!(
+							"\x1b[9m{} `{}`\x1b[0m ",
+							pp_token.as_token_name(),
+							pp_token.to_name()
+						);
+					} else {
+						print!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
 					}
 				}
 				match self.tokenize(pp_token) {

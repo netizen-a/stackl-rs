@@ -256,14 +256,17 @@ impl Iterator for Lexer {
 
 		let mut name = String::new();
 		match c {
-			'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}' => {
-				if c == '\r' {
-					self.chars.next_if_eq('\n');
+			new_line @ ('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}'
+			| '\u{2029}') => {
+				name.push(new_line);
+				if c == '\r' && self.chars.next_if_eq('\n').is_some() {
+					name.push('\n');
 				}
 				self.include_state = 1;
 				span.location = (start_pos, self.chars.pos);
 				let new_line = tok::NewLine {
 					span,
+					name,
 					is_deleted: false,
 				};
 				Some(Ok(tok::PPToken::NewLine(new_line)))
@@ -443,20 +446,21 @@ impl Iterator for Lexer {
 				let punct = tok::Punctuator { span, term };
 				Some(Ok(tok::PPToken::Punctuator(punct)))
 			}
-			'\\' => {
-				if self.chars.next_if_eq('\n').is_some() {
-					let new_line = tok::PPToken::NewLine(tok::NewLine {
-						span,
-						is_deleted: true,
-					});
-					Some(Ok(new_line))
-				} else {
-					Some(Err(LexicalError {
-						span,
-						kind: LexicalErrorKind::InvalidToken,
-					}))
+			'\\' => match self.next() {
+				Some(Ok(tok::PPToken::NewLine(mut new_line))) => {
+					new_line.is_deleted = true;
+					Some(Ok(tok::PPToken::NewLine(new_line)))
 				}
-			}
+				Some(Ok(_)) => Some(Err(LexicalError {
+					span,
+					kind: LexicalErrorKind::InvalidToken,
+				})),
+				Some(Err(error)) => Some(Err(error)),
+				None => Some(Err(LexicalError {
+					span,
+					kind: LexicalErrorKind::UnexpectedEof,
+				})),
+			},
 			'+' => {
 				self.include_state = 0;
 				let term = if self.chars.next_if_eq('+').is_some() {

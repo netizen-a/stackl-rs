@@ -446,6 +446,7 @@ impl fmt::Display for CharacterConstant {
 #[derive(Debug, Clone)]
 pub struct NewLine {
 	pub span: span::Span,
+	pub name: String,
 	pub is_deleted: bool,
 }
 
