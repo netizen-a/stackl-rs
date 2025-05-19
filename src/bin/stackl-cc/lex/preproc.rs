@@ -45,6 +45,9 @@ impl Iterator for Preprocessor {
 					|| self.stdout == PreprocStdout::TokenComments
 				{
 					print!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
+					if let PPToken::NewLine(_) = pp_token {
+						println!();
+					}
 				}
 				match self.tokenize(pp_token) {
 					Ok(Some(value)) => return Some(Ok(value)),
