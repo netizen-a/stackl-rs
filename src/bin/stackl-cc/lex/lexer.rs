@@ -431,15 +431,23 @@ impl Iterator for Lexer {
 						}));
 					};
 					name.push(last_c);
+					let mut found_end = false;
 					for c in self.chars.by_ref() {
 						name.push(c);
 						if last_c == '*' && c == '/' {
+							found_end = true;
 							break;
 						}
 						last_c = c;
 					}
-					let comment = tok::Comment { span, name };
-					return Some(Ok(tok::PPToken::Comment(comment)));
+					if found_end {
+						return Some(Ok(tok::PPToken::Comment(tok::Comment { span, name })));
+					} else {
+						return Some(Err(LexicalError {
+							kind: LexicalErrorKind::UnexpectedEof,
+							span,
+						}));
+					}
 				} else {
 					tok::PunctuatorTerminal::FSlash
 				};
