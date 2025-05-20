@@ -19,7 +19,7 @@ impl PPTokenQueue {
 			peeked: None,
 		}
 	}
-	pub fn push_lexer_front(&mut self, lexer: Lexer) {
+	pub fn push_lexer(&mut self, lexer: Lexer) {
 		if let Some(Some(pp_token)) = self.peeked.take() {
 			match self.stack.last_mut() {
 				Some(Queue::Buffer(buffer)) => buffer.push(pp_token),
@@ -31,7 +31,7 @@ impl PPTokenQueue {
 		}
 		self.stack.push(Queue::Lexer(lexer));
 	}
-	pub fn push_token_front(&mut self, pp_token: PPToken) {
+	pub fn push_token(&mut self, pp_token: PPToken) {
 		if let Some(Some(pp_token)) = self.peeked.take() {
 			match self.stack.last_mut() {
 				Some(Queue::Buffer(buffer)) => buffer.push(pp_token),

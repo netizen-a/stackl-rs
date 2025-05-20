@@ -88,7 +88,7 @@ impl Preprocessor {
 		reader.read_to_string(&mut buf)?;
 		let main_lexer = lex::Lexer::new(buf, 0);
 		let mut pp_token_queue = PPTokenQueue::new();
-		pp_token_queue.push_lexer_front(main_lexer);
+		pp_token_queue.push_lexer(main_lexer);
 		Ok(Self {
 			file_map,
 			macros: HashMap::new(),
@@ -195,7 +195,7 @@ impl Preprocessor {
 				}
 
 				for pp_token in replacer.into_iter().rev() {
-					self.pp_tokens.push_token_front(pp_token)
+					self.pp_tokens.push_token(pp_token)
 				}
 				Ok(true)
 			}
@@ -300,7 +300,7 @@ impl Preprocessor {
 				}
 
 				for pp_token in replacer.into_iter().rev() {
-					self.pp_tokens.push_token_front(pp_token)
+					self.pp_tokens.push_token(pp_token)
 				}
 				Ok(true)
 			}
@@ -533,7 +533,7 @@ impl Preprocessor {
 			};
 
 			let header_lexer = lex::Lexer::new(buf, file_key);
-			self.pp_tokens.push_lexer_front(header_lexer);
+			self.pp_tokens.push_lexer(header_lexer);
 			Ok(())
 		}
 	}

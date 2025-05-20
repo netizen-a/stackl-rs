@@ -425,6 +425,7 @@ impl Iterator for Lexer {
 				} else if self.chars.next_if_eq('*').is_some() {
 					name.push_str("/*");
 					let Some(mut last_c) = self.chars.next() else {
+						span.location.1 = self.chars.pos;
 						return Some(Err(LexicalError {
 							span,
 							kind: LexicalErrorKind::UnexpectedEof,
@@ -440,6 +441,7 @@ impl Iterator for Lexer {
 						}
 						last_c = c;
 					}
+					span.location.1 = self.chars.pos;
 					if found_end {
 						return Some(Ok(tok::PPToken::Comment(tok::Comment { span, name })));
 					} else {
