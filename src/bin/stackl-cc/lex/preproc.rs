@@ -1,7 +1,7 @@
-use super::lexer as lex;
+use super::lexer::Lexer;
 use super::pp_token_iter::PPTokenQueue;
 use crate::cli::PreprocStdout;
-use crate::diag::*;
+use crate::diag::lex;
 use crate::tok::{self, Spanned};
 use std::collections::HashMap;
 use std::io::BufReader;
@@ -36,7 +36,7 @@ pub struct Preprocessor {
 }
 
 impl Iterator for Preprocessor {
-	type Item = tok::Result<tok::Token>;
+	type Item = lex::Result<tok::Token>;
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
 			if let Ok(pp_token) = result {
@@ -86,7 +86,7 @@ impl Preprocessor {
 		let mut reader = BufReader::new(file);
 		let mut buf = String::new();
 		reader.read_to_string(&mut buf)?;
-		let main_lexer = lex::Lexer::new(buf, 0);
+		let main_lexer = Lexer::new(buf, 0);
 		let mut pp_token_queue = PPTokenQueue::new();
 		pp_token_queue.push_lexer(main_lexer);
 		Ok(Self {
@@ -99,7 +99,7 @@ impl Preprocessor {
 			line: 1,
 		})
 	}
-	fn tokenize(&mut self, pp_token: PPToken) -> Result<Option<tok::Token>, LexicalError> {
+	fn tokenize(&mut self, pp_token: PPToken) -> lex::Result<Option<tok::Token>> {
 		match pp_token {
 			PPToken::NewLine(token) => {
 				self.pp_newline(token);
@@ -179,7 +179,7 @@ impl Preprocessor {
 		self.is_newline = true;
 		self.line += 1;
 	}
-	fn expand_macro(&mut self, macro_name: tok::Identifier) -> Result<bool, LexicalError> {
+	fn expand_macro(&mut self, macro_name: tok::Identifier) -> lex::Result<bool> {
 		match self.macros.get(&macro_name.name) {
 			// not a macro
 			None => Ok(false),
@@ -261,8 +261,8 @@ impl Preprocessor {
 				}
 				// TODO: handle ellipsis
 				if args.params.len() != param_list.len() {
-					return Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					return Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span: last_span,
 					});
 				}
@@ -306,7 +306,7 @@ impl Preprocessor {
 			}
 		}
 	}
-	fn directive(&mut self, ident: tok::Identifier) -> Result<(), LexicalError> {
+	fn directive(&mut self, ident: tok::Identifier) -> lex::Result<()> {
 		match ident.name.as_str() {
 			"define" => self.pp_define(ident.span),
 			"undef" => self.pp_undef(ident.span),
@@ -314,7 +314,7 @@ impl Preprocessor {
 			_ => todo!("{} | undefined directive: `{}`", self.line, ident.name),
 		}
 	}
-	fn pp_define(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
+	fn pp_define(&mut self, last_span: tok::Span) -> lex::Result<()> {
 		let pp_token = match self.pp_tokens.next() {
 			Some(Ok(token)) => token,
 			Some(Err(error)) => return Err(error),
@@ -326,15 +326,15 @@ impl Preprocessor {
 					leading_tabs: 0,
 					leading_spaces: 0,
 				};
-				return Err(LexicalError {
-					kind: LexicalErrorKind::UnexpectedEof,
+				return Err(lex::Error {
+					kind: lex::ErrorKind::UnexpectedEof,
 					span,
 				});
 			}
 		};
 		let tok::PPToken::Identifier(ident) = pp_token else {
-			return Err(LexicalError {
-				kind: LexicalErrorKind::InvalidToken,
+			return Err(lex::Error {
+				kind: lex::ErrorKind::InvalidToken,
 				span: pp_token.span(),
 			});
 		};
@@ -361,8 +361,8 @@ impl Preprocessor {
 							if !expected_ident
 								|| expected_rparen || args.params.contains(&ident.name)
 							{
-								return Err(LexicalError {
-									kind: LexicalErrorKind::InvalidToken,
+								return Err(lex::Error {
+									kind: lex::ErrorKind::InvalidToken,
 									span: ident.span,
 								});
 							} else {
@@ -381,8 +381,8 @@ impl Preprocessor {
 							span,
 						})) => {
 							if expected_ident || expected_rparen {
-								return Err(LexicalError {
-									kind: LexicalErrorKind::InvalidToken,
+								return Err(lex::Error {
+									kind: lex::ErrorKind::InvalidToken,
 									span,
 								});
 							}
@@ -393,8 +393,8 @@ impl Preprocessor {
 							span,
 						})) => {
 							if expected_ident || expected_rparen {
-								return Err(LexicalError {
-									kind: LexicalErrorKind::InvalidToken,
+								return Err(lex::Error {
+									kind: lex::ErrorKind::InvalidToken,
 									span,
 								});
 							}
@@ -402,8 +402,8 @@ impl Preprocessor {
 						}
 
 						Ok(other) => {
-							return Err(LexicalError {
-								kind: LexicalErrorKind::InvalidToken,
+							return Err(lex::Error {
+								kind: lex::ErrorKind::InvalidToken,
 								span: other.span(),
 							});
 						}
@@ -446,7 +446,7 @@ impl Preprocessor {
 		self.macros.insert(ident.name, macro_def);
 		Ok(())
 	}
-	fn pp_undef(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
+	fn pp_undef(&mut self, last_span: tok::Span) -> lex::Result<()> {
 		let pp_token = match self.pp_tokens.next() {
 			Some(Ok(pp_token)) => pp_token,
 			Some(Err(error)) => return Err(error),
@@ -458,15 +458,15 @@ impl Preprocessor {
 					leading_tabs: 0,
 					leading_spaces: 0,
 				};
-				return Err(LexicalError {
-					kind: LexicalErrorKind::UnexpectedEof,
+				return Err(lex::Error {
+					kind: lex::ErrorKind::UnexpectedEof,
 					span,
 				});
 			}
 		};
 		let tok::PPToken::Identifier(ident) = pp_token else {
-			return Err(LexicalError {
-				kind: LexicalErrorKind::InvalidToken,
+			return Err(lex::Error {
+				kind: lex::ErrorKind::InvalidToken,
 				span: pp_token.span(),
 			});
 		};
@@ -484,22 +484,22 @@ impl Preprocessor {
 
 		Ok(())
 	}
-	fn pp_include(&mut self, last_span: tok::Span) -> Result<(), LexicalError> {
+	fn pp_include(&mut self, last_span: tok::Span) -> lex::Result<()> {
 		self.is_preproc = false;
 		self.is_newline = true;
 		let header = match self.pp_tokens.next() {
 			Some(Ok(PPToken::HeaderName(header))) => header,
 			Some(Ok(token)) => {
-				let lex_err = LexicalError {
-					kind: LexicalErrorKind::InvalidToken,
+				let lex_err = lex::Error {
+					kind: lex::ErrorKind::InvalidToken,
 					span: token.span(),
 				};
 				return Err(lex_err);
 			}
 			Some(Err(error)) => return Err(error),
 			None => {
-				let lex_err = LexicalError {
-					kind: LexicalErrorKind::UnexpectedEof,
+				let lex_err = lex::Error {
+					kind: lex::ErrorKind::UnexpectedEof,
 					span: last_span,
 				};
 				return Err(lex_err);
@@ -512,15 +512,15 @@ impl Preprocessor {
 			let origin_path = self.file_map.get_by_left(&0).unwrap();
 			let header_path: path::PathBuf = path::PathBuf::from(header.name);
 			let full_path = origin_path.parent().unwrap().join(header_path);
-			let file = fs::File::open(&full_path).map_err(|_| LexicalError {
+			let file = fs::File::open(&full_path).map_err(|_| lex::Error {
 				span: header_span.clone(),
-				kind: LexicalErrorKind::HeaderNameError,
+				kind: lex::ErrorKind::HeaderNameError,
 			})?;
 			let mut reader = BufReader::new(file);
 			let mut buf = String::new();
-			reader.read_to_string(&mut buf).map_err(|_| LexicalError {
+			reader.read_to_string(&mut buf).map_err(|_| lex::Error {
 				span: header_span,
-				kind: LexicalErrorKind::HeaderNameError,
+				kind: lex::ErrorKind::HeaderNameError,
 			})?;
 			drop(reader);
 
@@ -532,7 +532,7 @@ impl Preprocessor {
 				file_key
 			};
 
-			let header_lexer = lex::Lexer::new(buf, file_key);
+			let header_lexer = Lexer::new(buf, file_key);
 			self.pp_tokens.push_lexer(header_lexer);
 			Ok(())
 		}

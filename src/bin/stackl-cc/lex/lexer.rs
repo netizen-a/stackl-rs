@@ -1,8 +1,7 @@
 use super::char_iter::CharIter;
-use crate::diag::LexicalError;
 use std::fmt::Debug;
 
-use crate::diag::*;
+use crate::diag::lex;
 use crate::tok;
 
 #[derive(Debug)]
@@ -22,7 +21,7 @@ impl Lexer {
 	}
 
 	#[allow(dead_code)]
-	fn header_name(&mut self, c: char, span: tok::Span) -> Result<tok::PPToken, LexicalError> {
+	fn header_name(&mut self, c: char, span: tok::Span) -> lex::Result<tok::PPToken> {
 		let mut name = String::new();
 		// name.push(c);
 		let is_std;
@@ -31,8 +30,8 @@ impl Lexer {
 				is_std = true;
 				let seq = self.h_char_sequence()?;
 				if self.chars.next_if_eq('>').is_none() {
-					return Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					return Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span,
 					});
 				}
@@ -42,8 +41,8 @@ impl Lexer {
 				is_std = false;
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if_eq('"').is_none() {
-					return Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					return Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span,
 					});
 				}
@@ -57,7 +56,7 @@ impl Lexer {
 		Ok(tok::PPToken::HeaderName(head_name))
 	}
 
-	fn identifier(&mut self, c: char, mut span: tok::Span) -> Result<tok::PPToken, LexicalError> {
+	fn identifier(&mut self, c: char, mut span: tok::Span) -> lex::Result<tok::PPToken> {
 		let mut name = String::new();
 		name.push(c);
 		while let Some(next_c) = self
@@ -77,7 +76,7 @@ impl Lexer {
 	}
 
 	#[allow(dead_code)]
-	fn pp_number(&mut self) -> Result<tok::PPToken, LexicalError> {
+	fn pp_number(&mut self) -> lex::Result<tok::PPToken> {
 		todo!("pp-number")
 	}
 
@@ -85,7 +84,7 @@ impl Lexer {
 		&mut self,
 		mut c: char,
 		mut span: tok::Span,
-	) -> Result<tok::PPToken, LexicalError> {
+	) -> lex::Result<tok::PPToken> {
 		let mut name = String::new();
 		self.include_state = 0;
 		let is_l = c == 'L';
@@ -94,8 +93,8 @@ impl Lexer {
 			if let Some(next_c) = self.chars.next() {
 				c = next_c;
 			} else {
-				return Err(LexicalError {
-					kind: LexicalErrorKind::UnexpectedEof,
+				return Err(lex::Error {
+					kind: lex::ErrorKind::UnexpectedEof,
 					span,
 				});
 			}
@@ -105,8 +104,8 @@ impl Lexer {
 		if self.chars.next_if_eq('\'').is_some() {
 			name.push('\'');
 		} else {
-			return Err(LexicalError {
-				kind: LexicalErrorKind::InvalidToken,
+			return Err(lex::Error {
+				kind: lex::ErrorKind::InvalidToken,
 				span,
 			});
 		}
@@ -116,11 +115,7 @@ impl Lexer {
 		Ok(tok::PPToken::CharacterConstant(str_lit))
 	}
 
-	fn string_literal(
-		&mut self,
-		mut c: char,
-		mut span: tok::Span,
-	) -> Result<tok::PPToken, LexicalError> {
+	fn string_literal(&mut self, mut c: char, mut span: tok::Span) -> lex::Result<tok::PPToken> {
 		let mut name = String::new();
 		let is_l = c == 'L';
 		if is_l {
@@ -128,8 +123,8 @@ impl Lexer {
 			if let Some(next_c) = self.chars.next() {
 				c = next_c;
 			} else {
-				return Err(LexicalError {
-					kind: LexicalErrorKind::UnexpectedEof,
+				return Err(lex::Error {
+					kind: lex::ErrorKind::UnexpectedEof,
 					span: span.clone(),
 				});
 			}
@@ -139,8 +134,8 @@ impl Lexer {
 		if self.chars.next_if_eq('"').is_some() {
 			name.push('"');
 		} else {
-			return Err(LexicalError {
-				kind: LexicalErrorKind::InvalidToken,
+			return Err(lex::Error {
+				kind: lex::ErrorKind::InvalidToken,
 				span: span.clone(),
 			});
 		}
@@ -152,14 +147,14 @@ impl Lexer {
 		Ok(tok::PPToken::StringLiteral(str_lit))
 	}
 	#[allow(dead_code)]
-	fn punctuator(&mut self) -> Result<tok::PPToken, LexicalError> {
+	fn punctuator(&mut self) -> lex::Result<tok::PPToken> {
 		todo!("punctuator")
 	}
 
-	fn escape_sequence(&mut self, span: &mut tok::Span) -> Result<char, LexicalError> {
+	fn escape_sequence(&mut self, span: &mut tok::Span) -> lex::Result<char> {
 		let Some(term) = self.chars.peek() else {
-			return Err(LexicalError {
-				kind: LexicalErrorKind::UnexpectedEscape,
+			return Err(lex::Error {
+				kind: lex::ErrorKind::UnexpectedEscape,
 				span: span.clone(),
 			});
 		};
@@ -174,14 +169,14 @@ impl Lexer {
 			'x' => todo!("hexadecimal-escape-sequence"),
 			// [c99] universal-character-name
 			// 'u' | 'U' => todo!("universal-character-name"),
-			_ => Err(LexicalError {
-				kind: LexicalErrorKind::UnexpectedEscape,
+			_ => Err(lex::Error {
+				kind: lex::ErrorKind::UnexpectedEscape,
 				span: span.clone(),
 			}),
 		}
 	}
 
-	fn s_char_sequence(&mut self, span: &mut tok::Span) -> Result<String, LexicalError> {
+	fn s_char_sequence(&mut self, span: &mut tok::Span) -> lex::Result<String> {
 		let mut seq = String::new();
 		while let Some(c) = self.chars.next_if(|c| c != '"' && c != '\n') {
 			let s_char = if c == '\\' {
@@ -193,7 +188,7 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
-	fn c_char_sequence(&mut self, span: &mut tok::Span) -> Result<String, LexicalError> {
+	fn c_char_sequence(&mut self, span: &mut tok::Span) -> lex::Result<String> {
 		let mut seq = String::new();
 		while let Some(c) = self.chars.next_if(|c| c != '\'' && c != '\n') {
 			let c_char = if c == '\\' {
@@ -205,14 +200,14 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
-	fn h_char_sequence(&mut self) -> Result<String, LexicalError> {
+	fn h_char_sequence(&mut self) -> lex::Result<String> {
 		let mut seq = String::new();
 		while let Some(h_char) = self.chars.next_if(|c| c != '>' && c != '\n') {
 			seq.push(h_char);
 		}
 		Ok(seq)
 	}
-	fn q_char_sequence(&mut self) -> Result<String, LexicalError> {
+	fn q_char_sequence(&mut self) -> lex::Result<String> {
 		let mut seq = String::new();
 		while let Some(q_char) = self.chars.next_if(|c| c != '"' && c != '\n') {
 			seq.push(q_char);
@@ -222,7 +217,7 @@ impl Lexer {
 }
 
 impl Iterator for Lexer {
-	type Item = tok::Result<tok::PPToken>;
+	type Item = lex::Result<tok::PPToken>;
 	fn next(&mut self) -> Option<Self::Item> {
 		let (mut leading_tabs, mut leading_spaces) = (0, 0);
 		// skip whitespace
@@ -298,8 +293,8 @@ impl Iterator for Lexer {
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some(sign) = self.chars.peek() else {
 								span.location = (start_pos, self.chars.pos);
-								return Some(Err(LexicalError {
-									kind: LexicalErrorKind::UnexpectedEof,
+								return Some(Err(lex::Error {
+									kind: lex::ErrorKind::UnexpectedEof,
 									span,
 								}));
 							};
@@ -333,8 +328,8 @@ impl Iterator for Lexer {
 						Some(Ok(tok::PPToken::Punctuator(punct)))
 					} else {
 						span.location = (start_pos, self.chars.pos);
-						Some(Err(LexicalError {
-							kind: LexicalErrorKind::InvalidToken,
+						Some(Err(lex::Error {
+							kind: lex::ErrorKind::InvalidToken,
 							span,
 						}))
 					}
@@ -349,8 +344,8 @@ impl Iterator for Lexer {
 							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 								let Some(sign) = self.chars.peek() else {
 									span.location = (start_pos, self.chars.pos);
-									return Some(Err(LexicalError {
-										kind: LexicalErrorKind::UnexpectedEof,
+									return Some(Err(lex::Error {
+										kind: lex::ErrorKind::UnexpectedEof,
 										span,
 									}));
 								};
@@ -368,8 +363,8 @@ impl Iterator for Lexer {
 					Some(Ok(tok::PPToken::PPNumber(num)))
 				} else {
 					span.location = (start_pos, self.chars.pos);
-					Some(Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					Some(Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span,
 					}))
 				}
@@ -428,9 +423,9 @@ impl Iterator for Lexer {
 					name.push_str("/*");
 					let Some(mut last_c) = self.chars.next() else {
 						span.location.1 = self.chars.pos;
-						return Some(Err(LexicalError {
+						return Some(Err(lex::Error {
 							span,
-							kind: LexicalErrorKind::UnexpectedEof,
+							kind: lex::ErrorKind::UnexpectedEof,
 						}));
 					};
 					name.push(last_c);
@@ -447,8 +442,8 @@ impl Iterator for Lexer {
 					if found_end {
 						return Some(Ok(tok::PPToken::Comment(tok::Comment { span, name })));
 					} else {
-						return Some(Err(LexicalError {
-							kind: LexicalErrorKind::UnexpectedEof,
+						return Some(Err(lex::Error {
+							kind: lex::ErrorKind::UnexpectedEof,
 							span,
 						}));
 					}
@@ -463,14 +458,14 @@ impl Iterator for Lexer {
 					new_line.is_deleted = true;
 					Some(Ok(tok::PPToken::NewLine(new_line)))
 				}
-				Some(Ok(_)) => Some(Err(LexicalError {
+				Some(Ok(_)) => Some(Err(lex::Error {
 					span,
-					kind: LexicalErrorKind::InvalidToken,
+					kind: lex::ErrorKind::InvalidToken,
 				})),
 				Some(Err(error)) => Some(Err(error)),
-				None => Some(Err(LexicalError {
+				None => Some(Err(lex::Error {
 					span,
-					kind: LexicalErrorKind::UnexpectedEof,
+					kind: lex::ErrorKind::UnexpectedEof,
 				})),
 			},
 			'+' => {

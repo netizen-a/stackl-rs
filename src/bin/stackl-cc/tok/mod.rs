@@ -4,15 +4,13 @@ pub mod keyword;
 pub mod punct;
 pub mod span;
 
-use crate::diag::*;
+use crate::diag::lex;
 pub use keyword::*;
 pub use punct::*;
 pub use span::*;
+use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
-use std::{fmt, result};
-
-pub type Result<T> = result::Result<T, LexicalError>;
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
@@ -252,7 +250,7 @@ impl PPNumber {
 			chars.any(|c| c == 'e' || c == 'E')
 		}
 	}
-	fn floating_constant(&self) -> Result<Token> {
+	fn floating_constant(&self) -> lex::Result<Token> {
 		let mut chars = self.name.chars().peekable();
 		let c = chars.next().expect("empty pp-number");
 		if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
@@ -269,8 +267,8 @@ impl PPNumber {
 				while let Some(c) = chars.next_if(|&c| c.is_ascii_digit()) {
 					digit_seq.push(c);
 				}
-				exponent = digit_seq.parse().or(Err(LexicalError {
-					kind: LexicalErrorKind::InvalidToken,
+				exponent = digit_seq.parse().or(Err(lex::Error {
+					kind: lex::ErrorKind::InvalidToken,
 					span: self.span(),
 				}))?;
 				if let Some('-') = sign {
@@ -279,8 +277,8 @@ impl PPNumber {
 			}
 			let floating = match chars.next_if(|&c| c == 'f' || c == 'F' || c == 'l' || c == 'L') {
 				Some('f' | 'F') => {
-					let data: f32 = decimal.parse().or(Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					let data: f32 = decimal.parse().or(Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span: self.span(),
 					}))?;
 					let data = data.powi(exponent);
@@ -290,8 +288,8 @@ impl PPNumber {
 					}
 				}
 				Some('l' | 'L') => {
-					let data: f64 = decimal.parse().or(Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					let data: f64 = decimal.parse().or(Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span: self.span(),
 					}))?;
 					let data = data.powi(exponent);
@@ -301,8 +299,8 @@ impl PPNumber {
 					}
 				}
 				None => {
-					let data: f64 = decimal.parse().or(Err(LexicalError {
-						kind: LexicalErrorKind::InvalidToken,
+					let data: f64 = decimal.parse().or(Err(lex::Error {
+						kind: lex::ErrorKind::InvalidToken,
 						span: self.span(),
 					}))?;
 					let data = data.powi(exponent);
@@ -317,7 +315,7 @@ impl PPNumber {
 		}
 	}
 
-	fn integer_constant(&self) -> Result<Token> {
+	fn integer_constant(&self) -> lex::Result<Token> {
 		let mut chars = self.name.chars().peekable();
 		match chars.next().expect("empty pp-number") {
 			'0' => {
@@ -331,13 +329,13 @@ impl PPNumber {
 				let name = String::from(c);
 				self.decimal_constant(name, chars)
 			}
-			_ => Err(LexicalError {
-				kind: LexicalErrorKind::InvalidToken,
+			_ => Err(lex::Error {
+				kind: lex::ErrorKind::InvalidToken,
 				span: self.span(),
 			}),
 		}
 	}
-	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<Token> {
+	fn octal_constant(&self, mut chars: Peekable<Chars>) -> lex::Result<Token> {
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -363,8 +361,8 @@ impl PPNumber {
 					data,
 				}
 			} else {
-				return Err(LexicalError {
-					kind: LexicalErrorKind::InvalidToken,
+				return Err(lex::Error {
+					kind: lex::ErrorKind::InvalidToken,
 					span: self.span(),
 				});
 			};
@@ -375,7 +373,7 @@ impl PPNumber {
 		}
 	}
 
-	fn decimal_constant(&self, mut name: String, mut chars: Peekable<Chars>) -> Result<Token> {
+	fn decimal_constant(&self, mut name: String, mut chars: Peekable<Chars>) -> lex::Result<Token> {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
@@ -400,8 +398,8 @@ impl PPNumber {
 					data,
 				}
 			} else {
-				return Err(LexicalError {
-					kind: LexicalErrorKind::InvalidToken,
+				return Err(lex::Error {
+					kind: lex::ErrorKind::InvalidToken,
 					span: self.span(),
 				});
 			};
@@ -497,8 +495,8 @@ pub enum Token {
 }
 
 impl TryFrom<PPNumber> for Token {
-	type Error = LexicalError;
-	fn try_from(value: PPNumber) -> Result<Self> {
+	type Error = lex::Error;
+	fn try_from(value: PPNumber) -> lex::Result<Self> {
 		if value.is_float() {
 			value.floating_constant()
 		} else {

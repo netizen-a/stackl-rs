@@ -1,8 +1,8 @@
 use crate::tok;
-use std::{error::Error, fmt};
+use std::{error, fmt, result};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct TryFromCharError(pub(crate) ());
+pub struct TryFromCharError;
 
 impl fmt::Display for TryFromCharError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -10,19 +10,20 @@ impl fmt::Display for TryFromCharError {
 	}
 }
 
-impl Error for TryFromCharError {}
+impl error::Error for TryFromCharError {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct TryFromIdentifierError(pub(crate) ());
+pub struct TryFromIdentifierError;
 impl fmt::Display for TryFromIdentifierError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		"identifier is not a keyword".fmt(f)
 	}
 }
 
-impl Error for TryFromIdentifierError {}
+impl error::Error for TryFromIdentifierError {}
+
 #[derive(Debug)]
-pub enum LexicalErrorKind {
+pub enum ErrorKind {
 	UnexpectedEof,
 	UnexpectedEscape,
 	InvalidToken,
@@ -30,7 +31,9 @@ pub enum LexicalErrorKind {
 }
 
 #[derive(Debug)]
-pub struct LexicalError {
-	pub kind: LexicalErrorKind,
+pub struct Error {
+	pub kind: ErrorKind,
 	pub span: tok::Span,
 }
+
+pub type Result<T> = result::Result<T, Error>;

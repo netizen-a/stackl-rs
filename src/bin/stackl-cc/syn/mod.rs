@@ -1,28 +1,26 @@
 use std::{
 	iter::Peekable,
-	result,
 	sync::mpsc::{self, Receiver},
 };
 
+use crate::diag::syn;
 use crate::{ast, tok};
 
-pub enum SyntaxError {
-	Unknown,
+pub struct SyntaxParser {
+	iter: Peekable<mpsc::IntoIter<tok::Token>>,
 }
 
-pub type Result<T> = result::Result<T, SyntaxError>;
-
-pub struct SyntaxParser<'a> {
-	iter: Peekable<mpsc::Iter<'a, tok::Token>>,
-}
-
-impl<'a> SyntaxParser<'a> {
-	pub fn new(rcv_tokens: &'a Receiver<tok::Token>) -> Self {
+impl SyntaxParser {
+	pub fn new(rcv_tokens: Receiver<tok::Token>) -> Self {
 		Self {
-			iter: rcv_tokens.iter().peekable(),
+			iter: rcv_tokens.into_iter().peekable(),
 		}
 	}
-	pub fn parse(&mut self) -> Result<ast::TranslationUnit> {
-		return Ok(ast::TranslationUnit::default());
+}
+
+impl Iterator for SyntaxParser {
+	type Item = syn::Result<ast::ExternalDeclaration>;
+	fn next(&mut self) -> Option<Self::Item> {
+		Some(Err(syn::Error::Unknown))
 	}
 }

@@ -1,5 +1,6 @@
 use std::{process::ExitCode, sync::mpsc, thread};
 
+use ast::ExternalDeclaration;
 use cli::PreprocStdout;
 use tok::Token;
 
@@ -13,7 +14,7 @@ mod tok;
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
-	let mut diagnostics = diag::DiagnosticEngine::new();
+	let diagnostics = diag::DiagnosticEngine::new();
 	let preproc = lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout).unwrap();
 	if args.pp_stdout != PreprocStdout::Disabled {
 		for result in preproc {
@@ -24,21 +25,30 @@ fn main() -> ExitCode {
 		return ExitCode::SUCCESS;
 	}
 
-	let (snd, rcv) = mpsc::channel::<Token>();
-	let mut syntax_parser = syn::SyntaxParser::new(&rcv);
-	let mut syntax = Ok(ast::TranslationUnit::default());
+	let (snd_tok, rcv_tok) = mpsc::channel::<Token>();
+	let (snd_syn, _rcv_syn) = mpsc::channel::<ExternalDeclaration>();
+	let syntax = syn::SyntaxParser::new(rcv_tok);
 	thread::scope(|s| {
 		s.spawn(|| {
 			for result in preproc {
 				if let Ok(token) = result {
-					snd.send(token).expect("failed to send token");
+					snd_tok.send(token).expect("failed to send token");
 				} else if let Err(error) = result {
 					diagnostics.push_lex(error);
 				}
 			}
 		});
-
-		syntax = syntax_parser.parse();
+		s.spawn(|| {
+			for result in syntax {
+				if let Ok(external_declaration) = result {
+					snd_syn
+						.send(external_declaration)
+						.expect("failed to send external-declaration");
+				} else if let Err(error) = result {
+					diagnostics.push_syn(error)
+				}
+			}
+		});
 	});
 
 	ExitCode::SUCCESS

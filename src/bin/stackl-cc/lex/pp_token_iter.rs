@@ -1,16 +1,16 @@
 use crate::tok::PPToken;
 
 use super::lexer::Lexer;
-use crate::diag::*;
+use crate::diag::lex;
 
 enum Queue {
-	Buffer(Vec<Result<PPToken, LexicalError>>),
+	Buffer(Vec<lex::Result<PPToken>>),
 	Lexer(Lexer),
 }
 
 pub struct PPTokenQueue {
 	stack: Vec<Queue>,
-	peeked: Option<Option<Result<PPToken, LexicalError>>>,
+	peeked: Option<Option<lex::Result<PPToken>>>,
 }
 
 impl PPTokenQueue {
@@ -50,14 +50,14 @@ impl PPTokenQueue {
 			}
 		}
 	}
-	pub fn peek(&mut self) -> Option<&Result<PPToken, LexicalError>> {
+	pub fn peek(&mut self) -> Option<&lex::Result<PPToken>> {
 		let iter = &mut self.stack;
 		self.peeked.get_or_insert_with(|| next_token(iter)).as_ref()
 	}
 }
 
 impl Iterator for PPTokenQueue {
-	type Item = Result<PPToken, LexicalError>;
+	type Item = lex::Result<PPToken>;
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.peeked.take() {
 			Some(v) => v,
@@ -66,7 +66,7 @@ impl Iterator for PPTokenQueue {
 	}
 }
 
-fn next_token(iter: &mut Vec<Queue>) -> Option<Result<PPToken, LexicalError>> {
+fn next_token(iter: &mut Vec<Queue>) -> Option<lex::Result<PPToken>> {
 	while let Some(queue) = iter.last_mut() {
 		if let Queue::Buffer(buffer) = queue {
 			if let Some(result) = buffer.pop() {

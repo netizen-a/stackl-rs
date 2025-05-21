@@ -96,7 +96,7 @@ impl span::Spanned for Keyword {
 }
 
 impl TryFrom<Identifier> for Keyword {
-	type Error = TryFromIdentifierError;
+	type Error = lex::TryFromIdentifierError;
 	fn try_from(value: Identifier) -> Result<Self, Self::Error> {
 		use KeywordTerminal as Term;
 		let terminal = match value.name.as_str() {
@@ -132,7 +132,7 @@ impl TryFrom<Identifier> for Keyword {
 			"void" => Term::Void,
 			"volatile" => Term::Volatile,
 			"while" => Term::While,
-			_ => return Err(TryFromIdentifierError(())),
+			_ => return Err(lex::TryFromIdentifierError),
 		};
 		Ok(Keyword {
 			span: value.span,
