@@ -1,6 +1,6 @@
 use super::span;
 use super::Identifier;
-use crate::lex::error::TryFromIdentifierError;
+use crate::diag::*;
 use std::fmt;
 
 #[derive(Debug)]

@@ -24,10 +24,5 @@ impl<'a> SyntaxParser<'a> {
 	}
 	pub fn parse(&mut self) -> Result<ast::TranslationUnit> {
 		return Ok(ast::TranslationUnit::default());
-		let Some(_token) = self.iter.next() else {
-			return Ok(ast::TranslationUnit::default());
-		};
-
-		todo!()
 	}
 }

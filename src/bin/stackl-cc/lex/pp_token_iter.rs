@@ -1,6 +1,7 @@
 use crate::tok::PPToken;
 
-use super::{error::LexicalError, lexer::Lexer};
+use super::lexer::Lexer;
+use crate::diag::*;
 
 enum Queue {
 	Buffer(Vec<Result<PPToken, LexicalError>>),

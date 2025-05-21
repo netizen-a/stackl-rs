@@ -1,6 +1,8 @@
+mod lex;
+
 use std::sync::Mutex;
 
-use crate::lex::error::LexicalError;
+pub use lex::*;
 
 pub struct DiagnosticEngine {
 	lex_errors: Mutex<Vec<LexicalError>>,

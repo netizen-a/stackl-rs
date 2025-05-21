@@ -1,6 +1,8 @@
-use super::{char_iter::CharIter, error::*};
+use super::char_iter::CharIter;
+use crate::diag::LexicalError;
 use std::fmt::Debug;
 
+use crate::diag::*;
 use crate::tok;
 
 #[derive(Debug)]

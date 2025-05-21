@@ -4,7 +4,7 @@ pub mod keyword;
 pub mod punct;
 pub mod span;
 
-use crate::lex::error::*;
+use crate::diag::*;
 pub use keyword::*;
 pub use punct::*;
 pub use span::*;

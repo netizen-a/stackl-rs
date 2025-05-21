@@ -1,5 +1,5 @@
 use super::span;
-use crate::lex::error;
+use crate::diag::*;
 use std::fmt;
 
 #[non_exhaustive]
@@ -161,7 +161,7 @@ impl fmt::Display for PunctuatorTerminal {
 }
 
 impl TryFrom<char> for PunctuatorTerminal {
-	type Error = error::TryFromCharError;
+	type Error = TryFromCharError;
 	fn try_from(value: char) -> Result<Self, Self::Error> {
 		match value {
 			'[' => Ok(Self::LSquare),
@@ -174,7 +174,7 @@ impl TryFrom<char> for PunctuatorTerminal {
 			',' => Ok(Self::Comma),
 			'~' => Ok(Self::Tilde),
 			';' => Ok(Self::SemiColon),
-			_ => Err(error::TryFromCharError(())),
+			_ => Err(TryFromCharError(())),
 		}
 	}
 }

@@ -1,7 +1,7 @@
-use super::error::*;
 use super::lexer as lex;
 use super::pp_token_iter::PPTokenQueue;
 use crate::cli::PreprocStdout;
+use crate::diag::*;
 use crate::tok::{self, Spanned};
 use std::collections::HashMap;
 use std::io::BufReader;
