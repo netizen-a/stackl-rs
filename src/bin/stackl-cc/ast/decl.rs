@@ -60,7 +60,8 @@ pub struct EnumerationConstant(tok::Identifier);
 
 /// (6.7.2.1) struct-or-union-specifier
 pub struct StructOrUnionSpecifier {
-	struct_or_union: StructOrUnion,
+	/// (6.7.2.1) struct-or-union
+	struct_or_union: tok::Keyword,
 	identifier: Option<tok::Identifier>,
 	struct_declaration_list: Option<StructDeclarationList>,
 }
@@ -81,12 +82,6 @@ pub struct StructDeclaratorList(Vec<StructDeclarator>);
 pub struct StructDeclarator {
 	declarator: Option<Declarator>,
 	constant_expression: Option<expr::ConstantExpression>,
-}
-
-/// (6.7.2.1) struct-or-union
-pub enum StructOrUnion {
-	Struct,
-	Union,
 }
 
 /// (6.7.8) initializer

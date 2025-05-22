@@ -16,25 +16,16 @@ impl SyntaxParser {
 			iter: rcv_tokens.into_iter().peekable(),
 		}
 	}
-	fn declaration_specifiers(&mut self) -> Vec<ast::DeclarationSpecifier> {
-		// peeked token must be an identifier or keyword
-		// let Some(peeked_token) = self.iter.peek() else {
-		// 	return vec![];
-		// };
-
-		// if let tok::Token::Keyword(kw) = peeked_token {
-		// 	//
-		// } else if let tok::Token::Identifier(ident) = peeked_token {
-		// 	//
-		// }
-		if let Some(tok::Token::Keyword(tok::Keyword { term, .. })) =
-			self.iter.next_if(tok::Token::is_keyword)
-		{
+	fn type_specifier(&mut self, _kw: tok::Keyword) -> Option<ast::TypeSpecifier> {
+		todo!()
+	}
+	fn declaration_specifier(&mut self) -> Option<ast::DeclarationSpecifier> {
+		if let Some(tok::Token::Keyword(keyword)) = self.iter.next_if(tok::Token::is_keyword) {
 			use tok::KeywordTerminal as Term;
-			match term {
+			match keyword.term {
 				// storage-class-specifiers
 				Term::Typedef | Term::Extern | Term::Static | Term::Auto | Term::Register => {
-					todo!("storage-class-specifiers")
+					Some(ast::DeclarationSpecifier::StorageClassSpecifier(keyword))
 				}
 				// type-specifier
 				Term::Void
@@ -46,30 +37,40 @@ impl SyntaxParser {
 				| Term::Double
 				| Term::Signed
 				| Term::Unsigned
-				| Term::Bool
-				| Term::Struct
-				| Term::Union
-				| Term::Enum => {
-					todo!("type-specifier")
+				| Term::Bool => {
+					let type_specifier = ast::TypeSpecifier::Keyword(keyword);
+					Some(ast::DeclarationSpecifier::TypeSpecifier(type_specifier))
+				}
+				// type-specifier
+				Term::Struct | Term::Union | Term::Enum => {
+					let type_specifier = self.type_specifier(keyword)?;
+					Some(ast::DeclarationSpecifier::TypeSpecifier(type_specifier))
 				}
 				// type-qualifier
-				Term::Const | Term::Restrict | Term::Volatile => todo!("type-qualifier"),
-				Term::Inline => todo!("function-specifier"),
-				_ => todo!(),
+				Term::Const | Term::Restrict | Term::Volatile => {
+					Some(ast::DeclarationSpecifier::TypeQualifier(keyword))
+				}
+				Term::Inline => Some(ast::DeclarationSpecifier::FunctionSpecifier(keyword)),
+				_ => None,
 			}
-		} else if let Some(tok::Token::Identifier(_)) = self.iter.next_if(tok::Token::is_identifier)
+		} else if let Some(tok::Token::Identifier(identifier)) =
+			self.iter.next_if(tok::Token::is_identifier)
 		{
-			todo!("type-specifier")
+			let typedef_name = ast::TypeSpecifier::TypedefName(identifier);
+			Some(ast::DeclarationSpecifier::TypeSpecifier(typedef_name))
+		} else {
+			None
 		}
-
-		todo!()
 	}
 }
 
 impl Iterator for SyntaxParser {
 	type Item = syn::Result<ast::ExternalDeclaration>;
 	fn next(&mut self) -> Option<Self::Item> {
-		let _decl_specifier = self.declaration_specifiers();
+		let mut declaration_specifiers = vec![];
+		while let Some(decl_spec) = self.declaration_specifier() {
+			declaration_specifiers.push(decl_spec);
+		}
 		todo!()
 	}
 }
