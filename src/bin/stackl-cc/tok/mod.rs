@@ -510,6 +510,36 @@ impl Token {
 	pub fn is_punctuator(&self) -> bool {
 		matches!(self, Token::Punctuator(_))
 	}
+	pub fn unwrap_keyword(self) -> Keyword {
+		match self {
+			Self::Keyword(token) => token,
+			other => panic!("called `Token::unwrap_keyword` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_identifier(self) -> Identifier {
+		match self {
+			Self::Identifier(token) => token,
+			other => panic!("called `Token::unwrap_identifier` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_constant(self) -> Constant {
+		match self {
+			Self::Constant(token) => token,
+			other => panic!("called `Token::unwrap_constant` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_string_literal(self) -> StringLiteral {
+		match self {
+			Self::StringLiteral(token) => token,
+			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_punctuator(self) -> Punctuator {
+		match self {
+			Self::Punctuator(token) => token,
+			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
+		}
+	}
 }
 
 impl TryFrom<PPNumber> for Token {

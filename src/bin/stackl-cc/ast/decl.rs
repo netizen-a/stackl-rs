@@ -61,9 +61,9 @@ pub struct EnumerationConstant(tok::Identifier);
 /// (6.7.2.1) struct-or-union-specifier
 pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
-	struct_or_union: tok::Keyword,
-	identifier: Option<tok::Identifier>,
-	struct_declaration_list: Option<StructDeclarationList>,
+	pub struct_or_union: tok::Keyword,
+	pub identifier: Option<tok::Identifier>,
+	pub struct_declaration_list: Option<StructDeclarationList>,
 }
 
 /// (6.7.2.1) struct-declaration-list
