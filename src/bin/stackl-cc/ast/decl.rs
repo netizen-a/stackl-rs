@@ -16,14 +16,14 @@ pub struct Declaration {
 
 /// (6.7) declaration-specifiers
 pub enum DeclarationSpecifier {
-	StorageClassSpecifier(StorageClassSpecifier),
+	/// (6.7.1) storage-class-specifier
+	StorageClassSpecifier(tok::Keyword),
 	TypeSpecifier(TypeSpecifier),
-	TypeQualifier(TypeQualifier),
-	FunctionSpecifier(FunctionSpecifier),
+	/// (6.7.3) type-qualifier
+	TypeQualifier(tok::Keyword),
+	/// (6.7.4) function-specifier
+	FunctionSpecifier(tok::Keyword),
 }
-
-/// (6.7.4) function-specifier
-pub struct FunctionSpecifier(tok::Keyword);
 
 /// (6.7) init-declarator
 pub struct InitDeclarator {
@@ -31,34 +31,14 @@ pub struct InitDeclarator {
 	initializer: Option<Initializer>,
 }
 
-/// (6.7.1) storage-class-specifier
-pub enum StorageClassSpecifier {
-	Typedef,
-	Extern,
-	Static,
-	Auto,
-	Register,
-}
-
 /// (6.7.2) type-specifier
 pub enum TypeSpecifier {
-	Void,
-	Char,
-	Short,
-	Int,
-	Long,
-	Float,
-	Double,
-	Signed,
-	Unsigned,
-	Bool,
+	Keyword(tok::Keyword),
 	StructOrUnionSpecifier(StructOrUnionSpecifier),
 	EnumSpecifier(EnumSpecifier),
-	TypedefName(TypedefName),
+	/// (6.7.7) typedef-name
+	TypedefName(tok::Identifier),
 }
-
-/// (6.7.7) typedef-name
-pub struct TypedefName(tok::Identifier);
 
 /// (6.7.2.2) enum-specifier
 pub struct EnumSpecifier {

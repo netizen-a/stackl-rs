@@ -494,6 +494,24 @@ pub enum Token {
 	Punctuator(Punctuator),
 }
 
+impl Token {
+	pub fn is_keyword(&self) -> bool {
+		matches!(self, Token::Keyword(_))
+	}
+	pub fn is_identifier(&self) -> bool {
+		matches!(self, Token::Identifier(_))
+	}
+	pub fn is_constant(&self) -> bool {
+		matches!(self, Token::Constant(_))
+	}
+	pub fn is_string_literal(&self) -> bool {
+		matches!(self, Token::StringLiteral(_))
+	}
+	pub fn is_punctuator(&self) -> bool {
+		matches!(self, Token::Punctuator(_))
+	}
+}
+
 impl TryFrom<PPNumber> for Token {
 	type Error = lex::Error;
 	fn try_from(value: PPNumber) -> lex::Result<Self> {
