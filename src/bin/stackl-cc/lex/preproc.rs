@@ -1,7 +1,7 @@
 use super::lexer::Lexer;
 use super::pp_token_iter::PPTokenQueue;
 use crate::cli::PreprocStdout;
-use crate::diag::lex;
+use crate::diag::{self, lex};
 use crate::tok::{self, Spanned};
 use std::collections::HashMap;
 use std::io::BufReader;
@@ -25,7 +25,8 @@ pub enum MacroDef {
 	},
 }
 
-pub struct Preprocessor {
+pub struct Preprocessor<'a> {
+	diagnostics: &'a diag::DiagnosticEngine,
 	file_map: bimap::BiHashMap<usize, path::PathBuf>,
 	macros: HashMap<String, MacroDef>,
 	pp_tokens: PPTokenQueue,
@@ -35,8 +36,8 @@ pub struct Preprocessor {
 	line: usize,
 }
 
-impl Iterator for Preprocessor {
-	type Item = lex::Result<tok::Token>;
+impl Iterator for Preprocessor<'_> {
+	type Item = tok::Token;
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
 			if let Ok(pp_token) = result {
@@ -63,20 +64,26 @@ impl Iterator for Preprocessor {
 					}
 				}
 				match self.tokenize(pp_token) {
-					Ok(Some(value)) => return Some(Ok(value)),
-					Err(error) => return Some(Err(error)),
+					Ok(Some(value)) => return Some(value),
+					Err(error) => {
+						self.diagnostics.push_lex(error);
+					}
 					Ok(None) => { /*continue*/ }
 				}
 			} else if let Err(tok_err) = result {
-				return Some(Err(tok_err));
+				self.diagnostics.push_lex(tok_err);
 			}
 		}
 		None
 	}
 }
 
-impl Preprocessor {
-	pub fn new<P>(file_path: P, stdout: PreprocStdout) -> io::Result<Self>
+impl<'a> Preprocessor<'a> {
+	pub fn new<P>(
+		file_path: P,
+		stdout: PreprocStdout,
+		diagnostics: &'a diag::DiagnosticEngine,
+	) -> io::Result<Self>
 	where
 		P: AsRef<path::Path>,
 	{
@@ -90,6 +97,7 @@ impl Preprocessor {
 		let mut pp_token_queue = PPTokenQueue::new();
 		pp_token_queue.push_lexer(main_lexer);
 		Ok(Self {
+			diagnostics,
 			file_map,
 			macros: HashMap::new(),
 			pp_tokens: pp_token_queue,

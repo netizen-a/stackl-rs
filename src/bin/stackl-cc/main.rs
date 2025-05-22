@@ -15,13 +15,10 @@ mod tok;
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
 	let diagnostics = diag::DiagnosticEngine::new();
-	let preproc = lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout).unwrap();
+	let preproc =
+		lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout, &diagnostics).unwrap();
 	if args.pp_stdout != PreprocStdout::Disabled {
-		for result in preproc {
-			if let Err(error) = result {
-				diagnostics.push_lex(error);
-			}
-		}
+		for _ in preproc {}
 		return ExitCode::SUCCESS;
 	}
 
@@ -30,12 +27,8 @@ fn main() -> ExitCode {
 	let syntax = syn::SyntaxParser::new(rcv_tok);
 	thread::scope(|s| {
 		s.spawn(|| {
-			for result in preproc {
-				if let Ok(token) = result {
-					snd_tok.send(token).expect("failed to send token");
-				} else if let Err(error) = result {
-					diagnostics.push_lex(error);
-				}
+			for token in preproc {
+				snd_tok.send(token).expect("failed to send token");
 			}
 		});
 		s.spawn(|| {
