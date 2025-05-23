@@ -18,7 +18,14 @@ fn main() -> ExitCode {
 	let mut preproc = lex::preproc::Preprocessor::new(args.in_file, &diagnostics).unwrap();
 	if args.pp_stdout != PreprocStdout::Disabled {
 		let preproc_string = preproc.to_string(args.pp_stdout);
-		print!("{}", preproc_string);
+		let guard = diagnostics.lexical_errors.lock().unwrap();
+		if guard.is_empty() {
+			print!("{}", preproc_string);
+		} else {
+			for error in guard.iter() {
+				print!("{:?}", error);
+			}
+		}
 		return ExitCode::SUCCESS;
 	}
 
