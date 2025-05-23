@@ -3,17 +3,19 @@ use std::{
 	sync::mpsc::{self, Receiver},
 };
 
-use crate::diag::syn;
+use crate::diag::{self, syn};
 use crate::{ast, tok};
 
-pub struct SyntaxParser {
+pub struct SyntaxParser<'a> {
 	iter: Peekable<mpsc::IntoIter<tok::Token>>,
+	diagnostics: &'a diag::DiagnosticEngine,
 }
 
-impl SyntaxParser {
-	pub fn new(rcv_tokens: Receiver<tok::Token>) -> Self {
+impl<'a> SyntaxParser<'a> {
+	pub fn new(rcv_tokens: Receiver<tok::Token>, diagnostics: &'a diag::DiagnosticEngine) -> Self {
 		Self {
 			iter: rcv_tokens.into_iter().peekable(),
+			diagnostics,
 		}
 	}
 	fn struct_declaration_list(&mut self) -> syn::Result<Option<ast::StructDeclarationList>> {
@@ -42,14 +44,15 @@ impl SyntaxParser {
 			_ => todo!("error"),
 		}
 	}
-	fn declaration_specifier(&mut self) -> syn::Result<Option<ast::DeclarationSpecifier>> {
+	fn declaration_specifier(&mut self) -> Option<ast::DeclarationSpecifier> {
 		if let Some(tok::Token::Keyword(keyword)) = self.iter.next_if(tok::Token::is_keyword) {
 			use tok::KeywordTerminal as Term;
 			match keyword.term {
 				// storage-class-specifiers
-				Term::Typedef | Term::Extern | Term::Static | Term::Auto | Term::Register => Ok(
-					Some(ast::DeclarationSpecifier::StorageClassSpecifier(keyword)),
-				),
+				Term::Typedef | Term::Extern | Term::Static | Term::Auto | Term::Register => {
+					Some(ast::DeclarationSpecifier::StorageClassSpecifier(keyword))
+				}
+
 				// type-specifier
 				Term::Void
 				| Term::Char
@@ -62,44 +65,40 @@ impl SyntaxParser {
 				| Term::Unsigned
 				| Term::Bool => {
 					let type_specifier = ast::TypeSpecifier::Keyword(keyword);
-					Ok(Some(ast::DeclarationSpecifier::TypeSpecifier(
-						type_specifier,
-					)))
+					Some(ast::DeclarationSpecifier::TypeSpecifier(type_specifier))
 				}
 				// type-specifier
 				Term::Struct | Term::Union | Term::Enum => {
-					let type_specifier = self.type_specifier(keyword)?;
-					Ok(Some(ast::DeclarationSpecifier::TypeSpecifier(
-						type_specifier,
-					)))
+					// let type_specifier = self.type_specifier(keyword);
+					// Some(ast::DeclarationSpecifier::TypeSpecifier(type_specifier))
+					todo!()
 				}
 				// type-qualifier
 				Term::Const | Term::Restrict | Term::Volatile => {
-					Ok(Some(ast::DeclarationSpecifier::TypeQualifier(keyword)))
+					Some(ast::DeclarationSpecifier::TypeQualifier(keyword))
 				}
-				Term::Inline => Ok(Some(ast::DeclarationSpecifier::FunctionSpecifier(keyword))),
-				_ => Ok(None),
+				Term::Inline => Some(ast::DeclarationSpecifier::FunctionSpecifier(keyword)),
+				_ => None,
 			}
 		} else if let Some(tok::Token::Identifier(identifier)) =
 			self.iter.next_if(tok::Token::is_identifier)
 		{
 			let typedef_name = ast::TypeSpecifier::TypedefName(identifier);
-			Ok(Some(ast::DeclarationSpecifier::TypeSpecifier(typedef_name)))
+			Some(ast::DeclarationSpecifier::TypeSpecifier(typedef_name))
 		} else {
-			Ok(None)
+			None
 		}
 	}
 }
 
-impl Iterator for SyntaxParser {
-	type Item = syn::Result<ast::ExternalDeclaration>;
+impl Iterator for SyntaxParser<'_> {
+	type Item = ast::ExternalDeclaration;
 	fn next(&mut self) -> Option<Self::Item> {
 		let mut declaration_specifiers = vec![];
 		loop {
 			match self.declaration_specifier() {
-				Ok(Some(decl_spec)) => declaration_specifiers.push(decl_spec),
-				Err(error) => return Some(Err(error)),
-				Ok(None) => break,
+				Some(decl_spec) => declaration_specifiers.push(decl_spec),
+				None => break,
 			}
 		}
 		todo!()

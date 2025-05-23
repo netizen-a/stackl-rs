@@ -31,7 +31,7 @@ fn main() -> ExitCode {
 
 	let (snd_tok, rcv_tok) = mpsc::channel::<Token>();
 	let (snd_syn, _rcv_syn) = mpsc::channel::<ExternalDeclaration>();
-	let syntax = syn::SyntaxParser::new(rcv_tok);
+	let syntax = syn::SyntaxParser::new(rcv_tok, &diagnostics);
 	thread::scope(|s| {
 		s.spawn(|| {
 			for token in preproc {
@@ -39,14 +39,10 @@ fn main() -> ExitCode {
 			}
 		});
 		s.spawn(|| {
-			for result in syntax {
-				if let Ok(external_declaration) = result {
-					snd_syn
-						.send(external_declaration)
-						.expect("failed to send external-declaration");
-				} else if let Err(error) = result {
-					diagnostics.push_syn(error)
-				}
+			for external_declaration in syntax {
+				snd_syn
+					.send(external_declaration)
+					.expect("failed to send external-declaration");
 			}
 		});
 	});
