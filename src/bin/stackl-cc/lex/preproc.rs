@@ -30,7 +30,6 @@ pub struct Preprocessor<'a> {
 	file_map: bimap::BiHashMap<usize, path::PathBuf>,
 	macros: HashMap<String, MacroDef>,
 	pp_tokens: PPTokenQueue,
-	stdout: PreprocStdout,
 	is_newline: bool,
 	is_preproc: bool,
 	line: usize,
@@ -41,28 +40,6 @@ impl Iterator for Preprocessor<'_> {
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(result) = self.pp_tokens.next() {
 			if let Ok(pp_token) = result {
-				let is_comment = matches!(pp_token, PPToken::Comment(_));
-				if (self.stdout == PreprocStdout::Token && !is_comment)
-					|| self.stdout == PreprocStdout::TokenComments
-				{
-					if let PPToken::NewLine(tok::NewLine {
-						is_deleted: false, ..
-					}) = pp_token
-					{
-						println!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
-					} else if let PPToken::NewLine(tok::NewLine {
-						is_deleted: true, ..
-					}) = pp_token
-					{
-						print!(
-							"\x1b[9m{} `{}`\x1b[0m ",
-							pp_token.as_token_name(),
-							pp_token.to_name()
-						);
-					} else {
-						print!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
-					}
-				}
 				match self.tokenize(pp_token) {
 					Ok(Some(value)) => return Some(value),
 					Err(error) => {
@@ -79,11 +56,7 @@ impl Iterator for Preprocessor<'_> {
 }
 
 impl<'a> Preprocessor<'a> {
-	pub fn new<P>(
-		file_path: P,
-		stdout: PreprocStdout,
-		diagnostics: &'a diag::DiagnosticEngine,
-	) -> io::Result<Self>
+	pub fn new<P>(file_path: P, diagnostics: &'a diag::DiagnosticEngine) -> io::Result<Self>
 	where
 		P: AsRef<path::Path>,
 	{
@@ -101,11 +74,64 @@ impl<'a> Preprocessor<'a> {
 			file_map,
 			macros: HashMap::new(),
 			pp_tokens: pp_token_queue,
-			stdout,
 			is_newline: true,
 			is_preproc: false,
 			line: 1,
 		})
+	}
+	pub fn to_string(&mut self, pp_stdout: PreprocStdout) -> String {
+		let mut string_result = String::new();
+		while let Some(result) = self.pp_tokens.next() {
+			if let Ok(pp_token) = result {
+				let is_comment = matches!(pp_token, PPToken::Comment(_));
+				if (pp_stdout == PreprocStdout::Token && !is_comment)
+					|| pp_stdout == PreprocStdout::TokenComments
+				{
+					if let PPToken::NewLine(tok::NewLine {
+						is_deleted: false, ..
+					}) = pp_token
+					{
+						string_result.push_str(&format!(
+							"{} `{}` ",
+							pp_token.as_token_name(),
+							pp_token.to_name()
+						));
+					} else if let PPToken::NewLine(tok::NewLine {
+						is_deleted: true, ..
+					}) = pp_token
+					{
+						string_result.push_str(&format!(
+							"\x1b[9m{} `{}`\x1b[0m ",
+							pp_token.as_token_name(),
+							pp_token.to_name()
+						));
+					} else {
+						print!("{} `{}` ", pp_token.as_token_name(), pp_token.to_name());
+					}
+				} else if let tok::PPToken::NewLine(new_line) = &pp_token {
+					string_result.push_str(&format!("{new_line}"));
+				} else if let (PreprocStdout::PrintComments, tok::PPToken::Comment(comment)) =
+					(pp_stdout, &pp_token)
+				{
+					string_result.push_str(&format!("{comment}"));
+				}
+
+				match self.tokenize(pp_token) {
+					Ok(Some(value)) => {
+						if pp_stdout >= PreprocStdout::Print {
+							string_result.push_str(&format!("{value}"))
+						}
+					}
+					Err(error) => {
+						self.diagnostics.push_lex(error);
+					}
+					Ok(None) => { /*continue*/ }
+				}
+			} else if let Err(tok_err) = result {
+				self.diagnostics.push_lex(tok_err);
+			}
+		}
+		string_result
 	}
 	fn tokenize(&mut self, pp_token: PPToken) -> lex::Result<Option<tok::Token>> {
 		match pp_token {
@@ -113,12 +139,7 @@ impl<'a> Preprocessor<'a> {
 				self.pp_newline(token);
 				Ok(None)
 			}
-			PPToken::Comment(token) => {
-				if self.stdout == PreprocStdout::PrintComments {
-					print!("{token}");
-				}
-				Ok(None)
-			}
+			PPToken::Comment(_token) => Ok(None),
 			PPToken::Identifier(token) => {
 				if self.is_preproc {
 					self.directive(token)?;
@@ -127,9 +148,6 @@ impl<'a> Preprocessor<'a> {
 				match self.expand_macro(token.clone()) {
 					// not a macro
 					Ok(false) => {
-						if self.stdout >= PreprocStdout::Print {
-							print!("{token}");
-						}
 						if let Ok(kw) = tok::Keyword::try_from(token.clone()) {
 							Ok(Some(Token::Keyword(kw)))
 						} else {
@@ -148,41 +166,26 @@ impl<'a> Preprocessor<'a> {
 					self.is_newline = false;
 					Ok(None)
 				} else {
-					if self.stdout >= PreprocStdout::Print {
-						print!("{token}");
-					}
 					Ok(Some(Token::Punctuator(token)))
 				}
 			}
 			PPToken::StringLiteral(token) => {
 				self.is_newline = false;
-				if self.stdout >= PreprocStdout::Print {
-					print!("{token}");
-				}
 				Ok(Some(Token::StringLiteral(token)))
 			}
 			PPToken::CharacterConstant(token) => {
 				self.is_newline = false;
-				if self.stdout >= PreprocStdout::Print {
-					print!("{token}");
-				}
 				Ok(Some(Token::Constant(tok::Constant::Character(token))))
 			}
 			PPToken::PPNumber(token) => {
 				self.is_newline = false;
 				let token = Token::try_from(token)?;
-				if self.stdout >= PreprocStdout::Print {
-					print!("{token}");
-				}
 				Ok(Some(token))
 			}
 			PPToken::HeaderName(token) => todo!("header-name = {token:?}"),
 		}
 	}
-	fn pp_newline(&mut self, token: tok::NewLine) {
-		if self.stdout >= PreprocStdout::Print {
-			print!("{token}");
-		}
+	fn pp_newline(&mut self, _token: tok::NewLine) {
 		self.is_preproc = false;
 		self.is_newline = true;
 		self.line += 1;

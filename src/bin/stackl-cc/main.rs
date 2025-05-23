@@ -15,10 +15,10 @@ mod tok;
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
 	let diagnostics = diag::DiagnosticEngine::new();
-	let preproc =
-		lex::preproc::Preprocessor::new(args.in_file, args.pp_stdout, &diagnostics).unwrap();
+	let mut preproc = lex::preproc::Preprocessor::new(args.in_file, &diagnostics).unwrap();
 	if args.pp_stdout != PreprocStdout::Disabled {
-		for _ in preproc {}
+		let preproc_string = preproc.to_string(args.pp_stdout);
+		print!("{}", preproc_string);
 		return ExitCode::SUCCESS;
 	}
 

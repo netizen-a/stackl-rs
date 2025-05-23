@@ -4,8 +4,8 @@ pub mod syn;
 use std::sync::Mutex;
 
 pub struct DiagnosticEngine {
-	lexical_errors: Mutex<Vec<lex::Error>>,
-	syntax_errors: Mutex<Vec<syn::Error>>,
+	pub lexical_errors: Mutex<Vec<lex::Error>>,
+	pub syntax_errors: Mutex<Vec<syn::Error>>,
 }
 
 impl DiagnosticEngine {
