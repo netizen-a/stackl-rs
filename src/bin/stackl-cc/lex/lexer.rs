@@ -1,20 +1,23 @@
-use super::char_iter::CharIter;
 use std::fmt::Debug;
+use std::iter::{Enumerate, Peekable};
+use std::vec::IntoIter;
 
 use crate::diag::lex;
 use crate::tok;
 
 #[derive(Debug)]
 pub struct Lexer {
-	chars: CharIter,
+	chars: Peekable<Enumerate<IntoIter<char>>>,
 	file_key: usize,
 	include_state: u8,
 }
 
 impl Lexer {
 	pub fn new(text: String, file_key: usize) -> Self {
+		let char_vec: Vec<char> = text.chars().collect();
+		let char_iter = char_vec.into_iter();
 		Self {
-			chars: CharIter::new(text),
+			chars: char_iter.enumerate().peekable(),
 			file_key,
 			include_state: 1,
 		}
@@ -29,7 +32,7 @@ impl Lexer {
 			'<' => {
 				is_std = true;
 				let seq = self.h_char_sequence()?;
-				if self.chars.next_if_eq('>').is_none() {
+				if self.chars.next_if(|(_, c)| *c == '>').is_none() {
 					return Err(lex::Error {
 						kind: lex::ErrorKind::InvalidToken,
 						span,
@@ -40,7 +43,7 @@ impl Lexer {
 			'"' => {
 				is_std = false;
 				let seq = self.q_char_sequence()?;
-				if self.chars.next_if_eq('"').is_none() {
+				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
 					return Err(lex::Error {
 						kind: lex::ErrorKind::InvalidToken,
 						span,
@@ -59,13 +62,15 @@ impl Lexer {
 	fn identifier(&mut self, c: char, mut span: tok::Span) -> lex::Result<tok::PPToken> {
 		let mut name = String::new();
 		name.push(c);
-		while let Some(next_c) = self
+		let mut curr_pos = 0;
+		while let Some((pos, next_c)) = self
 			.chars
-			.next_if(|c| c.is_ascii_alphanumeric() || c == '_')
+			.next_if(|&(_, c)| c.is_ascii_alphanumeric() || c == '_')
 		{
 			name.push(next_c);
+			curr_pos = pos
 		}
-		span.location.1 = self.chars.pos;
+		span.location.1 = curr_pos;
 		if self.include_state == 2 && name == "include" {
 			self.include_state = 3;
 		} else {
@@ -90,7 +95,7 @@ impl Lexer {
 		let is_l = c == 'L';
 		if is_l {
 			name.push(c);
-			if let Some(next_c) = self.chars.next() {
+			if let Some((_, next_c)) = self.chars.next() {
 				c = next_c;
 			} else {
 				return Err(lex::Error {
@@ -101,8 +106,10 @@ impl Lexer {
 		}
 		name.push(c);
 		name.push_str(&self.c_char_sequence(&mut span)?);
-		if self.chars.next_if_eq('\'').is_some() {
+		let curr_pos;
+		if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '\'') {
 			name.push('\'');
+			curr_pos = pos;
 		} else {
 			return Err(lex::Error {
 				kind: lex::ErrorKind::InvalidToken,
@@ -110,7 +117,7 @@ impl Lexer {
 			});
 		}
 
-		span.location.1 = self.chars.pos;
+		span.location.1 = curr_pos;
 		let str_lit = tok::CharacterConstant { span, name };
 		Ok(tok::PPToken::CharacterConstant(str_lit))
 	}
@@ -120,7 +127,7 @@ impl Lexer {
 		let is_l = c == 'L';
 		if is_l {
 			name.push(c);
-			if let Some(next_c) = self.chars.next() {
+			if let Some((_, next_c)) = self.chars.next() {
 				c = next_c;
 			} else {
 				return Err(lex::Error {
@@ -131,7 +138,7 @@ impl Lexer {
 		}
 		name.push(c);
 		name.push_str(&self.s_char_sequence(&mut span)?);
-		if self.chars.next_if_eq('"').is_some() {
+		if self.chars.next_if(|&(_, c)| c == '"').is_some() {
 			name.push('"');
 		} else {
 			return Err(lex::Error {
@@ -152,7 +159,7 @@ impl Lexer {
 	}
 
 	fn escape_sequence(&mut self, span: &mut tok::Span) -> lex::Result<char> {
-		let Some(term) = self.chars.peek() else {
+		let Some((_, term)) = self.chars.peek() else {
 			return Err(lex::Error {
 				kind: lex::ErrorKind::UnexpectedEscape,
 				span: span.clone(),
@@ -161,7 +168,7 @@ impl Lexer {
 		match term {
 			// [c89] simple-escape-sequence
 			'\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
-				Ok(self.chars.next().unwrap())
+				Ok(self.chars.next().unwrap().1)
 			}
 			// [c89] octal-escape-sequence
 			'0'..='7' => todo!("octal-escape-sequence"),
@@ -178,7 +185,7 @@ impl Lexer {
 
 	fn s_char_sequence(&mut self, span: &mut tok::Span) -> lex::Result<String> {
 		let mut seq = String::new();
-		while let Some(c) = self.chars.next_if(|c| c != '"' && c != '\n') {
+		while let Some((_, c)) = self.chars.next_if(|&(_, c)| c != '"' && c != '\n') {
 			let s_char = if c == '\\' {
 				self.escape_sequence(span)?
 			} else {
@@ -190,7 +197,7 @@ impl Lexer {
 	}
 	fn c_char_sequence(&mut self, span: &mut tok::Span) -> lex::Result<String> {
 		let mut seq = String::new();
-		while let Some(c) = self.chars.next_if(|c| c != '\'' && c != '\n') {
+		while let Some((_, c)) = self.chars.next_if(|&(_, c)| c != '\'' && c != '\n') {
 			let c_char = if c == '\\' {
 				self.escape_sequence(span)?
 			} else {
@@ -202,14 +209,14 @@ impl Lexer {
 	}
 	fn h_char_sequence(&mut self) -> lex::Result<String> {
 		let mut seq = String::new();
-		while let Some(h_char) = self.chars.next_if(|c| c != '>' && c != '\n') {
+		while let Some((_, h_char)) = self.chars.next_if(|&(_, c)| c != '>' && c != '\n') {
 			seq.push(h_char);
 		}
 		Ok(seq)
 	}
 	fn q_char_sequence(&mut self) -> lex::Result<String> {
 		let mut seq = String::new();
-		while let Some(q_char) = self.chars.next_if(|c| c != '"' && c != '\n') {
+		while let Some((_, q_char)) = self.chars.next_if(|&(_, c)| c != '"' && c != '\n') {
 			seq.push(q_char);
 		}
 		Ok(seq)
@@ -220,18 +227,23 @@ impl Iterator for Lexer {
 	type Item = lex::Result<tok::PPToken>;
 	fn next(&mut self) -> Option<Self::Item> {
 		let (mut leading_tabs, mut leading_spaces) = (0, 0);
+		let mut curr_pos = 0;
 		// skip whitespace
-		while let Some(whitespace) = self.chars.next_if(|c| c != '\n' && c.is_ascii_whitespace()) {
+		while let Some((pos, whitespace)) = self
+			.chars
+			.next_if(|&(_, c)| c != '\n' && c.is_ascii_whitespace())
+		{
+			curr_pos = pos;
 			match whitespace {
 				' ' => leading_spaces += 1,
 				'\t' => leading_tabs += 1,
 				_ => (),
 			}
 		}
-		let start_pos = self.chars.pos;
-		let c = self.chars.next()?;
+		let start_pos = curr_pos;
+		let (_, c) = self.chars.next()?;
 		let mut span = tok::Span {
-			location: (start_pos, self.chars.pos),
+			location: (start_pos, curr_pos),
 			file_key: self.file_key,
 			leading_spaces,
 			leading_tabs,
@@ -244,10 +256,10 @@ impl Iterator for Lexer {
 				return Some(self.string_literal(c, span));
 			}
 		}
-		if c == 'L' && self.chars.peek().is_some_and(|val| val == '"') {
+		if c == 'L' && self.chars.peek().is_some_and(|&(_, c)| c == '"') {
 			return Some(self.string_literal(c, span));
 		}
-		if c == '\'' || c == 'L' && self.chars.peek().is_some_and(|val| val == '\'') {
+		if c == '\'' || c == 'L' && self.chars.peek().is_some_and(|&(_, c)| c == '\'') {
 			return Some(self.character_constant(c, span));
 		}
 
@@ -256,11 +268,15 @@ impl Iterator for Lexer {
 			new_line @ ('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}'
 			| '\u{2029}') => {
 				name.push(new_line);
-				if c == '\r' && self.chars.next_if_eq('\n').is_some() {
-					name.push('\n');
+				let mut curr_pos = 0;
+				if c == '\r' {
+					if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '\n') {
+						curr_pos = pos;
+						name.push('\n');
+					}
 				}
 				self.include_state = 1;
-				span.location = (start_pos, self.chars.pos);
+				span.location = (start_pos, curr_pos);
 				let new_line = tok::NewLine {
 					span,
 					name,
@@ -271,7 +287,6 @@ impl Iterator for Lexer {
 			// punctuators without trailing characters
 			'[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
 				self.include_state = 0;
-				span.location = (start_pos, self.chars.pos);
 				let punct = tok::Punctuator {
 					span,
 					term: tok::PunctuatorTerminal::try_from(c).unwrap(),
@@ -285,21 +300,25 @@ impl Iterator for Lexer {
 			'0'..='9' => {
 				self.include_state = 0;
 				name.push(c);
-				while let Some(next_c) = self.chars.peek() {
+				let mut curr_pos = 0;
+				while let Some(&(pos, next_c)) = self.chars.peek() {
 					if next_c.is_ascii_digit() || next_c == '.' {
-						name.push(self.chars.next()?);
+						name.push(self.chars.next()?.1);
+						curr_pos = pos;
 					} else if next_c.is_ascii_alphabetic() || next_c == '_' {
-						name.push(self.chars.next()?);
+						let (pos, curr_c) = self.chars.next()?;
+						curr_pos = pos;
+						name.push(curr_c);
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
-							let Some(sign) = self.chars.peek() else {
-								span.location = (start_pos, self.chars.pos);
+							let Some((_, sign)) = self.chars.peek() else {
+								span.location = (start_pos, curr_pos);
 								return Some(Err(lex::Error {
 									kind: lex::ErrorKind::UnexpectedEof,
 									span,
 								}));
 							};
 							if matches!(sign, '-' | '+' | '0'..='9') {
-								name.push(self.chars.next()?);
+								name.push(self.chars.next()?.1);
 								continue;
 							}
 						}
@@ -307,7 +326,7 @@ impl Iterator for Lexer {
 						break;
 					}
 				}
-				span.location = (start_pos, self.chars.pos);
+				span.location = (start_pos, curr_pos);
 				let num = tok::PPNumber { span, name };
 				Some(Ok(tok::PPToken::PPNumber(num)))
 			}
@@ -316,41 +335,45 @@ impl Iterator for Lexer {
 				// case: `.`
 				self.include_state = 0;
 				name.push(c);
-				if self.chars.next_if_eq('.').is_some() {
+				if self.chars.next_if(|&(_, c)| c == '.').is_some() {
 					// case: `..`
-					if self.chars.next_if_eq('.').is_some() {
+					if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '.') {
 						// case: `...`
-						span.location.1 = self.chars.pos;
+						span.location.1 = pos;
 						let punct = tok::Punctuator {
 							term: tok::PunctuatorTerminal::Ellipsis,
 							span,
 						};
 						Some(Ok(tok::PPToken::Punctuator(punct)))
 					} else {
-						span.location = (start_pos, self.chars.pos);
 						Some(Err(lex::Error {
 							kind: lex::ErrorKind::InvalidToken,
 							span,
 						}))
 					}
-				} else if let Some(digit) = self.chars.next_if(|c| c.is_ascii_digit()) {
+				} else if let Some((_, digit)) = self.chars.next_if(|&(_, c)| c.is_ascii_digit()) {
 					// case: `.[0-9]`
 					name.push(digit);
-					while let Some(next_c) = self.chars.peek() {
+					let mut curr_pos = 0;
+					while let Some(&(_, next_c)) = self.chars.peek() {
 						if next_c.is_ascii_digit() || next_c == '.' {
-							name.push(self.chars.next()?);
+							let (pos, c) = self.chars.next()?;
+							curr_pos = pos;
+							name.push(c);
 						} else if next_c.is_ascii_alphabetic() || next_c == '_' {
-							name.push(self.chars.next()?);
+							let (pos, c) = self.chars.next()?;
+							curr_pos = pos;
+							name.push(c);
 							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
-								let Some(sign) = self.chars.peek() else {
-									span.location = (start_pos, self.chars.pos);
+								let Some((_, sign)) = self.chars.peek() else {
+									span.location = (start_pos, pos);
 									return Some(Err(lex::Error {
 										kind: lex::ErrorKind::UnexpectedEof,
 										span,
 									}));
 								};
 								if matches!(sign, '-' | '+' | '0'..='9') {
-									name.push(self.chars.next()?);
+									name.push(self.chars.next()?.1);
 									continue;
 								}
 							}
@@ -358,11 +381,10 @@ impl Iterator for Lexer {
 							break;
 						}
 					}
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, curr_pos);
 					let num = tok::PPNumber { span, name };
 					Some(Ok(tok::PPToken::PPNumber(num)))
 				} else {
-					span.location = (start_pos, self.chars.pos);
 					Some(Err(lex::Error {
 						kind: lex::ErrorKind::InvalidToken,
 						span,
@@ -374,9 +396,9 @@ impl Iterator for Lexer {
 					self.include_state = 2;
 				}
 				name.push(c);
-				if self.chars.next_if_eq('#').is_some() {
+				if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '#') {
 					self.include_state = 0;
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 				}
 				let punct = tok::Punctuator {
 					span,
@@ -387,16 +409,16 @@ impl Iterator for Lexer {
 			'<' => {
 				let term = if self.include_state == 3 {
 					return Some(self.header_name(c, span));
-				} else if self.chars.next_if_eq('<').is_some() {
+				} else if self.chars.next_if(|&(_, c)| c == '<').is_some() {
 					// case: `<<`
 					todo!("<<")
-				} else if self.chars.next_if_eq(':').is_some() {
+				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == ':') {
 					// case: `<:` => `[`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::LSquare
-				} else if self.chars.next_if_eq('%').is_some() {
+				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '%') {
 					// case: `<%` => `{`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::LCurly
 				} else {
 					// case: `<`
@@ -407,22 +429,21 @@ impl Iterator for Lexer {
 			}
 			'/' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('/').is_some() {
+				let term = if self.chars.next_if(|&(_, c)| c == '/').is_some() {
 					// case: `//`
 					name.push_str("//");
-					while let Some(c) = self.chars.next_if(|c| c != '\n') {
+					while let Some((_, c)) = self.chars.next_if(|&(_, c)| c != '\n') {
 						name.push(c);
 					}
 					let comment = tok::Comment { span, name };
 					return Some(Ok(tok::PPToken::Comment(comment)));
-				} else if self.chars.next_if_eq('=').is_some() {
+				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `/=`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::PlusEqual
-				} else if self.chars.next_if_eq('*').is_some() {
+				} else if self.chars.next_if(|&(_, c)| c == '*').is_some() {
 					name.push_str("/*");
-					let Some(mut last_c) = self.chars.next() else {
-						span.location.1 = self.chars.pos;
+					let Some((pos, mut last_c)) = self.chars.next() else {
 						return Some(Err(lex::Error {
 							span,
 							kind: lex::ErrorKind::UnexpectedEof,
@@ -430,7 +451,7 @@ impl Iterator for Lexer {
 					};
 					name.push(last_c);
 					let mut found_end = false;
-					for c in self.chars.by_ref() {
+					for (_, c) in self.chars.by_ref() {
 						name.push(c);
 						if last_c == '*' && c == '/' {
 							found_end = true;
@@ -438,7 +459,7 @@ impl Iterator for Lexer {
 						}
 						last_c = c;
 					}
-					span.location.1 = self.chars.pos;
+					span.location.1 = pos;
 					if found_end {
 						return Some(Ok(tok::PPToken::Comment(tok::Comment { span, name })));
 					} else {
@@ -470,13 +491,13 @@ impl Iterator for Lexer {
 			},
 			'+' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('+').is_some() {
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '+') {
 					// case: `++`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::PlusPlus
-				} else if self.chars.next_if_eq('=').is_some() {
+				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `+=`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::PlusEqual
 				} else {
 					// case: `+`
@@ -487,13 +508,13 @@ impl Iterator for Lexer {
 			}
 			'-' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('-').is_some() {
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '-') {
 					// case: `--`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::MinusMinus
-				} else if self.chars.next_if_eq('=').is_some() {
+				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `+=`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::MinusEqual
 				} else {
 					// case: `+`
@@ -504,9 +525,9 @@ impl Iterator for Lexer {
 			}
 			'=' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('=').is_some() {
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `==`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::EqualEqual
 				} else {
 					// case: `=`
@@ -517,9 +538,9 @@ impl Iterator for Lexer {
 			}
 			'*' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('=').is_some() {
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `*=`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::StarEqual
 				} else {
 					// case: `*`
@@ -530,9 +551,9 @@ impl Iterator for Lexer {
 			}
 			':' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('>').is_some() {
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '>') {
 					// case: `:>`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::RSquare
 				} else {
 					// case: `:`
@@ -543,9 +564,9 @@ impl Iterator for Lexer {
 			}
 			'!' => {
 				self.include_state = 0;
-				let term = if self.chars.next_if_eq('=').is_some() {
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `!=`
-					span.location = (start_pos, self.chars.pos);
+					span.location = (start_pos, pos);
 					tok::PunctuatorTerminal::BangEqual
 				} else {
 					// case: `!`
