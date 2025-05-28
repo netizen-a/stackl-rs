@@ -2,36 +2,15 @@
 
 pub mod keyword;
 pub mod punct;
-pub mod span;
 
 use crate::diag::lex;
 pub use keyword::*;
 pub use punct::*;
-pub use span::*;
-use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 
 #[derive(Debug, Clone)]
-pub struct Identifier {
-	pub span: Span,
-	pub name: String,
-}
-
-impl span::Spanned for Identifier {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
-impl fmt::Display for Identifier {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}{}", self.span, self.name)
-	}
-}
+pub struct Identifier(pub String);
 
 #[derive(Debug)]
 pub enum IntegerSuffix {
@@ -44,101 +23,22 @@ pub enum IntegerSuffix {
 	ULL,
 }
 
-impl fmt::Display for IntegerSuffix {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let name = match self {
-			Self::None => "",
-			Self::U => "U",
-			Self::L => "L",
-			Self::UL => "UL",
-			Self::LL => "LL",
-			Self::ULL => "ULL",
-		};
-		write!(f, "{name}")
-	}
-}
-
 #[derive(Debug)]
 pub enum IntegerConstant {
-	U32 { span: Span, data: u32 },
-	I32 { span: Span, data: i32 },
-	U64 { span: Span, data: u64 },
-	I64 { span: Span, data: i64 },
-	U128 { span: Span, data: u128 },
-	I128 { span: Span, data: i128 },
-}
-
-impl Spanned for IntegerConstant {
-	fn span(&self) -> Span {
-		match self {
-			Self::U32 { span, .. } => span.clone(),
-			Self::I32 { span, .. } => span.clone(),
-			Self::U64 { span, .. } => span.clone(),
-			Self::I64 { span, .. } => span.clone(),
-			Self::U128 { span, .. } => span.clone(),
-			Self::I128 { span, .. } => span.clone(),
-		}
-	}
-	fn set_span(&mut self, value: Span) {
-		match self {
-			Self::U32 { span, .. } => *span = value,
-			Self::I32 { span, .. } => *span = value,
-			Self::U64 { span, .. } => *span = value,
-			Self::I64 { span, .. } => *span = value,
-			Self::U128 { span, .. } => *span = value,
-			Self::I128 { span, .. } => *span = value,
-		}
-	}
-}
-
-impl fmt::Display for IntegerConstant {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let (span, name) = match self {
-			Self::U32 { span, data } => (span, format!("{data}U")),
-			Self::I32 { span, data } => (span, format!("{data}")),
-			Self::U64 { span, data } => (span, format!("{data}UL")),
-			Self::I64 { span, data } => (span, format!("{data}L")),
-			Self::U128 { span, data } => (span, format!("{data}ULL")),
-			Self::I128 { span, data } => (span, format!("{data}LL")),
-		};
-		write!(f, "{span}{name}")
-	}
+	U32(u32),
+	I32(i32),
+	U64(u64),
+	I64(i64),
+	U128(u128),
+	I128(i128),
 }
 
 #[derive(Debug)]
 pub enum FloatingConstant {
-	F32 { span: Span, data: f32 },
-	F64 { span: Span, data: f64 },
+	F32(f32),
+	F64(f64),
 	// same as F64, but higher rank
-	Long { span: Span, data: f64 },
-}
-
-impl fmt::Display for FloatingConstant {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let (span, name) = match self {
-			Self::F32 { span, data } => (span, format!("{data}F")),
-			Self::F64 { span, data } => (span, format!("{data}")),
-			Self::Long { span, data } => (span, format!("{data}L")),
-		};
-		write!(f, "{span}{name}")
-	}
-}
-
-impl Spanned for FloatingConstant {
-	fn span(&self) -> Span {
-		match self {
-			Self::F32 { span, .. } => span.clone(),
-			Self::F64 { span, .. } => span.clone(),
-			Self::Long { span, .. } => span.clone(),
-		}
-	}
-	fn set_span(&mut self, value: Span) {
-		match self {
-			Self::F32 { span, .. } => *span = value,
-			Self::F64 { span, .. } => *span = value,
-			Self::Long { span, .. } => *span = value,
-		}
-	}
+	Long(f64),
 }
 
 #[derive(Debug)]
@@ -149,86 +49,19 @@ pub enum Constant {
 	Character(CharacterConstant),
 }
 
-impl fmt::Display for Constant {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match self {
-			Self::Integer(token) => write!(f, "{token}"),
-			Self::Floating(token) => write!(f, "{token}"),
-			Self::Enumeration => todo!("enumeration"),
-			Self::Character(token) => write!(f, "{token}"),
-		}
-	}
-}
-
-impl Spanned for Constant {
-	fn span(&self) -> Span {
-		match self {
-			Self::Integer(token) => token.span(),
-			Self::Floating(token) => token.span(),
-			Self::Enumeration => todo!("enumeration span"),
-			Self::Character(token) => token.span.clone(),
-		}
-	}
-	fn set_span(&mut self, span: Span) {
-		match self {
-			Self::Integer(token) => token.set_span(span),
-			Self::Floating(token) => token.set_span(span),
-			Self::Enumeration => todo!("enumeration span"),
-			Self::Character(token) => token.span = span,
-		}
-	}
-}
-
 #[derive(Debug, Clone)]
 pub struct StringLiteral {
-	pub span: Span,
 	pub name: String,
-}
-
-impl span::Spanned for StringLiteral {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
-impl fmt::Display for StringLiteral {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}{}", self.span, self.name)
-	}
 }
 
 #[derive(Debug, Clone)]
 pub struct HeaderName {
-	pub span: Span,
 	pub is_std: bool,
 	pub name: String,
 }
 
-impl fmt::Display for HeaderName {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		if self.is_std {
-			write!(f, "<{}>", self.name)
-		} else {
-			write!(f, "\"{}\"", self.name)
-		}
-	}
-}
-
-impl span::Spanned for HeaderName {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
 #[derive(Debug, Clone)]
 pub struct PPNumber {
-	pub span: Span,
 	pub name: String,
 }
 
@@ -269,7 +102,7 @@ impl PPNumber {
 				}
 				exponent = digit_seq.parse().or(Err(lex::Error {
 					kind: lex::ErrorKind::InvalidToken,
-					span: self.span(),
+					loc: (0, 0),
 				}))?;
 				if let Some('-') = sign {
 					exponent *= -1;
@@ -279,39 +112,34 @@ impl PPNumber {
 				Some('f' | 'F') => {
 					let data: f32 = decimal.parse().or(Err(lex::Error {
 						kind: lex::ErrorKind::InvalidToken,
-						span: self.span(),
+						loc: (0, 0),
 					}))?;
 					let data = data.powi(exponent);
-					FloatingConstant::F32 {
-						span: self.span(),
-						data,
-					}
+					FloatingConstant::F32(data)
 				}
 				Some('l' | 'L') => {
 					let data: f64 = decimal.parse().or(Err(lex::Error {
 						kind: lex::ErrorKind::InvalidToken,
-						span: self.span(),
+						loc: (0, 0),
 					}))?;
 					let data = data.powi(exponent);
-					FloatingConstant::Long {
-						span: self.span(),
-						data,
-					}
+					FloatingConstant::Long(data)
 				}
 				None => {
 					let data: f64 = decimal.parse().or(Err(lex::Error {
 						kind: lex::ErrorKind::InvalidToken,
-						span: self.span(),
+						loc: (0, 0),
 					}))?;
 					let data = data.powi(exponent);
-					FloatingConstant::F64 {
-						span: self.span(),
-						data,
-					}
+					FloatingConstant::F64(data)
 				}
 				_ => unreachable!(),
 			};
-			Ok(Token::Constant(Constant::Floating(floating)))
+			Ok(Token {
+				kind: TokenKind::Constant(Constant::Floating(floating)),
+				leading_spaces: 0,
+				leading_tabs: 0,
+			})
 		}
 	}
 
@@ -331,7 +159,7 @@ impl PPNumber {
 			}
 			_ => Err(lex::Error {
 				kind: lex::ErrorKind::InvalidToken,
-				span: self.span(),
+				loc: (0, 0),
 			}),
 		}
 	}
@@ -346,28 +174,23 @@ impl PPNumber {
 			todo!("long-suffix")
 		} else if chars.peek().is_none() {
 			let integer = if let Ok(data) = i32::from_str_radix(&name, 8) {
-				IntegerConstant::I32 {
-					span: self.span(),
-					data,
-				}
+				IntegerConstant::I32(data)
 			} else if let Ok(data) = i64::from_str_radix(&name, 8) {
-				IntegerConstant::I64 {
-					span: self.span(),
-					data,
-				}
+				IntegerConstant::I64(data)
 			} else if let Ok(data) = i128::from_str_radix(&name, 8) {
-				IntegerConstant::I128 {
-					span: self.span(),
-					data,
-				}
+				IntegerConstant::I128(data)
 			} else {
 				return Err(lex::Error {
 					kind: lex::ErrorKind::InvalidToken,
-					span: self.span(),
+					loc: (0, 0),
 				});
 			};
 			let constant = Constant::Integer(integer);
-			Ok(Token::Constant(constant))
+			Ok(Token {
+				kind: TokenKind::Constant(constant),
+				leading_spaces: 0,
+				leading_tabs: 0,
+			})
 		} else {
 			todo!("error octal-constant")
 		}
@@ -383,110 +206,43 @@ impl PPNumber {
 			todo!("long-suffix")
 		} else if chars.peek().is_none() {
 			let integer = if let Ok(data) = name.parse::<i32>() {
-				IntegerConstant::I32 {
-					span: self.span(),
-					data,
-				}
+				IntegerConstant::I32(data)
 			} else if let Ok(data) = name.parse::<i64>() {
-				IntegerConstant::I64 {
-					span: self.span(),
-					data,
-				}
+				IntegerConstant::I64(data)
 			} else if let Ok(data) = name.parse::<i128>() {
-				IntegerConstant::I128 {
-					span: self.span(),
-					data,
-				}
+				IntegerConstant::I128(data)
 			} else {
 				return Err(lex::Error {
 					kind: lex::ErrorKind::InvalidToken,
-					span: self.span(),
+					loc: (0, 0),
 				});
 			};
 			let constant = Constant::Integer(integer);
-			Ok(Token::Constant(constant))
+			Ok(Token {
+				kind: TokenKind::Constant(constant),
+				leading_spaces: 0,
+				leading_tabs: 0,
+			})
 		} else {
 			todo!("error decimal-constant")
 		}
 	}
 }
 
-impl span::Spanned for PPNumber {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
 #[derive(Debug, Clone)]
-pub struct CharacterConstant {
-	pub span: Span,
-	pub name: String,
-}
-
-impl span::Spanned for CharacterConstant {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
-impl fmt::Display for CharacterConstant {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}{}", self.span, self.name)
-	}
-}
+pub struct CharacterConstant(pub String);
 
 #[derive(Debug, Clone)]
 pub struct NewLine {
-	pub span: span::Span,
 	pub name: String,
 	pub is_deleted: bool,
 }
 
-impl fmt::Display for NewLine {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let name = if self.is_deleted { "" } else { "\n" };
-		write!(f, "{}{name}", self.span)
-	}
-}
-
-impl span::Spanned for NewLine {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
 #[derive(Debug, Clone)]
-pub struct Comment {
-	pub span: Span,
-	pub name: String,
-}
-
-impl span::Spanned for Comment {
-	fn span(&self) -> Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: Span) {
-		self.span = span;
-	}
-}
-
-impl fmt::Display for Comment {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}{}", self.span, self.name)
-	}
-}
+pub struct Comment(pub String);
 
 #[derive(Debug)]
-pub enum Token {
+pub enum TokenKind {
 	Keyword(Keyword),
 	Identifier(Identifier),
 	Constant(Constant),
@@ -494,21 +250,21 @@ pub enum Token {
 	Punctuator(Punctuator),
 }
 
-impl Token {
+impl TokenKind {
 	pub fn is_keyword(&self) -> bool {
-		matches!(self, Token::Keyword(_))
+		matches!(self, Self::Keyword(_))
 	}
 	pub fn is_identifier(&self) -> bool {
-		matches!(self, Token::Identifier(_))
+		matches!(self, Self::Identifier(_))
 	}
 	pub fn is_constant(&self) -> bool {
-		matches!(self, Token::Constant(_))
+		matches!(self, Self::Constant(_))
 	}
 	pub fn is_string_literal(&self) -> bool {
-		matches!(self, Token::StringLiteral(_))
+		matches!(self, Self::StringLiteral(_))
 	}
 	pub fn is_punctuator(&self) -> bool {
-		matches!(self, Token::Punctuator(_))
+		matches!(self, Self::Punctuator(_))
 	}
 	pub fn unwrap_keyword(self) -> Keyword {
 		match self {
@@ -542,53 +298,15 @@ impl Token {
 	}
 }
 
-impl TryFrom<PPNumber> for Token {
-	type Error = lex::Error;
-	fn try_from(value: PPNumber) -> lex::Result<Self> {
-		if value.is_float() {
-			value.floating_constant()
-		} else {
-			value.integer_constant()
-		}
-	}
-}
-
-impl fmt::Display for Token {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match self {
-			Self::Keyword(token) => write!(f, "{token}"),
-			Self::Identifier(token) => write!(f, "{token}"),
-			Self::Constant(token) => write!(f, "{token}"),
-			Self::StringLiteral(token) => write!(f, "{token}"),
-			Self::Punctuator(token) => write!(f, "{token}"),
-		}
-	}
-}
-
-impl Spanned for Token {
-	fn span(&self) -> Span {
-		match self {
-			Self::Keyword(value) => value.span(),
-			Self::Identifier(value) => value.span(),
-			Self::Constant(value) => value.span(),
-			Self::StringLiteral(value) => value.span(),
-			Self::Punctuator(value) => value.span(),
-		}
-	}
-	fn set_span(&mut self, span: Span) {
-		match self {
-			Self::Keyword(value) => value.set_span(span),
-			Self::Identifier(value) => value.set_span(span),
-			Self::Constant(value) => value.set_span(span),
-			Self::StringLiteral(value) => value.set_span(span),
-			Self::Punctuator(value) => value.set_span(span),
-		}
-	}
+pub struct Token {
+	kind: TokenKind,
+	leading_spaces: usize,
+	leading_tabs: usize,
 }
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub enum PPToken {
+pub enum PPTokenKind {
 	HeaderName(HeaderName),
 	Identifier(Identifier),
 	PPNumber(PPNumber),
@@ -599,7 +317,7 @@ pub enum PPToken {
 	Comment(Comment),
 }
 
-impl PPToken {
+impl PPTokenKind {
 	pub fn as_token_name(&self) -> &str {
 		match self {
 			Self::HeaderName(_) => "header-name",
@@ -615,40 +333,20 @@ impl PPToken {
 	pub fn to_name(&self) -> String {
 		match self {
 			Self::HeaderName(value) => value.name.clone(),
-			Self::Identifier(value) => value.name.clone(),
+			Self::Identifier(value) => value.0.clone(),
 			Self::PPNumber(value) => value.name.clone(),
-			Self::CharacterConstant(value) => value.name.clone(),
+			Self::CharacterConstant(value) => value.0.clone(),
 			Self::StringLiteral(value) => value.name.clone(),
 			Self::Punctuator(value) => format!("{value}"),
 			Self::NewLine(_) => String::from("\\n"),
-			Self::Comment(value) => value.name.clone(),
+			Self::Comment(value) => value.0.clone(),
 		}
 	}
 }
 
-impl Spanned for PPToken {
-	fn span(&self) -> Span {
-		match self {
-			Self::HeaderName(value) => value.span(),
-			Self::Identifier(value) => value.span(),
-			Self::PPNumber(value) => value.span(),
-			Self::CharacterConstant(value) => value.span(),
-			Self::StringLiteral(value) => value.span(),
-			Self::Punctuator(value) => value.span(),
-			Self::NewLine(value) => value.span(),
-			Self::Comment(value) => value.span(),
-		}
-	}
-	fn set_span(&mut self, span: Span) {
-		match self {
-			Self::HeaderName(value) => value.set_span(span),
-			Self::Identifier(value) => value.set_span(span),
-			Self::PPNumber(value) => value.set_span(span),
-			Self::CharacterConstant(value) => value.set_span(span),
-			Self::StringLiteral(value) => value.set_span(span),
-			Self::Punctuator(value) => value.set_span(span),
-			Self::NewLine(value) => value.set_span(span),
-			Self::Comment(value) => value.set_span(span),
-		}
-	}
+#[derive(Debug, Clone)]
+pub struct PPToken {
+	pub kind: PPTokenKind,
+	pub leading_spaces: usize,
+	pub leading_tabs: usize,
 }

@@ -1,7 +1,7 @@
 pub mod lex;
 pub mod syn;
 
-use std::sync::Mutex;
+use std::{result, sync::Mutex};
 
 pub struct DiagnosticEngine {
 	pub lexical_errors: Mutex<Vec<lex::Error>>,
@@ -24,3 +24,5 @@ impl DiagnosticEngine {
 		guard.push(error)
 	}
 }
+
+pub type ResultTriple<Tok, Loc, Err> = result::Result<(Loc, Tok, Loc), Err>;

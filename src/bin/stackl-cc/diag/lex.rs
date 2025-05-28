@@ -33,7 +33,8 @@ pub enum ErrorKind {
 #[derive(Debug)]
 pub struct Error {
 	pub kind: ErrorKind,
-	pub span: tok::Span,
+	pub loc: (usize, usize),
 }
 
+pub type ResultTriple<Tok, Loc> = super::ResultTriple<Tok, Loc, Error>;
 pub type Result<T> = result::Result<T, Error>;

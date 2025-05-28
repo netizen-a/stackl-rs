@@ -1,10 +1,9 @@
-use super::span;
 use crate::diag::lex;
 use std::fmt;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
-pub enum PunctuatorTerminal {
+pub enum Punctuator {
 	/// `[`
 	LSquare,
 	/// `]`
@@ -103,9 +102,9 @@ pub enum PunctuatorTerminal {
 	HashHash,
 }
 
-impl fmt::Display for PunctuatorTerminal {
+impl fmt::Display for Punctuator {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		use PunctuatorTerminal::*;
+		use Punctuator::*;
 		let symbol = match self {
 			LSquare => "[",
 			RSquare => "]",
@@ -160,7 +159,7 @@ impl fmt::Display for PunctuatorTerminal {
 	}
 }
 
-impl TryFrom<char> for PunctuatorTerminal {
+impl TryFrom<char> for Punctuator {
 	type Error = lex::TryFromCharError;
 	fn try_from(value: char) -> Result<Self, Self::Error> {
 		match value {
@@ -176,26 +175,5 @@ impl TryFrom<char> for PunctuatorTerminal {
 			';' => Ok(Self::SemiColon),
 			_ => Err(lex::TryFromCharError),
 		}
-	}
-}
-
-#[derive(Debug, Clone)]
-pub struct Punctuator {
-	pub span: span::Span,
-	pub term: PunctuatorTerminal,
-}
-
-impl span::Spanned for Punctuator {
-	fn span(&self) -> span::Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: span::Span) {
-		self.span = span;
-	}
-}
-
-impl fmt::Display for Punctuator {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}{}", self.span, self.term)
 	}
 }

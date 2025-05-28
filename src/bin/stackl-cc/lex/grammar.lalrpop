@@ -1,0 +1,13 @@
+use crate::tok;
+grammar;
+
+pub PreprocessingFile: () = "\n" => ();
+
+extern {
+	type Location = usize;
+	type Error = crate::diag::lex::Error;
+
+	enum tok::PPToken {
+		"\n" => tok::PPToken{kind: tok::PPTokenKind::NewLine(_), ..},
+	}
+}

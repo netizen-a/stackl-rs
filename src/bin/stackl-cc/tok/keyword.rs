@@ -1,11 +1,9 @@
-use super::span;
 use super::Identifier;
 use crate::diag::*;
-use std::fmt;
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum KeywordTerminal {
+pub enum Keyword {
 	Auto,
 	Break,
 	Case,
@@ -43,69 +41,11 @@ pub enum KeywordTerminal {
 	Bool,
 }
 
-impl fmt::Display for KeywordTerminal {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let name = match self {
-			Self::Auto => "auto",
-			Self::Break => "break",
-			Self::Case => "case",
-			Self::Char => "char",
-			Self::Const => "const",
-			Self::Continue => "continue",
-			Self::Default => "default",
-			Self::Do => "do",
-			Self::Double => "double",
-			Self::Else => "else",
-			Self::Enum => "enum",
-			Self::Extern => "extern",
-			Self::Float => "float",
-			Self::For => "for",
-			Self::Goto => "goto",
-			Self::If => "if",
-			Self::Inline => "inline",
-			Self::Int => "int",
-			Self::Long => "long",
-			Self::Register => "register",
-			Self::Restrict => "restrict",
-			Self::Return => "return",
-			Self::Short => "short",
-			Self::Signed => "signed",
-			Self::SizeOf => "sizeof",
-			Self::Static => "static",
-			Self::Struct => "struct",
-			Self::Switch => "switch",
-			Self::Typedef => "typedef",
-			Self::Union => "union",
-			Self::Unsigned => "unsigned",
-			Self::Void => "void",
-			Self::Volatile => "volatile",
-			Self::While => "while",
-			Self::Bool => "_Bool",
-		};
-		write!(f, "{name}")
-	}
-}
-
-#[derive(Debug)]
-pub struct Keyword {
-	span: span::Span,
-	pub term: KeywordTerminal,
-}
-
-impl span::Spanned for Keyword {
-	fn span(&self) -> span::Span {
-		self.span.clone()
-	}
-	fn set_span(&mut self, span: span::Span) {
-		self.span = span;
-	}
-}
-
 impl TryFrom<Identifier> for Keyword {
 	type Error = lex::TryFromIdentifierError;
 	fn try_from(value: Identifier) -> Result<Self, Self::Error> {
-		use KeywordTerminal as Term;
-		let terminal = match value.name.as_str() {
+		use Keyword as Term;
+		let terminal = match value.0.as_str() {
 			"auto" => Term::Auto,
 			"break" => Term::Break,
 			"case" => Term::Case,
@@ -143,15 +83,6 @@ impl TryFrom<Identifier> for Keyword {
 			"_Bool" => Term::Bool,
 			_ => return Err(lex::TryFromIdentifierError),
 		};
-		Ok(Keyword {
-			span: value.span,
-			term: terminal,
-		})
-	}
-}
-
-impl fmt::Display for Keyword {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}{}", self.span, self.term)
+		Ok(terminal)
 	}
 }

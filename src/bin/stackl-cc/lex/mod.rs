@@ -1,3 +1,5 @@
 pub mod lexer;
 mod pp_token_iter;
-pub mod preproc;
+
+use lalrpop_util::lalrpop_mod;
+lalrpop_mod!(pub grammar, "/bin/stackl-cc/lex/grammar.rs");

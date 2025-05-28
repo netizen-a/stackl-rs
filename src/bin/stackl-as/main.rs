@@ -16,7 +16,8 @@ mod tok;
 
 lalrpop_mod! {
 	#[allow(clippy::ptr_arg)]
-	grammar
+	grammar,
+	"/bin/stackl-as/grammar.rs"
 }
 
 #[derive(Parser, Debug)]
