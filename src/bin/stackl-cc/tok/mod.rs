@@ -10,7 +10,7 @@ use std::iter::Peekable;
 use std::str::Chars;
 
 #[derive(Debug, Clone)]
-pub struct Identifier(pub String);
+pub struct Ident(pub String);
 
 #[derive(Debug)]
 pub enum IntegerSuffix {
@@ -46,17 +46,18 @@ pub enum Constant {
 	Integer(IntegerConstant),
 	Floating(FloatingConstant),
 	Enumeration,
-	Character(CharacterConstant),
+	CharConst(CharConst),
 }
 
 #[derive(Debug, Clone)]
 pub struct StringLiteral {
 	pub name: String,
+	pub is_wide: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct HeaderName {
-	pub is_std: bool,
+	pub is_builtin: bool,
 	pub name: String,
 }
 
@@ -135,11 +136,7 @@ impl PPNumber {
 				}
 				_ => unreachable!(),
 			};
-			Ok(Token {
-				kind: TokenKind::Constant(Constant::Floating(floating)),
-				leading_spaces: 0,
-				leading_tabs: 0,
-			})
+			Ok(Token::Constant(Constant::Floating(floating)))
 		}
 	}
 
@@ -186,11 +183,7 @@ impl PPNumber {
 				});
 			};
 			let constant = Constant::Integer(integer);
-			Ok(Token {
-				kind: TokenKind::Constant(constant),
-				leading_spaces: 0,
-				leading_tabs: 0,
-			})
+			Ok(Token::Constant(constant))
 		} else {
 			todo!("error octal-constant")
 		}
@@ -218,11 +211,7 @@ impl PPNumber {
 				});
 			};
 			let constant = Constant::Integer(integer);
-			Ok(Token {
-				kind: TokenKind::Constant(constant),
-				leading_spaces: 0,
-				leading_tabs: 0,
-			})
+			Ok(Token::Constant(constant))
 		} else {
 			todo!("error decimal-constant")
 		}
@@ -230,7 +219,10 @@ impl PPNumber {
 }
 
 #[derive(Debug, Clone)]
-pub struct CharacterConstant(pub String);
+pub struct CharConst {
+	pub name: String,
+	pub is_wide: bool,
+}
 
 #[derive(Debug, Clone)]
 pub struct NewLine {
@@ -238,24 +230,21 @@ pub struct NewLine {
 	pub is_deleted: bool,
 }
 
-#[derive(Debug, Clone)]
-pub struct Comment(pub String);
-
 #[derive(Debug)]
-pub enum TokenKind {
+pub enum Token {
 	Keyword(Keyword),
-	Identifier(Identifier),
+	Ident(Ident),
 	Constant(Constant),
 	StringLiteral(StringLiteral),
-	Punctuator(Punctuator),
+	Punct(Punct),
 }
 
-impl TokenKind {
+impl Token {
 	pub fn is_keyword(&self) -> bool {
 		matches!(self, Self::Keyword(_))
 	}
-	pub fn is_identifier(&self) -> bool {
-		matches!(self, Self::Identifier(_))
+	pub fn is_ident(&self) -> bool {
+		matches!(self, Self::Ident(_))
 	}
 	pub fn is_constant(&self) -> bool {
 		matches!(self, Self::Constant(_))
@@ -263,8 +252,8 @@ impl TokenKind {
 	pub fn is_string_literal(&self) -> bool {
 		matches!(self, Self::StringLiteral(_))
 	}
-	pub fn is_punctuator(&self) -> bool {
-		matches!(self, Self::Punctuator(_))
+	pub fn is_punct(&self) -> bool {
+		matches!(self, Self::Punct(_))
 	}
 	pub fn unwrap_keyword(self) -> Keyword {
 		match self {
@@ -272,10 +261,10 @@ impl TokenKind {
 			other => panic!("called `Token::unwrap_keyword` on an `{other:?}` value"),
 		}
 	}
-	pub fn unwrap_identifier(self) -> Identifier {
+	pub fn unwrap_ident(self) -> Ident {
 		match self {
-			Self::Identifier(token) => token,
-			other => panic!("called `Token::unwrap_identifier` on an `{other:?}` value"),
+			Self::Ident(token) => token,
+			other => panic!("called `Token::unwrap_ident` on an `{other:?}` value"),
 		}
 	}
 	pub fn unwrap_constant(self) -> Constant {
@@ -290,57 +279,83 @@ impl TokenKind {
 			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
 		}
 	}
-	pub fn unwrap_punctuator(self) -> Punctuator {
+	pub fn unwrap_punct(self) -> Punct {
 		match self {
-			Self::Punctuator(token) => token,
-			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
+			Self::Punct(token) => token,
+			other => panic!("called `Token::unwrap_punct` on an `{other:?}` value"),
 		}
 	}
 }
 
-pub struct Token {
-	kind: TokenKind,
-	leading_spaces: usize,
-	leading_tabs: usize,
+impl From<Punct> for Token {
+	fn from(value: Punct) -> Self {
+		Self::Punct(value)
+	}
+}
+
+impl From<Ident> for Token {
+	fn from(value: Ident) -> Self {
+		Self::Ident(value)
+	}
+}
+
+impl From<StringLiteral> for Token {
+	fn from(value: StringLiteral) -> Self {
+		Self::StringLiteral(value)
+	}
+}
+
+impl TryFrom<PPNumber> for Token {
+	type Error = lex::Error;
+	fn try_from(value: PPNumber) -> Result<Self, Self::Error> {
+		if value.is_float() {
+			value.floating_constant()
+		} else {
+			value.integer_constant()
+		}
+	}
 }
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum PPTokenKind {
 	HeaderName(HeaderName),
-	Identifier(Identifier),
+	Ident(Ident),
 	PPNumber(PPNumber),
-	CharacterConstant(CharacterConstant),
+	CharConst(CharConst),
 	StringLiteral(StringLiteral),
-	Punctuator(Punctuator),
+	Punct(Punct),
 	NewLine(NewLine),
-	Comment(Comment),
 }
 
 impl PPTokenKind {
 	pub fn as_token_name(&self) -> &str {
 		match self {
 			Self::HeaderName(_) => "header-name",
-			Self::Identifier(_) => "identifier",
+			Self::Ident(_) => "identifier",
 			Self::PPNumber(_) => "pp-number",
-			Self::CharacterConstant(_) => "character-constant",
+			Self::CharConst(_) => "character-constant",
 			Self::StringLiteral(_) => "string-literal",
-			Self::Punctuator(_) => "punctuator",
+			Self::Punct(_) => "punctuator",
 			Self::NewLine(_) => "new-line",
-			Self::Comment(_) => "comment",
 		}
 	}
 	pub fn to_name(&self) -> String {
 		match self {
 			Self::HeaderName(value) => value.name.clone(),
-			Self::Identifier(value) => value.0.clone(),
+			Self::Ident(value) => value.0.clone(),
 			Self::PPNumber(value) => value.name.clone(),
-			Self::CharacterConstant(value) => value.0.clone(),
+			Self::CharConst(value) => value.name.clone(),
 			Self::StringLiteral(value) => value.name.clone(),
-			Self::Punctuator(value) => format!("{value}"),
+			Self::Punct(value) => format!("{value}"),
 			Self::NewLine(_) => String::from("\\n"),
-			Self::Comment(value) => value.0.clone(),
 		}
+	}
+}
+
+impl From<Punct> for PPTokenKind {
+	fn from(value: Punct) -> Self {
+		Self::Punct(value)
 	}
 }
 
@@ -349,4 +364,36 @@ pub struct PPToken {
 	pub kind: PPTokenKind,
 	pub leading_spaces: usize,
 	pub leading_tabs: usize,
+}
+impl PPToken {
+	pub fn unwrap_ident(self) -> Ident {
+		match self.kind {
+			PPTokenKind::Ident(token) => token,
+			other => panic!("called `Token::unwrap_ident` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_punct(self) -> Punct {
+		match self.kind {
+			PPTokenKind::Punct(token) => token,
+			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_string_literal(self) -> StringLiteral {
+		match self.kind {
+			PPTokenKind::StringLiteral(token) => token,
+			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_char_const(self) -> CharConst {
+		match self.kind {
+			PPTokenKind::CharConst(token) => token,
+			other => panic!("called `Token::unwrap_char_const` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_pp_number(self) -> PPNumber {
+		match self.kind {
+			PPTokenKind::PPNumber(token) => token,
+			other => panic!("called `Token::unwrap_pp_number` on an `{other:?}` value"),
+		}
+	}
 }

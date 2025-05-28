@@ -3,7 +3,7 @@ use std::fmt;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
-pub enum Punctuator {
+pub enum Punct {
 	/// `[`
 	LSquare,
 	/// `]`
@@ -102,9 +102,9 @@ pub enum Punctuator {
 	HashHash,
 }
 
-impl fmt::Display for Punctuator {
+impl fmt::Display for Punct {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		use Punctuator::*;
+		use Punct::*;
 		let symbol = match self {
 			LSquare => "[",
 			RSquare => "]",
@@ -159,7 +159,7 @@ impl fmt::Display for Punctuator {
 	}
 }
 
-impl TryFrom<char> for Punctuator {
+impl TryFrom<char> for Punct {
 	type Error = lex::TryFromCharError;
 	fn try_from(value: char) -> Result<Self, Self::Error> {
 		match value {

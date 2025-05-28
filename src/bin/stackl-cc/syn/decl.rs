@@ -37,12 +37,12 @@ pub enum TypeSpecifier {
 	StructOrUnionSpecifier(StructOrUnionSpecifier),
 	EnumSpecifier(EnumSpecifier),
 	/// (6.7.7) typedef-name
-	TypedefName(tok::Identifier),
+	TypedefName(tok::Ident),
 }
 
 /// (6.7.2.2) enum-specifier
 pub struct EnumSpecifier {
-	identifier: Option<tok::Identifier>,
+	identifier: Option<tok::Ident>,
 	enumerator_list: Option<EnumeratorList>,
 }
 
@@ -56,13 +56,13 @@ pub struct Enumerator {
 }
 
 /// (6.4.4.3) enumeration-constant
-pub struct EnumerationConstant(tok::Identifier);
+pub struct EnumerationConstant(tok::Ident);
 
 /// (6.7.2.1) struct-or-union-specifier
 pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
 	pub struct_or_union: tok::Keyword,
-	pub identifier: Option<tok::Identifier>,
+	pub identifier: Option<tok::Ident>,
 	pub struct_declaration_list: Option<StructDeclarationList>,
 }
 
@@ -98,7 +98,7 @@ pub struct Declarator {
 
 /// (6.7.5) direct-declarator
 pub enum DirectDeclarator {
-	Identifier(tok::Identifier),
+	Identifier(tok::Ident),
 	/// ( declarator )
 	Declarator(Box<Declarator>),
 	/// [ type-qualifier-list_opt assignment-expression_opt ]
@@ -115,7 +115,7 @@ pub enum DirectDeclarator {
 	/// ( parameter-type-list )
 	ParameterTypeList(ParameterTypeList),
 	/// ( identifier-list_opt )
-	IdentifierList(Vec<tok::Identifier>),
+	IdentifierList(Vec<tok::Ident>),
 }
 
 /// (6.7.5) type-qualifier-list
@@ -213,5 +213,5 @@ pub struct DesignatorList(Vec<Designator>);
 /// (6.7.8) designator
 pub enum Designator {
 	ConstantExpression(expr::ConstantExpression),
-	Dot(tok::Identifier),
+	Dot(tok::Ident),
 }

@@ -41,8 +41,8 @@ pub enum PostfixExpression {
 	PrimaryExpression(PrimaryExpression),
 	Array(Expression),
 	ArgumentExpressionList(Option<ArgumentExpressionList>),
-	Dot(tok::Identifier),
-	Arrow(tok::Identifier),
+	Dot(tok::Ident),
+	Arrow(tok::Ident),
 	Increment,
 	Decrement,
 	TypeNameInitializerList(TypeName, decl::InitializerList),
@@ -53,7 +53,7 @@ pub struct ArgumentExpressionList(Vec<AssignmentExpression>);
 
 /// (6.5.1) primary-expression
 pub enum PrimaryExpression {
-	Identifier(tok::Identifier),
+	Identifier(tok::Ident),
 	Constant(tok::Constant),
 	StringLiteral(tok::StringLiteral),
 	Expression(Expression),

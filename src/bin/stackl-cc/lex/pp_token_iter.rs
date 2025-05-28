@@ -3,16 +3,14 @@ use crate::tok::PPToken;
 use super::lexer::Lexer;
 use crate::diag::lex;
 
-type Spanned<Tok, Loc> = lex::Result<(Loc, Tok, Loc)>;
-
 enum Queue {
-	Buffer(Vec<Spanned<PPToken, usize>>),
+	Buffer(Vec<lex::ResultTriple<PPToken, usize>>),
 	Lexer(Lexer),
 }
 
 pub struct PPTokenQueue {
 	stack: Vec<Queue>,
-	peeked: Option<Option<Spanned<PPToken, usize>>>,
+	peeked: Option<Option<lex::ResultTriple<PPToken, usize>>>,
 }
 
 impl PPTokenQueue {
@@ -52,14 +50,14 @@ impl PPTokenQueue {
 			}
 		}
 	}
-	pub fn peek(&mut self) -> Option<&Spanned<PPToken, usize>> {
+	pub fn peek(&mut self) -> Option<&lex::ResultTriple<PPToken, usize>> {
 		let iter = &mut self.stack;
 		self.peeked.get_or_insert_with(|| next_token(iter)).as_ref()
 	}
 }
 
 impl Iterator for PPTokenQueue {
-	type Item = Spanned<PPToken, usize>;
+	type Item = lex::ResultTriple<PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.peeked.take() {
 			Some(v) => v,
@@ -68,7 +66,7 @@ impl Iterator for PPTokenQueue {
 	}
 }
 
-fn next_token(iter: &mut Vec<Queue>) -> Option<Spanned<PPToken, usize>> {
+fn next_token(iter: &mut Vec<Queue>) -> Option<lex::ResultTriple<PPToken, usize>> {
 	while let Some(queue) = iter.last_mut() {
 		if let Queue::Buffer(buffer) = queue {
 			if let Some(result) = buffer.pop() {

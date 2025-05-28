@@ -1,4 +1,3 @@
-use super::Identifier;
 use crate::diag::*;
 
 #[derive(Debug)]
@@ -41,11 +40,11 @@ pub enum Keyword {
 	Bool,
 }
 
-impl TryFrom<Identifier> for Keyword {
+impl TryFrom<&str> for Keyword {
 	type Error = lex::TryFromIdentifierError;
-	fn try_from(value: Identifier) -> Result<Self, Self::Error> {
+	fn try_from(value: &str) -> Result<Self, Self::Error> {
 		use Keyword as Term;
-		let terminal = match value.0.as_str() {
+		let terminal = match value {
 			"auto" => Term::Auto,
 			"break" => Term::Break,
 			"case" => Term::Case,

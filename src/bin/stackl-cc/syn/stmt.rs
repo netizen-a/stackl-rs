@@ -25,7 +25,7 @@ pub enum Statement {
 
 /// (6.8.1) labeled-statement
 pub enum LabeledStatement {
-	Label(tok::Identifier, Box<Statement>),
+	Label(tok::Ident, Box<Statement>),
 	Case(expr::ConstantExpression, Box<Statement>),
 	Default(Box<Statement>),
 }
@@ -72,7 +72,7 @@ pub enum IterationStatement {
 
 /// (6.8.6) jump-statement
 pub enum JumpStatement {
-	Goto(tok::Identifier),
+	Goto(tok::Ident),
 	Continue,
 	Break,
 	Return(Option<expr::Expression>),

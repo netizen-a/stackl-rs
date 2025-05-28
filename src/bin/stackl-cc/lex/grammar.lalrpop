@@ -1,13 +1,119 @@
 use crate::tok;
+use crate::diag::lex;
+use lalrpop_util as lalr;
+
 grammar;
 
-pub PreprocessingFile: () = "\n" => ();
+pub Tokens: Vec<tok::Token> = Group => <>;
+
+Group: Vec<tok::Token> = {
+	GroupPart => <>,
+	<mut g: Group> <mut gp: GroupPart> => {
+		g.append(&mut gp);
+		g
+	},
+}
+
+GroupPart: Vec<tok::Token> = {
+	// IfSection => <>,
+	ControlLine => <>,
+	TextLine => <>,
+	// "#" NonDirective => <>
+};
+
+ControlLine: Vec<tok::Token> = {
+	"#" Include HEADER_NAME "\n" => {
+		vec![]
+	},
+};
+
+TextLine: Vec<tok::Token> = {
+	"\n" => vec![],
+	<nh:NonHash> <mut tokens:PreprocessingToken*> "\n" => {
+		let mut result = vec![nh];
+		result.append(&mut tokens);
+		result
+	},
+};
+
+PreprocessingToken: tok::Token = {
+	HEADER_NAME => {
+		todo!("header-name");
+	},
+	IDENT => {
+		<>.unwrap_ident().into()
+	},
+	PP_NUMBER => {
+		let pp_num = <>.unwrap_pp_number();
+		tok::Token::try_from(pp_num).unwrap()
+	},
+	CHAR_CONST => {
+		tok::Token::Constant(tok::Constant::CharConst(<>.unwrap_char_const()))
+	},
+	STRING_LITERAL => {
+		<>.unwrap_string_literal().into()
+	},
+	PUNCT => {
+		tok::Token::Punct(<>)
+	}
+};
+
+
+Include: tok::Ident = <lo:@L> <ident:IDENT> <hi:@R> =>? {
+	if ident.unwrap_ident().0 == "include".to_string() {
+		Ok(tok::Ident("include".to_string()))
+	} else {
+		Err(lalr::ParseError::User {
+			error: lex::Error{
+				kind: lex::ErrorKind::InvalidToken,
+				loc: (lo, hi)
+			}
+		})
+	}
+};
+
+NonHash: tok::Token = {
+	IDENT => <>.unwrap_ident().into(),
+	STRING_LITERAL => <>.unwrap_string_literal().into(),
+	NonHashPunct => <>.into(),
+};
+
+PUNCT: tok::Punct = {
+	"#" => <>.unwrap_punct(),
+	NonHashPunct => <>,
+};
+
+NonHashPunct: tok::Punct = {
+	"##" => <>.unwrap_punct().into(),
+	"(" => <>.unwrap_punct().into(),
+	")" => <>.unwrap_punct().into(),
+	"{" => <>.unwrap_punct().into(),
+	"}" => <>.unwrap_punct().into(),
+	"*" => <>.unwrap_punct().into(),
+	"=" => <>.unwrap_punct().into(),
+	";" => <>. unwrap_punct().into(),
+};
+
 
 extern {
 	type Location = usize;
 	type Error = crate::diag::lex::Error;
 
 	enum tok::PPToken {
+		HEADER_NAME => tok::PPToken{kind: tok::PPTokenKind::HeaderName(_), ..},
+		IDENT => tok::PPToken{kind: tok::PPTokenKind::Ident(_), ..},
+		PP_NUMBER => tok::PPToken{kind: tok::PPTokenKind::PPNumber(_), ..},
+		CHAR_CONST => tok::PPToken{kind: tok::PPTokenKind::CharConst(_), ..},
+		STRING_LITERAL => tok::PPToken{kind: tok::PPTokenKind::StringLiteral(_), ..},
 		"\n" => tok::PPToken{kind: tok::PPTokenKind::NewLine(_), ..},
+		"#" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::Hash), ..},
+		"##" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::HashHash), ..},
+		"(" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::LParen), ..},
+		")" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::RParen), ..},
+		"{" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::LCurly), ..},
+		"}" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::RCurly), ..},
+		"*" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::Star), ..},
+		"=" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::Equal), ..},
+		";" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::SemiColon), ..},
 	}
 }
