@@ -34,8 +34,8 @@ GroupPart: Vec<tok::Token> = {
 
 ControlLine: Vec<tok::Token> = {
 	// TODO: make this fallible
-	<hash:"#"> Include <header:HEADER_NAME> "\n" => {
-		let origin_path = file_map.get_by_left(&hash.file_key).unwrap();
+	"#" Include <header:HEADER_NAME> "\n" => {
+		let origin_path = file_map.get_by_left(&header.file_key).unwrap();
 		let header_name = PathBuf::from(header.kind.to_name());
 		let full_path = origin_path.parent().unwrap().join(header_name);
 		let mut stack = stack_ref.borrow_mut();
