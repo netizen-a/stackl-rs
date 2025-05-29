@@ -9,7 +9,7 @@ use crate::tok;
 pub struct Lexer {
 	chars: Peekable<Enumerate<IntoIter<char>>>,
 	file_key: usize,
-	leading: (usize, usize),
+	leading_space: bool,
 	location: (usize, usize),
 	include_state: u8,
 }
@@ -21,25 +21,17 @@ impl Lexer {
 		Self {
 			chars: char_iter.enumerate().peekable(),
 			file_key,
-			leading: (0, 0),
+			leading_space: false,
 			location: (0, 0),
 			include_state: 1,
 		}
 	}
 
-	fn set_leading(&mut self, spaces: usize, tabs: usize) {
-		self.leading = (spaces, tabs);
-	}
 	fn set_start(&mut self, start: usize) {
 		self.location.0 = start;
 	}
 	fn set_end(&mut self, end: usize) {
 		self.location.1 = end;
-	}
-	fn pop_leading(&mut self) -> (usize, usize) {
-		let result = self.leading;
-		self.leading = (0, 0);
-		result
 	}
 	fn pop_location(&mut self) -> (usize, usize) {
 		let result = self.location;
@@ -81,14 +73,12 @@ impl Lexer {
 		self.include_state = 0;
 		let head_name = tok::HeaderName { is_builtin, name };
 		let (lo, hi) = self.pop_location();
-		let (leading_spaces, leading_tabs) = self.pop_leading();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::HeaderName(head_name),
 				file_key: self.file_key,
-				leading_spaces,
-				leading_tabs,
+				leading_space: self.leading_space,
 			},
 			hi,
 		))
@@ -110,15 +100,13 @@ impl Lexer {
 			self.include_state = 0;
 		}
 		let ident = tok::Ident(name);
-		let (leading_spaces, leading_tabs) = self.pop_leading();
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::Ident(ident),
 				file_key: self.file_key,
-				leading_spaces,
-				leading_tabs,
+				leading_space: self.leading_space,
 			},
 			hi,
 		))
@@ -158,15 +146,13 @@ impl Lexer {
 		}
 
 		let str_lit = tok::CharConst { name, is_wide };
-		let (leading_spaces, leading_tabs) = self.pop_leading();
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::CharConst(str_lit),
 				file_key: self.file_key,
-				leading_spaces,
-				leading_tabs,
+				leading_space: self.leading_space,
 			},
 			hi,
 		))
@@ -201,14 +187,12 @@ impl Lexer {
 
 		let str_lit = tok::StringLiteral { name, is_wide };
 		let (lo, hi) = self.pop_location();
-		let (leading_spaces, leading_tabs) = self.pop_leading();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::StringLiteral(str_lit),
 				file_key: self.file_key,
-				leading_spaces,
-				leading_tabs,
+				leading_space: self.leading_space,
 			},
 			hi,
 		))
@@ -290,7 +274,7 @@ impl Lexer {
 impl Iterator for Lexer {
 	type Item = lex::ResultTriple<tok::PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
-		let (mut leading_tabs, mut leading_spaces) = (0, 0);
+		self.leading_space = false;
 		let mut curr_pos = 0;
 		// skip whitespace
 		while let Some((pos, whitespace)) = self
@@ -299,8 +283,7 @@ impl Iterator for Lexer {
 		{
 			curr_pos = pos;
 			match whitespace {
-				' ' => leading_spaces += 1,
-				'\t' => leading_tabs += 1,
+				' ' | '\t' => self.leading_space = true,
 				_ => (),
 			}
 		}
@@ -338,15 +321,13 @@ impl Iterator for Lexer {
 					name,
 					is_deleted: false,
 				};
-				let (leading_spaces, leading_tabs) = self.pop_leading();
 				let (lo, hi) = self.pop_location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::NewLine(new_line),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -354,7 +335,6 @@ impl Iterator for Lexer {
 			// punctuators without trailing characters
 			'[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
 				self.include_state = 0;
-				let (leading_spaces, leading_tabs) = self.pop_leading();
 				let (lo, hi) = self.pop_location();
 				let punct = tok::Punct::try_from(c).unwrap();
 				Some(Ok((
@@ -362,8 +342,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -399,15 +378,13 @@ impl Iterator for Lexer {
 					}
 				}
 				let num = tok::PPNumber { name };
-				let (leading_spaces, leading_tabs) = self.pop_leading();
 				let (lo, hi) = self.pop_location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::PPNumber(num),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -423,15 +400,13 @@ impl Iterator for Lexer {
 						// case: `...`
 						self.set_end(pos);
 						let punct = tok::Punct::Ellipsis;
-						let (leading_spaces, leading_tabs) = self.pop_leading();
 						let (lo, hi) = self.pop_location();
 						Some(Ok((
 							lo,
 							tok::PPToken {
 								kind: tok::PPTokenKind::Punct(punct),
 								file_key: self.file_key,
-								leading_spaces,
-								leading_tabs,
+								leading_space: self.leading_space,
 							},
 							hi,
 						)))
@@ -470,15 +445,13 @@ impl Iterator for Lexer {
 						}
 					}
 					let num = tok::PPNumber { name };
-					let (leading_spaces, leading_tabs) = self.pop_leading();
 					let (lo, hi) = self.pop_location();
 					Some(Ok((
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::PPNumber(num),
 							file_key: self.file_key,
-							leading_spaces,
-							leading_tabs,
+							leading_space: self.leading_space,
 						},
 						hi,
 					)))
@@ -499,15 +472,13 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 				}
 				let punct = tok::Punct::Hash;
-				let (leading_spaces, leading_tabs) = self.pop_leading();
 				let (lo, hi) = self.pop_location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -536,8 +507,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -591,8 +561,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -612,8 +581,7 @@ impl Iterator for Lexer {
 						tok::PPToken {
 							kind: tok::PPTokenKind::NewLine(new_line),
 							file_key: self.file_key,
-							leading_spaces,
-							leading_tabs,
+							leading_space: self.leading_space,
 						},
 						hi,
 					)))
@@ -648,8 +616,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -674,8 +641,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -696,8 +662,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -718,8 +683,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -740,8 +704,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))
@@ -762,8 +725,7 @@ impl Iterator for Lexer {
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						file_key: self.file_key,
-						leading_spaces,
-						leading_tabs,
+						leading_space: self.leading_space,
 					},
 					hi,
 				)))

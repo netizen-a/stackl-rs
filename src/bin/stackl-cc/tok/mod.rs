@@ -373,8 +373,7 @@ impl From<Punct> for PPTokenKind {
 pub struct PPToken {
 	pub kind: PPTokenKind,
 	pub file_key: usize,
-	pub leading_spaces: usize,
-	pub leading_tabs: usize,
+	pub leading_space: bool,
 }
 impl PPToken {
 	pub fn unwrap_ident(self) -> Ident {

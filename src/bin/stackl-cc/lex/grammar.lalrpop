@@ -4,20 +4,20 @@ use std::io::{Read, BufReader};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::tok;
 use crate::diag::lex as diag;
 use lalrpop_util as lalr;
 use crate::lex::PPTokenStack;
 use crate::lex::lexer::Lexer;
+use crate::tok::*;
 
 grammar<'a>(
 	file_map: &mut bimap::BiHashMap<usize, PathBuf>,
 	stack_ref: &'a Rc<RefCell<PPTokenStack>>
 );
 
-pub Tokens: Vec<tok::Token> = Group => <>;
+pub Tokens: Vec<Token> = Group => <>;
 
-Group: Vec<tok::Token> = {
+Group: Vec<Token> = {
 	GroupPart => <>,
 	<mut g: Group> <mut gp: GroupPart> => {
 		g.append(&mut gp);
@@ -25,14 +25,14 @@ Group: Vec<tok::Token> = {
 	},
 }
 
-GroupPart: Vec<tok::Token> = {
+GroupPart: Vec<Token> = {
 	// IfSection => <>,
 	ControlLine => <>,
 	TextLine => <>,
 	// "#" NonDirective => <>
 };
 
-ControlLine: Vec<tok::Token> = {
+ControlLine: Vec<Token> = {
 	// TODO: make this fallible
 	"#" Include <header:HEADER_NAME> "\n" => {
 		let origin_path = file_map.get_by_left(&header.file_key).unwrap();
@@ -60,22 +60,22 @@ ControlLine: Vec<tok::Token> = {
 	},
 };
 
-TextLine: Vec<tok::Token> = {
+TextLine: Vec<Token> = {
 	"\n" => vec![],
-	<nh:NonHash> <mut tokens:PreprocessingToken*> "\n" => {
+	<nh:NonHash> <mut tokens: PreprocessingToken*> "\n" => {
 		let mut result = vec![nh];
 		result.append(&mut tokens);
 		result
 	},
 };
 
-PreprocessingToken: tok::Token = {
+PreprocessingToken: Token = {
 	HEADER_NAME => {
 		todo!("header-name");
 	},
 	IDENT => {
 		let file_key = <>.file_key;
-		tok::Token{
+		Token{
 			kind: <>.unwrap_ident().into(),
 			file_key,
 		}
@@ -83,38 +83,38 @@ PreprocessingToken: tok::Token = {
 	PP_NUMBER => {
 		let file_key = <>.file_key;
 		let pp_num = <>.unwrap_pp_number();
-		tok::Token {
-			kind: tok::TokenKind::try_from(pp_num).unwrap(),
+		Token {
+			kind: TokenKind::try_from(pp_num).unwrap(),
 			file_key,
 		}
 	},
 	CHAR_CONST => {
 		let file_key = <>.file_key;
-		tok::Token {
-			kind: tok::TokenKind::Constant(tok::Constant::CharConst(<>.unwrap_char_const())),
+		Token {
+			kind: TokenKind::Constant(Constant::CharConst(<>.unwrap_char_const())),
 			file_key,
 		}
 	},
 	STRING_LITERAL => {
 		let file_key = <>.file_key;
-		tok::Token {
+		Token {
 			kind: <>.unwrap_string_literal().into(),
 			file_key,
 		}
 	},
 	PUNCT => {
 		let file_key = <>.file_key;
-		tok::Token {
-			kind: tok::TokenKind::Punct(<>.unwrap_punct()),
+		Token {
+			kind: TokenKind::Punct(<>.unwrap_punct()),
 			file_key,
 		}
 	}
 };
 
 
-Include: tok::Ident = <lo:@L> <ident:IDENT> <hi:@R> =>? {
+Include: Ident = <lo:@L> <ident:IDENT> <hi:@R> =>? {
 	if ident.unwrap_ident().0 == "include".to_string() {
-		Ok(tok::Ident("include".to_string()))
+		Ok(Ident("include".to_string()))
 	} else {
 		Err(lalr::ParseError::User {
 			error: diag::Error{
@@ -125,38 +125,39 @@ Include: tok::Ident = <lo:@L> <ident:IDENT> <hi:@R> =>? {
 	}
 };
 
-NonHash: tok::Token = {
+NonHash: Token = {
 	IDENT => {
 		let file_key = <>.file_key;
-		tok::Token{
-			kind: tok::TokenKind::Ident(<>.unwrap_ident()),
+		Token{
+			kind: TokenKind::Ident(<>.unwrap_ident()),
 			file_key,
 		}
 	},
 	STRING_LITERAL => {
 		let file_key = <>.file_key;
-		tok::Token {
-			kind: tok::TokenKind::StringLiteral(<>.unwrap_string_literal()),
+		Token {
+			kind: TokenKind::StringLiteral(<>.unwrap_string_literal()),
 			file_key,
 		}
 	},
 	NON_HASH_PUNCT => {
 		let file_key = <>.file_key;
-		tok::Token {
-			kind: tok::TokenKind::Punct(<>.unwrap_punct()),
+		Token {
+			kind: TokenKind::Punct(<>.unwrap_punct()),
 			file_key,
 		}
 	},
 };
 
-PUNCT: tok::PPToken = {
+PUNCT: PPToken = {
 	"#" => <>,
 	NON_HASH_PUNCT => <>,
 };
 
-NON_HASH_PUNCT: tok::PPToken = {
+NON_HASH_PUNCT: PPToken = {
 	"##" => <>,
 	"(" => <>,
+	" (" => <>,
 	")" => <>,
 	"{" => <>,
 	"}" => <>,
@@ -170,21 +171,22 @@ extern {
 	type Location = usize;
 	type Error = diag::Error;
 
-	enum tok::PPToken {
-		HEADER_NAME => tok::PPToken{kind: tok::PPTokenKind::HeaderName(_), ..},
-		IDENT => tok::PPToken{kind: tok::PPTokenKind::Ident(_), ..},
-		PP_NUMBER => tok::PPToken{kind: tok::PPTokenKind::PPNumber(_), ..},
-		CHAR_CONST => tok::PPToken{kind: tok::PPTokenKind::CharConst(_), ..},
-		STRING_LITERAL => tok::PPToken{kind: tok::PPTokenKind::StringLiteral(_), ..},
-		"\n" => tok::PPToken{kind: tok::PPTokenKind::NewLine(_), ..},
-		"#" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::Hash), ..},
-		"##" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::HashHash), ..},
-		"(" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::LParen), ..},
-		")" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::RParen), ..},
-		"{" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::LCurly), ..},
-		"}" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::RCurly), ..},
-		"*" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::Star), ..},
-		"=" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::Equal), ..},
-		";" => tok::PPToken{kind: tok::PPTokenKind::Punct(tok::Punct::SemiColon), ..},
+	enum PPToken {
+		HEADER_NAME => PPToken{kind: PPTokenKind::HeaderName(_), ..},
+		IDENT => PPToken{kind: PPTokenKind::Ident(_), ..},
+		PP_NUMBER => PPToken{kind: PPTokenKind::PPNumber(_), ..},
+		CHAR_CONST => PPToken{kind: PPTokenKind::CharConst(_), ..},
+		STRING_LITERAL => PPToken{kind: PPTokenKind::StringLiteral(_), ..},
+		"\n" => PPToken{kind: PPTokenKind::NewLine(_), ..},
+		"#" => PPToken{kind: PPTokenKind::Punct(Punct::Hash), ..},
+		"##" => PPToken{kind: PPTokenKind::Punct(Punct::HashHash), ..},
+		"(" => PPToken{kind: PPTokenKind::Punct(Punct::LParen), leading_space: false, ..},
+		" (" => PPToken{kind: PPTokenKind::Punct(Punct::LParen), leading_space: true, ..},
+		")" => PPToken{kind: PPTokenKind::Punct(Punct::RParen), ..},
+		"{" => PPToken{kind: PPTokenKind::Punct(Punct::LCurly), ..},
+		"}" => PPToken{kind: PPTokenKind::Punct(Punct::RCurly), ..},
+		"*" => PPToken{kind: PPTokenKind::Punct(Punct::Star), ..},
+		"=" => PPToken{kind: PPTokenKind::Punct(Punct::Equal), ..},
+		";" => PPToken{kind: PPTokenKind::Punct(Punct::SemiColon), ..},
 	}
 }
