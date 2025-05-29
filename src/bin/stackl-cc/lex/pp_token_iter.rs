@@ -1,83 +1,68 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::tok::PPToken;
 
 use super::lexer::Lexer;
 use crate::diag::lex;
 
-enum Queue {
+pub enum StackKind {
 	Buffer(Vec<lex::ResultTriple<PPToken, usize>>),
 	Lexer(Lexer),
 }
 
-pub struct PPTokenQueue {
-	stack: Vec<Queue>,
-	peeked: Option<Option<lex::ResultTriple<PPToken, usize>>>,
+#[derive(Default)]
+pub struct PPTokenStack {
+	stack: Vec<StackKind>,
 }
 
-impl PPTokenQueue {
-	pub fn new() -> Self {
-		Self {
-			stack: Vec::new(),
-			peeked: None,
-		}
-	}
+impl PPTokenStack {
 	pub fn push_lexer(&mut self, lexer: Lexer) {
-		if let Some(Some(pp_token)) = self.peeked.take() {
-			match self.stack.last_mut() {
-				Some(Queue::Buffer(buffer)) => buffer.push(pp_token),
-				_ => {
-					let buffer = vec![pp_token];
-					self.stack.push(Queue::Buffer(buffer))
-				}
-			}
-		}
-		self.stack.push(Queue::Lexer(lexer));
+		self.stack.push(StackKind::Lexer(lexer));
 	}
 	pub fn push_token(&mut self, hi: usize, pp_token: PPToken, lo: usize) {
-		if let Some(Some(pp_token)) = self.peeked.take() {
-			match self.stack.last_mut() {
-				Some(Queue::Buffer(buffer)) => buffer.push(pp_token),
-				_ => {
-					let buffer = vec![pp_token];
-					self.stack.push(Queue::Buffer(buffer))
-				}
-			}
-		}
 		match self.stack.last_mut() {
-			Some(Queue::Buffer(buffer)) => buffer.push(Ok((hi, pp_token, lo))),
+			Some(StackKind::Buffer(buffer)) => buffer.push(Ok((hi, pp_token, lo))),
 			_ => {
 				let buffer = vec![Ok((hi, pp_token, lo))];
-				self.stack.push(Queue::Buffer(buffer))
+				self.stack.push(StackKind::Buffer(buffer))
 			}
 		}
 	}
-	pub fn peek(&mut self) -> Option<&lex::ResultTriple<PPToken, usize>> {
-		let iter = &mut self.stack;
-		self.peeked.get_or_insert_with(|| next_token(iter)).as_ref()
+	fn next_token(&mut self) -> Option<lex::ResultTriple<PPToken, usize>> {
+		while let Some(queue) = self.stack.last_mut() {
+			if let StackKind::Buffer(buffer) = queue {
+				if let Some(result) = buffer.pop() {
+					return Some(result);
+				}
+			} else if let StackKind::Lexer(lexer) = queue {
+				if let Some(result) = lexer.next() {
+					return Some(result);
+				}
+			}
+			self.stack.pop();
+		}
+		None
 	}
 }
 
-impl Iterator for PPTokenQueue {
+pub struct PPTokenIter {
+	pub stack_ref: Rc<RefCell<PPTokenStack>>,
+}
+
+impl From<Lexer> for PPTokenIter {
+	fn from(value: Lexer) -> Self {
+		let pp_token_stack = PPTokenStack {
+			stack: vec![StackKind::Lexer(value)],
+		};
+		Self {
+			stack_ref: Rc::new(RefCell::new(pp_token_stack)),
+		}
+	}
+}
+
+impl Iterator for PPTokenIter {
 	type Item = lex::ResultTriple<PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
-		match self.peeked.take() {
-			Some(v) => v,
-			None => next_token(&mut self.stack),
-		}
+		self.stack_ref.borrow_mut().next_token()
 	}
-}
-
-fn next_token(iter: &mut Vec<Queue>) -> Option<lex::ResultTriple<PPToken, usize>> {
-	while let Some(queue) = iter.last_mut() {
-		if let Queue::Buffer(buffer) = queue {
-			if let Some(result) = buffer.pop() {
-				return Some(result);
-			}
-		} else if let Queue::Lexer(lexer) = queue {
-			if let Some(result) = lexer.next() {
-				return Some(result);
-			}
-		}
-		iter.pop();
-	}
-	None
 }

@@ -1,8 +1,12 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::tok;
 use crate::diag::lex;
 use lalrpop_util as lalr;
+use crate::lex::PPTokenStack;
 
-grammar;
+grammar<'a>(iter: &'a Rc<RefCell<PPTokenStack>>);
 
 pub Tokens: Vec<tok::Token> = Group => <>;
 

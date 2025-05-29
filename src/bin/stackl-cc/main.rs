@@ -1,4 +1,6 @@
-use std::{fs, io::Read, process::ExitCode};
+use std::{cell::RefCell, fs, io::Read, process::ExitCode, rc::Rc};
+
+use lex::StackKind;
 
 // use ast::ExternalDeclaration;
 // use cli::PreprocStdout;
@@ -12,15 +14,17 @@ mod syn;
 mod tok;
 
 fn main() -> ExitCode {
-	let _args = cli::Args::parse();
+	let args = cli::Args::parse();
 	// let diagnostics = diag::DiagnosticEngine::new();
-	let mut queue = lex::PPTokenQueue::new();
-	let mut file = fs::File::open(_args.in_file).unwrap();
+	let mut file = fs::File::open(args.in_file).unwrap();
 	let mut buffer = String::new();
 	file.read_to_string(&mut buffer).unwrap();
 	let lexer = lex::lexer::Lexer::new(buffer, 0);
-	queue.push_lexer(lexer);
-	let tokens = lex::grammar::TokensParser::new().parse(queue).unwrap();
+	let mut queue = lex::PPTokenIter::from(lexer);
+	let stack_ref = Rc::clone(&queue.stack_ref);
+	let tokens = lex::grammar::TokensParser::new()
+		.parse(&stack_ref, queue)
+		.unwrap();
 	eprintln!("{tokens:?}");
 	// if args.pp_stdout != PreprocStdout::Disabled {
 	// 	let preproc_string = preproc.to_string(args.pp_stdout);
