@@ -23,7 +23,7 @@ pub enum IntegerSuffix {
 	ULL,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IntegerConstant {
 	U32(u32),
 	I32(i32),
@@ -33,7 +33,7 @@ pub enum IntegerConstant {
 	I128(i128),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FloatingConstant {
 	F32(f32),
 	F64(f64),
@@ -41,7 +41,7 @@ pub enum FloatingConstant {
 	Long(f64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Constant {
 	Integer(IntegerConstant),
 	Floating(FloatingConstant),
@@ -234,7 +234,7 @@ pub struct NewLine {
 	pub is_deleted: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenKind {
 	Keyword(Keyword),
 	Ident(Ident),
@@ -320,7 +320,7 @@ impl TryFrom<PPNumber> for TokenKind {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
 	pub kind: TokenKind,
 	pub file_key: usize,

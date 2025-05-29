@@ -14,9 +14,10 @@ fn main() {
 		.emit_rerun_directives(true)
 		.process()
 		.unwrap();
-	// lalrpop::Configuration::new()
-	// 	.set_in_dir("src/bin/stackl-cc/syn")
-	// 	.set_out_dir(out_dir + "src/bin/stackl-cc/syn")
-	// 	.process()
-	// 	.unwrap();
+	lalrpop::Configuration::new()
+		.set_in_dir("src/bin/stackl-cc/syn")
+		.set_out_dir(out_dir + "/bin/stackl-cc/syn")
+		.emit_rerun_directives(true)
+		.process()
+		.unwrap();
 }

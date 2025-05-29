@@ -1,6 +1,6 @@
 use crate::diag::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Keyword {
 	Auto,

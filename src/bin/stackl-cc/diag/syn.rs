@@ -1,6 +1,8 @@
 use std::result;
+
+#[derive(Debug)]
 pub enum Error {
 	Unknown,
 }
 
-pub type Result<T> = result::Result<T, Error>;
+pub type ResultTriple<Tok, Loc> = result::Result<(Loc, Tok, Loc), Error>;

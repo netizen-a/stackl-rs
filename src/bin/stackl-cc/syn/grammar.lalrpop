@@ -1,0 +1,154 @@
+use crate::syn::*;
+use crate::tok::*;
+
+use crate::diag::syn::Error as SyntaxError;
+
+grammar;
+
+pub TranslationUnit: TranslationUnit = ExternalDeclaration+ => {
+	TranslationUnit {
+		external_declaration: <>,
+	}
+};
+
+ExternalDeclaration: ExternalDeclaration = {
+	// FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
+	Declaration => ExternalDeclaration::Declaration(<>),
+};
+
+Declaration: Declaration = {
+	DeclarationSpecifiers InitDeclaratorList? ";" => todo!(),
+};
+
+DeclarationSpecifiers: Vec<DeclarationSpecifier> = {
+	StorageClassSpecifier DeclarationSpecifiers? => todo!(),
+	// TypeSpecifier DeclarationSpecifiers? => todo!(),
+	// TypeQualifier DeclarationSpecifiers? => todo!(),
+	// FunctionSpecifier DeclarationSpecifiers? => todo!(),
+};
+
+InitDeclaratorList: Vec<InitDeclarator> = {
+	InitDeclarator => vec![<>],
+	InitDeclaratorList "," InitDeclarator => todo!(),
+};
+
+InitDeclarator: InitDeclarator = {
+	Declarator => todo!(),
+	Declarator "=" Initializer => todo!(),
+};
+
+StorageClassSpecifier: Keyword = {
+	TYPEDEF => todo!(),
+	EXTERN => todo!(),
+	STATIC => todo!(),
+	AUTO => todo!(),
+	REGISTER => todo!(),
+}
+
+TypeSpecifier: TypeSpecifier = {
+	VOID => todo!(),
+	CHAR => todo!(),
+	SHORT => todo!(),
+	INT => todo!(),
+	LONG => todo!(),
+	FLOAT => todo!(),
+	DOUBLE => todo!(),
+	SIGNED => todo!(),
+	UNSIGNED => todo!(),
+	BOOL => todo!(),
+	// struct-or-union-specifier
+	// enum-specifier
+	// typedef-name
+};
+
+TypeQualifier: Keyword = {
+	CONST => todo!(),
+	RESTRICT => todo!(),
+	VOLATILE => todo!(),
+};
+
+Declarator: Declarator = {
+	Pointer? DirectDeclarator => todo!(),
+};
+
+DirectDeclarator: DirectDeclarator = {
+	IDENT => todo!(),
+	"(" Declarator ")" => todo!(),
+	// DirectDeclarator "[" TypeQualifierList? AssignmentExpression? "]" => todo!(),
+	// DirectDeclarator "[" STATIC TypeQualifierList? AssignmentExpression "]" => todo!(),
+	// DirectDeclarator "[" TypeQualifierList STATIC AssignmentExpression "]" => todo!(),
+	// DirectDeclarator "[" TypeQualifierList? "*" "]" => todo!(),
+	// DirectDeclarator "(" ParameterTypeList ")" => todo!(),
+	// DirectDeclarator "(" IdentifierList? ")" => todo!(),
+};
+
+Pointer: Pointer = {
+	"*" TypeQualifierList? => todo!(),
+	"*" TypeQualifierList? Pointer => todo!(),
+};
+
+TypeQualifierList: TypeQualifierList = {
+	TypeQualifier+ => todo!(),
+};
+
+Initializer: Initializer = {
+	// AssignmentExpression => todo!(),
+	"{" InitializerList "}" => todo!(),
+	"{" InitializerList "," "}" => todo!(),
+};
+
+InitializerList: InitializerList = {
+	Designation? Initializer => todo!(),
+	InitializerList "," Designation? Initializer => todo!(),
+};
+
+Designation: Designation = {
+	DesignatorList "=" => todo!(),
+};
+
+DesignatorList: DesignatorList = {
+	Designator+ => todo!(),
+};
+
+Designator: Designator = {
+	// "[" ConstantExpression "]" => todo!(),
+	"." IDENT => todo!(),
+};
+
+extern {
+	type Location = usize;
+	type Error = SyntaxError;
+
+	enum Token {
+		IDENT => Token{kind: TokenKind::Ident(_), ..},
+		TYPEDEF => Token{kind: TokenKind::Keyword(Keyword::Typedef), ..},
+		EXTERN => Token{kind: TokenKind::Keyword(Keyword::Extern), ..},
+		STATIC => Token{kind: TokenKind::Keyword(Keyword::Static), ..},
+		AUTO => Token{kind: TokenKind::Keyword(Keyword::Auto), ..},
+		REGISTER => Token{kind: TokenKind::Keyword(Keyword::Register), ..},
+		VOID => Token{kind: TokenKind::Keyword(Keyword::Void), ..},
+		CHAR => Token{kind: TokenKind::Keyword(Keyword::Char), ..},
+		SHORT => Token{kind: TokenKind::Keyword(Keyword::Short), ..},
+		INT => Token{kind: TokenKind::Keyword(Keyword::Int), ..},
+		LONG => Token{kind: TokenKind::Keyword(Keyword::Long), ..},
+		FLOAT => Token{kind: TokenKind::Keyword(Keyword::Float), ..},
+		DOUBLE => Token{kind: TokenKind::Keyword(Keyword::Double), ..},
+		SIGNED => Token{kind: TokenKind::Keyword(Keyword::Signed), ..},
+		UNSIGNED => Token{kind: TokenKind::Keyword(Keyword::Unsigned), ..},
+		BOOL => Token{kind: TokenKind::Keyword(Keyword::Bool), ..},
+		CONST => Token{kind: TokenKind::Keyword(Keyword::Const), ..},
+		RESTRICT => Token{kind: TokenKind::Keyword(Keyword::Restrict), ..},
+		VOLATILE => Token{kind: TokenKind::Keyword(Keyword::Volatile), ..},
+
+		"." => Token{kind: TokenKind::Punct(Punct::Dot), ..},
+		"," => Token{kind: TokenKind::Punct(Punct::Comma), ..},
+		"=" => Token{kind: TokenKind::Punct(Punct::Equal), ..},
+		"*" => Token{kind: TokenKind::Punct(Punct::Star), ..},
+		"{" => Token{kind: TokenKind::Punct(Punct::LCurly), ..},
+		"}" => Token{kind: TokenKind::Punct(Punct::RCurly), ..},
+		";" => Token{kind: TokenKind::Punct(Punct::SemiColon), ..},
+		"(" => Token{kind: TokenKind::Punct(Punct::LParen), ..},
+		")" => Token{kind: TokenKind::Punct(Punct::RParen), ..},
+		
+	}
+}
