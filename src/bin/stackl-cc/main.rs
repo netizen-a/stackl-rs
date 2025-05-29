@@ -1,6 +1,4 @@
-use std::{cell::RefCell, fs, io::Read, process::ExitCode, rc::Rc};
-
-use lex::StackKind;
+use std::{cell::RefCell, fs, io::Read, path::PathBuf, process::ExitCode, rc::Rc};
 
 // use ast::ExternalDeclaration;
 // use cli::PreprocStdout;
@@ -16,14 +14,16 @@ mod tok;
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
 	// let diagnostics = diag::DiagnosticEngine::new();
+	let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
+	file_map.insert(0, args.in_file.clone());
 	let mut file = fs::File::open(args.in_file).unwrap();
 	let mut buffer = String::new();
 	file.read_to_string(&mut buffer).unwrap();
 	let lexer = lex::lexer::Lexer::new(buffer, 0);
-	let mut queue = lex::PPTokenIter::from(lexer);
+	let queue = lex::PPTokenIter::from(lexer);
 	let stack_ref = Rc::clone(&queue.stack_ref);
 	let tokens = lex::grammar::TokensParser::new()
-		.parse(&stack_ref, queue)
+		.parse(&mut file_map, &stack_ref, queue)
 		.unwrap();
 	eprintln!("{tokens:?}");
 	// if args.pp_stdout != PreprocStdout::Disabled {

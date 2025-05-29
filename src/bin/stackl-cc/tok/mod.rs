@@ -84,7 +84,7 @@ impl PPNumber {
 			chars.any(|c| c == 'e' || c == 'E')
 		}
 	}
-	fn floating_constant(&self) -> lex::Result<Token> {
+	fn floating_constant(&self) -> lex::Result<TokenKind> {
 		let mut chars = self.name.chars().peekable();
 		let c = chars.next().expect("empty pp-number");
 		if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
@@ -136,11 +136,11 @@ impl PPNumber {
 				}
 				_ => unreachable!(),
 			};
-			Ok(Token::Constant(Constant::Floating(floating)))
+			Ok(TokenKind::Constant(Constant::Floating(floating)))
 		}
 	}
 
-	fn integer_constant(&self) -> lex::Result<Token> {
+	fn integer_constant(&self) -> lex::Result<TokenKind> {
 		let mut chars = self.name.chars().peekable();
 		match chars.next().expect("empty pp-number") {
 			'0' => {
@@ -160,7 +160,7 @@ impl PPNumber {
 			}),
 		}
 	}
-	fn octal_constant(&self, mut chars: Peekable<Chars>) -> lex::Result<Token> {
+	fn octal_constant(&self, mut chars: Peekable<Chars>) -> lex::Result<TokenKind> {
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -183,13 +183,17 @@ impl PPNumber {
 				});
 			};
 			let constant = Constant::Integer(integer);
-			Ok(Token::Constant(constant))
+			Ok(TokenKind::Constant(constant))
 		} else {
 			todo!("error octal-constant")
 		}
 	}
 
-	fn decimal_constant(&self, mut name: String, mut chars: Peekable<Chars>) -> lex::Result<Token> {
+	fn decimal_constant(
+		&self,
+		mut name: String,
+		mut chars: Peekable<Chars>,
+	) -> lex::Result<TokenKind> {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
@@ -211,7 +215,7 @@ impl PPNumber {
 				});
 			};
 			let constant = Constant::Integer(integer);
-			Ok(Token::Constant(constant))
+			Ok(TokenKind::Constant(constant))
 		} else {
 			todo!("error decimal-constant")
 		}
@@ -231,7 +235,7 @@ pub struct NewLine {
 }
 
 #[derive(Debug)]
-pub enum Token {
+pub enum TokenKind {
 	Keyword(Keyword),
 	Ident(Ident),
 	Constant(Constant),
@@ -239,7 +243,7 @@ pub enum Token {
 	Punct(Punct),
 }
 
-impl Token {
+impl TokenKind {
 	pub fn is_keyword(&self) -> bool {
 		matches!(self, Self::Keyword(_))
 	}
@@ -287,25 +291,25 @@ impl Token {
 	}
 }
 
-impl From<Punct> for Token {
+impl From<Punct> for TokenKind {
 	fn from(value: Punct) -> Self {
 		Self::Punct(value)
 	}
 }
 
-impl From<Ident> for Token {
+impl From<Ident> for TokenKind {
 	fn from(value: Ident) -> Self {
 		Self::Ident(value)
 	}
 }
 
-impl From<StringLiteral> for Token {
+impl From<StringLiteral> for TokenKind {
 	fn from(value: StringLiteral) -> Self {
 		Self::StringLiteral(value)
 	}
 }
 
-impl TryFrom<PPNumber> for Token {
+impl TryFrom<PPNumber> for TokenKind {
 	type Error = lex::Error;
 	fn try_from(value: PPNumber) -> Result<Self, Self::Error> {
 		if value.is_float() {
@@ -314,6 +318,12 @@ impl TryFrom<PPNumber> for Token {
 			value.integer_constant()
 		}
 	}
+}
+
+#[derive(Debug)]
+pub struct Token {
+	pub kind: TokenKind,
+	pub file_key: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -362,6 +372,7 @@ impl From<Punct> for PPTokenKind {
 #[derive(Debug, Clone)]
 pub struct PPToken {
 	pub kind: PPTokenKind,
+	pub file_key: usize,
 	pub leading_spaces: usize,
 	pub leading_tabs: usize,
 }

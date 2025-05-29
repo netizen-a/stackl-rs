@@ -1,12 +1,19 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::io::{Read, BufReader};
+use std::fs;
+use std::path::PathBuf;
 
 use crate::tok;
-use crate::diag::lex;
+use crate::diag::lex as diag;
 use lalrpop_util as lalr;
 use crate::lex::PPTokenStack;
+use crate::lex::lexer::Lexer;
 
-grammar<'a>(iter: &'a Rc<RefCell<PPTokenStack>>);
+grammar<'a>(
+	file_map: &mut bimap::BiHashMap<usize, PathBuf>,
+	stack_ref: &'a Rc<RefCell<PPTokenStack>>
+);
 
 pub Tokens: Vec<tok::Token> = Group => <>;
 
@@ -26,7 +33,29 @@ GroupPart: Vec<tok::Token> = {
 };
 
 ControlLine: Vec<tok::Token> = {
-	"#" Include HEADER_NAME "\n" => {
+	// TODO: make this fallible
+	<hash:"#"> Include <header:HEADER_NAME> "\n" => {
+		let origin_path = file_map.get_by_left(&hash.file_key).unwrap();
+		let header_name = PathBuf::from(header.kind.to_name());
+		let full_path = origin_path.parent().unwrap().join(header_name);
+		let mut stack = stack_ref.borrow_mut();
+		let mut file = fs::File::open(&full_path).unwrap();
+		
+		let mut reader = BufReader::new(file);
+		let mut buf = String::new();
+		reader.read_to_string(&mut buf).unwrap();
+		drop(reader);
+
+		let file_key = if let Some(file_key) = file_map.get_by_right(&full_path) {
+			*file_key
+		} else {
+			let file_key = file_map.len();
+			file_map.insert(file_key, full_path);
+			file_key
+		};
+
+		let lexer = Lexer::new(buf, file_key);
+		stack.push_lexer(lexer);
 		vec![]
 	},
 };
@@ -45,20 +74,40 @@ PreprocessingToken: tok::Token = {
 		todo!("header-name");
 	},
 	IDENT => {
-		<>.unwrap_ident().into()
+		let file_key = <>.file_key;
+		tok::Token{
+			kind: <>.unwrap_ident().into(),
+			file_key,
+		}
 	},
 	PP_NUMBER => {
+		let file_key = <>.file_key;
 		let pp_num = <>.unwrap_pp_number();
-		tok::Token::try_from(pp_num).unwrap()
+		tok::Token {
+			kind: tok::TokenKind::try_from(pp_num).unwrap(),
+			file_key,
+		}
 	},
 	CHAR_CONST => {
-		tok::Token::Constant(tok::Constant::CharConst(<>.unwrap_char_const()))
+		let file_key = <>.file_key;
+		tok::Token {
+			kind: tok::TokenKind::Constant(tok::Constant::CharConst(<>.unwrap_char_const())),
+			file_key,
+		}
 	},
 	STRING_LITERAL => {
-		<>.unwrap_string_literal().into()
+		let file_key = <>.file_key;
+		tok::Token {
+			kind: <>.unwrap_string_literal().into(),
+			file_key,
+		}
 	},
 	PUNCT => {
-		tok::Token::Punct(<>)
+		let file_key = <>.file_key;
+		tok::Token {
+			kind: tok::TokenKind::Punct(<>.unwrap_punct()),
+			file_key,
+		}
 	}
 };
 
@@ -68,8 +117,8 @@ Include: tok::Ident = <lo:@L> <ident:IDENT> <hi:@R> =>? {
 		Ok(tok::Ident("include".to_string()))
 	} else {
 		Err(lalr::ParseError::User {
-			error: lex::Error{
-				kind: lex::ErrorKind::InvalidToken,
+			error: diag::Error{
+				kind: diag::ErrorKind::InvalidToken,
 				loc: (lo, hi)
 			}
 		})
@@ -77,31 +126,49 @@ Include: tok::Ident = <lo:@L> <ident:IDENT> <hi:@R> =>? {
 };
 
 NonHash: tok::Token = {
-	IDENT => <>.unwrap_ident().into(),
-	STRING_LITERAL => <>.unwrap_string_literal().into(),
-	NonHashPunct => <>.into(),
+	IDENT => {
+		let file_key = <>.file_key;
+		tok::Token{
+			kind: tok::TokenKind::Ident(<>.unwrap_ident()),
+			file_key,
+		}
+	},
+	STRING_LITERAL => {
+		let file_key = <>.file_key;
+		tok::Token {
+			kind: tok::TokenKind::StringLiteral(<>.unwrap_string_literal()),
+			file_key,
+		}
+	},
+	NON_HASH_PUNCT => {
+		let file_key = <>.file_key;
+		tok::Token {
+			kind: tok::TokenKind::Punct(<>.unwrap_punct()),
+			file_key,
+		}
+	},
 };
 
-PUNCT: tok::Punct = {
-	"#" => <>.unwrap_punct(),
-	NonHashPunct => <>,
+PUNCT: tok::PPToken = {
+	"#" => <>,
+	NON_HASH_PUNCT => <>,
 };
 
-NonHashPunct: tok::Punct = {
-	"##" => <>.unwrap_punct().into(),
-	"(" => <>.unwrap_punct().into(),
-	")" => <>.unwrap_punct().into(),
-	"{" => <>.unwrap_punct().into(),
-	"}" => <>.unwrap_punct().into(),
-	"*" => <>.unwrap_punct().into(),
-	"=" => <>.unwrap_punct().into(),
-	";" => <>. unwrap_punct().into(),
+NON_HASH_PUNCT: tok::PPToken = {
+	"##" => <>,
+	"(" => <>,
+	")" => <>,
+	"{" => <>,
+	"}" => <>,
+	"*" => <>,
+	"=" => <>,
+	";" => <>,
 };
 
 
 extern {
 	type Location = usize;
-	type Error = crate::diag::lex::Error;
+	type Error = diag::Error;
 
 	enum tok::PPToken {
 		HEADER_NAME => tok::PPToken{kind: tok::PPTokenKind::HeaderName(_), ..},

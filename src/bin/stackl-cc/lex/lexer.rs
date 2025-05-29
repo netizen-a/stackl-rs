@@ -86,6 +86,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::HeaderName(head_name),
+				file_key: self.file_key,
 				leading_spaces,
 				leading_tabs,
 			},
@@ -115,6 +116,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::Ident(ident),
+				file_key: self.file_key,
 				leading_spaces,
 				leading_tabs,
 			},
@@ -162,6 +164,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::CharConst(str_lit),
+				file_key: self.file_key,
 				leading_spaces,
 				leading_tabs,
 			},
@@ -203,6 +206,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::StringLiteral(str_lit),
+				file_key: self.file_key,
 				leading_spaces,
 				leading_tabs,
 			},
@@ -340,6 +344,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::NewLine(new_line),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -356,6 +361,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -399,6 +405,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::PPNumber(num),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -422,6 +429,7 @@ impl Iterator for Lexer {
 							lo,
 							tok::PPToken {
 								kind: tok::PPTokenKind::Punct(punct),
+								file_key: self.file_key,
 								leading_spaces,
 								leading_tabs,
 							},
@@ -468,6 +476,7 @@ impl Iterator for Lexer {
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::PPNumber(num),
+							file_key: self.file_key,
 							leading_spaces,
 							leading_tabs,
 						},
@@ -496,6 +505,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -525,6 +535,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -579,6 +590,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -599,6 +611,7 @@ impl Iterator for Lexer {
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::NewLine(new_line),
+							file_key: self.file_key,
 							leading_spaces,
 							leading_tabs,
 						},
@@ -634,6 +647,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -659,6 +673,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -680,6 +695,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -701,6 +717,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -722,6 +739,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
@@ -743,6 +761,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
+						file_key: self.file_key,
 						leading_spaces,
 						leading_tabs,
 					},
