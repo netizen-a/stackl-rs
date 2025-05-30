@@ -22,14 +22,13 @@ PrimaryExpression: PrimaryExpression = {
 
 PostfixExpression: PostfixExpression = {
 	PrimaryExpression => todo!(),
-	PostfixExpression "[" Expression "[" => todo!(),
+	PostfixExpression "[" Expression "]" => todo!(),
 	PostfixExpression "(" ArgumentExpressionList? ")" => todo!(),
 	PostfixExpression "." IDENT => todo!(),
 	PostfixExpression "->" IDENT => todo!(),
 	PostfixExpression "++" => todo!(),
 	PostfixExpression "--" => todo!(),
-	"(" TypeName ")" "{" InitializerList "}" => todo!(),
-	"(" TypeName ")" "{" InitializerList "," "}" => todo!(),
+	"(" TypeName ")" "{" InitializerList ","? "}" => todo!(),
 };
 
 ArgumentExpressionList: ArgumentExpressionList = {
@@ -163,9 +162,9 @@ DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+ => <>;
 
 DeclarationSpecifier: DeclarationSpecifier = {
 	StorageClassSpecifier => todo!(),
-	// TypeSpecifier => todo!(),
-	// TypeQualifier => todo!(),
-	// FunctionSpecifier => todo!(),
+	TypeSpecifier => todo!(),
+	TypeQualifier => todo!(),
+	FunctionSpecifier => todo!(),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -236,8 +235,7 @@ StructDeclarator: StructDeclarator = {
 };
 
 EnumSpecifier: EnumSpecifier = {
-	"enum" IDENT? "{" EnumeratorList "}" => todo!(),
-	"enum" IDENT? "{" EnumeratorList "," "}" => todo!(),
+	"enum" IDENT? "{" EnumeratorList ","? "}" => todo!(),
 	"enum" IDENT => todo!(),
 };
 
@@ -364,11 +362,7 @@ LabeledStatement: LabeledStatement = {
 };
 
 CompoundStatement: CompoundStatement = {
-	"{" BlockItemList? "}" => todo!(),
-};
-
-BlockItemList: BlockItemList = {
-	BlockItem+ => todo!(),
+	"{" BlockItem* "}" => todo!(),
 };
 
 BlockItem: BlockItem = {
@@ -397,7 +391,7 @@ JumpStatement: JumpStatment = {
 	"goto" IDENT ";" => todo!(),
 	"continue" ";" => todo!(),
 	"break" ";" => todo!(),
-	"return" Expression? => todo!(),
+	"return" Expression? ";" => todo!(),
 };
 
 
