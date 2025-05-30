@@ -5,26 +5,47 @@ use crate::diag::syn::Error as SyntaxError;
 
 grammar;
 
-pub TranslationUnit: TranslationUnit = ExternalDeclaration+ => {
-	TranslationUnit {
-		external_declaration: <>,
-	}
+
+// A.2.1 Expressions
+
+PrimaryExpression: PrimaryExpression = {
+	IDENT => todo!(),
+	CONST => todo!(),
+	STR_LIT => todo!(),
+	"(" Expression ")" => todo!(),
 };
 
-ExternalDeclaration: ExternalDeclaration = {
-	// FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
-	Declaration => ExternalDeclaration::Declaration(<>),
+PostfixExpression: PostfixExpression = {
+	PrimaryExpression => todo!(),
+	PostfixExpression "[" Expression "[" => todo!(),
+	PostfixExpression "(" ArgumentExpressionList? ")" => todo!(),
+	PostfixExpression "." IDENT => todo!(),
+	PostfixExpression "->" IDENT => todo!(),
+	PostfixExpression "++" => todo!(),
+	PostfixExpression "--" => todo!(),
+	"(" TypeName ")" "{" InitializerList "}" => todo!(),
+	"(" TypeName ")" "{" InitializerList "," "}" => todo!(),
 };
+
+ArgumentExpressionList: ArgumentExpressionList = {
+	AssignmentExpression => vec![<>],
+	AssignmentExpressionList "," AssignmentExpression => todo!(),
+};
+
+
+// A.2.2 Declarations
 
 Declaration: Declaration = {
 	DeclarationSpecifiers InitDeclaratorList? ";" => todo!(),
 };
 
-DeclarationSpecifiers: Vec<DeclarationSpecifier> = {
-	StorageClassSpecifier DeclarationSpecifiers? => todo!(),
-	// TypeSpecifier DeclarationSpecifiers? => todo!(),
-	// TypeQualifier DeclarationSpecifiers? => todo!(),
-	// FunctionSpecifier DeclarationSpecifiers? => todo!(),
+DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+ => <>;
+
+DeclarationSpecifier: DeclarationSpecifier = {
+	StorageClassSpecifier => todo!(),
+	// TypeSpecifier => todo!(),
+	// TypeQualifier => todo!(),
+	// FunctionSpecifier => todo!(),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -38,34 +59,85 @@ InitDeclarator: InitDeclarator = {
 };
 
 StorageClassSpecifier: Keyword = {
-	TYPEDEF => todo!(),
-	EXTERN => todo!(),
-	STATIC => todo!(),
-	AUTO => todo!(),
-	REGISTER => todo!(),
+	"typedef" => todo!(),
+	"extern" => todo!(),
+	"static" => todo!(),
+	"auto" => todo!(),
+	"register" => todo!(),
 }
 
 TypeSpecifier: TypeSpecifier = {
-	VOID => todo!(),
-	CHAR => todo!(),
-	SHORT => todo!(),
-	INT => todo!(),
-	LONG => todo!(),
-	FLOAT => todo!(),
-	DOUBLE => todo!(),
-	SIGNED => todo!(),
-	UNSIGNED => todo!(),
-	BOOL => todo!(),
-	// struct-or-union-specifier
-	// enum-specifier
-	// typedef-name
+	"void" => todo!(),
+	"char" => todo!(),
+	"short" => todo!(),
+	"int" => todo!(),
+	"long" => todo!(),
+	"float" => todo!(),
+	"double" => todo!(),
+	"signed" => todo!(),
+	"unsigned" => todo!(),
+	"_Bool" => todo!(),
+	StructOrUnionSpecifier => todo!(),
+	EnumSpecifier => todo!(),
+	TypedefName => todo!(),
+};
+
+StructOrUnionSpecifier: StructOrUnionSpecifier = {
+	StructOrUnion IDENT? "{" StructDeclarationList "}" => todo!(),
+	StructOrUnion IDENT => todo!(),
+};
+
+StructOrUnion: Keyword = {
+	"struct" => todo!(),
+	"union" => todo!(),
+};
+
+StructDeclarationList: StructDeclarationList = StructDeclaration+ => todo!();
+
+StructDeclaration: StructDeclaration = {
+	SpecifierQualifierList StructDeclaratorList ";" => todo!(),
+};
+
+SpecifierQualifierList: Vec<SpecifierQualifier> = SpecifierQualifier+ => <>;
+
+SpecifierQualifier: SpecifierQualifier = {
+	TypeSpecifier => todo!(),
+	TypeQualifier => todo!(),
+};
+
+StructDeclaratorList: Vec<StructDeclarator> = {
+	StructDeclarator => vec![<>],
+	StructDeclaratorList "," StructDeclarator => todo!(),
+};
+
+StructDeclarator: StructDeclarator = {
+	Declarator => todo!(),
+	Declarator? ":" ConstantExpression => todo!(),
+};
+
+EnumSpecifier: EnumSpecifier = {
+	"enum" IDENT? "{" EnumeratorList "}" => todo!(),
+	"enum" IDENT? "{" EnumeratorList "," "}" => todo!(),
+	"enum" IDENT => todo!(),
+};
+
+EnumeratorList: Vec<Enumerator> = {
+	Enumerator => vec![<>],
+	EnumeratorList "," Enumerator => todo!(),
+};
+
+Enumerator: Enumerator = {
+	EnumerationConstant => todo!(),
+	EnumerationConstant "=" ConstantExpression => todo!(),
 };
 
 TypeQualifier: Keyword = {
-	CONST => todo!(),
-	RESTRICT => todo!(),
-	VOLATILE => todo!(),
+	"const" => todo!(),
+	"restrict" => todo!(),
+	"volatile" => todo!(),
 };
+
+FunctionSpecifier: Keyword = "inline" => <>;
 
 Declarator: Declarator = {
 	Pointer? DirectDeclarator => todo!(),
@@ -74,12 +146,12 @@ Declarator: Declarator = {
 DirectDeclarator: DirectDeclarator = {
 	IDENT => todo!(),
 	"(" Declarator ")" => todo!(),
-	// DirectDeclarator "[" TypeQualifierList? AssignmentExpression? "]" => todo!(),
-	// DirectDeclarator "[" STATIC TypeQualifierList? AssignmentExpression "]" => todo!(),
-	// DirectDeclarator "[" TypeQualifierList STATIC AssignmentExpression "]" => todo!(),
-	// DirectDeclarator "[" TypeQualifierList? "*" "]" => todo!(),
-	// DirectDeclarator "(" ParameterTypeList ")" => todo!(),
-	// DirectDeclarator "(" IdentifierList? ")" => todo!(),
+	DirectDeclarator "[" TypeQualifierList? AssignmentExpression? "]" => todo!(),
+	DirectDeclarator "[" STATIC TypeQualifierList? AssignmentExpression "]" => todo!(),
+	DirectDeclarator "[" TypeQualifierList STATIC AssignmentExpression "]" => todo!(),
+	DirectDeclarator "[" TypeQualifierList? "*" "]" => todo!(),
+	DirectDeclarator "(" ParameterTypeList ")" => todo!(),
+	DirectDeclarator "(" IdentifierList? ")" => todo!(),
 };
 
 Pointer: Pointer = {
@@ -90,6 +162,44 @@ Pointer: Pointer = {
 TypeQualifierList: TypeQualifierList = {
 	TypeQualifier+ => todo!(),
 };
+
+ParameterTypeList: ParameterTypeList = {
+	ParameterList => todo!(),
+	ParameterList "," "..." => todo!(),
+};
+
+ParameterList: Vec<ParameterDeclaration> = {
+	ParameterDeclaration => vec![<>],
+	ParameterList "," ParameterDeclaration => todo!(),
+};
+
+ParameterDeclaration: ParameterDeclaration = {
+	DeclarationSpecifiers Declarator => todo!(),
+	DeclarationSpecifiers AbstractDeclarator? => todo!(),
+};
+
+IdentifierList: Vec<Ident> = {
+	IDENT => vec![<>],
+	IdentifierList "," IDENT => todo!(),
+};
+
+TypeName: TypeName = {
+	SpecifierQualifierList AbstractDeclarator? => todo!(),
+};
+
+AbstractDeclarator: AbstractDeclarator = {
+	Pointer => todo!(),
+	Pointer? DirectAbstractDeclarator => todo!(),
+};
+
+DirectAbstractDeclarator: DirectAbstractDeclarator = {
+	"(" AbstractDeclarator ")" => todo!(),
+	DirectAbstractDeclarator? "[" AssignmentExpression? "]" => todo!(),
+	DirectAbstractDeclarator? "[" "*" "]" => todo!(),
+	DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!(),
+};
+
+TypedefName: Ident = IDENT => <>;
 
 Initializer: Initializer = {
 	// AssignmentExpression => todo!(),
@@ -115,30 +225,108 @@ Designator: Designator = {
 	"." IDENT => todo!(),
 };
 
+
+// A.2.3 Statements
+
+Statement: Statement = {
+	LabeledStatement => todo!(),
+	CompoundStatement => todo!(),
+	ExpressionStatement => todo!(),
+	SelectionStatement => todo!(),
+	IterationStatement => todo!(),
+	JumpStatement => todo!(),
+};
+
+LabeledStatement: LabeledStatement = {
+	IDENT ":" Statement => todo!(),
+	"case" ConstantExpression ":" Statement => todo!(),
+	"default" ":" Statement => todo!(),
+};
+
+CompoundStatement: CompoundStatement = {
+	"{" BlockItemList? "}" => todo!(),
+};
+
+BlockItemList: BlockItemList = {
+	BlockItem+ => todo!(),
+};
+
+BlockItem: BlockItem = {
+	Declaration => todo!(),
+	Statement => todo!(),
+};
+
+ExpressionStatement: ExpressionStatement = {
+	Expression? ";" => todo!(),
+};
+
+SelectionStatement: SelectionStatement = {
+	"if" "(" Expression ")" Statement => todo!(),
+	"if" "(" Expression ")" Statement => "else" Statement => todo!(),
+	"switch" "(" Expression ")" Statement => todo!(),
+};
+
+IterationStatement: IterationStatment = {
+	"while" "(" Expression ")" Statement => todo!(),
+	"do" Statement "while" "(" Expression ")" ";"
+	"for" "(" Expression? ";" Expression? ";" Expression? ")" Statement => todo!(),
+	"for" "(" Declaration Expression? ";" Expression? ")" Statement => todo!(),
+};
+
+JumpStatement: JumpStatment = {
+	"goto" IDENT ";" => todo!(),
+	"continue" ";" => todo!(),
+	"break" ";" => todo!(),
+	"return" Expression? => todo!(),
+};
+
+
+// A.2.4 External definitions
+
+pub TranslationUnit: TranslationUnit = ExternalDeclaration+ => {
+	TranslationUnit {
+		external_declaration: <>,
+	}
+};
+
+ExternalDeclaration: ExternalDeclaration = {
+	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
+	Declaration => ExternalDeclaration::Declaration(<>),
+};
+
+FunctionDefinition: FunctionDefinition = {
+	DeclarationSpecifiers Declarator DeclarationList? CompoundStatement => todo!(),
+};
+
+DeclarationList: Vec<Declaration> = Declaration+ => <>;
+
+
 extern {
 	type Location = usize;
 	type Error = SyntaxError;
 
 	enum Token {
 		IDENT => Token{kind: TokenKind::Ident(_), ..},
-		TYPEDEF => Token{kind: TokenKind::Keyword(Keyword::Typedef), ..},
-		EXTERN => Token{kind: TokenKind::Keyword(Keyword::Extern), ..},
-		STATIC => Token{kind: TokenKind::Keyword(Keyword::Static), ..},
-		AUTO => Token{kind: TokenKind::Keyword(Keyword::Auto), ..},
-		REGISTER => Token{kind: TokenKind::Keyword(Keyword::Register), ..},
-		VOID => Token{kind: TokenKind::Keyword(Keyword::Void), ..},
-		CHAR => Token{kind: TokenKind::Keyword(Keyword::Char), ..},
-		SHORT => Token{kind: TokenKind::Keyword(Keyword::Short), ..},
-		INT => Token{kind: TokenKind::Keyword(Keyword::Int), ..},
-		LONG => Token{kind: TokenKind::Keyword(Keyword::Long), ..},
-		FLOAT => Token{kind: TokenKind::Keyword(Keyword::Float), ..},
-		DOUBLE => Token{kind: TokenKind::Keyword(Keyword::Double), ..},
-		SIGNED => Token{kind: TokenKind::Keyword(Keyword::Signed), ..},
-		UNSIGNED => Token{kind: TokenKind::Keyword(Keyword::Unsigned), ..},
-		BOOL => Token{kind: TokenKind::Keyword(Keyword::Bool), ..},
-		CONST => Token{kind: TokenKind::Keyword(Keyword::Const), ..},
-		RESTRICT => Token{kind: TokenKind::Keyword(Keyword::Restrict), ..},
-		VOLATILE => Token{kind: TokenKind::Keyword(Keyword::Volatile), ..},
+		"typedef" => Token{kind: TokenKind::Keyword(Keyword::Typedef), ..},
+		"extern" => Token{kind: TokenKind::Keyword(Keyword::Extern), ..},
+		"static" => Token{kind: TokenKind::Keyword(Keyword::Static), ..},
+		"auto" => Token{kind: TokenKind::Keyword(Keyword::Auto), ..},
+		"register" => Token{kind: TokenKind::Keyword(Keyword::Register), ..},
+		"void" => Token{kind: TokenKind::Keyword(Keyword::Void), ..},
+		"char" => Token{kind: TokenKind::Keyword(Keyword::Char), ..},
+		"short" => Token{kind: TokenKind::Keyword(Keyword::Short), ..},
+		"int" => Token{kind: TokenKind::Keyword(Keyword::Int), ..},
+		"long" => Token{kind: TokenKind::Keyword(Keyword::Long), ..},
+		"float" => Token{kind: TokenKind::Keyword(Keyword::Float), ..},
+		"double" => Token{kind: TokenKind::Keyword(Keyword::Double), ..},
+		"signed" => Token{kind: TokenKind::Keyword(Keyword::Signed), ..},
+		"unsigned" => Token{kind: TokenKind::Keyword(Keyword::Unsigned), ..},
+		"_Bool" => Token{kind: TokenKind::Keyword(Keyword::Bool), ..},
+		"const" => Token{kind: TokenKind::Keyword(Keyword::Const), ..},
+		"restrict" => Token{kind: TokenKind::Keyword(Keyword::Restrict), ..},
+		"volatile" => Token{kind: TokenKind::Keyword(Keyword::Volatile), ..},
+		"enum" => Token{kind: TokenKind::Keyword(Keyword::Enum), ..},
+		"struct" => Token{kind: TokenKind::Keyword(Keyword::Struct), ..},
 
 		"." => Token{kind: TokenKind::Punct(Punct::Dot), ..},
 		"," => Token{kind: TokenKind::Punct(Punct::Comma), ..},
@@ -149,6 +337,5 @@ extern {
 		";" => Token{kind: TokenKind::Punct(Punct::SemiColon), ..},
 		"(" => Token{kind: TokenKind::Punct(Punct::LParen), ..},
 		")" => Token{kind: TokenKind::Punct(Punct::RParen), ..},
-		
 	}
 }
