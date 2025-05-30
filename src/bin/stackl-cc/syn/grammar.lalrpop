@@ -5,7 +5,6 @@ use crate::diag::syn::Error as SyntaxError;
 
 grammar;
 
-/*
 // A.1.5 Constants
 
 EnumerationConstant: Ident = IDENT => <>;
@@ -150,7 +149,6 @@ ConstantExpression: ConstantExpression = {
 	ConditionalExpression => todo!(),
 };
 
-*/
 
 
 // A.2.2 Declarations
@@ -164,8 +162,8 @@ DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+ => <>;
 DeclarationSpecifier: DeclarationSpecifier = {
 	StorageClassSpecifier => todo!(),
 	TypeSpecifier => todo!(),
-	// TypeQualifier => todo!(),
-	// FunctionSpecifier => todo!(),
+	TypeQualifier => todo!(),
+	FunctionSpecifier => todo!(),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -197,12 +195,11 @@ TypeSpecifier: TypeSpecifier = {
 	"signed" => todo!(),
 	"unsigned" => todo!(),
 	"_Bool" => todo!(),
-	// StructOrUnionSpecifier => todo!(),
-	// EnumSpecifier => todo!(),
+	StructOrUnionSpecifier => todo!(),
+	EnumSpecifier => todo!(),
 	TypedefName => todo!(),
 };
 
-/*
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
 	StructOrUnion IDENT? "{" StructDeclarationList "}" => todo!(),
 	StructOrUnion IDENT => todo!(),
@@ -233,7 +230,7 @@ StructDeclaratorList: Vec<StructDeclarator> = {
 
 StructDeclarator: StructDeclarator = {
 	Declarator => todo!(),
-	Declarator? ":" ConstantExpression => todo!(),
+	// Declarator? ":" ConstantExpression => todo!(),
 };
 
 EnumSpecifier: EnumSpecifier = {
@@ -250,15 +247,15 @@ Enumerator: Enumerator = {
 	EnumerationConstant => todo!(),
 	EnumerationConstant "=" ConstantExpression => todo!(),
 };
-*/
+
 TypeQualifier: Keyword = {
 	"const" => todo!(),
 	"restrict" => todo!(),
 	"volatile" => todo!(),
 };
-/*
+
 FunctionSpecifier: Keyword = "inline" => <>;
-*/
+
 Declarator: Declarator = {
 	Pointer? DirectDeclarator => todo!(),
 };
@@ -269,16 +266,15 @@ DirectDeclarator: DirectDeclarator = {
 	// DirectDeclarator "[" TypeQualifier* AssignmentExpression? "]" => todo!(),
 	// DirectDeclarator "[" "static" TypeQualifier* AssignmentExpression "]" => todo!(),
 	// DirectDeclarator "[" TypeQualifier+ "static" AssignmentExpression "]" => todo!(),
-	// DirectDeclarator "[" TypeQualifier* "*" "]" => todo!(),
-	// DirectDeclarator "(" ParameterTypeList ")" => todo!(),
-	// DirectDeclarator "(" IdentifierList? ")" => todo!(),
+	DirectDeclarator "[" TypeQualifier* "*" "]" => todo!(),
+	DirectDeclarator "(" ParameterTypeList ")" => todo!(),
+	DirectDeclarator "(" IdentifierList? ")" => todo!(),
 };
 
 Pointer: Pointer = {
 	"*" TypeQualifier* => todo!(),
 	"*" TypeQualifier* Pointer => todo!(),
 };
-/*
 ParameterTypeList: ParameterTypeList = {
 	ParameterList => todo!(),
 	ParameterList "," "..." => todo!(),
@@ -308,14 +304,15 @@ AbstractDeclarator: AbstractDeclarator = {
 	Pointer? DirectAbstractDeclarator => todo!(),
 };
 
+
 DirectAbstractDeclarator: DirectAbstractDeclarator = {
 	"(" AbstractDeclarator ")" => todo!(),
-	DirectAbstractDeclarator? "[" AssignmentExpression? "]" => todo!(),
+	// DirectAbstractDeclarator? "[" AssignmentExpression? "]" => todo!(),
 	DirectAbstractDeclarator? "[" "*" "]" => todo!(),
-	DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!(),
+	// DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!(),
 };
 
-*/
+
 TypedefName: Ident = TYPE_NAME => todo!();
 
 Initializer: Initializer = {
@@ -360,14 +357,18 @@ LabeledStatement: LabeledStatement = {
 	"default" ":" Statement => todo!(),
 };
 
+*/
+
 CompoundStatement: CompoundStatement = {
 	"{" BlockItem* "}" => todo!(),
 };
 
 BlockItem: BlockItem = {
 	Declaration => todo!(),
-	Statement => todo!(),
+	// Statement => todo!(),
 };
+
+/*
 
 ExpressionStatement: ExpressionStatement = {
 	Expression? ";" => todo!(),
@@ -403,17 +404,15 @@ pub TranslationUnit: TranslationUnit = ExternalDeclaration+ => {
 };
 
 ExternalDeclaration: ExternalDeclaration = {
-	// FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
+	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
 	Declaration => ExternalDeclaration::Declaration(<>),
 };
 
-/*
 FunctionDefinition: FunctionDefinition = {
 	DeclarationSpecifiers Declarator DeclarationList? CompoundStatement => todo!(),
 };
 
 DeclarationList: Vec<Declaration> = Declaration+ => <>;
-*/
 
 extern {
 	type Location = usize;
