@@ -150,10 +150,11 @@ ConstantExpression: ConstantExpression = {
 	ConditionalExpression => todo!(),
 };
 
+*/
 
 
 // A.2.2 Declarations
-*/
+
 Declaration: Declaration = {
 	DeclarationSpecifiers InitDeclaratorList? ";" => todo!(),
 };
@@ -162,7 +163,7 @@ DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+ => <>;
 
 DeclarationSpecifier: DeclarationSpecifier = {
 	StorageClassSpecifier => todo!(),
-	// TypeSpecifier => todo!(),
+	TypeSpecifier => todo!(),
 	// TypeQualifier => todo!(),
 	// FunctionSpecifier => todo!(),
 };
@@ -184,7 +185,7 @@ StorageClassSpecifier: Keyword = {
 	"auto" => todo!(),
 	"register" => todo!(),
 }
-/*
+
 TypeSpecifier: TypeSpecifier = {
 	"void" => todo!(),
 	"char" => todo!(),
@@ -196,11 +197,12 @@ TypeSpecifier: TypeSpecifier = {
 	"signed" => todo!(),
 	"unsigned" => todo!(),
 	"_Bool" => todo!(),
-	StructOrUnionSpecifier => todo!(),
-	EnumSpecifier => todo!(),
+	// StructOrUnionSpecifier => todo!(),
+	// EnumSpecifier => todo!(),
 	TypedefName => todo!(),
 };
 
+/*
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
 	StructOrUnion IDENT? "{" StructDeclarationList "}" => todo!(),
 	StructOrUnion IDENT => todo!(),
@@ -313,8 +315,8 @@ DirectAbstractDeclarator: DirectAbstractDeclarator = {
 	DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!(),
 };
 
-TypedefName: Ident = IDENT => <>;
 */
+TypedefName: Ident = IDENT => <>;
 
 Initializer: Initializer = {
 	// AssignmentExpression => todo!(),
