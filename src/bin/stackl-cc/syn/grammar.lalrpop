@@ -342,46 +342,75 @@ Designator: Designator = {
 // A.2.3 Statements
 
 Statement: Statement = {
-	LabeledStatement => todo!(),
-	CompoundStatement => todo!(),
+	MatchedStatement,
+	UnmatchedStatement,
+};
+
+MatchedStatement: Statement = {
+	"if" "(" Expression ")" MatchedStatement "else" MatchedStatement,
+	"switch" "(" Expression ")" MatchedStatement => todo!(),
+	MatchedLabeledStatement => todo!(),
+	MatchedCompoundStatement => todo!(),
 	ExpressionStatement => todo!(),
-	SelectionStatement => todo!(),
-	IterationStatement => todo!(),
+	IterationMatchedStatement => todo!(),
 	JumpStatement => todo!(),
 };
 
-LabeledStatement: LabeledStatement = {
-	IDENT ":" Statement => todo!(),
-	"case" ConstantExpression ":" Statement => todo!(),
-	"default" ":" Statement => todo!(),
+UnmatchedStatement: Statement = {
+	"if" "(" Expression ")" UnmatchedStatement,
+	"if" "(" Expression ")" MatchedStatement "else" UnmatchedStatement,
+	"switch" "(" Expression ")" UnmatchedStatement => todo!(),
+	UnmatchedLabeledStatement => todo!(),
+	UnmatchedCompoundStatement => todo!(),
+	ExpressionStatement => todo!(),
+	IterationUnmatchedStatement => todo!(),
+	JumpStatement => todo!(),
+};
+
+MatchedLabeledStatement: LabeledStatement = {
+	IDENT ":" MatchedStatement => todo!(),
+	"case" ConstantExpression ":" MatchedStatement => todo!(),
+	"default" ":" MatchedStatement => todo!(),
+};
+UnmatchedLabeledStatement: LabeledStatement = {
+	IDENT ":" UnmatchedStatement => todo!(),
+	"case" ConstantExpression ":" UnmatchedStatement => todo!(),
+	"default" ":" UnmatchedStatement => todo!(),
 };
 
 
-CompoundStatement: CompoundStatement = {
-	"{" BlockItem* "}" => todo!(),
+MatchedCompoundStatement: CompoundStatement = {
+	"{" MatchedBlockItem* "}" => todo!(),
 };
 
-BlockItem: BlockItem = {
+UnmatchedCompoundStatement: CompoundStatement = {
+	"{" UnmatchedBlockItem* "}" => todo!(),
+};
+
+MatchedBlockItem: BlockItem = {
 	Declaration => todo!(),
-	// Statement => todo!(),
+	MatchedStatement => todo!(),
 };
-
+UnmatchedBlockItem: BlockItem = {
+	Declaration => todo!(),
+	UnmatchedStatement => todo!(),
+};
 
 ExpressionStatement: ExpressionStatement = {
 	Expression? ";" => todo!(),
 };
 
-SelectionStatement: SelectionStatement = {
-	"if" "(" Expression ")" Statement => todo!(),
-	"if" "(" Expression ")" Statement "else" Statement => todo!(),
-	"switch" "(" Expression ")" Statement => todo!(),
+IterationMatchedStatement: IterationStatement = {
+	"while" "(" Expression ")" MatchedStatement => todo!(),
+	"do" MatchedStatement "while" "(" Expression ")" ";"
+	"for" "(" Expression? ";" Expression? ";" Expression? ")" MatchedStatement => todo!(),
+	"for" "(" Declaration Expression? ";" Expression? ")" MatchedStatement => todo!(),
 };
-
-IterationStatement: IterationStatement = {
-	"while" "(" Expression ")" Statement => todo!(),
-	"do" Statement "while" "(" Expression ")" ";"
-	"for" "(" Expression? ";" Expression? ";" Expression? ")" Statement => todo!(),
-	"for" "(" Declaration Expression? ";" Expression? ")" Statement => todo!(),
+IterationUnmatchedStatement: IterationStatement = {
+	"while" "(" Expression ")" UnmatchedStatement => todo!(),
+	"do" UnmatchedStatement "while" "(" Expression ")" ";"
+	"for" "(" Expression? ";" Expression? ";" Expression? ")" UnmatchedStatement => todo!(),
+	"for" "(" Declaration Expression? ";" Expression? ")" UnmatchedStatement => todo!(),
 };
 
 JumpStatement: JumpStatement = {
@@ -405,7 +434,7 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	DeclarationSpecifiers Declarator DeclarationList? CompoundStatement => todo!(),
+	DeclarationSpecifiers Declarator DeclarationList? MatchedCompoundStatement => todo!(),
 };
 
 DeclarationList: Vec<Declaration> = Declaration+ => <>;
