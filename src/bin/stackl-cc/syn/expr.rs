@@ -40,16 +40,14 @@ pub enum UnaryOperator {
 pub enum PostfixExpression {
 	PrimaryExpression(PrimaryExpression),
 	Array(Expression),
-	ArgumentExpressionList(Option<ArgumentExpressionList>),
+	/// (6.5.2) argument-expression-list
+	ArgumentExpressionList(Vec<AssignmentExpression>),
 	Dot(tok::Ident),
 	Arrow(tok::Ident),
 	Increment,
 	Decrement,
 	TypeNameInitializerList(decl::TypeName, decl::InitializerList),
 }
-
-/// (6.5.2) argument-expression-list
-pub struct ArgumentExpressionList(Vec<AssignmentExpression>);
 
 /// (6.5.1) primary-expression
 pub enum PrimaryExpression {

@@ -7,7 +7,7 @@ grammar;
 
 // A.1.5 Constants
 
-EnumerationConstant: Ident = IDENT => <>;
+EnumerationConstant: Ident = IDENT => <>.kind.unwrap_ident();
 
 
 // A.2.1 Expressions
@@ -30,7 +30,7 @@ PostfixExpression: PostfixExpression = {
 	"(" TypeName ")" "{" InitializerList ","? "}" => todo!(),
 };
 
-ArgumentExpressionList: ArgumentExpressionList = {
+ArgumentExpressionList: Vec<AssignmentExpression> = {
 	AssignmentExpression => vec![<>],
 	ArgumentExpressionList "," AssignmentExpression => todo!(),
 };
@@ -254,7 +254,7 @@ TypeQualifier: Keyword = {
 	"volatile" => todo!(),
 };
 
-FunctionSpecifier: Keyword = "inline" => <>;
+FunctionSpecifier: Keyword = "inline" => <>.kind.unwrap_keyword();
 
 Declarator: Declarator = {
 	Pointer? DirectDeclarator => todo!(),
@@ -291,7 +291,7 @@ ParameterDeclaration: ParameterDeclaration = {
 };
 
 IdentifierList: Vec<Ident> = {
-	IDENT => vec![<>],
+	IDENT => vec![<>.kind.unwrap_ident()],
 	IdentifierList "," IDENT => todo!(),
 };
 
@@ -347,7 +347,7 @@ Statement: Statement = {
 };
 
 MatchedStatement: Statement = {
-	"if" "(" Expression ")" MatchedStatement "else" MatchedStatement,
+	"if" "(" Expression ")" MatchedStatement "else" MatchedStatement => todo!(),
 	"switch" "(" Expression ")" MatchedStatement => todo!(),
 	MatchedLabeledStatement => todo!(),
 	MatchedCompoundStatement => todo!(),
@@ -357,8 +357,8 @@ MatchedStatement: Statement = {
 };
 
 UnmatchedStatement: Statement = {
-	"if" "(" Expression ")" UnmatchedStatement,
-	"if" "(" Expression ")" MatchedStatement "else" UnmatchedStatement,
+	"if" "(" Expression ")" UnmatchedStatement => todo!(),
+	"if" "(" Expression ")" MatchedStatement "else" UnmatchedStatement => todo!(),
 	"switch" "(" Expression ")" UnmatchedStatement => todo!(),
 	UnmatchedLabeledStatement => todo!(),
 	UnmatchedCompoundStatement => todo!(),
