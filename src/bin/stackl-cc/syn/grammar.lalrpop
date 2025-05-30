@@ -307,16 +307,16 @@ AbstractDeclarator: AbstractDeclarator = {
 
 DirectAbstractDeclarator: DirectAbstractDeclarator = {
 	"(" AbstractDeclarator ")" => todo!(),
-	// DirectAbstractDeclarator? "[" AssignmentExpression? "]" => todo!(),
+	DirectAbstractDeclarator? "[" AssignmentExpression? "]" => todo!(),
 	DirectAbstractDeclarator? "[" "*" "]" => todo!(),
-	// DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!(),
+	DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!(),
 };
 
 
 TypedefName: Ident = TYPE_NAME => todo!();
 
 Initializer: Initializer = {
-	// AssignmentExpression => todo!(),
+	AssignmentExpression => todo!(),
 	"{" InitializerList ","? "}" => todo!(),
 };
 
@@ -334,20 +334,19 @@ DesignatorList: DesignatorList = {
 };
 
 Designator: Designator = {
-	// "[" ConstantExpression "]" => todo!(),
+	"[" ConstantExpression "]" => todo!(),
 	"." IDENT => todo!(),
 };
 
-/*
 
 // A.2.3 Statements
 
 Statement: Statement = {
 	LabeledStatement => todo!(),
-	CompoundStatement => todo!(),
-	ExpressionStatement => todo!(),
-	SelectionStatement => todo!(),
-	IterationStatement => todo!(),
+	// CompoundStatement => todo!(),
+	// ExpressionStatement => todo!(),
+	// SelectionStatement => todo!(),
+	// IterationStatement => todo!(),
 	JumpStatement => todo!(),
 };
 
@@ -357,7 +356,6 @@ LabeledStatement: LabeledStatement = {
 	"default" ":" Statement => todo!(),
 };
 
-*/
 
 CompoundStatement: CompoundStatement = {
 	"{" BlockItem* "}" => todo!(),
@@ -387,13 +385,14 @@ IterationStatement: IterationStatment = {
 	"for" "(" Declaration Expression? ";" Expression? ")" Statement => todo!(),
 };
 
-JumpStatement: JumpStatment = {
+*/
+
+JumpStatement: JumpStatement = {
 	"goto" IDENT ";" => todo!(),
 	"continue" ";" => todo!(),
 	"break" ";" => todo!(),
 	"return" Expression? ";" => todo!(),
 };
-*/
 
 // A.2.4 External definitions
 

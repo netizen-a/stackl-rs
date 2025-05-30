@@ -45,7 +45,7 @@ pub enum PostfixExpression {
 	Arrow(tok::Ident),
 	Increment,
 	Decrement,
-	TypeNameInitializerList(TypeName, decl::InitializerList),
+	TypeNameInitializerList(decl::TypeName, decl::InitializerList),
 }
 
 /// (6.5.2) argument-expression-list
@@ -154,13 +154,7 @@ pub enum MultiplicativeExpression {
 /// (6.5.4) cast-expression
 pub enum CastExpression {
 	UnaryExpression(Box<UnaryExpression>),
-	TypeName(TypeName, Box<CastExpression>),
-}
-
-/// (6.7.6) type-name
-pub struct TypeName {
-	specifier_qualifier_list: decl::SpecifierQualifierList,
-	abstract_declarator: Option<decl::AbstractDeclarator>,
+	TypeName(decl::TypeName, Box<CastExpression>),
 }
 
 /// (6.6) constant-expression
