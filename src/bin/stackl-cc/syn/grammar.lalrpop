@@ -6,6 +6,11 @@ use crate::diag::syn::Error as SyntaxError;
 grammar;
 
 
+// A.1.5 Constants
+
+EnumerationConstant: Ident = IDENT => <>;
+
+
 // A.2.1 Expressions
 
 PrimaryExpression: PrimaryExpression = {
@@ -29,8 +34,123 @@ PostfixExpression: PostfixExpression = {
 
 ArgumentExpressionList: ArgumentExpressionList = {
 	AssignmentExpression => vec![<>],
-	AssignmentExpressionList "," AssignmentExpression => todo!(),
+	ArgumentExpressionList "," AssignmentExpression => todo!(),
 };
+
+UnaryExpression: UnaryExpression = {
+	PostfixExpression => todo!(),
+	"++" UnaryExpression => todo!(),
+	"--" UnaryExpression => todo!(),
+	UnaryOperator CastExpression => todo!(),
+	"sizeof" UnaryExpression => todo!(),
+	"sizeof" "(" TypeName ")" => todo!(),
+};
+
+UnaryOperator: UnaryOperator = {
+	"&" => todo!(),
+	"*" => todo!(),
+	"+" => todo!(),
+	"-" => todo!(),
+	"~" => todo!(),
+	"!" => todo!(),
+};
+
+CastExpression: CastExpression = {
+	UnaryExpression => todo!(),
+	"(" TypeName ")" CastExpression => todo!(),
+};
+
+MultiplicativeExpression: MultiplicativeExpression = {
+	CastExpression => todo!(),
+	MultiplicativeExpression "*" CastExpression => todo!(),
+	MultiplicativeExpression "/" CastExpression => todo!(),
+	MultiplicativeExpression "%" CastExpression => todo!(),
+};
+
+AdditiveExpression: AdditiveExpression = {
+	MultiplicativeExpression => todo!(),
+	AdditiveExpression "+" MultiplicativeExpression => todo!(),
+	AdditiveExpression "-" MultiplicativeExpression => todo!(),
+};
+
+ShiftExpression: ShiftExpression = {
+	AdditiveExpression => todo!(),
+	ShiftExpression "<<" AdditiveExpression => todo!(),
+	ShiftExpression ">>" AdditiveExpression => todo!(),
+};
+
+RelationalExpression: RelationalExpression = {
+	ShiftExpression => todo!(),
+	RelationalExpression "<" ShiftExpression => todo!(),
+	RelationalExpression ">" ShiftExpression => todo!(),
+	RelationalExpression "<=" ShiftExpression => todo!(),
+	RelationalExpression ">=" ShiftExpression => todo!(),
+};
+
+EqualityExpression: EqualityExpression = {
+	RelationalExpression => todo!(),
+	EqualityExpression "==" RelationalExpression => todo!(),
+	EqualityExpression "!=" RelationalExpression => todo!(),
+};
+
+AndExpression: AndExpression = {
+	EqualityExpression => todo!(),
+	AndExpression "&" EqualityExpression => todo!(),
+};
+
+ExclusiveOrExpression: ExclusiveOrExpression = {
+	AndExpression => todo!(),
+	ExclusiveOrExpression "^" AndExpression => todo!(),
+};
+
+InclusiveOrExpression: InclusiveOrExpression = {
+	ExclusiveOrExpression => todo!(),
+	InclusiveOrExpression "|" ExclusiveOrExpression => todo!(),
+};
+
+LogicalAndExpression: LogicalAndExpression = {
+	InclusiveOrExpression => todo!(),
+	LogicalAndExpression "&&" InclusiveOrExpression => todo!(),
+};
+
+LogicalOrExpression: LogicalOrExpression = {
+	LogicalAndExpression => todo!(),
+	LogicalOrExpression "||" LogicalAndExpression => todo!(),
+};
+
+ConditionalExpression: ConditionalExpression = {
+	LogicalOrExpression => todo!(),
+	LogicalOrExpression "?" Expression ":" ConditionalExpression => todo!(),
+};
+
+AssignmentExpression: AssignmentExpression = {
+	ConditionalExpression => todo!(),
+	UnaryExpression AssignmentOperator AssignmentExpression => todo!(),
+};
+
+AssignmentOperator: AssignmentOperator = {
+	"=" => todo!(),
+	"*=" => todo!(),
+	"/=" => todo!(),
+	"%=" => todo!(),
+	"+=" => todo!(),
+	"-=" => todo!(),
+	"<<=" => todo!(),
+	">>=" => todo!(),
+	"&=" => todo!(),
+	"^=" => todo!(),
+	"|=" => todo!(),
+};
+
+Expression: Expression = {
+	AssignmentExpression => todo!(),
+	Expression "," AssignmentExpression => todo!(),
+};
+
+ConstantExpression: ConstantExpression = {
+	ConditionalExpression => todo!(),
+};
+
 
 
 // A.2.2 Declarations
@@ -147,8 +267,8 @@ DirectDeclarator: DirectDeclarator = {
 	IDENT => todo!(),
 	"(" Declarator ")" => todo!(),
 	DirectDeclarator "[" TypeQualifierList? AssignmentExpression? "]" => todo!(),
-	DirectDeclarator "[" STATIC TypeQualifierList? AssignmentExpression "]" => todo!(),
-	DirectDeclarator "[" TypeQualifierList STATIC AssignmentExpression "]" => todo!(),
+	DirectDeclarator "[" "static" TypeQualifierList? AssignmentExpression "]" => todo!(),
+	DirectDeclarator "[" TypeQualifierList "static" AssignmentExpression "]" => todo!(),
 	DirectDeclarator "[" TypeQualifierList? "*" "]" => todo!(),
 	DirectDeclarator "(" ParameterTypeList ")" => todo!(),
 	DirectDeclarator "(" IdentifierList? ")" => todo!(),
@@ -307,6 +427,9 @@ extern {
 
 	enum Token {
 		IDENT => Token{kind: TokenKind::Ident(_), ..},
+		CONST => Token{kind: TokenKind::Const(_), ..},
+		STR_LIT => Token{kind: TokenKind::StrLit(_), ..},
+
 		"typedef" => Token{kind: TokenKind::Keyword(Keyword::Typedef), ..},
 		"extern" => Token{kind: TokenKind::Keyword(Keyword::Extern), ..},
 		"static" => Token{kind: TokenKind::Keyword(Keyword::Static), ..},
@@ -327,15 +450,67 @@ extern {
 		"volatile" => Token{kind: TokenKind::Keyword(Keyword::Volatile), ..},
 		"enum" => Token{kind: TokenKind::Keyword(Keyword::Enum), ..},
 		"struct" => Token{kind: TokenKind::Keyword(Keyword::Struct), ..},
+		"sizeof" => Token{kind: TokenKind::Keyword(Keyword::Sizeof), ..},
+		"union" => Token{kind: TokenKind::Keyword(Keyword::Union), ..},
+		"inline" => Token{kind: TokenKind::Keyword(Keyword::Inline), ..},
+		"case" => Token{kind: TokenKind::Keyword(Keyword::Case), ..},
+		"default" => Token{kind: TokenKind::Keyword(Keyword::Default), ..},
+		"if" => Token{kind: TokenKind::Keyword(Keyword::If), ..},
+		"switch" => Token{kind: TokenKind::Keyword(Keyword::Switch), ..},
+		"while" => Token{kind: TokenKind::Keyword(Keyword::While), ..},
+		"do" => Token{kind: TokenKind::Keyword(Keyword::Do), ..},
+		"for" => Token{kind: TokenKind::Keyword(Keyword::For), ..},
+		"goto" => Token{kind: TokenKind::Keyword(Keyword::Goto), ..},
+		"continue" => Token{kind: TokenKind::Keyword(Keyword::Continue), ..},
+		"break" => Token{kind: TokenKind::Keyword(Keyword::Break), ..},
+		"return" => Token{kind: TokenKind::Keyword(Keyword::Return), ..},
 
 		"." => Token{kind: TokenKind::Punct(Punct::Dot), ..},
+		"..." => Token{kind: TokenKind::Punct(Punct::Ellipsis), ..},
 		"," => Token{kind: TokenKind::Punct(Punct::Comma), ..},
 		"=" => Token{kind: TokenKind::Punct(Punct::Equal), ..},
 		"*" => Token{kind: TokenKind::Punct(Punct::Star), ..},
+		"+" => Token{kind: TokenKind::Punct(Punct::Plus), ..},
+		"-" => Token{kind: TokenKind::Punct(Punct::Minus), ..},
+		"~" => Token{kind: TokenKind::Punct(Punct::Tilde), ..},
+		";" => Token{kind: TokenKind::Punct(Punct::SemiColon), ..},
 		"{" => Token{kind: TokenKind::Punct(Punct::LCurly), ..},
 		"}" => Token{kind: TokenKind::Punct(Punct::RCurly), ..},
-		";" => Token{kind: TokenKind::Punct(Punct::SemiColon), ..},
 		"(" => Token{kind: TokenKind::Punct(Punct::LParen), ..},
 		")" => Token{kind: TokenKind::Punct(Punct::RParen), ..},
+		")" => Token{kind: TokenKind::Punct(Punct::RParen), ..},
+		"[" => Token{kind: TokenKind::Punct(Punct::LSquare), ..},
+		"]" => Token{kind: TokenKind::Punct(Punct::RSquare), ..},
+		"->" => Token{kind: TokenKind::Punct(Punct::Arrow), ..},
+		"++" => Token{kind: TokenKind::Punct(Punct::PlusPlus), ..},
+		"--" => Token{kind: TokenKind::Punct(Punct::MinusMinus), ..},
+		"&" => Token{kind: TokenKind::Punct(Punct::Amp), ..},
+		"!" => Token{kind: TokenKind::Punct(Punct::Bang), ..},
+		"/" => Token{kind: TokenKind::Punct(Punct::FSlash), ..},
+		"%" => Token{kind: TokenKind::Punct(Punct::Percent), ..},
+		"<<" => Token{kind: TokenKind::Punct(Punct::LessLess), ..},
+		">>" => Token{kind: TokenKind::Punct(Punct::GreatGreat), ..},
+		"<" => Token{kind: TokenKind::Punct(Punct::Less), ..},
+		">" => Token{kind: TokenKind::Punct(Punct::Amp), ..},
+		"<=" => Token{kind: TokenKind::Punct(Punct::LessEqual), ..},
+		">=" => Token{kind: TokenKind::Punct(Punct::GreatEqual), ..},
+		"==" => Token{kind: TokenKind::Punct(Punct::EqualEqual), ..},
+		"!=" => Token{kind: TokenKind::Punct(Punct::BangEqual), ..},
+		"^" => Token{kind: TokenKind::Punct(Punct::Carrot), ..},
+		"|" => Token{kind: TokenKind::Punct(Punct::VBar), ..},
+		"&&" => Token{kind: TokenKind::Punct(Punct::AmpAmp), ..},
+		"||" => Token{kind: TokenKind::Punct(Punct::VBarVBar), ..},
+		"?" => Token{kind: TokenKind::Punct(Punct::QMark), ..},
+		":" => Token{kind: TokenKind::Punct(Punct::Colon), ..},
+		"*=" => Token{kind: TokenKind::Punct(Punct::StarEqual), ..},
+		"/=" => Token{kind: TokenKind::Punct(Punct::FSlashEqual), ..},
+		"%=" => Token{kind: TokenKind::Punct(Punct::PercentEqual), ..},
+		"+=" => Token{kind: TokenKind::Punct(Punct::PlusEqual), ..},
+		"-=" => Token{kind: TokenKind::Punct(Punct::MinusEqual), ..},
+		"<<=" => Token{kind: TokenKind::Punct(Punct::LessLessEqual), ..},
+		">>=" => Token{kind: TokenKind::Punct(Punct::GreatGreatEqual), ..},
+		"&=" => Token{kind: TokenKind::Punct(Punct::AmpEqual), ..},
+		"^=" => Token{kind: TokenKind::Punct(Punct::CarrotEqual), ..},
+		"|=" => Token{kind: TokenKind::Punct(Punct::VBarEqual), ..},
 	}
 }

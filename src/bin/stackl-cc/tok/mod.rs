@@ -42,7 +42,7 @@ pub enum FloatingConstant {
 }
 
 #[derive(Debug, Clone)]
-pub enum Constant {
+pub enum Const {
 	Integer(IntegerConstant),
 	Floating(FloatingConstant),
 	Enumeration,
@@ -50,7 +50,7 @@ pub enum Constant {
 }
 
 #[derive(Debug, Clone)]
-pub struct StringLiteral {
+pub struct StrLit {
 	pub name: String,
 	pub is_wide: bool,
 }
@@ -238,8 +238,8 @@ pub struct NewLine {
 pub enum TokenKind {
 	Keyword(Keyword),
 	Ident(Ident),
-	Constant(Constant),
-	StringLiteral(StringLiteral),
+	Const(Constant),
+	StrLit(StrLit),
 	Punct(Punct),
 }
 
@@ -303,9 +303,9 @@ impl From<Ident> for TokenKind {
 	}
 }
 
-impl From<StringLiteral> for TokenKind {
-	fn from(value: StringLiteral) -> Self {
-		Self::StringLiteral(value)
+impl From<StrLit> for TokenKind {
+	fn from(value: StrLit) -> Self {
+		Self::StrLit(value)
 	}
 }
 
@@ -333,7 +333,7 @@ pub enum PPTokenKind {
 	Ident(Ident),
 	PPNumber(PPNumber),
 	CharConst(CharConst),
-	StringLiteral(StringLiteral),
+	StrLit(StrLit),
 	Punct(Punct),
 	NewLine(NewLine),
 }
@@ -345,7 +345,7 @@ impl PPTokenKind {
 			Self::Ident(_) => "identifier",
 			Self::PPNumber(_) => "pp-number",
 			Self::CharConst(_) => "character-constant",
-			Self::StringLiteral(_) => "string-literal",
+			Self::StrLit(_) => "string-literal",
 			Self::Punct(_) => "punctuator",
 			Self::NewLine(_) => "new-line",
 		}
@@ -356,7 +356,7 @@ impl PPTokenKind {
 			Self::Ident(value) => value.0.clone(),
 			Self::PPNumber(value) => value.name.clone(),
 			Self::CharConst(value) => value.name.clone(),
-			Self::StringLiteral(value) => value.name.clone(),
+			Self::StrLit(value) => value.name.clone(),
 			Self::Punct(value) => format!("{value}"),
 			Self::NewLine(_) => String::from("\\n"),
 		}
@@ -388,7 +388,7 @@ impl PPToken {
 			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
 		}
 	}
-	pub fn unwrap_string_literal(self) -> StringLiteral {
+	pub fn unwrap_str_lit(self) -> StringLiteral {
 		match self.kind {
 			PPTokenKind::StringLiteral(token) => token,
 			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
