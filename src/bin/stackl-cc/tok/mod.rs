@@ -87,7 +87,7 @@ impl PPNumber {
 			chars.any(|c| c == 'e' || c == 'E')
 		}
 	}
-	fn floating_constant(&self) -> lex::Result<TokenKind> {
+	fn floating_constant(&self) -> Result<TokenKind, lex::ErrorKind> {
 		let mut chars = self.name.chars().peekable();
 		let c = chars.next().expect("empty pp-number");
 		if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
@@ -104,36 +104,24 @@ impl PPNumber {
 				while let Some(c) = chars.next_if(|&c| c.is_ascii_digit()) {
 					digit_seq.push(c);
 				}
-				exponent = digit_seq.parse().or(Err(lex::Error {
-					kind: lex::ErrorKind::InvalidToken,
-					loc: (0, 0),
-				}))?;
+				exponent = digit_seq.parse().or(Err(lex::ErrorKind::InvalidToken))?;
 				if let Some('-') = sign {
 					exponent *= -1;
 				}
 			}
 			let floating = match chars.next_if(|&c| c == 'f' || c == 'F' || c == 'l' || c == 'L') {
 				Some('f' | 'F') => {
-					let data: f32 = decimal.parse().or(Err(lex::Error {
-						kind: lex::ErrorKind::InvalidToken,
-						loc: (0, 0),
-					}))?;
+					let data: f32 = decimal.parse().or(Err(lex::ErrorKind::InvalidToken))?;
 					let data = data.powi(exponent);
 					FloatingConstant::F32(data)
 				}
 				Some('l' | 'L') => {
-					let data: f64 = decimal.parse().or(Err(lex::Error {
-						kind: lex::ErrorKind::InvalidToken,
-						loc: (0, 0),
-					}))?;
+					let data: f64 = decimal.parse().or(Err(lex::ErrorKind::InvalidToken))?;
 					let data = data.powi(exponent);
 					FloatingConstant::Long(data)
 				}
 				None => {
-					let data: f64 = decimal.parse().or(Err(lex::Error {
-						kind: lex::ErrorKind::InvalidToken,
-						loc: (0, 0),
-					}))?;
+					let data: f64 = decimal.parse().or(Err(lex::ErrorKind::InvalidToken))?;
 					let data = data.powi(exponent);
 					FloatingConstant::F64(data)
 				}
@@ -143,7 +131,7 @@ impl PPNumber {
 		}
 	}
 
-	fn integer_constant(&self) -> lex::Result<TokenKind> {
+	fn integer_constant(&self) -> Result<TokenKind, lex::ErrorKind> {
 		let mut chars = self.name.chars().peekable();
 		match chars.next().expect("empty pp-number") {
 			'0' => {
@@ -157,13 +145,10 @@ impl PPNumber {
 				let name = String::from(c);
 				self.decimal_constant(name, chars)
 			}
-			_ => Err(lex::Error {
-				kind: lex::ErrorKind::InvalidToken,
-				loc: (0, 0),
-			}),
+			_ => Err(lex::ErrorKind::InvalidToken),
 		}
 	}
-	fn octal_constant(&self, mut chars: Peekable<Chars>) -> lex::Result<TokenKind> {
+	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<TokenKind, lex::ErrorKind> {
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -180,10 +165,7 @@ impl PPNumber {
 			} else if let Ok(data) = i128::from_str_radix(&name, 8) {
 				IntegerConstant::I128(data)
 			} else {
-				return Err(lex::Error {
-					kind: lex::ErrorKind::InvalidToken,
-					loc: (0, 0),
-				});
+				return Err(lex::ErrorKind::InvalidToken);
 			};
 			let constant = Const::Integer(integer);
 			Ok(TokenKind::Const(constant))
@@ -196,7 +178,7 @@ impl PPNumber {
 		&self,
 		mut name: String,
 		mut chars: Peekable<Chars>,
-	) -> lex::Result<TokenKind> {
+	) -> Result<TokenKind, lex::ErrorKind> {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
@@ -212,10 +194,7 @@ impl PPNumber {
 			} else if let Ok(data) = name.parse::<i128>() {
 				IntegerConstant::I128(data)
 			} else {
-				return Err(lex::Error {
-					kind: lex::ErrorKind::InvalidToken,
-					loc: (0, 0),
-				});
+				return Err(lex::ErrorKind::InvalidToken);
 			};
 			let constant = Const::Integer(integer);
 			Ok(TokenKind::Const(constant))
@@ -312,13 +291,23 @@ impl From<StrLit> for TokenKind {
 	}
 }
 
-impl TryFrom<PPNumber> for TokenKind {
-	type Error = lex::Error;
-	fn try_from(value: PPNumber) -> Result<Self, Self::Error> {
-		if value.is_float() {
-			value.floating_constant()
-		} else {
-			value.integer_constant()
+impl TryFrom<PPTokenKind> for TokenKind {
+	type Error = lex::ErrorKind;
+	fn try_from(value: PPTokenKind) -> Result<Self, Self::Error> {
+		match value {
+			PPTokenKind::Ident(inner) => match inner.name.as_str() {
+				"typedef" => Ok(TokenKind::Keyword(Keyword::Typedef)),
+				_ => Ok(TokenKind::Ident(inner)),
+			},
+			PPTokenKind::PPNumber(inner) => {
+				if inner.is_float() {
+					inner.floating_constant()
+				} else {
+					inner.integer_constant()
+				}
+			}
+			PPTokenKind::HeaderName(_) => Err(lex::ErrorKind::InvalidToken),
+			_ => todo!(),
 		}
 	}
 }
@@ -364,6 +353,30 @@ impl PPTokenKind {
 			Self::NewLine(_) => String::from("\\n"),
 		}
 	}
+	pub fn unwrap_punct(self) -> Punct {
+		match self {
+			PPTokenKind::Punct(token) => token,
+			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_str_lit(self) -> StrLit {
+		match self {
+			PPTokenKind::StrLit(token) => token,
+			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_char_const(self) -> CharConst {
+		match self {
+			PPTokenKind::CharConst(token) => token,
+			other => panic!("called `Token::unwrap_char_const` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_pp_number(self) -> PPNumber {
+		match self {
+			PPTokenKind::PPNumber(token) => token,
+			other => panic!("called `Token::unwrap_pp_number` on an `{other:?}` value"),
+		}
+	}
 }
 
 impl From<Punct> for PPTokenKind {
@@ -377,36 +390,4 @@ pub struct PPToken {
 	pub kind: PPTokenKind,
 	pub file_key: usize,
 	pub leading_space: bool,
-}
-impl PPToken {
-	pub fn unwrap_ident(self) -> Ident {
-		match self.kind {
-			PPTokenKind::Ident(token) => token,
-			other => panic!("called `Token::unwrap_ident` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_punct(self) -> Punct {
-		match self.kind {
-			PPTokenKind::Punct(token) => token,
-			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_str_lit(self) -> StrLit {
-		match self.kind {
-			PPTokenKind::StrLit(token) => token,
-			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_char_const(self) -> CharConst {
-		match self.kind {
-			PPTokenKind::CharConst(token) => token,
-			other => panic!("called `Token::unwrap_char_const` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_pp_number(self) -> PPNumber {
-		match self.kind {
-			PPTokenKind::PPNumber(token) => token,
-			other => panic!("called `Token::unwrap_pp_number` on an `{other:?}` value"),
-		}
-	}
 }

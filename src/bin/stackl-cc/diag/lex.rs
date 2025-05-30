@@ -1,4 +1,3 @@
-use crate::tok;
 use std::{error, fmt, result};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

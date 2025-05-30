@@ -16,7 +16,7 @@ grammar<'a>(
 );
 
 pub Tokens: Vec<(usize, Token, usize)> = {
-	GroupPart => <>,
+	GroupPart,
 	<mut group: Tokens> <mut part: GroupPart> => {
 		group.append(&mut part);
 		group
@@ -24,9 +24,9 @@ pub Tokens: Vec<(usize, Token, usize)> = {
 }
 
 GroupPart: Vec<(usize, Token, usize)> = {
-	// IfSection => <>,
-	ControlLine => <>,
-	TextLine => <>,
+	// IfSection,
+	ControlLine,
+	TextLine,
 	// "#" NonDirective => <>
 };
 
@@ -37,7 +37,7 @@ ControlLine: Vec<(usize, Token, usize)> = {
 		let header_name = PathBuf::from(header.kind.to_name());
 		let full_path = origin_path.parent().unwrap().join(header_name);
 		let mut stack = stack_ref.borrow_mut();
-		let mut file = fs::File::open(&full_path).unwrap();
+		let file = fs::File::open(&full_path).unwrap();
 		
 		let mut reader = BufReader::new(file);
 		let mut buf = String::new();
@@ -66,60 +66,44 @@ TextLine: Vec<(usize, Token, usize)> = {
 };
 
 PreprocessingToken: (usize, Token, usize) = {
-	HEADER_NAME => {
-		todo!("header-name");
-	},
-	<lo:@L> <tk:IDENT> <hi:@R> => {
+	Ident,
+	<lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
 		let file_key = tk.file_key;
-		(
-			lo,
-			Token{
-				kind: tk.unwrap_ident().into(),
-				file_key,
-			},
-			hi
-		)
-	},
-	<lo:@L> <tk:PP_NUMBER> <hi:@R> => {
-		let file_key = tk.file_key;
-		let pp_num = tk.unwrap_pp_number();
-		(
-			lo,
-			Token {
-				kind: TokenKind::try_from(pp_num).unwrap(),
-				file_key,
-			},
-			hi
-		)
+		match tk.kind.try_into() {
+			Ok(kind) => Ok((
+				lo,
+				Token{
+					kind,
+					file_key,
+				},
+				hi
+			)),
+			Err(kind) => Err(lalr::ParseError::User {
+				error: diag::Error{
+					kind,
+					loc: (lo, hi),
+				}
+			}),
+		}
 	},
 	<lo:@L> <tk:CHAR_CONST> <hi:@R> => {
 		let file_key = tk.file_key;
 		(
 			lo,
 			Token {
-				kind: TokenKind::Const(Const::CharConst(tk.unwrap_char_const())),
+				kind: TokenKind::Const(Const::CharConst(tk.kind.unwrap_char_const())),
 				file_key,
 			},
 			hi
 		)
 	},
-	<lo:@L> <tk:STRING_LITERAL> <hi:@R> => {
-		let file_key = tk.file_key;
-		(
-			lo,
-			Token {
-				kind: tk.unwrap_str_lit().into(),
-				file_key,
-			},
-			hi
-		)
-	},
+	StrLit => <>,
 	<lo:@L> <tk:PUNCT> <hi:@R> => {
 		let file_key = tk.file_key;
 		(
 			lo,
 			Token {
-				kind: TokenKind::Punct(tk.unwrap_punct()),
+				kind: TokenKind::Punct(tk.kind.unwrap_punct()),
 				file_key,
 			},
 			hi
@@ -129,7 +113,16 @@ PreprocessingToken: (usize, Token, usize) = {
 
 
 Include: Ident = <lo:@L> <tk:IDENT> <hi:@R> =>? {
-	if tk.unwrap_ident().name == "include".to_string() {
+	let kind: TokenKind = match tk.kind.try_into() {
+		Ok(kind) => kind,
+		Err(kind) => return Err(lalr::ParseError::User {
+			error: diag::Error{
+				kind,
+				loc: (lo, hi),
+			}
+		}),
+	};
+	if kind.unwrap_ident().name == "include".to_string() {
 		Ok(Ident{name:"include".to_string(), is_type: false})
 	} else {
 		Err(lalr::ParseError::User {
@@ -142,39 +135,51 @@ Include: Ident = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 };
 
 NonHash: (usize, Token, usize) = {
-	<lo:@L> <tk:IDENT> <hi:@R> => {
-		let file_key = tk.file_key;
-		(
-			lo,
-			Token{
-				kind: TokenKind::Ident(tk.unwrap_ident()),
-				file_key,
-			},
-			hi
-		)
-	},
-	<lo:@L> <tk:STRING_LITERAL> <hi:@R> => {
-		let file_key = tk.file_key;
-		(
-			lo,
-			Token {
-				kind: TokenKind::StrLit(tk.unwrap_str_lit()),
-				file_key,
-			},
-			hi
-		)
-	},
+	Ident,
+	StrLit,
 	<lo:@L> <tk:NON_HASH_PUNCT> <hi:@R> => {
 		let file_key = tk.file_key;
 		(
 			lo,
 			Token {
-				kind: TokenKind::Punct(tk.unwrap_punct()),
+				kind: TokenKind::Punct(tk.kind.unwrap_punct()),
 				file_key,
 			},
 			hi
 		)
 	},
+};
+
+Ident: (usize, Token, usize) = <lo:@L> <tk:IDENT> <hi:@R> =>? {
+	let file_key = tk.file_key;
+	match tk.kind.try_into() {
+		Ok(kind) => Ok((
+			lo,
+			Token{
+				kind,
+				file_key,
+			},
+			hi
+		)),
+		Err(kind) => Err(lalr::ParseError::User {
+			error: diag::Error{
+				kind,
+				loc: (lo, hi),
+			}
+		}),
+	}
+};
+
+StrLit: (usize, Token, usize) = <lo:@L> <tk:STR_LIT> <hi:@R> => {
+	let file_key = tk.file_key;
+	(
+		lo,
+		Token {
+			kind: TokenKind::StrLit(tk.kind.unwrap_str_lit()),
+			file_key,
+		},
+		hi
+	)
 };
 
 PUNCT: PPToken = {
@@ -183,15 +188,15 @@ PUNCT: PPToken = {
 };
 
 NON_HASH_PUNCT: PPToken = {
-	"##" => <>,
-	"(" => <>,
-	" (" => <>,
-	")" => <>,
-	"{" => <>,
-	"}" => <>,
-	"*" => <>,
-	"=" => <>,
-	";" => <>,
+	"##",
+	"(",
+	" (",
+	")",
+	"{",
+	"}",
+	"*",
+	"=",
+	";",
 };
 
 
@@ -204,7 +209,7 @@ extern {
 		IDENT => PPToken{kind: PPTokenKind::Ident{..}, ..},
 		PP_NUMBER => PPToken{kind: PPTokenKind::PPNumber(_), ..},
 		CHAR_CONST => PPToken{kind: PPTokenKind::CharConst(_), ..},
-		STRING_LITERAL => PPToken{kind: PPTokenKind::StrLit(_), ..},
+		STR_LIT => PPToken{kind: PPTokenKind::StrLit(_), ..},
 		"\n" => PPToken{kind: PPTokenKind::NewLine(_), ..},
 		"#" => PPToken{kind: PPTokenKind::Punct(Punct::Hash), ..},
 		"##" => PPToken{kind: PPTokenKind::Punct(Punct::HashHash), ..},
