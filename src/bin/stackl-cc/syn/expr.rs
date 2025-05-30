@@ -54,8 +54,8 @@ pub struct ArgumentExpressionList(Vec<AssignmentExpression>);
 /// (6.5.1) primary-expression
 pub enum PrimaryExpression {
 	Identifier(tok::Ident),
-	Constant(tok::Constant),
-	StringLiteral(tok::StringLiteral),
+	Constant(tok::Const),
+	StringLiteral(tok::StrLit),
 	Expression(Expression),
 }
 

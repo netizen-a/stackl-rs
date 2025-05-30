@@ -316,7 +316,7 @@ DirectAbstractDeclarator: DirectAbstractDeclarator = {
 };
 
 */
-TypedefName: Ident = IDENT => <>;
+TypedefName: Ident = TYPE_NAME => todo!();
 
 Initializer: Initializer = {
 	// AssignmentExpression => todo!(),
@@ -420,7 +420,8 @@ extern {
 	type Error = SyntaxError;
 
 	enum Token {
-		IDENT => Token{kind: TokenKind::Ident(_), ..},
+		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, ..}), ..},
+		TYPE_NAME => Token{kind: TokenKind::Ident(Ident{is_type:true, ..}), ..},
 		CONST => Token{kind: TokenKind::Const(_), ..},
 		STR_LIT => Token{kind: TokenKind::StrLit(_), ..},
 
@@ -490,7 +491,7 @@ extern {
 		">=" => Token{kind: TokenKind::Punct(Punct::GreatEqual), ..},
 		"==" => Token{kind: TokenKind::Punct(Punct::EqualEqual), ..},
 		"!=" => Token{kind: TokenKind::Punct(Punct::BangEqual), ..},
-		"^" => Token{kind: TokenKind::Punct(Punct::Carrot), ..},
+		"^" => Token{kind: TokenKind::Punct(Punct::Caret), ..},
 		"|" => Token{kind: TokenKind::Punct(Punct::VBar), ..},
 		"&&" => Token{kind: TokenKind::Punct(Punct::AmpAmp), ..},
 		"||" => Token{kind: TokenKind::Punct(Punct::VBarVBar), ..},
@@ -504,7 +505,7 @@ extern {
 		"<<=" => Token{kind: TokenKind::Punct(Punct::LessLessEqual), ..},
 		">>=" => Token{kind: TokenKind::Punct(Punct::GreatGreatEqual), ..},
 		"&=" => Token{kind: TokenKind::Punct(Punct::AmpEqual), ..},
-		"^=" => Token{kind: TokenKind::Punct(Punct::CarrotEqual), ..},
+		"^=" => Token{kind: TokenKind::Punct(Punct::CaretEqual), ..},
 		"|=" => Token{kind: TokenKind::Punct(Punct::VBarEqual), ..},
 	}
 }

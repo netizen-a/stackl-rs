@@ -99,7 +99,10 @@ impl Lexer {
 		} else {
 			self.include_state = 0;
 		}
-		let ident = tok::Ident(name);
+		let ident = tok::Ident {
+			name,
+			is_type: false,
+		};
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
@@ -185,12 +188,12 @@ impl Lexer {
 			});
 		}
 
-		let str_lit = tok::StringLiteral { name, is_wide };
+		let str_lit = tok::StrLit { name, is_wide };
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
 			tok::PPToken {
-				kind: tok::PPTokenKind::StringLiteral(str_lit),
+				kind: tok::PPTokenKind::StrLit(str_lit),
 				file_key: self.file_key,
 				leading_space: self.leading_space,
 			},
