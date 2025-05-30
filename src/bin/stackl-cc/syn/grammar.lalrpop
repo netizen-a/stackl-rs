@@ -230,7 +230,7 @@ StructDeclaratorList: Vec<StructDeclarator> = {
 
 StructDeclarator: StructDeclarator = {
 	Declarator => todo!(),
-	// Declarator? ":" ConstantExpression => todo!(),
+	Declarator? ":" ConstantExpression => todo!(),
 };
 
 EnumSpecifier: EnumSpecifier = {
@@ -263,9 +263,9 @@ Declarator: Declarator = {
 DirectDeclarator: DirectDeclarator = {
 	IDENT => todo!(),
 	"(" Declarator ")" => todo!(),
-	// DirectDeclarator "[" TypeQualifier* AssignmentExpression? "]" => todo!(),
-	// DirectDeclarator "[" "static" TypeQualifier* AssignmentExpression "]" => todo!(),
-	// DirectDeclarator "[" TypeQualifier+ "static" AssignmentExpression "]" => todo!(),
+	DirectDeclarator "[" TypeQualifier* AssignmentExpression? "]" => todo!(),
+	DirectDeclarator "[" "static" TypeQualifier* AssignmentExpression "]" => todo!(),
+	DirectDeclarator "[" TypeQualifier+ "static" AssignmentExpression "]" => todo!(),
 	DirectDeclarator "[" TypeQualifier* "*" "]" => todo!(),
 	DirectDeclarator "(" ParameterTypeList ")" => todo!(),
 	DirectDeclarator "(" IdentifierList? ")" => todo!(),
@@ -343,10 +343,10 @@ Designator: Designator = {
 
 Statement: Statement = {
 	LabeledStatement => todo!(),
-	// CompoundStatement => todo!(),
-	// ExpressionStatement => todo!(),
-	// SelectionStatement => todo!(),
-	// IterationStatement => todo!(),
+	CompoundStatement => todo!(),
+	ExpressionStatement => todo!(),
+	SelectionStatement => todo!(),
+	IterationStatement => todo!(),
 	JumpStatement => todo!(),
 };
 
@@ -366,7 +366,6 @@ BlockItem: BlockItem = {
 	// Statement => todo!(),
 };
 
-/*
 
 ExpressionStatement: ExpressionStatement = {
 	Expression? ";" => todo!(),
@@ -374,18 +373,16 @@ ExpressionStatement: ExpressionStatement = {
 
 SelectionStatement: SelectionStatement = {
 	"if" "(" Expression ")" Statement => todo!(),
-	"if" "(" Expression ")" Statement => "else" Statement => todo!(),
+	"if" "(" Expression ")" Statement "else" Statement => todo!(),
 	"switch" "(" Expression ")" Statement => todo!(),
 };
 
-IterationStatement: IterationStatment = {
+IterationStatement: IterationStatement = {
 	"while" "(" Expression ")" Statement => todo!(),
 	"do" Statement "while" "(" Expression ")" ";"
 	"for" "(" Expression? ";" Expression? ";" Expression? ")" Statement => todo!(),
 	"for" "(" Declaration Expression? ";" Expression? ")" Statement => todo!(),
 };
-
-*/
 
 JumpStatement: JumpStatement = {
 	"goto" IDENT ";" => todo!(),
@@ -457,6 +454,7 @@ extern {
 		"continue" => Token{kind: TokenKind::Keyword(Keyword::Continue), ..},
 		"break" => Token{kind: TokenKind::Keyword(Keyword::Break), ..},
 		"return" => Token{kind: TokenKind::Keyword(Keyword::Return), ..},
+		"else" => Token{kind: TokenKind::Keyword(Keyword::Else), ..},
 
 		"." => Token{kind: TokenKind::Punct(Punct::Dot), ..},
 		"..." => Token{kind: TokenKind::Punct(Punct::Ellipsis), ..},
