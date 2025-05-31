@@ -306,8 +306,12 @@ impl TryFrom<PPTokenKind> for TokenKind {
 					inner.integer_constant()
 				}
 			}
-			PPTokenKind::HeaderName(_) => Err(lex::ErrorKind::InvalidToken),
-			_ => todo!(),
+			PPTokenKind::CharConst(inner) => Ok(Self::Const(Const::CharConst(inner))),
+			PPTokenKind::StrLit(inner) => Ok(Self::StrLit(inner)),
+			PPTokenKind::Punct(inner) => Ok(Self::Punct(inner)),
+			PPTokenKind::NewLine(_) | PPTokenKind::HeaderName(_) => {
+				Err(lex::ErrorKind::InvalidToken)
+			}
 		}
 	}
 }

@@ -86,28 +86,44 @@ PreprocessingToken: (usize, Token, usize) = {
 			}),
 		}
 	},
-	<lo:@L> <tk:CHAR_CONST> <hi:@R> => {
+	<lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
 		let file_key = tk.file_key;
-		(
-			lo,
-			Token {
-				kind: TokenKind::Const(Const::CharConst(tk.kind.unwrap_char_const())),
-				file_key,
-			},
-			hi
-		)
+		match tk.kind.try_into() {
+			Ok(kind) => Ok((
+				lo,
+				Token{
+					kind,
+					file_key,
+				},
+				hi
+			)),
+			Err(kind) => Err(lalr::ParseError::User {
+				error: diag::Error{
+					kind,
+					loc: (lo, hi),
+				}
+			}),
+		}
 	},
 	StrLit => <>,
-	<lo:@L> <tk:PUNCT> <hi:@R> => {
+	<lo:@L> <tk:PUNCT> <hi:@R> =>? {
 		let file_key = tk.file_key;
-		(
-			lo,
-			Token {
-				kind: TokenKind::Punct(tk.kind.unwrap_punct()),
-				file_key,
-			},
-			hi
-		)
+		match tk.kind.try_into() {
+			Ok(kind) => Ok((
+				lo,
+				Token{
+					kind,
+					file_key,
+				},
+				hi
+			)),
+			Err(kind) => Err(lalr::ParseError::User {
+				error: diag::Error{
+					kind,
+					loc: (lo, hi),
+				}
+			}),
+		}
 	}
 };
 
@@ -137,16 +153,24 @@ Include: Ident = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 NonHash: (usize, Token, usize) = {
 	Ident,
 	StrLit,
-	<lo:@L> <tk:NON_HASH_PUNCT> <hi:@R> => {
+	<lo:@L> <tk:NonHashPunct> <hi:@R> =>? {
 		let file_key = tk.file_key;
-		(
-			lo,
-			Token {
-				kind: TokenKind::Punct(tk.kind.unwrap_punct()),
-				file_key,
-			},
-			hi
-		)
+		match tk.kind.try_into() {
+			Ok(kind) => Ok((
+				lo,
+				Token{
+					kind,
+					file_key,
+				},
+				hi
+			)),
+			Err(kind) => Err(lalr::ParseError::User {
+				error: diag::Error{
+					kind,
+					loc: (lo, hi),
+				}
+			}),
+		}
 	},
 };
 
@@ -183,11 +207,11 @@ StrLit: (usize, Token, usize) = <lo:@L> <tk:STR_LIT> <hi:@R> => {
 };
 
 PUNCT: PPToken = {
-	"#" => <>,
-	NON_HASH_PUNCT => <>,
+	"#",
+	NonHashPunct,
 };
 
-NON_HASH_PUNCT: PPToken = {
+NonHashPunct: PPToken = {
 	"##",
 	"(",
 	" (",
