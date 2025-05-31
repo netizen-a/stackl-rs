@@ -2,18 +2,18 @@ use super::{decl, expr};
 use crate::tok;
 
 /// (6.8.2) compound-statement
+#[derive(Debug)]
 pub struct CompoundStatement(pub Vec<BlockItem>);
 
-/// (6.8.2) block-item-list
-//pub struct BlockItemList(pub Vec<BlockItem>);
-
 /// (6.8.2) block-item
+#[derive(Debug)]
 pub enum BlockItem {
 	Declaration(decl::Declaration),
 	Statement(Statement),
 }
 
 /// (6.8) statement
+#[derive(Debug)]
 pub enum Statement {
 	LabeledStatement(LabeledStatement),
 	CompoundStatement(CompoundStatement),
@@ -24,16 +24,19 @@ pub enum Statement {
 }
 
 /// (6.8.1) labeled-statement
+#[derive(Debug)]
 pub enum LabeledStatement {
 	Label(tok::Ident, Box<Statement>),
-	Case(expr::ConstantExpr, Box<Statement>),
+	Case(expr::Expr, Box<Statement>),
 	Default(Box<Statement>),
 }
 
 /// (6.8.3) expression-statement
+#[derive(Debug)]
 pub struct ExprStatement(Option<expr::Expr>);
 
 /// (6.8.4) selection-statement
+#[derive(Debug)]
 pub enum SelectionStatement {
 	If {
 		condition: expr::Expr,
@@ -47,6 +50,7 @@ pub enum SelectionStatement {
 }
 
 /// (6.8.5) iteration-statement
+#[derive(Debug)]
 pub enum IterationStatement {
 	While {
 		condition: expr::Expr,
@@ -71,6 +75,7 @@ pub enum IterationStatement {
 }
 
 /// (6.8.6) jump-statement
+#[derive(Debug)]
 pub enum JumpStatement {
 	Goto(tok::Ident),
 	Continue,

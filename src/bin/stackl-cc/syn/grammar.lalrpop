@@ -12,15 +12,15 @@ EnumerationConstant: Ident = IDENT => <>.kind.unwrap_ident();
 
 // A.2.1 Expressions
 
-PrimaryExpr: PrimaryExpr = {
-	IDENT => PrimaryExpr::Identifier(<>.kind.unwrap_ident()),
-	CONST => PrimaryExpr::Constant(<>.kind.unwrap_const()),
-	STR_LIT => PrimaryExpr::StrLit(<>.kind.unwrap_str_lit()),
-	"(" <expr:Expr> ")" => PrimaryExpr::Expr(expr),
+PrimaryExpr: Expr = {
+	IDENT => Expr::Ident(<>.kind.unwrap_ident()),
+	CONST => Expr::Const(<>.kind.unwrap_const()),
+	STR_LIT => Expr::StrLit(<>.kind.unwrap_str_lit()),
+	"(" <expr:Expr> ")" => Expr::Paren(Box::new(expr)),
 };
 
-PostfixExpr: PostfixExpr = {
-	PrimaryExpr => PostfixExpr::PrimaryExpr(<>),
+PostfixExpr: Expr = {
+	PrimaryExpr => <>,
 	PostfixExpr "[" Expr "]" => todo!(" [ expr ]"),
 	PostfixExpr "(" ArgumentExprList? ")" => todo!(),
 	PostfixExpr "." IDENT => todo!(" . identifier"),
@@ -30,13 +30,13 @@ PostfixExpr: PostfixExpr = {
 	"(" TypeName ")" "{" InitializerList ","? "}" => todo!(),
 };
 
-ArgumentExprList: Vec<AssignmentExpr> = {
+ArgumentExprList: Vec<Expr> = {
 	AssignmentExpr => vec![<>],
 	ArgumentExprList "," AssignmentExpr => todo!("assignment-expression-list"),
 };
 
-UnaryExpr: UnaryExpr = {
-	PostfixExpr => UnaryExpr::PostfixExpr(vec![<>]),
+UnaryExpr: Expr = {
+	PostfixExpr => <>,
 	"++" UnaryExpr => todo!("++ unary-expression"),
 	"--" UnaryExpr => todo!("-- unary-expression"),
 	UnaryOperator CastExpr => todo!("unary-operator cast-expression"),
@@ -44,95 +44,95 @@ UnaryExpr: UnaryExpr = {
 	"sizeof" "(" TypeName ")" => todo!("sizeof ( type-name )"),
 };
 
-UnaryOperator: UnaryOperator = {
-	"&" => todo!("&"),
-	"*" => todo!("*"),
-	"+" => todo!("+"),
-	"-" => todo!("-"),
-	"~" => todo!("~"),
-	"!" => todo!("!"),
+UnaryOperator: UnOpPrefix = {
+	"&" => UnOpPrefix::Amp,
+	"*" => UnOpPrefix::Star,
+	"+" => UnOpPrefix::Plus,
+	"-" => UnOpPrefix::Minus,
+	"~" => UnOpPrefix::Comp,
+	"!" => UnOpPrefix::Neg,
 };
 
-CastExpr: CastExpr = {
-	UnaryExpr => CastExpr::UnaryExpr(Box::new(<>)),
+CastExpr: Expr = {
+	UnaryExpr => <>,
 	"(" TypeName ")" CastExpr => todo!(" ( type-name )"),
 };
 
-MultiplicativeExpr: MultiplicativeExpr = {
-	CastExpr => MultiplicativeExpr::CastExpr(<>),
+MultiplicativeExpr: Expr = {
+	CastExpr => <>,
 	MultiplicativeExpr "*" CastExpr => todo!("mult-expr * cast-expression"),
 	MultiplicativeExpr "/" CastExpr => todo!("mult-expr / cast-expression"),
 	MultiplicativeExpr "%" CastExpr => todo!("mult-expr % cast-expression"),
 };
 
-AdditiveExpr: AdditiveExpr = {
-	MultiplicativeExpr => AdditiveExpr::MultiplicativeExpr(<>),
+AdditiveExpr: Expr = {
+	MultiplicativeExpr => <>,
 	AdditiveExpr "+" MultiplicativeExpr => todo!("additive-expression + mult-expr"),
 	AdditiveExpr "-" MultiplicativeExpr => todo!("additive-expression - mult-expr"),
 };
 
-ShiftExpr: ShiftExpr = {
-	AdditiveExpr => ShiftExpr::AdditiveExpr(<>),
+ShiftExpr: Expr = {
+	AdditiveExpr => <>,
 	ShiftExpr "<<" AdditiveExpr => todo!(),
 	ShiftExpr ">>" AdditiveExpr => todo!(),
 };
 
-RelationalExpr: RelationalExpr = {
-	ShiftExpr => RelationalExpr::ShiftExpr(<>),
+RelationalExpr: Expr = {
+	ShiftExpr => <>,
 	RelationalExpr "<" ShiftExpr => todo!(),
 	RelationalExpr ">" ShiftExpr => todo!(),
 	RelationalExpr "<=" ShiftExpr => todo!(),
 	RelationalExpr ">=" ShiftExpr => todo!(),
 };
 
-EqualityExpr: EqualityExpr = {
-	RelationalExpr => EqualityExpr::RelationalExpr(<>),
+EqualityExpr: Expr = {
+	RelationalExpr => <>,
 	EqualityExpr "==" RelationalExpr => todo!(),
 	EqualityExpr "!=" RelationalExpr => todo!(),
 };
 
-AndExpr: AndExpr = {
-	EqualityExpr => AndExpr::EqualityExpr(<>),
+AndExpr: Expr = {
+	EqualityExpr => <>,
 	AndExpr "&" EqualityExpr => todo!(),
 };
 
-ExclusiveOrExpr: ExclusiveOrExpr = {
-	AndExpr => ExclusiveOrExpr::AndExpr(<>),
+ExclusiveOrExpr: Expr = {
+	AndExpr => <>,
 	ExclusiveOrExpr "^" AndExpr => todo!(),
 };
 
-InclusiveOrExpr: InclusiveOrExpr = {
-	ExclusiveOrExpr => InclusiveOrExpr::ExclusiveOrExpr(<>),
+InclusiveOrExpr: Expr = {
+	ExclusiveOrExpr => <>,
 	InclusiveOrExpr "|" ExclusiveOrExpr => todo!(),
 };
 
-LogicalAndExpr: LogicalAndExpr = {
-	InclusiveOrExpr => LogicalAndExpr::InclusiveOrExpr(<>),
+LogicalAndExpr: Expr = {
+	InclusiveOrExpr => <>,
 	LogicalAndExpr "&&" InclusiveOrExpr => todo!(),
 };
 
-LogicalOrExpr: LogicalOrExpr = {
-	LogicalAndExpr => LogicalOrExpr::LogicalAndExpr(<>),
+LogicalOrExpr: Expr = {
+	LogicalAndExpr => <>,
 	LogicalOrExpr "||" LogicalAndExpr => todo!(),
 };
 
-ConditionalExpr: ConditionalExpr = {
-	LogicalOrExpr => ConditionalExpr::LogicalOrExpr(<>),
+ConditionalExpr: Expr = {
+	LogicalOrExpr => <>,
 	LogicalOrExpr "?" Expr ":" ConditionalExpr => todo!(),
 };
 
-AssignmentExpr: AssignmentExpr = {
-	ConditionalExpr => AssignmentExpr {
-		assignment_expr: vec![],
-		conditional_expr: <>
-	},
+AssignmentExpr: Expr = {
+	ConditionalExpr => <>,
 	<unary:UnaryExpr> <op:AssignmentOperator> <mut expr:AssignmentExpr> => {
-		expr.assignment_expr.push((unary, op));
-		expr
+		Expr::Binary(ExprBinary{
+			left: Box::new(unary),
+			op: op,
+			right: Box::new(expr),
+		})
 	},
 };
 
-AssignmentOperator: AssignmentOperator = {
+AssignmentOperator: BinOp = {
 	"=" => todo!("="),
 	"*=" => todo!("*="),
 	"/=" => todo!("/="),
@@ -151,7 +151,7 @@ Expr: Expr = {
 	Expr "," AssignmentExpr => todo!("expr , assignment-expr"),
 };
 
-ConstantExpr: ConstantExpr = {
+ConstantExpr: Expr = {
 	ConditionalExpr => todo!("cond-expr"),
 };
 

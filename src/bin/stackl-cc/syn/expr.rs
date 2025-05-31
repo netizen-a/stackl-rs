@@ -1,27 +1,71 @@
 use super::decl;
 use crate::tok;
 
-/// (6.5.16) assignment-expression
-pub struct AssignmentExpr {
-	pub assignment_expr: Vec<(UnaryExpr, AssignmentOperator)>,
-	pub conditional_expr: ConditionalExpr,
+/// (6.5.17) expression
+#[derive(Debug)]
+pub enum Expr {
+	Ident(tok::Ident),
+	Const(tok::Const),
+	StrLit(tok::StrLit),
+	Paren(Box<Expr>),
+	Unary(ExprUnary),
+	Binary(ExprBinary),
+	Ternary(ExprTernary),
 }
 
 /// (6.5.3) unary-expression
-pub enum UnaryExpr {
-	PostfixExpr(Vec<PostfixExpr>),
-	Increment(Box<UnaryExpr>),
-	Decrement(Box<UnaryExpr>),
-	/// unary-operator cast-expression
-	UnaryOperator(UnaryOperator, CastExpr),
-	/// sizeof unary-expression
-	SizeofUnary(Box<UnaryExpr>),
-	/// sizeof ( type-name )
-	Sizeof(decl::TypeName),
+#[derive(Debug)]
+pub struct ExprUnary {
+	pub op: UnOp,
+	pub expr: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub struct ExprBinary {
+	pub left: Box<Expr>,
+	pub op: BinOp,
+	pub right: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub struct ExprTernary {
+	pub cond: Box<Expr>,
+	pub then_branch: Box<Expr>,
+	pub else_branch: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub enum BinOp {
+	NotEqual,
+	Equal,
+	And,
+	ExclusiveOr,
+	InclusiveOr,
+	LogicalAnd,
+	LogicalOr,
+	Assign,
+	MulAssign,
+	DivAssign,
+	ModAssign,
+	AddAssign,
+	SubAssign,
+	LShiftAssign,
+	RShiftAssign,
+	AmpAssign,
+	XOrAssign,
+	OrAssign,
+	Comma,
 }
 
 /// (6.5.3) unary-operator
-pub enum UnaryOperator {
+#[derive(Debug)]
+pub enum UnOp {
+	Prefix(UnOpPrefix),
+	Postfix(UnOpPostfix),
+}
+
+#[derive(Debug)]
+pub enum UnOpPrefix {
 	/// `&`
 	Amp,
 	/// `*`
@@ -37,123 +81,15 @@ pub enum UnaryOperator {
 }
 
 /// (6.5.2) postfix-expression
-pub enum PostfixExpr {
-	PrimaryExpr(PrimaryExpr),
-	Array(Expr),
+#[derive(Debug)]
+pub enum UnOpPostfix {
+	Expr(Box<Expr>),
+	Array(Box<Expr>),
 	/// (6.5.2) argument-expression-list
-	ArgumentExprList(Vec<AssignmentExpr>),
+	ArgExprList(Vec<Expr>),
 	Dot(tok::Ident),
 	Arrow(tok::Ident),
 	Increment,
 	Decrement,
 	TypeNameInitializerList(decl::TypeName, decl::InitializerList),
 }
-
-/// (6.5.1) primary-expression
-pub enum PrimaryExpr {
-	Identifier(tok::Ident),
-	Constant(tok::Const),
-	StrLit(tok::StrLit),
-	Expr(Expr),
-}
-
-/// (6.5.17) expression
-pub struct Expr(Vec<AssignmentExpr>);
-
-/// (6.5.16) assignment-operator
-pub enum AssignmentOperator {
-	Assign,
-	MulAssign,
-	DivAssign,
-	ModAssign,
-	AddAssign,
-	SubAssign,
-	LShiftAssign,
-	RShiftAssign,
-	AmpAssign,
-	XOrAssign,
-	OrAssign,
-}
-
-/// (6.5.15) conditional-expression
-pub enum ConditionalExpr {
-	LogicalOrExpr(LogicalOrExpr),
-	Ternary(LogicalOrExpr, Expr, Box<ConditionalExpr>),
-}
-
-/// (6.5.14) logical-OR-expression
-pub enum LogicalOrExpr {
-	LogicalAndExpr(LogicalAndExpr),
-	LogicalOrExpr(Box<LogicalOrExpr>, LogicalAndExpr),
-}
-
-/// (6.5.13) logical-AND-expression
-pub enum LogicalAndExpr {
-	InclusiveOrExpr(InclusiveOrExpr),
-	LogicalAndExpr(Box<LogicalAndExpr>, InclusiveOrExpr),
-}
-
-/// (6.5.12) inclusive-OR-expression
-pub enum InclusiveOrExpr {
-	ExclusiveOrExpr(ExclusiveOrExpr),
-	InclusiveOrExpr(Box<InclusiveOrExpr>, ExclusiveOrExpr),
-}
-
-/// (6.5.11) exclusive-OR-expression
-pub enum ExclusiveOrExpr {
-	AndExpr(AndExpr),
-	ExclusiveOrExpr(Box<ExclusiveOrExpr>, AndExpr),
-}
-
-/// (6.5.10) AND-expression
-pub enum AndExpr {
-	EqualityExpr(EqualityExpr),
-	AndExpr(Box<AndExpr>, EqualityExpr),
-}
-
-/// (6.5.9) equality-expression
-pub enum EqualityExpr {
-	RelationalExpr(RelationalExpr),
-	Equal(Box<EqualityExpr>, RelationalExpr),
-	NotEqual(Box<EqualityExpr>, RelationalExpr),
-}
-
-/// (6.5.8) relational-expression
-pub enum RelationalExpr {
-	ShiftExpr(ShiftExpr),
-	Less(Box<RelationalExpr>, ShiftExpr),
-	Great(Box<RelationalExpr>, ShiftExpr),
-	LessEqual(Box<RelationalExpr>, ShiftExpr),
-	GreatEqual(Box<RelationalExpr>, ShiftExpr),
-}
-
-/// (6.5.7) shift-expression
-pub enum ShiftExpr {
-	AdditiveExpr(AdditiveExpr),
-	LeftShift(Box<ShiftExpr>, AdditiveExpr),
-	RightShift(Box<ShiftExpr>, AdditiveExpr),
-}
-
-/// (6.5.6) additive-expression
-pub enum AdditiveExpr {
-	MultiplicativeExpr(MultiplicativeExpr),
-	Add(Box<AdditiveExpr>, MultiplicativeExpr),
-	Sub(Box<AdditiveExpr>, MultiplicativeExpr),
-}
-
-/// (6.5.5) multiplicative-expression
-pub enum MultiplicativeExpr {
-	CastExpr(CastExpr),
-	Mul(Box<MultiplicativeExpr>, CastExpr),
-	Div(Box<MultiplicativeExpr>, CastExpr),
-	Mod(Box<MultiplicativeExpr>, CastExpr),
-}
-
-/// (6.5.4) cast-expression
-pub enum CastExpr {
-	UnaryExpr(Box<UnaryExpr>),
-	TypeName(decl::TypeName, Box<CastExpr>),
-}
-
-/// (6.6) constant-expression
-pub struct ConstantExpr(ConditionalExpr);

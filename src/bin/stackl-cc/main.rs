@@ -22,10 +22,12 @@ fn main() -> ExitCode {
 		.parse(&mut file_map, &stack_ref, queue)
 		.unwrap();
 	let tokens_triple: Vec<diag::syn::ResultTriple<tok::Token, usize>> =
-		tokens.into_iter().map(|t| Ok(t)).collect();
-	let _unit = syn::grammar::TranslationUnitParser::new()
+		tokens.into_iter().map(Ok).collect();
+	let unit = syn::grammar::TranslationUnitParser::new()
 		.parse(tokens_triple)
 		.unwrap();
+
+	println!("{:#?}", unit);
 
 	ExitCode::SUCCESS
 }
