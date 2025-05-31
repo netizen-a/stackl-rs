@@ -123,12 +123,10 @@ pub struct TypeQualifierList(Vec<TypeQualifier>);
 
 /// (6.7.5) parameter-type-list
 pub struct ParameterTypeList {
-	parameter_list: ParameterList,
-	comma_ellipsis: bool,
+	/// (6.7.5) parameter-list
+	pub parameter_list: Vec<ParameterDeclaration>,
+	pub comma_ellipsis: bool,
 }
-
-/// (6.7.5) parameter-list
-pub struct ParameterList(Vec<ParameterDeclaration>);
 
 /// (6.7.5) pointer
 pub struct Pointer {

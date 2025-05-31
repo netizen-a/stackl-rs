@@ -1,1 +1,1 @@
-typedef int i32;
+int foo(void);

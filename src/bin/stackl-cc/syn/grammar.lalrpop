@@ -161,7 +161,7 @@ DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+;
 
 DeclarationSpecifier: DeclarationSpecifier = {
 	StorageClassSpecifier => todo!("storage-class-specifier"),
-	TypeSpecifier => todo!("type-specifier"),
+	TypeSpecifier => DeclarationSpecifier::TypeSpecifier(<>),
 	TypeQualifier => todo!("type-qualifier"),
 	FunctionSpecifier => todo!("function-specifier"),
 };
@@ -185,10 +185,10 @@ StorageClassSpecifier: Keyword = {
 }
 
 TypeSpecifier: TypeSpecifier = {
-	"void" => todo!("void"),
+	"void" => TypeSpecifier::Keyword(<>.kind.unwrap_keyword()),
 	"char" => todo!("char"),
 	"short" => todo!("short"),
-	"int" => todo!("int"),
+	"int" => TypeSpecifier::Keyword(<>.kind.unwrap_keyword()),
 	"long" => todo!("long"),
 	"float" => todo!("float"),
 	"double" => todo!("double"),
@@ -219,17 +219,17 @@ StructDeclaration: StructDeclaration = {
 SpecifierQualifierList: Vec<SpecifierQualifier> = SpecifierQualifier+ => <>;
 
 SpecifierQualifier: SpecifierQualifier = {
-	TypeSpecifier => todo!(),
-	TypeQualifier => todo!(),
+	TypeSpecifier => todo!("type-specifier"),
+	TypeQualifier => todo!("type-qualifier"),
 };
 
 StructDeclaratorList: Vec<StructDeclarator> = {
 	StructDeclarator => vec![<>],
-	StructDeclaratorList "," StructDeclarator => todo!(),
+	StructDeclaratorList "," StructDeclarator => todo!("struct-declarator-list , struct-declarator"),
 };
 
 StructDeclarator: StructDeclarator = {
-	Declarator => todo!(),
+	Declarator => todo!("declarator"),
 	Declarator? ":" ConstantExpression => todo!(),
 };
 
@@ -257,12 +257,12 @@ TypeQualifier: Keyword = {
 FunctionSpecifier: Keyword = "inline" => <>.kind.unwrap_keyword();
 
 Declarator: Declarator = {
-	Pointer? DirectDeclarator => todo!(),
+	Pointer? DirectDeclarator => todo!("pointer? direct-declarator"),
 };
 
 DirectDeclarator: DirectDeclarator = {
-	IDENT => todo!(),
-	"(" Declarator ")" => todo!(),
+	IDENT => DirectDeclarator::Identifier(<>.kind.unwrap_ident()),
+	"(" Declarator ")" => todo!(" ( declarator )"),
 	DirectDeclarator "[" TypeQualifier* AssignmentExpression? "]" => todo!(),
 	DirectDeclarator "[" "static" TypeQualifier* AssignmentExpression "]" => todo!(),
 	DirectDeclarator "[" TypeQualifier+ "static" AssignmentExpression "]" => todo!(),
@@ -272,22 +272,32 @@ DirectDeclarator: DirectDeclarator = {
 };
 
 Pointer: Pointer = {
-	"*" TypeQualifier* => todo!(),
-	"*" TypeQualifier* Pointer => todo!(),
+	"*" TypeQualifier* => todo!("* type-qualifier"),
+	"*" TypeQualifier* Pointer => todo!("* type-qualifier pointer"),
 };
 ParameterTypeList: ParameterTypeList = {
-	ParameterList => todo!(),
-	ParameterList "," "..." => todo!(),
+	ParameterList => {
+		ParameterTypeList{
+			parameter_list: <>,
+			comma_ellipsis: false,
+		}
+	},
+	ParameterList "," "..." => todo!("parameter-list , ..."),
 };
 
 ParameterList: Vec<ParameterDeclaration> = {
 	ParameterDeclaration => vec![<>],
-	ParameterList "," ParameterDeclaration => todo!(),
+	ParameterList "," ParameterDeclaration => todo!("parameter-list , parameter-declaration"),
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	DeclarationSpecifiers Declarator => todo!(),
-	DeclarationSpecifiers AbstractDeclarator? => todo!(),
+	DeclarationSpecifiers Declarator => todo!("decalration-specifiers"),
+	<decl_specs:DeclarationSpecifiers> <abstract_decl:AbstractDeclarator?> => {
+		ParameterDeclaration::AbstractDeclarator {
+			declaration_specifiers: decl_specs,
+			abstract_declarator: abstract_decl,
+		}
+	},
 };
 
 IdentifierList: Vec<Ident> = {
@@ -296,7 +306,7 @@ IdentifierList: Vec<Ident> = {
 };
 
 TypeName: TypeName = {
-	SpecifierQualifierList AbstractDeclarator? => todo!(),
+	SpecifierQualifierList AbstractDeclarator? => todo!("specifier-qualifier-list abstract-declarator"),
 };
 
 AbstractDeclarator: AbstractDeclarator = {
