@@ -295,10 +295,9 @@ impl TryFrom<PPTokenKind> for TokenKind {
 	type Error = lex::ErrorKind;
 	fn try_from(value: PPTokenKind) -> Result<Self, Self::Error> {
 		match value {
-			PPTokenKind::Ident(inner) => match inner.name.as_str() {
-				"typedef" => Ok(TokenKind::Keyword(Keyword::Typedef)),
-				_ => Ok(TokenKind::Ident(inner)),
-			},
+			PPTokenKind::Ident(inner) => Keyword::try_from(inner.name.as_str())
+				.map(TokenKind::Keyword)
+				.or(Ok(TokenKind::Ident(inner))),
 			PPTokenKind::PPNumber(inner) => {
 				if inner.is_float() {
 					inner.floating_constant()
