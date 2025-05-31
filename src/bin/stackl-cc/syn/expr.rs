@@ -2,20 +2,20 @@ use super::decl;
 use crate::tok;
 
 /// (6.5.16) assignment-expression
-pub struct AssignmentExpression {
-	assignment_expression: Vec<(UnaryExpression, AssignmentOperator)>,
-	conditional_expression: ConditionalExpression,
+pub struct AssignmentExpr {
+	assignment_expr: Vec<(UnaryExpr, AssignmentOperator)>,
+	conditional_expr: ConditionalExpr,
 }
 
 /// (6.5.3) unary-expression
-pub enum UnaryExpression {
-	PostfixExpression(Vec<PostfixExpression>),
-	Increment(Box<UnaryExpression>),
-	Decrement(Box<UnaryExpression>),
+pub enum UnaryExpr {
+	PostfixExpr(Vec<PostfixExpr>),
+	Increment(Box<UnaryExpr>),
+	Decrement(Box<UnaryExpr>),
 	/// unary-operator cast-expression
-	UnaryOperator(UnaryOperator, CastExpression),
+	UnaryOperator(UnaryOperator, CastExpr),
 	/// sizeof unary-expression
-	SizeofUnary(Box<UnaryExpression>),
+	SizeofUnary(Box<UnaryExpr>),
 	/// sizeof ( type-name )
 	Sizeof(decl::TypeName),
 }
@@ -37,11 +37,11 @@ pub enum UnaryOperator {
 }
 
 /// (6.5.2) postfix-expression
-pub enum PostfixExpression {
-	PrimaryExpression(PrimaryExpression),
-	Array(Expression),
+pub enum PostfixExpr {
+	PrimaryExpr(PrimaryExpr),
+	Array(Expr),
 	/// (6.5.2) argument-expression-list
-	ArgumentExpressionList(Vec<AssignmentExpression>),
+	ArgumentExprList(Vec<AssignmentExpr>),
 	Dot(tok::Ident),
 	Arrow(tok::Ident),
 	Increment,
@@ -50,15 +50,15 @@ pub enum PostfixExpression {
 }
 
 /// (6.5.1) primary-expression
-pub enum PrimaryExpression {
+pub enum PrimaryExpr {
 	Identifier(tok::Ident),
 	Constant(tok::Const),
-	StringLiteral(tok::StrLit),
-	Expression(Expression),
+	StrLit(tok::StrLit),
+	Expr(Expr),
 }
 
 /// (6.5.17) expression
-pub struct Expression(Vec<AssignmentExpression>);
+pub struct Expr(Vec<AssignmentExpr>);
 
 /// (6.5.16) assignment-operator
 pub enum AssignmentOperator {
@@ -76,84 +76,84 @@ pub enum AssignmentOperator {
 }
 
 /// (6.5.15) conditional-expression
-pub enum ConditionalExpression {
-	LogicalORExpression(LogicalOrExpression),
-	Ternary(LogicalOrExpression, Expression, Box<ConditionalExpression>),
+pub enum ConditionalExpr {
+	LogicalORExpression(LogicalOrExpr),
+	Ternary(LogicalOrExpr, Expr, Box<ConditionalExpr>),
 }
 
 /// (6.5.14) logical-OR-expression
-pub enum LogicalOrExpression {
-	LogicalAndExpression(LogicalAndExpression),
-	LogicalOrExpression(Box<LogicalOrExpression>, LogicalAndExpression),
+pub enum LogicalOrExpr {
+	LogicalAndExpr(LogicalAndExpr),
+	LogicalOrExpr(Box<LogicalOrExpr>, LogicalAndExpr),
 }
 
 /// (6.5.13) logical-AND-expression
-pub enum LogicalAndExpression {
-	InclusiveOrExpression(InclusiveOrExpression),
-	LogicalAndExpression(Box<LogicalAndExpression>, InclusiveOrExpression),
+pub enum LogicalAndExpr {
+	InclusiveOrExpr(InclusiveOrExpr),
+	LogicalAndExpr(Box<LogicalAndExpr>, InclusiveOrExpr),
 }
 
 /// (6.5.12) inclusive-OR-expression
-pub enum InclusiveOrExpression {
-	ExclusiveOrExpression(ExclusiveOrExpression),
-	InclusiveOrExpression(Box<InclusiveOrExpression>, ExclusiveOrExpression),
+pub enum InclusiveOrExpr {
+	ExclusiveOrExpr(ExclusiveOrExpr),
+	InclusiveOrExpr(Box<InclusiveOrExpr>, ExclusiveOrExpr),
 }
 
 /// (6.5.11) exclusive-OR-expression
-pub enum ExclusiveOrExpression {
-	AndExpressionExpression(AndExpression),
-	ExclusiveOrExpression(Box<ExclusiveOrExpression>, AndExpression),
+pub enum ExclusiveOrExpr {
+	AndExpr(AndExpr),
+	ExclusiveOrExpr(Box<ExclusiveOrExpr>, AndExpr),
 }
 
 /// (6.5.10) AND-expression
-pub enum AndExpression {
-	EqualityExpression(EqualityExpression),
-	AndExpression(Box<AndExpression>, EqualityExpression),
+pub enum AndExpr {
+	EqualityExpr(EqualityExpr),
+	AndExpr(Box<AndExpr>, EqualityExpr),
 }
 
 /// (6.5.9) equality-expression
-pub enum EqualityExpression {
-	RelationalExpression(RelationalExpression),
-	Equal(Box<EqualityExpression>, RelationalExpression),
-	NotEqual(Box<EqualityExpression>, RelationalExpression),
+pub enum EqualityExpr {
+	RelationalExpr(RelationalExpr),
+	Equal(Box<EqualityExpr>, RelationalExpr),
+	NotEqual(Box<EqualityExpr>, RelationalExpr),
 }
 
 /// (6.5.8) relational-expression
-pub enum RelationalExpression {
-	ShiftExpression(ShiftExpression),
-	Less(Box<RelationalExpression>, ShiftExpression),
-	Great(Box<RelationalExpression>, ShiftExpression),
-	LessEqual(Box<RelationalExpression>, ShiftExpression),
-	GreatEqual(Box<RelationalExpression>, ShiftExpression),
+pub enum RelationalExpr {
+	ShiftExpr(ShiftExpr),
+	Less(Box<RelationalExpr>, ShiftExpr),
+	Great(Box<RelationalExpr>, ShiftExpr),
+	LessEqual(Box<RelationalExpr>, ShiftExpr),
+	GreatEqual(Box<RelationalExpr>, ShiftExpr),
 }
 
 /// (6.5.7) shift-expression
-pub enum ShiftExpression {
-	AdditiveExpression(AdditiveExpression),
-	LeftShift(Box<ShiftExpression>, AdditiveExpression),
-	RightShift(Box<ShiftExpression>, AdditiveExpression),
+pub enum ShiftExpr {
+	AdditiveExpr(AdditiveExpr),
+	LeftShift(Box<ShiftExpr>, AdditiveExpr),
+	RightShift(Box<ShiftExpr>, AdditiveExpr),
 }
 
 /// (6.5.6) additive-expression
-pub enum AdditiveExpression {
-	MultiplicativeExpression(MultiplicativeExpression),
-	Add(Box<AdditiveExpression>, MultiplicativeExpression),
-	Sub(Box<AdditiveExpression>, MultiplicativeExpression),
+pub enum AdditiveExpr {
+	MultiplicativeExpr(MultiplicativeExpr),
+	Add(Box<AdditiveExpr>, MultiplicativeExpr),
+	Sub(Box<AdditiveExpr>, MultiplicativeExpr),
 }
 
 /// (6.5.5) multiplicative-expression
-pub enum MultiplicativeExpression {
-	CastExpression(CastExpression),
-	Mul(Box<MultiplicativeExpression>, CastExpression),
-	Div(Box<MultiplicativeExpression>, CastExpression),
-	Mod(Box<MultiplicativeExpression>, CastExpression),
+pub enum MultiplicativeExpr {
+	CastExpr(CastExpr),
+	Mul(Box<MultiplicativeExpr>, CastExpr),
+	Div(Box<MultiplicativeExpr>, CastExpr),
+	Mod(Box<MultiplicativeExpr>, CastExpr),
 }
 
 /// (6.5.4) cast-expression
-pub enum CastExpression {
-	UnaryExpression(Box<UnaryExpression>),
-	TypeName(decl::TypeName, Box<CastExpression>),
+pub enum CastExpr {
+	UnaryExpr(Box<UnaryExpr>),
+	TypeName(decl::TypeName, Box<CastExpr>),
 }
 
 /// (6.6) constant-expression
-pub struct ConstantExpression(ConditionalExpression);
+pub struct ConstantExpr(ConditionalExpr);

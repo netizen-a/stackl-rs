@@ -17,7 +17,7 @@ pub enum BlockItem {
 pub enum Statement {
 	LabeledStatement(LabeledStatement),
 	CompoundStatement(CompoundStatement),
-	ExpressionStatement(ExpressionStatement),
+	ExpressionStatement(ExprStatement),
 	SelectionStatement(SelectionStatement),
 	IterationStatement(IterationStatement),
 	JumpStatement(JumpStatement),
@@ -26,22 +26,22 @@ pub enum Statement {
 /// (6.8.1) labeled-statement
 pub enum LabeledStatement {
 	Label(tok::Ident, Box<Statement>),
-	Case(expr::ConstantExpression, Box<Statement>),
+	Case(expr::ConstantExpr, Box<Statement>),
 	Default(Box<Statement>),
 }
 
 /// (6.8.3) expression-statement
-pub struct ExpressionStatement(Option<expr::Expression>);
+pub struct ExprStatement(Option<expr::Expr>);
 
 /// (6.8.4) selection-statement
 pub enum SelectionStatement {
 	If {
-		condition: expr::Expression,
+		condition: expr::Expr,
 		statement_true: Box<Statement>,
 		statement_false: Option<Box<Statement>>,
 	},
 	Switch {
-		expression: expr::Expression,
+		expr: expr::Expr,
 		statement: Box<Statement>,
 	},
 }
@@ -49,23 +49,23 @@ pub enum SelectionStatement {
 /// (6.8.5) iteration-statement
 pub enum IterationStatement {
 	While {
-		condition: expr::Expression,
+		condition: expr::Expr,
 		statement: Box<Statement>,
 	},
 	DoWhile {
 		statement: Box<Statement>,
-		condition: expr::Expression,
+		condition: expr::Expr,
 	},
 	ForExpr {
-		init_expr: Option<expr::Expression>,
-		condition: Option<expr::Expression>,
-		iteration: Option<expr::Expression>,
+		init_expr: Option<expr::Expr>,
+		condition: Option<expr::Expr>,
+		iteration: Option<expr::Expr>,
 		statement: Box<Statement>,
 	},
 	ForDecl {
 		init_decl: decl::Declaration,
-		condition: Option<expr::Expression>,
-		iteration: Option<expr::Expression>,
+		condition: Option<expr::Expr>,
+		iteration: Option<expr::Expr>,
 		statement: Box<Statement>,
 	},
 }
@@ -75,5 +75,5 @@ pub enum JumpStatement {
 	Goto(tok::Ident),
 	Continue,
 	Break,
-	Return(Option<expr::Expression>),
+	Return(Option<expr::Expr>),
 }

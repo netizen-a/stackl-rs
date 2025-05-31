@@ -16,24 +16,41 @@ pub struct Declaration {
 
 /// (6.7) declaration-specifiers
 pub enum DeclarationSpecifier {
-	/// (6.7.1) storage-class-specifier
-	StorageClassSpecifier(tok::Keyword),
+	StorageClassSpecifier(StorageClassSpecifier),
 	TypeSpecifier(TypeSpecifier),
 	/// (6.7.3) type-qualifier
-	TypeQualifier(tok::Keyword),
+	TypeQualifier(TypeQualifier),
 	/// (6.7.4) function-specifier
-	FunctionSpecifier(tok::Keyword),
+	FunctionSpecifier(FunctionSpecifier),
 }
 
 /// (6.7) init-declarator
 pub struct InitDeclarator {
-	declarator: Declarator,
-	initializer: Option<Initializer>,
+	pub declarator: Declarator,
+	pub initializer: Option<Initializer>,
+}
+
+/// (6.7.1) storage-class-specifier
+pub enum StorageClassSpecifier {
+	Typedef,
+	Extern,
+	Static,
+	Auto,
+	Register,
 }
 
 /// (6.7.2) type-specifier
 pub enum TypeSpecifier {
-	Keyword(tok::Keyword),
+	Void,
+	Char,
+	Short,
+	Int,
+	Long,
+	Float,
+	Double,
+	Signed,
+	Unsigned,
+	Bool,
 	StructOrUnionSpecifier(StructOrUnionSpecifier),
 	EnumSpecifier(EnumSpecifier),
 	/// (6.7.7) typedef-name
@@ -52,7 +69,7 @@ pub struct EnumeratorList(Vec<Enumerator>);
 /// (6.7.2.2) enumerator
 pub struct Enumerator {
 	enumeration_constant: EnumerationConstant,
-	constant_expression: expr::ConstantExpression,
+	constant_expr: expr::ConstantExpr,
 }
 
 /// (6.4.4.3) enumeration-constant
@@ -81,13 +98,17 @@ pub struct StructDeclaratorList(Vec<StructDeclarator>);
 /// (6.7.2.1) struct-declarator
 pub struct StructDeclarator {
 	declarator: Option<Declarator>,
-	constant_expression: Option<expr::ConstantExpression>,
+	constant_expr: Option<expr::ConstantExpr>,
 }
 
 /// (6.7.8) initializer
 pub enum Initializer {
-	AssignmentExpression(expr::AssignmentExpression),
+	AssignmentExpr(expr::AssignmentExpr),
 	InitializerList(InitializerList),
+}
+
+pub enum FunctionSpecifier {
+	Inline,
 }
 
 /// (6.7.5) declarator
@@ -102,14 +123,11 @@ pub enum DirectDeclarator {
 	/// ( declarator )
 	Declarator(Box<Declarator>),
 	/// [ type-qualifier-list_opt assignment-expression_opt ]
-	TypeQualifierList(
-		Option<TypeQualifierList>,
-		Option<expr::AssignmentExpression>,
-	),
+	TypeQualifierList(Option<TypeQualifierList>, Option<expr::AssignmentExpr>),
 	/// [ static type-qualifier-list_opt assignment-expression ]
-	StaticTypeQualifierList(Option<TypeQualifierList>, expr::AssignmentExpression),
+	StaticTypeQualifierList(Option<TypeQualifierList>, expr::AssignmentExpr),
 	/// [ type-qualifier-list static assignment-expression ]
-	TypeQualifierListStatic(TypeQualifierList, expr::AssignmentExpression),
+	TypeQualifierListStatic(TypeQualifierList, expr::AssignmentExpr),
 	/// [ type-qualifier-list_opt * ]
 	TypeQualifierListPointer(TypeQualifierList),
 	/// ( parameter-type-list )
@@ -163,14 +181,11 @@ pub enum DirectAbstractDeclarator {
 	/// ( abstract-declarator )
 	AbstractDeclarator(AbstractDeclarator),
 	/// direct-abstract-declarator_opt [ type-qualifier-list_opt assignment-expression_opt ]
-	TypeQualifierList(
-		Option<TypeQualifierList>,
-		Option<expr::AssignmentExpression>,
-	),
+	TypeQualifierList(Option<TypeQualifierList>, Option<expr::AssignmentExpr>),
 	/// direct-abstract-declarator_opt [ static type-qualifier-list_opt assignment-expression ]
-	StaticTypeQualifierList(Option<TypeQualifierList>, expr::AssignmentExpression),
+	StaticTypeQualifierList(Option<TypeQualifierList>, expr::AssignmentExpr),
 	/// direct-abstract-declarator_opt [ type-qualifier-list static assignment-expression ]
-	TypeQualifierListStatic(TypeQualifierList, expr::AssignmentExpression),
+	TypeQualifierListStatic(TypeQualifierList, expr::AssignmentExpr),
 	/// direct-abstract-declarator_opt [ * }
 	ArrayPointer,
 	/// direct-abstract-declarator_opt ( parameter-type-list_opt )
@@ -210,6 +225,6 @@ pub struct DesignatorList(Vec<Designator>);
 
 /// (6.7.8) designator
 pub enum Designator {
-	ConstantExpression(expr::ConstantExpression),
+	ConstantExpr(expr::ConstantExpr),
 	Dot(tok::Ident),
 }
