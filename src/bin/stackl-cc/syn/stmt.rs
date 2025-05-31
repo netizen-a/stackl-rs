@@ -2,10 +2,10 @@ use super::{decl, expr};
 use crate::tok;
 
 /// (6.8.2) compound-statement
-pub struct CompoundStatement(Option<BlockItemList>);
+pub struct CompoundStatement(pub Vec<BlockItem>);
 
 /// (6.8.2) block-item-list
-pub struct BlockItemList(Vec<BlockItem>);
+//pub struct BlockItemList(pub Vec<BlockItem>);
 
 /// (6.8.2) block-item
 pub enum BlockItem {
