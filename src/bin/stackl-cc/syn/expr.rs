@@ -3,8 +3,8 @@ use crate::tok;
 
 /// (6.5.16) assignment-expression
 pub struct AssignmentExpr {
-	assignment_expr: Vec<(UnaryExpr, AssignmentOperator)>,
-	conditional_expr: ConditionalExpr,
+	pub assignment_expr: Vec<(UnaryExpr, AssignmentOperator)>,
+	pub conditional_expr: ConditionalExpr,
 }
 
 /// (6.5.3) unary-expression
@@ -77,7 +77,7 @@ pub enum AssignmentOperator {
 
 /// (6.5.15) conditional-expression
 pub enum ConditionalExpr {
-	LogicalORExpression(LogicalOrExpr),
+	LogicalOrExpr(LogicalOrExpr),
 	Ternary(LogicalOrExpr, Expr, Box<ConditionalExpr>),
 }
 

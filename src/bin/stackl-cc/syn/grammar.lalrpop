@@ -112,18 +112,24 @@ LogicalAndExpr: LogicalAndExpr = {
 };
 
 LogicalOrExpr: LogicalOrExpr = {
-	LogicalAndExpr => todo!(),
+	LogicalAndExpr => LogicalOrExpr::LogicalAndExpr(<>),
 	LogicalOrExpr "||" LogicalAndExpr => todo!(),
 };
 
 ConditionalExpr: ConditionalExpr = {
-	LogicalOrExpr => todo!(),
+	LogicalOrExpr => ConditionalExpr::LogicalOrExpr(<>),
 	LogicalOrExpr "?" Expr ":" ConditionalExpr => todo!(),
 };
 
 AssignmentExpr: AssignmentExpr = {
-	ConditionalExpr => todo!(),
-	UnaryExpr AssignmentOperator AssignmentExpr => todo!(),
+	ConditionalExpr => AssignmentExpr {
+		assignment_expr: vec![],
+		conditional_expr: <>
+	},
+	<unary:UnaryExpr> <op:AssignmentOperator> <mut expr:AssignmentExpr> => {
+		expr.assignment_expr.push((unary, op));
+		expr
+	},
 };
 
 AssignmentOperator: AssignmentOperator = {
@@ -179,7 +185,10 @@ InitDeclarator: InitDeclarator = {
 		declarator: <>,
 		initializer: None,
 	},
-	Declarator "=" Initializer => todo!("declarator = initializer"),
+	<decl:Declarator> "=" <init:Initializer> => InitDeclarator {
+		declarator: decl,
+		initializer: Some(init)
+	},
 };
 
 StorageClassSpecifier: StorageClassSpecifier = {
@@ -343,7 +352,7 @@ DirectAbstractDeclarator: DirectAbstractDeclarator = {
 TypedefName: Ident = TYPE_NAME => todo!("typedef-name");
 
 Initializer: Initializer = {
-	AssignmentExpr => todo!("assign-expr"),
+	AssignmentExpr => Initializer::AssignmentExpr(<>),
 	"{" InitializerList ","? "}" => todo!("init-list"),
 };
 
@@ -415,7 +424,7 @@ UnmatchedCompoundStatement: CompoundStatement = {
 };
 
 MatchedBlockItem: BlockItem = {
-	Declaration => todo!("decl"),
+	Declaration => BlockItem::Declaration(<>),
 	MatchedStatement => todo!("matched-stmt"),
 };
 UnmatchedBlockItem: BlockItem = {
