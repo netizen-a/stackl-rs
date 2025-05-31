@@ -154,50 +154,50 @@ ConstantExpression: ConstantExpression = {
 // A.2.2 Declarations
 
 Declaration: Declaration = {
-	DeclarationSpecifiers InitDeclaratorList? ";" => todo!(),
+	DeclarationSpecifiers InitDeclaratorList? ";" => todo!("declaration"),
 };
 
-DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+ => <>;
+DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+;
 
 DeclarationSpecifier: DeclarationSpecifier = {
-	StorageClassSpecifier => todo!(),
-	TypeSpecifier => todo!(),
-	TypeQualifier => todo!(),
-	FunctionSpecifier => todo!(),
+	StorageClassSpecifier => todo!("declaration-specifier"),
+	TypeSpecifier => todo!("declaration-specifier"),
+	TypeQualifier => todo!("declaration-specifier"),
+	FunctionSpecifier => todo!("function-specifier"),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
 	InitDeclarator => vec![<>],
-	InitDeclaratorList "," InitDeclarator => todo!(),
+	InitDeclaratorList "," InitDeclarator => todo!("init-declarator-list"),
 };
 
 InitDeclarator: InitDeclarator = {
-	Declarator => todo!(),
-	Declarator "=" Initializer => todo!(),
+	Declarator => todo!("init-declarator"),
+	Declarator "=" Initializer => todo!("init-declarator"),
 };
 
 StorageClassSpecifier: Keyword = {
-	"typedef" => todo!(),
-	"extern" => todo!(),
-	"static" => todo!(),
-	"auto" => todo!(),
-	"register" => todo!(),
+	"typedef" => todo!("typedef"),
+	"extern" => todo!("extern"),
+	"static" => todo!("static"),
+	"auto" => todo!("auto"),
+	"register" => todo!("register"),
 }
 
 TypeSpecifier: TypeSpecifier = {
-	"void" => todo!(),
-	"char" => todo!(),
-	"short" => todo!(),
-	"int" => todo!(),
-	"long" => todo!(),
-	"float" => todo!(),
-	"double" => todo!(),
-	"signed" => todo!(),
-	"unsigned" => todo!(),
-	"_Bool" => todo!(),
-	StructOrUnionSpecifier => todo!(),
-	EnumSpecifier => todo!(),
-	TypedefName => todo!(),
+	"void" => todo!("void"),
+	"char" => todo!("char"),
+	"short" => todo!("short"),
+	"int" => todo!("int"),
+	"long" => todo!("long"),
+	"float" => todo!("float"),
+	"double" => todo!("double"),
+	"signed" => todo!("signed"),
+	"unsigned" => todo!("unsigned"),
+	"_Bool" => todo!("_Bool"),
+	StructOrUnionSpecifier => todo!("type-specifier"),
+	EnumSpecifier => todo!("type-specifier"),
+	TypedefName => todo!("type-specifier"),
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
@@ -313,7 +313,7 @@ DirectAbstractDeclarator: DirectAbstractDeclarator = {
 };
 
 
-TypedefName: Ident = TYPE_NAME => todo!();
+TypedefName: Ident = TYPE_NAME => todo!("typedef-name");
 
 Initializer: Initializer = {
 	AssignmentExpression => todo!(),
@@ -434,10 +434,10 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	DeclarationSpecifiers Declarator DeclarationList? MatchedCompoundStatement => todo!(),
+	DeclarationSpecifiers Declarator DeclarationList? MatchedCompoundStatement => todo!("function-definition"),
 };
 
-DeclarationList: Vec<Declaration> = Declaration+ => <>;
+DeclarationList: Vec<Declaration> = Declaration+;
 
 extern {
 	type Location = usize;
