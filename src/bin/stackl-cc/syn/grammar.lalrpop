@@ -13,20 +13,20 @@ EnumerationConstant: Ident = IDENT => <>.kind.unwrap_ident();
 // A.2.1 Expressions
 
 PrimaryExpression: PrimaryExpression = {
-	IDENT => todo!(),
-	CONST => todo!(),
-	STR_LIT => todo!(),
-	"(" Expression ")" => todo!(),
+	IDENT => todo!("identifier"),
+	CONST => todo!("constant"),
+	STR_LIT => todo!("string-literal"),
+	"(" Expression ")" => todo!(" ( expression ) "),
 };
 
 PostfixExpression: PostfixExpression = {
-	PrimaryExpression => todo!(),
-	PostfixExpression "[" Expression "]" => todo!(),
+	PrimaryExpression => todo!("primary-expression"),
+	PostfixExpression "[" Expression "]" => todo!(" [ expression ]"),
 	PostfixExpression "(" ArgumentExpressionList? ")" => todo!(),
-	PostfixExpression "." IDENT => todo!(),
-	PostfixExpression "->" IDENT => todo!(),
-	PostfixExpression "++" => todo!(),
-	PostfixExpression "--" => todo!(),
+	PostfixExpression "." IDENT => todo!(" . identifier"),
+	PostfixExpression "->" IDENT => todo!(" -> identifier"),
+	PostfixExpression "++" => todo!("++"),
+	PostfixExpression "--" => todo!("--"),
 	"(" TypeName ")" "{" InitializerList ","? "}" => todo!(),
 };
 
@@ -45,21 +45,21 @@ UnaryExpression: UnaryExpression = {
 };
 
 UnaryOperator: UnaryOperator = {
-	"&" => todo!(),
-	"*" => todo!(),
-	"+" => todo!(),
-	"-" => todo!(),
-	"~" => todo!(),
-	"!" => todo!(),
+	"&" => todo!("&"),
+	"*" => todo!("*"),
+	"+" => todo!("+"),
+	"-" => todo!("-"),
+	"~" => todo!("~"),
+	"!" => todo!("!"),
 };
 
 CastExpression: CastExpression = {
-	UnaryExpression => todo!(),
-	"(" TypeName ")" CastExpression => todo!(),
+	UnaryExpression => todo!("unary-expression"),
+	"(" TypeName ")" CastExpression => todo!(" ( type-name )"),
 };
 
 MultiplicativeExpression: MultiplicativeExpression = {
-	CastExpression => todo!(),
+	CastExpression => todo!("cast-expression"),
 	MultiplicativeExpression "*" CastExpression => todo!(),
 	MultiplicativeExpression "/" CastExpression => todo!(),
 	MultiplicativeExpression "%" CastExpression => todo!(),
@@ -127,17 +127,17 @@ AssignmentExpression: AssignmentExpression = {
 };
 
 AssignmentOperator: AssignmentOperator = {
-	"=" => todo!(),
-	"*=" => todo!(),
-	"/=" => todo!(),
-	"%=" => todo!(),
-	"+=" => todo!(),
-	"-=" => todo!(),
-	"<<=" => todo!(),
-	">>=" => todo!(),
-	"&=" => todo!(),
-	"^=" => todo!(),
-	"|=" => todo!(),
+	"=" => todo!("="),
+	"*=" => todo!("*="),
+	"/=" => todo!("/="),
+	"%=" => todo!("%="),
+	"+=" => todo!("+="),
+	"-=" => todo!("-="),
+	"<<=" => todo!("<<="),
+	">>=" => todo!(">>="),
+	"&=" => todo!("&="),
+	"^=" => todo!("^="),
+	"|=" => todo!("|="),
 };
 
 Expression: Expression = {
@@ -160,20 +160,20 @@ Declaration: Declaration = {
 DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+;
 
 DeclarationSpecifier: DeclarationSpecifier = {
-	StorageClassSpecifier => todo!("declaration-specifier"),
-	TypeSpecifier => todo!("declaration-specifier"),
-	TypeQualifier => todo!("declaration-specifier"),
+	StorageClassSpecifier => todo!("storage-class-specifier"),
+	TypeSpecifier => todo!("type-specifier"),
+	TypeQualifier => todo!("type-qualifier"),
 	FunctionSpecifier => todo!("function-specifier"),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
 	InitDeclarator => vec![<>],
-	InitDeclaratorList "," InitDeclarator => todo!("init-declarator-list"),
+	InitDeclaratorList "," InitDeclarator => todo!("init-declarator-list , init-declarator"),
 };
 
 InitDeclarator: InitDeclarator = {
-	Declarator => todo!("init-declarator"),
-	Declarator "=" Initializer => todo!("init-declarator"),
+	Declarator => todo!("declarator"),
+	Declarator "=" Initializer => todo!("declarator = initializer"),
 };
 
 StorageClassSpecifier: Keyword = {
@@ -195,9 +195,9 @@ TypeSpecifier: TypeSpecifier = {
 	"signed" => todo!("signed"),
 	"unsigned" => todo!("unsigned"),
 	"_Bool" => todo!("_Bool"),
-	StructOrUnionSpecifier => todo!("type-specifier"),
-	EnumSpecifier => todo!("type-specifier"),
-	TypedefName => todo!("type-specifier"),
+	StructOrUnionSpecifier => todo!("struct-or-union-specifier"),
+	EnumSpecifier => todo!("enum-specifier"),
+	TypedefName => todo!("typedef-name"),
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
