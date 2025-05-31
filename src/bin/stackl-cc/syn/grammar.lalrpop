@@ -13,10 +13,10 @@ EnumerationConstant: Ident = IDENT => <>.kind.unwrap_ident();
 // A.2.1 Expressions
 
 PrimaryExpr: PrimaryExpr = {
-	IDENT => todo!("identifier"),
-	CONST => todo!("constant"),
+	IDENT => PrimaryExpr::Identifier(<>.kind.unwrap_ident()),
+	CONST => PrimaryExpr::Constant(<>.kind.unwrap_const()),
 	STR_LIT => PrimaryExpr::StrLit(<>.kind.unwrap_str_lit()),
-	"(" Expr ")" => todo!(" ( expr ) "),
+	"(" <expr:Expr> ")" => PrimaryExpr::Expr(expr),
 };
 
 PostfixExpr: PostfixExpr = {
