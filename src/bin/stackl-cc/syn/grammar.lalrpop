@@ -205,12 +205,14 @@ AssignmentOperator: BinOp = {
 
 Expr: Expr = {
 	AssignmentExpr => <>,
-	Expr "," AssignmentExpr => todo!("expr , assignment-expr"),
+	<lhs:Expr> "," <rhs:AssignmentExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Comma,
+		right: Box::new(rhs),
+	}),
 };
 
-ConstantExpr: Expr = {
-	ConditionalExpr => <>,
-};
+ConstantExpr = ConditionalExpr;
 
 
 
@@ -234,7 +236,10 @@ DeclarationSpecifier: DeclarationSpecifier = {
 
 InitDeclaratorList: Vec<InitDeclarator> = {
 	InitDeclarator => vec![<>],
-	InitDeclaratorList "," InitDeclarator => todo!("init-declarator-list , init-declarator"),
+	<mut lhs:InitDeclaratorList> "," <rhs:InitDeclarator> => {
+		lhs.push(rhs);
+		lhs
+	},
 };
 
 InitDeclarator: InitDeclarator = {
@@ -267,8 +272,8 @@ TypeSpecifier: TypeSpecifier = {
 	"signed" => TypeSpecifier::Signed,
 	"unsigned" => TypeSpecifier::Unsigned,
 	"_Bool" => TypeSpecifier::Bool,
-	StructOrUnionSpecifier => todo!("struct-or-union-specifier"),
-	EnumSpecifier => todo!("enum-specifier"),
+	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
+	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
 	TypedefName => todo!("typedef-name"),
 };
 
@@ -282,13 +287,16 @@ StructOrUnion: Keyword = {
 	"union" => todo!("union"),
 };
 
-StructDeclarationList: StructDeclarationList = StructDeclaration+ => todo!();
+StructDeclarationList: StructDeclarationList = StructDeclaration+ => StructDeclarationList(<>);
 
 StructDeclaration: StructDeclaration = {
-	SpecifierQualifierList StructDeclaratorList ";" => todo!(),
+	<list0:SpecifierQualifierList> <list1:StructDeclaratorList> ";" => StructDeclaration {
+		specifier_qualifier_list: list0,
+		struct_declaration_list: list1,
+	}
 };
 
-SpecifierQualifierList: Vec<SpecifierQualifier> = SpecifierQualifier+ => <>;
+SpecifierQualifierList: Vec<SpecifierQualifier> = SpecifierQualifier+;
 
 SpecifierQualifier: SpecifierQualifier = {
 	TypeSpecifier => SpecifierQualifier::TypeSpecifier(<>),
@@ -297,27 +305,53 @@ SpecifierQualifier: SpecifierQualifier = {
 
 StructDeclaratorList: Vec<StructDeclarator> = {
 	StructDeclarator => vec![<>],
-	StructDeclaratorList "," StructDeclarator => todo!("struct-declarator-list , struct-declarator"),
+	<mut list:StructDeclaratorList> "," <elem:StructDeclarator> => {
+		list.push(elem);
+		list
+	},
 };
 
 StructDeclarator: StructDeclarator = {
-	Declarator => todo!("declarator"),
-	Declarator? ":" ConstantExpr => todo!(),
+	<decl:Declarator> => StructDeclarator {
+		declarator: Some(decl),
+		constant_expr: None,
+	},
+	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
+		declarator: decl,
+		constant_expr: Some(expr),
+	},
 };
 
 EnumSpecifier: EnumSpecifier = {
-	"enum" Identifier? "{" EnumeratorList ","? "}" => todo!(),
-	"enum" Identifier => todo!(),
+	"enum" <id:Identifier?> "{" <list:EnumeratorList> ","? "}" => {
+		EnumSpecifier {
+			identifier: id,
+			enumerator_list: list,
+		}
+	},
+	"enum" <id:Identifier> => EnumSpecifier{
+		identifier: Some(id),
+		enumerator_list: vec![],
+	},
 };
 
 EnumeratorList: Vec<Enumerator> = {
 	Enumerator => vec![<>],
-	EnumeratorList "," Enumerator => todo!(),
+	<mut list:EnumeratorList> "," <elem:Enumerator> => {
+		list.push(elem);
+		list
+	},
 };
 
 Enumerator: Enumerator = {
-	EnumerationConstant => todo!(),
-	EnumerationConstant "=" ConstantExpr => todo!(),
+	<ident:EnumerationConstant> => Enumerator {
+		enumeration_constant: ident,
+		constant_expr: None,
+	},
+	<ident:EnumerationConstant> "=" <expr:ConstantExpr> => Enumerator {
+		enumeration_constant: ident,
+		constant_expr: Some(expr),
+	},
 };
 
 TypeQualifier: TypeQualifier = {

@@ -65,24 +65,18 @@ pub enum TypeSpecifier {
 /// (6.7.2.2) enum-specifier
 #[derive(Debug)]
 pub struct EnumSpecifier {
-	identifier: Option<tok::Ident>,
-	enumerator_list: Option<EnumeratorList>,
+	pub identifier: Option<tok::Ident>,
+	/// (6.7.2.2) enumerator-list
+	pub enumerator_list: Vec<Enumerator>,
 }
-
-/// (6.7.2.2) enumerator-list
-#[derive(Debug)]
-pub struct EnumeratorList(Vec<Enumerator>);
 
 /// (6.7.2.2) enumerator
 #[derive(Debug)]
 pub struct Enumerator {
-	enumeration_constant: EnumerationConstant,
-	constant_expr: expr::Expr,
+	/// (6.4.4.3) enumeration-constant
+	pub enumeration_constant: tok::Ident,
+	pub constant_expr: Option<expr::Expr>,
 }
-
-/// (6.4.4.3) enumeration-constant
-#[derive(Debug)]
-pub struct EnumerationConstant(tok::Ident);
 
 /// (6.7.2.1) struct-or-union-specifier
 #[derive(Debug)]
@@ -95,24 +89,20 @@ pub struct StructOrUnionSpecifier {
 
 /// (6.7.2.1) struct-declaration-list
 #[derive(Debug)]
-pub struct StructDeclarationList(Vec<StructDeclaration>);
+pub struct StructDeclarationList(pub Vec<StructDeclaration>);
 
 /// (6.7.2.1) struct-declaration
 #[derive(Debug)]
 pub struct StructDeclaration {
-	specifier_qualifier_list: SpecifierQualifierList,
-	struct_declaration_list: StructDeclaratorList,
+	pub specifier_qualifier_list: Vec<SpecifierQualifier>,
+	pub struct_declaration_list: Vec<StructDeclarator>,
 }
-
-/// (6.7.2.1) struct-declarator-list
-#[derive(Debug)]
-pub struct StructDeclaratorList(Vec<StructDeclarator>);
 
 /// (6.7.2.1) struct-declarator
 #[derive(Debug)]
 pub struct StructDeclarator {
-	declarator: Option<Declarator>,
-	constant_expr: Option<expr::Expr>,
+	pub declarator: Option<Declarator>,
+	pub constant_expr: Option<expr::Expr>,
 }
 
 /// (6.7.8) initializer
@@ -227,14 +217,10 @@ pub enum TypeQualifier {
 #[derive(Debug)]
 pub struct TypeName {
 	/// specifier-qualifier-list
-	pub specifier_qualifier_list: SpecifierQualifierList,
+	pub specifier_qualifier_list: Vec<SpecifierQualifier>,
 	/// abstract-declarator_opt
 	pub abstract_declarator: Option<AbstractDeclarator>,
 }
-
-/// (6.7.2.1) specifier-qualifier-list
-#[derive(Debug)]
-pub struct SpecifierQualifierList(Vec<SpecifierQualifier>);
 
 #[derive(Debug)]
 pub enum SpecifierQualifier {
