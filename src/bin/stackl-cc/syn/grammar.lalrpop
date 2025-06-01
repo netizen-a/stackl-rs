@@ -454,7 +454,7 @@ JumpStatement: JumpStatement = {
 
 // A.2.4 External definitions
 
-pub TranslationUnit: TranslationUnit = ExternalDeclaration+ => {
+pub Syntax: TranslationUnit = ExternalDeclaration+ => {
 	TranslationUnit {
 		external_declaration: <>,
 	}

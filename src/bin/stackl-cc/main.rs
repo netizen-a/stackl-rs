@@ -9,7 +9,6 @@ mod tok;
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
-	// let diagnostics = diag::DiagnosticEngine::new();
 	let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
 	file_map.insert(0, args.in_file.clone());
 	let mut file = fs::File::open(args.in_file).unwrap();
@@ -23,9 +22,11 @@ fn main() -> ExitCode {
 		.unwrap();
 	let tokens_triple: Vec<diag::syn::ResultTriple<tok::Token, usize>> =
 		tokens.into_iter().map(Ok).collect();
-	let unit = syn::grammar::TranslationUnitParser::new()
+	let unit = syn::grammar::SyntaxParser::new()
 		.parse(tokens_triple)
 		.unwrap();
+
+	// let module = SemanticParser::new();
 
 	println!("{:#?}", unit);
 
