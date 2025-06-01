@@ -118,7 +118,7 @@ pub struct StructDeclarator {
 /// (6.7.8) initializer
 #[derive(Debug)]
 pub enum Initializer {
-	AssignmentExpr(expr::Expr),
+	Expr(expr::Expr),
 	InitializerList(InitializerList),
 }
 
@@ -248,11 +248,7 @@ pub struct InitializerList(Vec<(Option<Designation>, Initializer)>);
 
 /// (6.7.8) designation
 #[derive(Debug)]
-pub struct Designation(DesignatorList);
-
-/// (6.7.8) designator-list
-#[derive(Debug)]
-pub struct DesignatorList(Vec<Designator>);
+pub struct Designation(Vec<Designator>);
 
 /// (6.7.8) designator
 #[derive(Debug)]

@@ -352,7 +352,7 @@ DirectAbstractDeclarator: DirectAbstractDeclarator = {
 TypedefName: Ident = TYPE_NAME => todo!("typedef-name");
 
 Initializer: Initializer = {
-	AssignmentExpr => Initializer::AssignmentExpr(<>),
+	AssignmentExpr => Initializer::Expr(<>),
 	"{" InitializerList ","? "}" => todo!("init-list"),
 };
 
@@ -362,11 +362,7 @@ InitializerList: InitializerList = {
 };
 
 Designation: Designation = {
-	DesignatorList "=" => todo!("desig list"),
-};
-
-DesignatorList: DesignatorList = {
-	Designator+ => todo!("designator"),
+	Designator+ "=" => todo!("desig list"),
 };
 
 Designator: Designator = {
