@@ -130,23 +130,18 @@ pub enum DirectDeclarator {
 	Identifier(tok::Ident),
 	/// ( declarator )
 	Declarator(Box<Declarator>),
-	/// [ type-qualifier-list_opt assignment-expression_opt ]
-	TypeQualifierList(Option<TypeQualifierList>, Option<expr::Expr>),
-	/// [ static type-qualifier-list_opt assignment-expression ]
-	StaticTypeQualifierList(Option<TypeQualifierList>, expr::Expr),
-	/// [ type-qualifier-list static assignment-expression ]
-	TypeQualifierListStatic(TypeQualifierList, expr::Expr),
-	/// [ type-qualifier-list_opt * ]
-	TypeQualifierListPointer(TypeQualifierList),
+	Array {
+		/// (6.7.5) type-qualifier-list
+		type_qualifier_list: Vec<TypeQualifier>,
+		assignment_expr: Option<expr::Expr>,
+		has_static: bool,
+		has_ptr: bool,
+	},
 	/// ( parameter-type-list )
 	ParameterTypeList(ParameterTypeList),
 	/// ( identifier-list_opt )
 	IdentifierList(Vec<tok::Ident>),
 }
-
-/// (6.7.5) type-qualifier-list
-#[derive(Debug)]
-pub struct TypeQualifierList(Vec<TypeQualifier>);
 
 /// (6.7.5) parameter-type-list
 #[derive(Debug)]
@@ -194,12 +189,11 @@ pub enum AbstractDeclarator {
 pub enum DirectAbstractDeclarator {
 	/// ( abstract-declarator )
 	AbstractDeclarator(AbstractDeclarator),
-	/// direct-abstract-declarator_opt [ type-qualifier-list_opt assignment-expression_opt ]
-	TypeQualifierList(Option<TypeQualifierList>, Option<expr::Expr>),
-	/// direct-abstract-declarator_opt [ static type-qualifier-list_opt assignment-expression ]
-	StaticTypeQualifierList(Option<TypeQualifierList>, expr::Expr),
-	/// direct-abstract-declarator_opt [ type-qualifier-list static assignment-expression ]
-	TypeQualifierListStatic(TypeQualifierList, expr::Expr),
+	Array {
+		direct_abstract_declarator: Vec<TypeQualifier>,
+		assignment_expr: Option<expr::Expr>,
+		has_static: bool,
+	},
 	/// direct-abstract-declarator_opt [ * }
 	ArrayPointer,
 	/// direct-abstract-declarator_opt ( parameter-type-list_opt )
