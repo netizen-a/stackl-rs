@@ -54,7 +54,7 @@ pub enum Const {
 
 #[derive(Debug, Clone)]
 pub struct StrLit {
-	pub name: String,
+	pub seq: String,
 	pub is_wide: bool,
 }
 
@@ -206,7 +206,7 @@ impl PPNumber {
 
 #[derive(Debug, Clone)]
 pub struct CharConst {
-	pub name: String,
+	pub seq: String,
 	pub is_wide: bool,
 }
 
@@ -350,8 +350,8 @@ impl PPTokenKind {
 			Self::HeaderName(value) => value.name.clone(),
 			Self::Ident(value) => value.name.clone(),
 			Self::PPNumber(value) => value.name.clone(),
-			Self::CharConst(value) => value.name.clone(),
-			Self::StrLit(value) => value.name.clone(),
+			Self::CharConst(value) => value.seq.clone(),
+			Self::StrLit(value) => value.seq.clone(),
 			Self::Punct(value) => format!("{value}"),
 			Self::NewLine(_) => String::from("\\n"),
 		}

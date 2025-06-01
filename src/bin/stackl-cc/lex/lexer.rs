@@ -121,11 +121,9 @@ impl Lexer {
 	}
 
 	fn character_constant(&mut self, mut c: char) -> lex::ResultTriple<tok::PPToken, usize> {
-		let mut name = String::new();
 		self.include_state = 0;
 		let is_wide = c == 'L';
 		if is_wide {
-			name.push(c);
 			if let Some((_, next_c)) = self.chars.next() {
 				c = next_c;
 			} else {
@@ -135,11 +133,9 @@ impl Lexer {
 				});
 			}
 		}
-		name.push(c);
 		let seq = self.c_char_sequence()?;
-		name.push_str(&seq);
 		if let Some((curr_pos, _)) = self.chars.next_if(|&(_, c)| c == '\'') {
-			name.push('\'');
+			// name.push('\'');
 			self.set_end(curr_pos);
 		} else {
 			return Err(lex::Error {
@@ -148,7 +144,7 @@ impl Lexer {
 			});
 		}
 
-		let str_lit = tok::CharConst { name, is_wide };
+		let str_lit = tok::CharConst { seq, is_wide };
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
@@ -161,14 +157,11 @@ impl Lexer {
 		))
 	}
 
-	fn string_literal(&mut self, mut c: char) -> lex::ResultTriple<tok::PPToken, usize> {
-		let mut name = String::new();
+	fn string_literal(&mut self, c: char) -> lex::ResultTriple<tok::PPToken, usize> {
 		let is_wide = c == 'L';
 		if is_wide {
-			name.push(c);
-			if let Some((pos, next_c)) = self.chars.next() {
+			if let Some((pos, _)) = self.chars.next() {
 				self.set_end(pos);
-				c = next_c;
 			} else {
 				return Err(lex::Error {
 					kind: lex::ErrorKind::UnexpectedEof,
@@ -176,11 +169,9 @@ impl Lexer {
 				});
 			}
 		}
-		name.push(c);
 		let seq = self.s_char_sequence()?;
-		name.push_str(&seq);
-		if self.chars.next_if(|&(_, c)| c == '"').is_some() {
-			name.push('"');
+		if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '"') {
+			self.set_end(pos);
 		} else {
 			return Err(lex::Error {
 				kind: lex::ErrorKind::InvalidToken,
@@ -188,7 +179,7 @@ impl Lexer {
 			});
 		}
 
-		let str_lit = tok::StrLit { name, is_wide };
+		let str_lit = tok::StrLit { seq, is_wide };
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
