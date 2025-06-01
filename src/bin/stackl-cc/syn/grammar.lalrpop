@@ -109,9 +109,21 @@ CastExpr: Expr = {
 
 MultiplicativeExpr: Expr = {
 	CastExpr,
-	MultiplicativeExpr "*" CastExpr => todo!("mult-expr * cast-expression"),
-	MultiplicativeExpr "/" CastExpr => todo!("mult-expr / cast-expression"),
-	MultiplicativeExpr "%" CastExpr => todo!("mult-expr % cast-expression"),
+	<lhs:MultiplicativeExpr> "*" <rhs:CastExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Mul,
+		right: Box::new(rhs),
+	}),
+	<lhs:MultiplicativeExpr> "/" <rhs:CastExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Div,
+		right: Box::new(rhs),
+	}),
+	<lhs:MultiplicativeExpr> "%" <rhs:CastExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Mod,
+		right: Box::new(rhs),
+	}),
 };
 
 AdditiveExpr: Expr = {
@@ -130,47 +142,99 @@ AdditiveExpr: Expr = {
 
 ShiftExpr: Expr = {
 	AdditiveExpr,
-	ShiftExpr "<<" AdditiveExpr => todo!(),
-	ShiftExpr ">>" AdditiveExpr => todo!(),
+	<lhs:ShiftExpr> "<<" <rhs:AdditiveExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::LShift,
+		right: Box::new(rhs),
+	}),
+	<lhs:ShiftExpr> ">>" <rhs:AdditiveExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::RShift,
+		right: Box::new(rhs),
+	}),
 };
 
 RelationalExpr: Expr = {
 	ShiftExpr,
-	RelationalExpr "<" ShiftExpr => todo!(),
-	RelationalExpr ">" ShiftExpr => todo!(),
-	RelationalExpr "<=" ShiftExpr => todo!(),
-	RelationalExpr ">=" ShiftExpr => todo!(),
+	<lhs:RelationalExpr> "<" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Less,
+		right: Box::new(rhs),
+	}),
+	<lhs:RelationalExpr> ">" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Great,
+		right: Box::new(rhs),
+	}),
+	<lhs:RelationalExpr> "<=" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::LessEqual,
+		right: Box::new(rhs),
+	}),
+	<lhs:RelationalExpr> ">=" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::GreatEqual,
+		right: Box::new(rhs),
+	}),
 };
 
 EqualityExpr: Expr = {
 	RelationalExpr,
-	EqualityExpr "==" RelationalExpr => todo!(),
-	EqualityExpr "!=" RelationalExpr => todo!(),
+	<lhs:EqualityExpr> "==" <rhs:RelationalExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Equal,
+		right: Box::new(rhs),
+	}),
+	<lhs:EqualityExpr> "!=" <rhs:RelationalExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::NotEqual,
+		right: Box::new(rhs),
+	}),
 };
 
 AndExpr: Expr = {
 	EqualityExpr,
-	AndExpr "&" EqualityExpr => todo!(),
+	<lhs:AndExpr> "&" <rhs:EqualityExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::And,
+		right: Box::new(rhs),
+	}),
 };
 
 ExclusiveOrExpr: Expr = {
 	AndExpr,
-	ExclusiveOrExpr "^" AndExpr => todo!(),
+	<lhs:ExclusiveOrExpr> "^" <rhs:AndExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::XOr,
+		right: Box::new(rhs),
+	}),
 };
 
 InclusiveOrExpr: Expr = {
 	ExclusiveOrExpr,
-	InclusiveOrExpr "|" ExclusiveOrExpr => todo!(),
+	<lhs:InclusiveOrExpr> "|" <rhs:ExclusiveOrExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Or,
+		right: Box::new(rhs),
+	}),
 };
 
 LogicalAndExpr: Expr = {
 	InclusiveOrExpr,
-	LogicalAndExpr "&&" InclusiveOrExpr => todo!(),
+	<lhs:LogicalAndExpr> "&&" <rhs:InclusiveOrExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::LogicalAnd,
+		right: Box::new(rhs),
+	}),
 };
 
 LogicalOrExpr: Expr = {
 	LogicalAndExpr,
-	LogicalOrExpr "||" LogicalAndExpr => todo!(),
+	<lhs:LogicalOrExpr> "||" <rhs:LogicalAndExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::XOr,
+		right: Box::new(rhs),
+	}),
 };
 
 ConditionalExpr: Expr = {

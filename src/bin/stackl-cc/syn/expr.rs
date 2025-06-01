@@ -38,6 +38,9 @@ pub struct ExprTernary {
 
 #[derive(Debug)]
 pub enum BinOp {
+	Mul,
+	Div,
+	Mod,
 	Sub,
 	Add,
 	NotEqual,
@@ -59,6 +62,14 @@ pub enum BinOp {
 	XOrAssign,
 	OrAssign,
 	Comma,
+	LShift,
+	RShift,
+	LessEqual,
+	GreatEqual,
+	Less,
+	Great,
+	XOr,
+	Or,
 }
 
 /// (6.5.3) unary-operator
