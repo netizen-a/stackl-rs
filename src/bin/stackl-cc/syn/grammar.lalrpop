@@ -133,26 +133,26 @@ AssignmentExpr: Expr = {
 };
 
 AssignmentOperator: BinOp = {
-	"=" => todo!("="),
-	"*=" => todo!("*="),
-	"/=" => todo!("/="),
-	"%=" => todo!("%="),
-	"+=" => todo!("+="),
-	"-=" => todo!("-="),
-	"<<=" => todo!("<<="),
-	">>=" => todo!(">>="),
-	"&=" => todo!("&="),
-	"^=" => todo!("^="),
-	"|=" => todo!("|="),
+	"=" => BinOp::Assign,
+	"*=" => BinOp::MulAssign,
+	"/=" => BinOp::DivAssign,
+	"%=" => BinOp::ModAssign,
+	"+=" => BinOp::AddAssign,
+	"-=" => BinOp::SubAssign,
+	"<<=" => BinOp::LShiftAssign,
+	">>=" => BinOp::RShiftAssign,
+	"&=" => BinOp::AmpAssign,
+	"^=" => BinOp::XOrAssign,
+	"|=" => BinOp::OrAssign,
 };
 
 Expr: Expr = {
-	AssignmentExpr => todo!("assignment-expr"),
+	AssignmentExpr => <>,
 	Expr "," AssignmentExpr => todo!("expr , assignment-expr"),
 };
 
 ConstantExpr: Expr = {
-	ConditionalExpr => todo!("cond-expr"),
+	ConditionalExpr => <>,
 };
 
 

@@ -83,7 +83,6 @@ pub enum UnOpPrefix {
 /// (6.5.2) postfix-expression
 #[derive(Debug)]
 pub enum UnOpPostfix {
-	Expr(Box<Expr>),
 	Array(Box<Expr>),
 	/// (6.5.2) argument-expression-list
 	ArgExprList(Vec<Expr>),
