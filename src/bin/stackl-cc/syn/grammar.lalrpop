@@ -21,7 +21,10 @@ PrimaryExpr: Expr = {
 
 PostfixExpr: Expr = {
 	PrimaryExpr => <>,
-	PostfixExpr "[" Expr "]" => todo!(" [ expr ]"),
+	<expr:PostfixExpr> "[" <arr:Expr> "]" => Expr::Unary(ExprUnary{
+		op: UnOp::Postfix(UnOpPostfix::Array(Box::new(arr))),
+		expr: Box::new(expr),
+	}),
 	PostfixExpr "(" ArgumentExprList? ")" => todo!(),
 	PostfixExpr "." IDENT => todo!(" . identifier"),
 	PostfixExpr "->" IDENT => todo!(" -> identifier"),
@@ -55,7 +58,10 @@ UnaryOperator: UnOpPrefix = {
 
 CastExpr: Expr = {
 	UnaryExpr => <>,
-	"(" TypeName ")" CastExpr => todo!(" ( type-name )"),
+	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::Unary(ExprUnary{
+		op: UnOp::Prefix(UnOpPrefix::Cast(ty)),
+		expr: Box::new(expr)
+	}),
 };
 
 MultiplicativeExpr: Expr = {
@@ -67,8 +73,16 @@ MultiplicativeExpr: Expr = {
 
 AdditiveExpr: Expr = {
 	MultiplicativeExpr => <>,
-	AdditiveExpr "+" MultiplicativeExpr => todo!("additive-expression + mult-expr"),
-	AdditiveExpr "-" MultiplicativeExpr => todo!("additive-expression - mult-expr"),
+	<lhs:AdditiveExpr> "+" <rhs:MultiplicativeExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Add,
+		right: Box::new(rhs)
+	}),
+	<lhs:AdditiveExpr> "-" <rhs:MultiplicativeExpr> => Expr::Binary(ExprBinary{
+		left: Box::new(lhs),
+		op: BinOp::Sub,
+		right: Box::new(rhs),
+	}),
 };
 
 ShiftExpr: Expr = {

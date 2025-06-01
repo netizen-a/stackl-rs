@@ -36,6 +36,8 @@ pub struct ExprTernary {
 
 #[derive(Debug)]
 pub enum BinOp {
+	Sub,
+	Add,
 	NotEqual,
 	Equal,
 	And,
@@ -78,6 +80,8 @@ pub enum UnOpPrefix {
 	Comp,
 	/// `!`
 	Neg,
+	/// ( type-name )
+	Cast(decl::TypeName),
 }
 
 /// (6.5.2) postfix-expression
