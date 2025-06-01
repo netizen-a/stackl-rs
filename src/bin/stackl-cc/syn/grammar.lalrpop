@@ -5,74 +5,117 @@ use crate::diag::syn::Error as SyntaxError;
 
 grammar;
 
+
+// A.1.3 Identifiers
+
+Identifier: Ident = IDENT => <>.kind.unwrap_ident();
+
+
 // A.1.5 Constants
 
-EnumerationConstant: Ident = IDENT => <>.kind.unwrap_ident();
+Constant: Const = CONST => <>.kind.unwrap_const();
+
+EnumerationConstant: Ident = Identifier;
+
+
+// A.1.6 String literals
+
+StringLiteral: StrLit = STR_LIT => <>.kind.unwrap_str_lit();
 
 
 // A.2.1 Expressions
 
 PrimaryExpr: Expr = {
-	IDENT => Expr::Ident(<>.kind.unwrap_ident()),
-	CONST => Expr::Const(<>.kind.unwrap_const()),
-	STR_LIT => Expr::StrLit(<>.kind.unwrap_str_lit()),
+	Identifier => Expr::Ident(<>),
+	Constant => Expr::Const(<>),
+	StringLiteral => Expr::StrLit(<>),
 	"(" <expr:Expr> ")" => Expr::Paren(Box::new(expr)),
 };
 
 PostfixExpr: Expr = {
-	PrimaryExpr => <>,
+	PrimaryExpr,
 	<expr:PostfixExpr> "[" <arr:Expr> "]" => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(UnOpPostfix::Array(Box::new(arr))),
+		op: UnOp::Postfix(Postfix::Array(Box::new(arr))),
 		expr: Box::new(expr),
 	}),
-	PostfixExpr "(" ArgumentExprList? ")" => todo!(),
-	PostfixExpr "." IDENT => todo!(" . identifier"),
-	PostfixExpr "->" IDENT => todo!(" -> identifier"),
-	PostfixExpr "++" => todo!("++"),
-	PostfixExpr "--" => todo!("--"),
-	"(" TypeName ")" "{" InitializerList ","? "}" => todo!(),
+	<expr:PostfixExpr> "(" <args:ArgumentExprList?> ")" => Expr::Unary(ExprUnary{
+		op: UnOp::Postfix(Postfix::ArgExprList(args.unwrap_or_default())),
+		expr: Box::new(expr),
+	}),
+	<expr:PostfixExpr> "." <ident:Identifier> => Expr::Unary(ExprUnary{
+		op: UnOp::Postfix(Postfix::Dot(ident)),
+		expr: Box::new(expr),
+	}),
+	<expr:PostfixExpr> "->" <ident:Identifier> => Expr::Unary(ExprUnary{
+		op: UnOp::Postfix(Postfix::Arrow(ident)),
+		expr: Box::new(expr),
+	}),
+	<expr:PostfixExpr> "++" => Expr::Unary(ExprUnary{
+		op: UnOp::Postfix(Postfix::Inc),
+		expr: Box::new(expr),
+	}),
+	<expr:PostfixExpr> "--" => Expr::Unary(ExprUnary{
+		op: UnOp::Postfix(Postfix::Dec),
+		expr: Box::new(expr),
+	}),
+	"(" <ty:TypeName> ")" "{" <list:InitializerList> ","? "}" => Expr::CompoundLiteral(ty, list),
 };
 
 ArgumentExprList: Vec<Expr> = {
 	AssignmentExpr => vec![<>],
-	ArgumentExprList "," AssignmentExpr => todo!("assignment-expression-list"),
+	<mut list:ArgumentExprList> "," <expr:AssignmentExpr> => {
+		list.push(expr);
+		list
+	},
 };
 
 UnaryExpr: Expr = {
-	PostfixExpr => <>,
-	"++" UnaryExpr => todo!("++ unary-expression"),
-	"--" UnaryExpr => todo!("-- unary-expression"),
-	UnaryOperator CastExpr => todo!("unary-operator cast-expression"),
-	"sizeof" UnaryExpr => todo!("sizeof unary-expression"),
-	"sizeof" "(" TypeName ")" => todo!("sizeof ( type-name )"),
+	PostfixExpr,
+	"++" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
+		op: UnOp::Inc,
+		expr: Box::new(expr),
+	}),
+	"--" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
+		op: UnOp::Dec,
+		expr: Box::new(expr),
+	}),
+	<prefix:UnaryOperator> <expr:CastExpr> => Expr::Unary(ExprUnary{
+		op: prefix,
+		expr: Box::new(expr),
+	}),
+	"sizeof" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
+		op: UnOp::Sizeof,
+		expr: Box::new(expr),
+	}),
+	"sizeof" "(" <ty:TypeName> ")" => Expr::Sizeof(ty),
 };
 
-UnaryOperator: UnOpPrefix = {
-	"&" => UnOpPrefix::Amp,
-	"*" => UnOpPrefix::Star,
-	"+" => UnOpPrefix::Plus,
-	"-" => UnOpPrefix::Minus,
-	"~" => UnOpPrefix::Comp,
-	"!" => UnOpPrefix::Neg,
+UnaryOperator: UnOp = {
+	"&" => UnOp::Amp,
+	"*" => UnOp::Star,
+	"+" => UnOp::Plus,
+	"-" => UnOp::Minus,
+	"~" => UnOp::Comp,
+	"!" => UnOp::Neg,
 };
 
 CastExpr: Expr = {
-	UnaryExpr => <>,
+	UnaryExpr,
 	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::Unary(ExprUnary{
-		op: UnOp::Prefix(UnOpPrefix::Cast(ty)),
-		expr: Box::new(expr)
+		op: UnOp::Cast(ty),
+		expr: Box::new(expr),
 	}),
 };
 
 MultiplicativeExpr: Expr = {
-	CastExpr => <>,
+	CastExpr,
 	MultiplicativeExpr "*" CastExpr => todo!("mult-expr * cast-expression"),
 	MultiplicativeExpr "/" CastExpr => todo!("mult-expr / cast-expression"),
 	MultiplicativeExpr "%" CastExpr => todo!("mult-expr % cast-expression"),
 };
 
 AdditiveExpr: Expr = {
-	MultiplicativeExpr => <>,
+	MultiplicativeExpr,
 	<lhs:AdditiveExpr> "+" <rhs:MultiplicativeExpr> => Expr::Binary(ExprBinary{
 		left: Box::new(lhs),
 		op: BinOp::Add,
@@ -86,13 +129,13 @@ AdditiveExpr: Expr = {
 };
 
 ShiftExpr: Expr = {
-	AdditiveExpr => <>,
+	AdditiveExpr,
 	ShiftExpr "<<" AdditiveExpr => todo!(),
 	ShiftExpr ">>" AdditiveExpr => todo!(),
 };
 
 RelationalExpr: Expr = {
-	ShiftExpr => <>,
+	ShiftExpr,
 	RelationalExpr "<" ShiftExpr => todo!(),
 	RelationalExpr ">" ShiftExpr => todo!(),
 	RelationalExpr "<=" ShiftExpr => todo!(),
@@ -100,48 +143,48 @@ RelationalExpr: Expr = {
 };
 
 EqualityExpr: Expr = {
-	RelationalExpr => <>,
+	RelationalExpr,
 	EqualityExpr "==" RelationalExpr => todo!(),
 	EqualityExpr "!=" RelationalExpr => todo!(),
 };
 
 AndExpr: Expr = {
-	EqualityExpr => <>,
+	EqualityExpr,
 	AndExpr "&" EqualityExpr => todo!(),
 };
 
 ExclusiveOrExpr: Expr = {
-	AndExpr => <>,
+	AndExpr,
 	ExclusiveOrExpr "^" AndExpr => todo!(),
 };
 
 InclusiveOrExpr: Expr = {
-	ExclusiveOrExpr => <>,
+	ExclusiveOrExpr,
 	InclusiveOrExpr "|" ExclusiveOrExpr => todo!(),
 };
 
 LogicalAndExpr: Expr = {
-	InclusiveOrExpr => <>,
+	InclusiveOrExpr,
 	LogicalAndExpr "&&" InclusiveOrExpr => todo!(),
 };
 
 LogicalOrExpr: Expr = {
-	LogicalAndExpr => <>,
+	LogicalAndExpr,
 	LogicalOrExpr "||" LogicalAndExpr => todo!(),
 };
 
 ConditionalExpr: Expr = {
-	LogicalOrExpr => <>,
+	LogicalOrExpr,
 	LogicalOrExpr "?" Expr ":" ConditionalExpr => todo!(),
 };
 
 AssignmentExpr: Expr = {
-	ConditionalExpr => <>,
-	<unary:UnaryExpr> <op:AssignmentOperator> <mut expr:AssignmentExpr> => {
+	ConditionalExpr,
+	<lhs:UnaryExpr> <op:AssignmentOperator> <rhs:AssignmentExpr> => {
 		Expr::Binary(ExprBinary{
-			left: Box::new(unary),
+			left: Box::new(lhs),
 			op: op,
-			right: Box::new(expr),
+			right: Box::new(rhs),
 		})
 	},
 };
@@ -230,8 +273,8 @@ TypeSpecifier: TypeSpecifier = {
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
-	StructOrUnion IDENT? "{" StructDeclarationList "}" => todo!(),
-	StructOrUnion IDENT => todo!(),
+	StructOrUnion Identifier? "{" StructDeclarationList "}" => todo!(),
+	StructOrUnion Identifier => todo!(),
 };
 
 StructOrUnion: Keyword = {
@@ -263,8 +306,8 @@ StructDeclarator: StructDeclarator = {
 };
 
 EnumSpecifier: EnumSpecifier = {
-	"enum" IDENT? "{" EnumeratorList ","? "}" => todo!(),
-	"enum" IDENT => todo!(),
+	"enum" Identifier? "{" EnumeratorList ","? "}" => todo!(),
+	"enum" Identifier => todo!(),
 };
 
 EnumeratorList: Vec<Enumerator> = {
@@ -293,7 +336,7 @@ Declarator: Declarator = {
 };
 
 DirectDeclaratorList: Vec<DirectDeclarator> = {
-	IDENT => vec![DirectDeclarator::Identifier(<>.kind.unwrap_ident())],
+	Identifier => vec![DirectDeclarator::Identifier(<>)],
 	"(" Declarator ")" => todo!(" ( declarator )"),
 	DirectDeclaratorList "[" TypeQualifier* AssignmentExpr? "]" => todo!("direct type"),
 	DirectDeclaratorList "[" "static" TypeQualifier* AssignmentExpr "]" => todo!("direct static"),
@@ -341,8 +384,8 @@ ParameterDeclaration: ParameterDeclaration = {
 };
 
 IdentifierList: Vec<Ident> = {
-	IDENT => vec![<>.kind.unwrap_ident()],
-	IdentifierList "," IDENT => todo!("ident , ident"),
+	Identifier => vec![<>],
+	IdentifierList "," Identifier => todo!("ident , ident"),
 };
 
 TypeName: TypeName = {
@@ -381,7 +424,7 @@ Designation: Designation = {
 
 Designator: Designator = {
 	"[" ConstantExpr "]" => todo!("const-expr"),
-	"." IDENT => todo!(" . identifier"),
+	"." Identifier => todo!(" . identifier"),
 };
 
 
@@ -414,12 +457,12 @@ UnmatchedStatement: Statement = {
 };
 
 MatchedLabeledStatement: LabeledStatement = {
-	IDENT ":" MatchedStatement => todo!("label"),
+	Identifier ":" MatchedStatement => todo!("label"),
 	"case" ConstantExpr ":" MatchedStatement => todo!("case"),
 	"default" ":" MatchedStatement => todo!("default"),
 };
 UnmatchedLabeledStatement: LabeledStatement = {
-	IDENT ":" UnmatchedStatement => todo!("label"),
+	Identifier ":" UnmatchedStatement => todo!("label"),
 	"case" ConstantExpr ":" UnmatchedStatement => todo!("case"),
 	"default" ":" UnmatchedStatement => todo!("default"),
 };
@@ -460,7 +503,7 @@ IterationUnmatchedStatement: IterationStatement = {
 };
 
 JumpStatement: JumpStatement = {
-	"goto" IDENT ";" => todo!("goto"),
+	"goto" Identifier ";" => todo!("goto"),
 	"continue" ";" => todo!("continue"),
 	"break" ";" => todo!("break"),
 	"return" Expr? ";" => todo!("return"),

@@ -11,6 +11,8 @@ pub enum Expr {
 	Unary(ExprUnary),
 	Binary(ExprBinary),
 	Ternary(ExprTernary),
+	CompoundLiteral(decl::TypeName, decl::InitializerList),
+	Sizeof(decl::TypeName),
 }
 
 /// (6.5.3) unary-expression
@@ -62,12 +64,6 @@ pub enum BinOp {
 /// (6.5.3) unary-operator
 #[derive(Debug)]
 pub enum UnOp {
-	Prefix(UnOpPrefix),
-	Postfix(UnOpPostfix),
-}
-
-#[derive(Debug)]
-pub enum UnOpPrefix {
 	/// `&`
 	Amp,
 	/// `*`
@@ -82,17 +78,23 @@ pub enum UnOpPrefix {
 	Neg,
 	/// ( type-name )
 	Cast(decl::TypeName),
+	/// ++
+	Inc,
+	/// --
+	Dec,
+	/// sizeof
+	Sizeof,
+	Postfix(Postfix),
 }
 
 /// (6.5.2) postfix-expression
 #[derive(Debug)]
-pub enum UnOpPostfix {
+pub enum Postfix {
 	Array(Box<Expr>),
 	/// (6.5.2) argument-expression-list
 	ArgExprList(Vec<Expr>),
 	Dot(tok::Ident),
 	Arrow(tok::Ident),
-	Increment,
-	Decrement,
-	TypeNameInitializerList(decl::TypeName, decl::InitializerList),
+	Inc,
+	Dec,
 }
