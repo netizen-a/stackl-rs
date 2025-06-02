@@ -7,6 +7,9 @@ mod sem;
 mod syn;
 mod tok;
 
+use lex::grammar::TokensParser;
+use syn::grammar::SyntaxParser;
+
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
 	let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
@@ -17,18 +20,16 @@ fn main() -> ExitCode {
 	let lexer = lex::lexer::Lexer::new(buffer, 0);
 	let queue = lex::PPTokenIter::from(lexer);
 	let stack_ref = Rc::clone(&queue.stack_ref);
-	let tokens: Vec<(usize, tok::Token, usize)> = lex::grammar::TokensParser::new()
+	let tokens: Vec<(usize, tok::Token, usize)> = TokensParser::new()
 		.parse(&mut file_map, &stack_ref, queue)
 		.unwrap();
 	let tokens_triple: Vec<diag::syn::ResultTriple<tok::Token, usize>> =
 		tokens.into_iter().map(Ok).collect();
-	let unit = syn::grammar::SyntaxParser::new()
-		.parse(tokens_triple)
-		.unwrap();
-
-	// let module = SemanticParser::new();
+	let unit = SyntaxParser::new().parse(tokens_triple).unwrap();
 
 	println!("{:#?}", unit);
+
+	sem::SemanticParser::new().parse(unit);
 
 	ExitCode::SUCCESS
 }
