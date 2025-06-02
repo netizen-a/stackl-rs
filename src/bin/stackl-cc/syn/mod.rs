@@ -1,5 +1,6 @@
 pub mod decl;
 pub mod expr;
+pub mod iter;
 pub mod stmt;
 
 pub use decl::*;
