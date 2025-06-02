@@ -13,6 +13,7 @@ use std::str::Chars;
 pub struct Ident {
 	pub name: String,
 	pub is_type: bool,
+	pub is_reg: bool,
 }
 
 #[derive(Debug)]
