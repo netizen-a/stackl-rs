@@ -1,3 +1,7 @@
+mod decl;
+mod expr;
+mod stmt;
+
 use crate::syn::TranslationUnit;
 
 pub struct SemanticParser {}
