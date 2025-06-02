@@ -5,6 +5,7 @@ pub mod stmt;
 
 pub use decl::*;
 pub use expr::*;
+pub use iter::*;
 pub use stmt::*;
 
 use lalrpop_util::lalrpop_mod;

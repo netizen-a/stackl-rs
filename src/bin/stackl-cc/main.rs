@@ -18,14 +18,16 @@ fn main() -> ExitCode {
 	let mut buffer = String::new();
 	file.read_to_string(&mut buffer).unwrap();
 	let lexer = lex::lexer::Lexer::new(buffer, 0);
-	let queue = lex::PPTokenIter::from(lexer);
-	let stack_ref = Rc::clone(&queue.stack_ref);
+	let pp_iter = lex::PPTokenIter::from(lexer);
+	let pp_ref = Rc::clone(&pp_iter.stack_ref);
 	let tokens: Vec<(usize, tok::Token, usize)> = TokensParser::new()
-		.parse(&mut file_map, &stack_ref, queue)
+		.parse(&mut file_map, &pp_ref, pp_iter)
 		.unwrap();
-	let tokens_triple: Vec<diag::syn::ResultTriple<tok::Token, usize>> =
-		tokens.into_iter().map(Ok).collect();
-	let unit = SyntaxParser::new().parse(tokens_triple).unwrap();
+
+	let rev_tokens: Vec<(usize, tok::Token, usize)> = tokens.into_iter().rev().collect();
+	let tok_iter = syn::TokenIter::from(rev_tokens);
+	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
+	let unit = SyntaxParser::new().parse(tok_iter).unwrap();
 
 	println!("{:#?}", unit);
 
