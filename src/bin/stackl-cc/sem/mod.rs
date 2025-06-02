@@ -20,10 +20,17 @@ impl SemanticParser {
 			}
 		}
 	}
-	fn function_definition(&mut self, _decl: syn::FunctionDefinition) {
-		todo!()
+	fn function_definition(&mut self, decl: syn::FunctionDefinition) {
+		for specifier in decl.declaration_specifiers {
+			self.declaration_specifier(specifier);
+		}
+		self.declarator(decl.declarator);
+		for declaration in decl.declaration_list {
+			self.declaration(declaration);
+		}
+		self.compound_stmt(decl.compound_stmt);
 	}
 	fn declaration(&mut self, _decl: syn::Declaration) {
-		todo!()
+		todo!("declaration")
 	}
 }

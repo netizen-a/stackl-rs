@@ -3,80 +3,80 @@ use crate::tok;
 
 /// (6.8.2) compound-statement
 #[derive(Debug)]
-pub struct CompoundStatement(pub Vec<BlockItem>);
+pub struct CompoundStmt(pub Vec<BlockItem>);
 
 /// (6.8.2) block-item
 #[derive(Debug)]
 pub enum BlockItem {
 	Declaration(decl::Declaration),
-	Statement(Statement),
+	Statement(Stmt),
 }
 
 /// (6.8) statement
 #[derive(Debug)]
-pub enum Statement {
-	LabeledStatement(LabeledStatement),
-	CompoundStatement(CompoundStatement),
-	ExpressionStatement(ExprStatement),
-	SelectionStatement(SelectionStatement),
-	IterationStatement(IterationStatement),
-	JumpStatement(JumpStatement),
+pub enum Stmt {
+	LabeledStatement(LabeledStmt),
+	CompoundStatement(CompoundStmt),
+	ExpressionStatement(ExprStmt),
+	SelectionStatement(SelectionStmt),
+	IterationStatement(IterationStmt),
+	JumpStatement(JumpStmt),
 }
 
 /// (6.8.1) labeled-statement
 #[derive(Debug)]
-pub enum LabeledStatement {
-	Label(tok::Ident, Box<Statement>),
-	Case(expr::Expr, Box<Statement>),
-	Default(Box<Statement>),
+pub enum LabeledStmt {
+	Label(tok::Ident, Box<Stmt>),
+	Case(expr::Expr, Box<Stmt>),
+	Default(Box<Stmt>),
 }
 
 /// (6.8.3) expression-statement
 #[derive(Debug)]
-pub struct ExprStatement(Option<expr::Expr>);
+pub struct ExprStmt(Option<expr::Expr>);
 
 /// (6.8.4) selection-statement
 #[derive(Debug)]
-pub enum SelectionStatement {
+pub enum SelectionStmt {
 	If {
 		condition: expr::Expr,
-		statement_true: Box<Statement>,
-		statement_false: Option<Box<Statement>>,
+		stmt_true: Box<Stmt>,
+		stmt_false: Option<Box<Stmt>>,
 	},
 	Switch {
 		expr: expr::Expr,
-		statement: Box<Statement>,
+		statement: Box<Stmt>,
 	},
 }
 
 /// (6.8.5) iteration-statement
 #[derive(Debug)]
-pub enum IterationStatement {
+pub enum IterationStmt {
 	While {
-		condition: expr::Expr,
-		statement: Box<Statement>,
+		cond: expr::Expr,
+		stmt: Box<Stmt>,
 	},
 	DoWhile {
-		statement: Box<Statement>,
-		condition: expr::Expr,
+		stmt: Box<Stmt>,
+		cond: expr::Expr,
 	},
 	ForExpr {
 		init_expr: Option<expr::Expr>,
-		condition: Option<expr::Expr>,
+		cond: Option<expr::Expr>,
 		iteration: Option<expr::Expr>,
-		statement: Box<Statement>,
+		stmt: Box<Stmt>,
 	},
 	ForDecl {
 		init_decl: decl::Declaration,
-		condition: Option<expr::Expr>,
+		cond: Option<expr::Expr>,
 		iteration: Option<expr::Expr>,
-		statement: Box<Statement>,
+		stmt: Box<Stmt>,
 	},
 }
 
 /// (6.8.6) jump-statement
 #[derive(Debug)]
-pub enum JumpStatement {
+pub enum JumpStmt {
 	Goto(tok::Ident),
 	Continue,
 	Break,

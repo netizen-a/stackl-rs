@@ -536,12 +536,12 @@ Designator: Designator = {
 
 // A.2.3 Statements
 
-Statement: Statement = {
+Statement: Stmt = {
 	MatchedStatement,
 	UnmatchedStatement,
 };
 
-MatchedStatement: Statement = {
+MatchedStatement: Stmt = {
 	"if" "(" Expr ")" MatchedStatement "else" MatchedStatement => todo!(),
 	"switch" "(" Expr ")" MatchedStatement => todo!(),
 	MatchedLabeledStatement => todo!(),
@@ -551,7 +551,7 @@ MatchedStatement: Statement = {
 	JumpStatement => todo!(),
 };
 
-UnmatchedStatement: Statement = {
+UnmatchedStatement: Stmt = {
 	"if" "(" Expr ")" UnmatchedStatement => todo!(),
 	"if" "(" Expr ")" MatchedStatement "else" UnmatchedStatement => todo!(),
 	"switch" "(" Expr ")" UnmatchedStatement => todo!(),
@@ -562,23 +562,23 @@ UnmatchedStatement: Statement = {
 	JumpStatement => todo!("jump"),
 };
 
-MatchedLabeledStatement: LabeledStatement = {
+MatchedLabeledStatement: LabeledStmt = {
 	Identifier ":" MatchedStatement => todo!("label"),
 	"case" ConstantExpr ":" MatchedStatement => todo!("case"),
 	"default" ":" MatchedStatement => todo!("default"),
 };
-UnmatchedLabeledStatement: LabeledStatement = {
+UnmatchedLabeledStatement: LabeledStmt = {
 	Identifier ":" UnmatchedStatement => todo!("label"),
 	"case" ConstantExpr ":" UnmatchedStatement => todo!("case"),
 	"default" ":" UnmatchedStatement => todo!("default"),
 };
 
 
-MatchedCompoundStatement: CompoundStatement = {
-	"{" <blocks:MatchedBlockItem*> "}" => CompoundStatement(blocks),
+MatchedCompoundStatement: CompoundStmt = {
+	"{" <blocks:MatchedBlockItem*> "}" => CompoundStmt(blocks),
 };
 
-UnmatchedCompoundStatement: CompoundStatement = {
+UnmatchedCompoundStatement: CompoundStmt = {
 	"{" UnmatchedBlockItem* "}" => todo!("compound"),
 };
 
@@ -591,24 +591,24 @@ UnmatchedBlockItem: BlockItem = {
 	UnmatchedStatement => todo!("unmatched-stmt"),
 };
 
-ExprStatement: ExprStatement = {
+ExprStatement: ExprStmt = {
 	Expr? ";" => todo!("expr"),
 };
 
-IterationMatchedStatement: IterationStatement = {
+IterationMatchedStatement: IterationStmt = {
 	"while" "(" Expr ")" MatchedStatement => todo!(),
 	"do" MatchedStatement "while" "(" Expr ")" ";"
 	"for" "(" Expr? ";" Expr? ";" Expr? ")" MatchedStatement => todo!(),
 	"for" "(" Declaration Expr? ";" Expr? ")" MatchedStatement => todo!(),
 };
-IterationUnmatchedStatement: IterationStatement = {
+IterationUnmatchedStatement: IterationStmt = {
 	"while" "(" Expr ")" UnmatchedStatement => todo!(),
 	"do" UnmatchedStatement "while" "(" Expr ")" ";"
 	"for" "(" Expr? ";" Expr? ";" Expr? ")" UnmatchedStatement => todo!(),
 	"for" "(" Declaration Expr? ";" Expr? ")" UnmatchedStatement => todo!(),
 };
 
-JumpStatement: JumpStatement = {
+JumpStatement: JumpStmt = {
 	"goto" Identifier ";" => todo!("goto"),
 	"continue" ";" => todo!("continue"),
 	"break" ";" => todo!("break"),
@@ -630,7 +630,7 @@ FunctionDefinition: FunctionDefinition = {
 			declaration_specifiers: specs,
 			declarator: decl,
 			declaration_list: list,
-			compound_statement: compound,
+			compound_stmt: compound,
 		}
 	},
 };

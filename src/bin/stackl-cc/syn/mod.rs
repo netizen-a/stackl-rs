@@ -29,5 +29,5 @@ pub struct FunctionDefinition {
 	pub declaration_specifiers: Vec<DeclarationSpecifier>,
 	pub declarator: Declarator,
 	pub declaration_list: Vec<Declaration>,
-	pub compound_statement: CompoundStatement,
+	pub compound_stmt: CompoundStmt,
 }
