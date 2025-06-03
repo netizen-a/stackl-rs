@@ -20,7 +20,8 @@ pub struct MachineState {
 	pub fp: i32,
 	pub flag: MachineFlags,
 	pub ivec: i32,
-	pub vmem: i32,
+	/// page table base register
+	pub ptbr: i32,
 	pub mem: MachineMemory,
 	pub meta: MetaFlags,
 	pub last_trace: u8,
@@ -36,7 +37,7 @@ impl MachineState {
 			fp: 0,
 			flag: MachineFlags::new(),
 			ivec: 0,
-			vmem: 0,
+			ptbr: 0,
 			mem: MachineMemory::new(mem_size),
 			meta: MetaFlags::empty(),
 			last_trace: 0,
