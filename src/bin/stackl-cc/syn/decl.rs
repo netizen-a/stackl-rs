@@ -40,7 +40,7 @@ pub enum StorageClassSpecifier {
 	Extern,
 	Static,
 	Auto,
-	Register(Option<tok::Ident>),
+	Register,
 }
 
 /// (6.7.2) type-specifier

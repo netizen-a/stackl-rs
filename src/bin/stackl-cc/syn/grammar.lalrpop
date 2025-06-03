@@ -6,9 +6,6 @@ use crate::diag::syn::Error as SyntaxError;
 grammar;
 
 
-// Embedded C extension
-RegisterName: Ident = REG_NAME => <>.kind.unwrap_ident();
-
 // A.1.3 Identifiers
 
 Identifier: Ident = IDENT => <>.kind.unwrap_ident();
@@ -325,7 +322,7 @@ StorageClassSpecifier: StorageClassSpecifier = {
 	"extern" => StorageClassSpecifier::Extern,
 	"static" => StorageClassSpecifier::Static,
 	"auto" => StorageClassSpecifier::Auto,
-	"register" <reg:RegisterName?> => StorageClassSpecifier::Register(reg),
+	"register" => StorageClassSpecifier::Register,
 }
 
 TypeSpecifier: TypeSpecifier = {
@@ -647,7 +644,6 @@ extern {
 	enum Token {
 		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, is_reg:false, ..}), ..},
 		TYPE_NAME => Token{kind: TokenKind::Ident(Ident{is_type:true, is_reg:false, ..}), ..},
-		REG_NAME => Token{kind: TokenKind::Ident(Ident{is_type:false, is_reg: true, ..}), ..},
 		CONST => Token{kind: TokenKind::Const(_), ..},
 		STR_LIT => Token{kind: TokenKind::StrLit(_), ..},
 
