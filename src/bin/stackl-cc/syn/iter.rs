@@ -6,12 +6,19 @@ use crate::diag::syn;
 
 #[derive(Default)]
 pub struct TokenStack {
-	stack: Vec<(usize, Token, usize)>,
+	stack: Box<[(usize, Token, usize)]>,
+	index: usize,
 }
 
 impl TokenStack {
 	fn next_token(&mut self) -> Option<syn::ResultTriple<Token, usize>> {
-		self.stack.pop().map(Ok)
+		if self.index == self.stack.len() {
+			None
+		} else {
+			let index = self.index;
+			self.index += 1;
+			Some(Ok(self.stack[index].clone()))
+		}
 	}
 }
 
@@ -19,9 +26,12 @@ pub struct TokenIter {
 	pub stack_ref: Rc<RefCell<TokenStack>>,
 }
 
-impl From<Vec<(usize, Token, usize)>> for TokenIter {
-	fn from(value: Vec<(usize, Token, usize)>) -> Self {
-		let token_stack = TokenStack { stack: value };
+impl From<Box<[(usize, Token, usize)]>> for TokenIter {
+	fn from(value: Box<[(usize, Token, usize)]>) -> Self {
+		let token_stack = TokenStack {
+			stack: value,
+			index: 0,
+		};
 		Self {
 			stack_ref: Rc::new(RefCell::new(token_stack)),
 		}

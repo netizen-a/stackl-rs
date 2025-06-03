@@ -24,8 +24,7 @@ fn main() -> ExitCode {
 		.parse(&mut file_map, &pp_ref, pp_iter)
 		.unwrap();
 
-	let rev_tokens: Vec<(usize, tok::Token, usize)> = tokens.into_iter().rev().collect();
-	let tok_iter = syn::TokenIter::from(rev_tokens);
+	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
 	let unit = SyntaxParser::new().parse(tok_iter).unwrap();
 
