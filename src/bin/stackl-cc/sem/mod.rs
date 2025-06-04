@@ -29,12 +29,4 @@ impl SemanticParser {
 		}
 		self.compound_stmt(decl.compound_stmt);
 	}
-	fn declaration(&mut self, decl: Declaration) {
-		for specifier in decl.declaration_specifiers {
-			self.declaration_specifier(specifier);
-		}
-		for init_declarator in decl.init_declarator_list {
-			self.init_declarator(init_declarator);
-		}
-	}
 }

@@ -160,18 +160,15 @@ pub struct Pointer {
 
 /// (6.7.5) parameter-declaration
 #[derive(Debug)]
-pub enum ParameterDeclaration {
-	Declarator {
-		/// (6.7) declaration-specifiers
-		declaration_specifiers: Vec<DeclarationSpecifier>,
-		/// (6.7.5) declarator
-		declarator: Declarator,
-	},
-	AbstractDeclarator {
-		/// (6.7) declaration-specifiers
-		declaration_specifiers: Vec<DeclarationSpecifier>,
-		abstract_declarator: Option<AbstractDeclarator>,
-	},
+pub struct ParameterDeclaration {
+	pub declaration_specifiers: Vec<DeclarationSpecifier>,
+	pub parameter_declarator: ParameterDeclarator,
+}
+
+#[derive(Debug)]
+pub enum ParameterDeclarator {
+	Declarator(Declarator),
+	AbstractDeclarator(Option<AbstractDeclarator>),
 }
 
 /// (6.7.6) abstract-declarator

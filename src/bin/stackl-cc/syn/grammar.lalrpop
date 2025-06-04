@@ -480,14 +480,16 @@ ParameterList: Vec<ParameterDeclaration> = {
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	DeclarationSpecifiers Declarator => todo!("decalration-specifiers"),
-	<decl_specs:DeclarationSpecifiers> <abstract_decl:AbstractDeclarator?> => {
-		ParameterDeclaration::AbstractDeclarator {
-			declaration_specifiers: decl_specs,
-			abstract_declarator: abstract_decl,
-		}
+	<specifiers:DeclarationSpecifiers> <decl:ParameterDeclarator> => ParameterDeclaration{
+		declaration_specifiers: specifiers,
+		parameter_declarator: decl,
 	},
 };
+
+ParameterDeclarator: ParameterDeclarator = {
+	Declarator => todo!("parameter-declarator"),
+	<decl:AbstractDeclarator?> => ParameterDeclarator::AbstractDeclarator(decl),
+}
 
 IdentifierList: Vec<Ident> = {
 	Identifier => vec![<>],
