@@ -50,7 +50,7 @@ impl super::SemanticParser {
 	}
 	pub(super) fn enumerator(&mut self, enumerator: Enumerator) {
 		if let Some(expr) = enumerator.constant_expr {
-			self.expression(expr);
+			self.expr(expr);
 		}
 	}
 
@@ -69,7 +69,7 @@ impl super::SemanticParser {
 			self.declarator(decl)
 		}
 		if let Some(expr) = struct_decl.constant_expr {
-			self.expression(expr);
+			self.expr(expr);
 		}
 		// todo!("struct-declarator")
 	}
@@ -79,7 +79,7 @@ impl super::SemanticParser {
 	pub(super) fn initializer(&mut self, init: Initializer) {
 		use Initializer::*;
 		match init {
-			Expr(expr) => self.expression(expr),
+			Expr(expr) => self.expr(expr),
 			InitializerList(list) => self.initializer_list(list),
 		}
 	}
@@ -183,7 +183,7 @@ impl super::SemanticParser {
 	pub(super) fn designator(&mut self, desig: Designator) {
 		use Designator::*;
 		match desig {
-			ConstantExpr(expr) => self.expression(expr),
+			ConstantExpr(expr) => self.expr(expr),
 			Dot(_) => (),
 		}
 	}
