@@ -61,7 +61,6 @@ impl super::SemanticParser {
 		for struct_decl in decl.struct_declaration_list {
 			self.struct_declarator(struct_decl);
 		}
-		todo!("struct-declaration")
 	}
 
 	pub(super) fn struct_declarator(&mut self, struct_decl: StructDeclarator) {
@@ -156,8 +155,31 @@ impl super::SemanticParser {
 				pointer,
 				direct_abstract_declarator,
 			} => {
-				todo!("direct-abstract-declarator")
+				self.pointer(pointer);
+				for declarator in direct_abstract_declarator {
+					self.direct_abstract_declarator(declarator);
+				}
 			}
+		}
+	}
+	pub(super) fn direct_abstract_declarator(&mut self, decl: DirectAbstractDeclarator) {
+		use DirectAbstractDeclarator::*;
+		match decl {
+			AbstractDeclarator(abstract_decl) => self.abstract_declarator(abstract_decl),
+			Array {
+				direct_abstract_declarator,
+				assignment_expr,
+				has_static: _,
+			} => {
+				for qual in direct_abstract_declarator {
+					self.type_qualifier(qual);
+				}
+				if let Some(expr) = assignment_expr {
+					self.expr(expr);
+				}
+			}
+			ArrayPointer => todo!("direct-abstract-declarator [ * ]"),
+			ParameterTypeList(_) => todo!("parameter-type-list"),
 		}
 	}
 	pub(super) fn specifier_qualifier(&mut self, spec: SpecifierQualifier) {
