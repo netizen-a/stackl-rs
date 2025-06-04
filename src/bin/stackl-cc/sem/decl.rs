@@ -89,8 +89,24 @@ impl super::SemanticParser {
 			self.direct_declarator(direct_decl);
 		}
 	}
-	pub(super) fn direct_declarator(&mut self, _direct_decl: DirectDeclarator) {
-		todo!("direct-declarator")
+	pub(super) fn direct_declarator(&mut self, direct_decl: DirectDeclarator) {
+		use DirectDeclarator::*;
+		match direct_decl {
+			Identifier(_) => (),
+			Declarator(_) => todo!("direct-declarator decl"),
+			Array {
+				type_qualifier_list,
+				assignment_expr,
+				has_static,
+				has_ptr,
+			} => todo!("direct-declarator array"),
+			ParameterTypeList(type_list) => {
+				for param in type_list.parameter_list {
+					self.parameter_declaration(param);
+				}
+			}
+			IdentifierList(_ident_list) => (),
+		}
 	}
 	pub(super) fn parameter_type_list(&mut self, list: ParameterTypeList) {
 		for param in list.parameter_list {
@@ -105,7 +121,33 @@ impl super::SemanticParser {
 	pub(super) fn type_qualifier(&mut self, _qual: TypeQualifier) {
 		todo!("type-qualifier")
 	}
-	pub(super) fn parameter_declaration(&mut self, _param: ParameterDeclaration) {
-		todo!("parameter-declaration")
+	pub(super) fn parameter_declaration(&mut self, param: ParameterDeclaration) {
+		for specifier in param.declaration_specifiers {
+			self.declaration_specifier(specifier);
+		}
+		self.parameter_declarator(param.parameter_declarator);
+	}
+	pub(super) fn parameter_declarator(&mut self, param_decl: ParameterDeclarator) {
+		use ParameterDeclarator::*;
+		match param_decl {
+			Declarator(decl) => self.declarator(decl),
+			AbstractDeclarator(decl) => {
+				if let Some(decl) = decl {
+					self.abstract_declarator(decl)
+				}
+			}
+		}
+	}
+	pub(super) fn abstract_declarator(&mut self, decl: AbstractDeclarator) {
+		use AbstractDeclarator::*;
+		match decl {
+			Pointer(ptr) => self.pointer(ptr),
+			DirectAbstractDeclarator {
+				pointer,
+				direct_abstract_declarator,
+			} => {
+				todo!("direct-abstract-declarator")
+			}
+		}
 	}
 }
