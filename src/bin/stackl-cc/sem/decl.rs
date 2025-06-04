@@ -48,18 +48,19 @@ impl super::SemanticParser {
 	pub(super) fn enum_specifier(&mut self, _spec: EnumSpecifier) {
 		todo!("enum-specifier")
 	}
-	pub(super) fn enumerator(&mut self, _enumerator: Enumerator) {
-		// self.expression(enumerator.constant_expr);
-		todo!("enumerator")
+	pub(super) fn enumerator(&mut self, enumerator: Enumerator) {
+		if let Some(expr) = enumerator.constant_expr {
+			self.expression(expr);
+		}
 	}
 
-	pub(super) fn struct_declaration(&mut self, _decl: StructDeclaration) {
-		// for spec in decl.specifier_qualifier_list {
-		// 	self.specifier_qualifier(spec);
-		// }
-		// for struct_decl in decl.struct_declaration_list {
-		// 	self.struct_declaration(struct_decl);
-		// }
+	pub(super) fn struct_declaration(&mut self, decl: StructDeclaration) {
+		for spec in decl.specifier_qualifier_list {
+			self.specifier_qualifier(spec);
+		}
+		for struct_decl in decl.struct_declaration_list {
+			self.struct_declarator(struct_decl);
+		}
 		todo!("struct-declaration")
 	}
 
@@ -67,16 +68,20 @@ impl super::SemanticParser {
 		if let Some(decl) = struct_decl.declarator {
 			self.declarator(decl)
 		}
-		// if let Some(expr) = struct_decl.constant_expr {
-		// 	self.expression(expr);
-		// }
-		todo!("struct-declarator")
+		if let Some(expr) = struct_decl.constant_expr {
+			self.expression(expr);
+		}
+		// todo!("struct-declarator")
 	}
 	pub(super) fn struct_or_union_specifier(&mut self, _spec: StructOrUnionSpecifier) {
 		todo!("struct-or-union-specifier")
 	}
-	pub(super) fn initializer(&mut self, _init: Initializer) {
-		todo!("initializer")
+	pub(super) fn initializer(&mut self, init: Initializer) {
+		use Initializer::*;
+		match init {
+			Expr(expr) => self.expression(expr),
+			InitializerList(list) => self.initializer_list(list),
+		}
 	}
 	pub(super) fn function_specifier(&mut self, _spec: FunctionSpecifier) {
 		todo!("function-specifier")
@@ -118,8 +123,13 @@ impl super::SemanticParser {
 			self.type_qualifier(qual);
 		}
 	}
-	pub(super) fn type_qualifier(&mut self, _qual: TypeQualifier) {
-		todo!("type-qualifier")
+	pub(super) fn type_qualifier(&mut self, qual: TypeQualifier) {
+		use TypeQualifier::*;
+		match qual {
+			Const => (),
+			Restrict => (),
+			Volatile => (),
+		}
 	}
 	pub(super) fn parameter_declaration(&mut self, param: ParameterDeclaration) {
 		for specifier in param.declaration_specifiers {
@@ -148,6 +158,33 @@ impl super::SemanticParser {
 			} => {
 				todo!("direct-abstract-declarator")
 			}
+		}
+	}
+	pub(super) fn specifier_qualifier(&mut self, spec: SpecifierQualifier) {
+		use SpecifierQualifier::*;
+		match spec {
+			TypeSpecifier(ty) => self.type_specifier(ty),
+			TypeQualifier(ty) => self.type_qualifier(ty),
+		}
+	}
+	pub(super) fn initializer_list(&mut self, list: InitializerList) {
+		for (desig, init) in list.0 {
+			if let Some(desig) = desig {
+				self.designation(desig);
+			}
+			self.initializer(init);
+		}
+	}
+	pub(super) fn designation(&mut self, desig: Designation) {
+		for desig in desig.0 {
+			self.designator(desig)
+		}
+	}
+	pub(super) fn designator(&mut self, desig: Designator) {
+		use Designator::*;
+		match desig {
+			ConstantExpr(expr) => self.expression(expr),
+			Dot(_) => (),
 		}
 	}
 }

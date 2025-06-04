@@ -221,11 +221,11 @@ pub enum SpecifierQualifier {
 
 /// (6.7.8) initializer-list
 #[derive(Debug)]
-pub struct InitializerList(Vec<(Option<Designation>, Initializer)>);
+pub struct InitializerList(pub Vec<(Option<Designation>, Initializer)>);
 
 /// (6.7.8) designation
 #[derive(Debug)]
-pub struct Designation(Vec<Designator>);
+pub struct Designation(pub Vec<Designator>);
 
 /// (6.7.8) designator
 #[derive(Debug)]
