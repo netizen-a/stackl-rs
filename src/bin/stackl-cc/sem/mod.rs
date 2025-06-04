@@ -2,22 +2,28 @@ mod decl;
 mod expr;
 mod stmt;
 
+use crate::ir;
 use crate::syn::*;
 
-pub struct SemanticParser {}
+pub struct SemanticParser {
+	builder: ir::ModuleBuilder,
+}
 
 impl SemanticParser {
 	pub fn new() -> Self {
-		Self {}
+		Self {
+			builder: ir::ModuleBuilder::new(),
+		}
 	}
-	pub fn parse(&mut self, unit: Vec<ExternalDeclaration>) {
+	pub fn parse(mut self, unit: Vec<ExternalDeclaration>) -> ir::Module {
+		use ExternalDeclaration::*;
 		for external_decl in unit {
-			use ExternalDeclaration::*;
 			match external_decl {
 				FunctionDefinition(decl) => self.function_definition(decl),
 				Declaration(decl) => self.declaration(decl),
 			}
 		}
+		self.builder.build()
 	}
 	fn function_definition(&mut self, decl: FunctionDefinition) {
 		for specifier in decl.declaration_specifiers {

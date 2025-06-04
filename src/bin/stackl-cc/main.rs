@@ -2,6 +2,7 @@ use std::{fs, io::Read, path::PathBuf, process::ExitCode, rc::Rc};
 
 mod cli;
 mod diag;
+mod ir;
 mod lex;
 mod sem;
 mod syn;
@@ -27,9 +28,6 @@ fn main() -> ExitCode {
 	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
 	let unit = SyntaxParser::new().parse(tok_iter).unwrap();
-
-	println!("{:#?}", unit);
-
 	sem::SemanticParser::new().parse(unit);
 
 	ExitCode::SUCCESS
