@@ -4,6 +4,7 @@ mod stmt;
 
 use crate::ir;
 use crate::syn::*;
+use stackl::dr;
 
 pub struct SemanticParser {
 	builder: ir::ModuleBuilder,
@@ -15,7 +16,7 @@ impl SemanticParser {
 			builder: ir::ModuleBuilder::new(),
 		}
 	}
-	pub fn parse(mut self, unit: Vec<ExternalDeclaration>) -> ir::Module {
+	pub fn parse(mut self, unit: Vec<ExternalDeclaration>) -> dr::Module {
 		use ExternalDeclaration::*;
 		for external_decl in unit {
 			match external_decl {

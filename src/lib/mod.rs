@@ -3,7 +3,9 @@ use std::{fmt, str::SplitTerminator};
 use bitflags::bitflags;
 
 pub mod ast;
+pub mod dr;
 pub mod op;
+pub mod sr;
 
 bitflags! {
 	#[derive(Debug, Clone, Copy)]

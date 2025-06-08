@@ -335,17 +335,6 @@ pub enum PPTokenKind {
 }
 
 impl PPTokenKind {
-	pub fn as_token_name(&self) -> &str {
-		match self {
-			Self::HeaderName(_) => "header-name",
-			Self::Ident(_) => "identifier",
-			Self::PPNumber(_) => "pp-number",
-			Self::CharConst(_) => "character-constant",
-			Self::StrLit(_) => "string-literal",
-			Self::Punct(_) => "punctuator",
-			Self::NewLine(_) => "new-line",
-		}
-	}
 	pub fn to_name(&self) -> String {
 		match self {
 			Self::HeaderName(value) => value.name.clone(),
@@ -357,28 +346,10 @@ impl PPTokenKind {
 			Self::NewLine(_) => String::from("\\n"),
 		}
 	}
-	pub fn unwrap_punct(self) -> Punct {
-		match self {
-			PPTokenKind::Punct(token) => token,
-			other => panic!("called `Token::unwrap_punctuator` on an `{other:?}` value"),
-		}
-	}
 	pub fn unwrap_str_lit(self) -> StrLit {
 		match self {
 			PPTokenKind::StrLit(token) => token,
 			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_char_const(self) -> CharConst {
-		match self {
-			PPTokenKind::CharConst(token) => token,
-			other => panic!("called `Token::unwrap_char_const` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_pp_number(self) -> PPNumber {
-		match self {
-			PPTokenKind::PPNumber(token) => token,
-			other => panic!("called `Token::unwrap_pp_number` on an `{other:?}` value"),
 		}
 	}
 }

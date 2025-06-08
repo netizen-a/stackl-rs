@@ -1,13 +1,15 @@
-pub struct Module {}
+use stackl::dr::Module;
+use stackl::sr::DataType;
 
-pub struct ModuleBuilder {
-	module: Module,
-}
+pub struct ModuleBuilder {}
 impl ModuleBuilder {
 	pub fn new() -> Self {
-		Self { module: Module {} }
+		Self {}
+	}
+	pub fn alloc_var(&mut self, data: DataType) -> u32 {
+		todo!()
 	}
 	pub fn build(self) -> Module {
-		self.module
+		Module {}
 	}
 }
