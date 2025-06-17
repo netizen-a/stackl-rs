@@ -1,14 +1,17 @@
-use stackl::dr::Module;
-use stackl::sr;
+use stackl::dr;
 
 pub struct ModuleBuilder {
 	// dependency graph
 	dep: Vec<Vec<u32>>,
+	builder: dr::Builder,
 }
 
 impl ModuleBuilder {
 	pub fn new() -> Self {
-		Self { dep: Vec::new() }
+		Self {
+			dep: Vec::new(),
+			builder: dr::Builder::new(),
+		}
 	}
 	pub fn push(&mut self) -> u32 {
 		let new_id = self.dep.len() as u32;
@@ -25,7 +28,7 @@ impl ModuleBuilder {
 		self.dep.push(vec![id]);
 		new_id
 	}
-	pub fn build(self) -> Module {
-		Module {}
+	pub fn build(self) -> dr::Module {
+		self.builder.build()
 	}
 }
