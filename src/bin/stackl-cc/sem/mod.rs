@@ -15,7 +15,7 @@ impl SemanticParser {
 			builder: ir::Builder::new(),
 		}
 	}
-	pub fn parse(mut self, unit: Vec<ExternalDeclaration>) -> ir::Module {
+	pub fn parse(mut self, unit: Vec<ExternalDeclaration>) {
 		use ExternalDeclaration::*;
 		for external_decl in unit {
 			match external_decl {
@@ -23,7 +23,7 @@ impl SemanticParser {
 				Declaration(decl) => self.declaration(decl),
 			}
 		}
-		self.builder.module()
+		todo!()
 	}
 	fn function_definition(&mut self, decl: FunctionDefinition) {
 		for specifier in decl.declaration_specifiers {

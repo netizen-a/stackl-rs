@@ -1,7 +1,10 @@
+pub type DataType = ();
+
 pub enum Opcode {
-	Segment(String),
+	Segment,
 	Nop,
-	Add,
+	IAdd,
+	FAdd,
 	Sub,
 	Mul,
 	Div,
@@ -71,9 +74,4 @@ pub struct Instruction {
 	pub result_id: u32,
 	pub result_type: u32,
 	pub operands: Vec<Operand>,
-}
-
-#[derive(Default)]
-pub struct Module {
-	pub insts: Vec<Instruction>,
 }
