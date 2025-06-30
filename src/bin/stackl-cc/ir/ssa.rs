@@ -21,7 +21,6 @@ pub enum Opcode {
 	Swap,
 	Dup,
 	Halt,
-	Pop,
 	Ret,
 	Retv,
 	Neg,
@@ -44,7 +43,8 @@ pub enum Opcode {
 	PopCVarInd,
 	PopVarInd,
 	Comp,
-	Push,
+	// allocate a variable
+	Variable,
 	Jmp,
 	Jz,
 	PushVar,
