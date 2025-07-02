@@ -2,6 +2,10 @@ use super::ssa;
 
 impl super::Builder {
 	pub fn variable(&mut self, result_type: u32, init_val: Option<u32>) -> u32 {
+		if self.stack_pos != self.insts.len() {
+			// TODO: make this a result
+			panic!("variable must be declared at top of function");
+		}
 		let next_id = self.id();
 		let mut operands = vec![];
 		if let Some(val) = init_val {
@@ -13,6 +17,7 @@ impl super::Builder {
 			result_type,
 			operands,
 		});
+		self.stack_pos = self.insts.len();
 		next_id
 	}
 }

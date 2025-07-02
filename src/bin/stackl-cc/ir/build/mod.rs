@@ -9,7 +9,7 @@ pub struct Builder {
 	insts: Vec<ssa::Instruction>,
 	next_id: u32,
 	/// stack frame position
-	sf_pos: u32,
+	pub stack_pos: usize,
 }
 
 impl Builder {
@@ -18,7 +18,7 @@ impl Builder {
 			types: HashMap::new(),
 			insts: vec![],
 			next_id: 0,
-			sf_pos: 0,
+			stack_pos: 0,
 		}
 	}
 	#[inline]
@@ -26,5 +26,10 @@ impl Builder {
 		let next_id = self.next_id;
 		self.next_id += 1;
 		next_id
+	}
+	pub fn start_function(&mut self) -> u32 {
+		let result = self.insts.len();
+		self.stack_pos = result;
+		result as u32
 	}
 }
