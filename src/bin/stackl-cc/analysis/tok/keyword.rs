@@ -1,4 +1,4 @@
-use crate::diag::*;
+use crate::diagnostics::*;
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]

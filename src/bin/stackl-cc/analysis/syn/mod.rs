@@ -9,7 +9,7 @@ pub use iter::*;
 pub use stmt::*;
 
 use lalrpop_util::lalrpop_mod;
-lalrpop_mod!(pub grammar, "/bin/stackl-cc/syn/grammar.rs");
+lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");
 
 /// (6.9) translation-unit
 #[derive(Debug, Default)]

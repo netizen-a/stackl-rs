@@ -1,5 +1,5 @@
 use super::decl;
-use crate::tok;
+use crate::analysis::tok;
 
 /// (6.5.17) expression
 #[derive(Debug)]

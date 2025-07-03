@@ -1,5 +1,5 @@
 use super::{decl, expr};
-use crate::tok;
+use crate::analysis::tok;
 
 /// (6.8.2) compound-statement
 #[derive(Debug)]

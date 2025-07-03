@@ -1,4 +1,4 @@
-use crate::syn::*;
+use crate::analysis::syn::*;
 
 impl super::SemanticParser {
 	pub(super) fn declaration(&mut self, decl: Declaration) {

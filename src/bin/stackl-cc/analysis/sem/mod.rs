@@ -2,18 +2,13 @@ mod decl;
 mod expr;
 mod stmt;
 
-use crate::ir;
-use crate::syn::*;
+use crate::analysis::syn::*;
 
-pub struct SemanticParser {
-	builder: ir::Builder,
-}
+pub struct SemanticParser {}
 
 impl SemanticParser {
 	pub fn new() -> Self {
-		Self {
-			builder: ir::Builder::new(),
-		}
+		Self {}
 	}
 	pub fn parse(mut self, unit: Vec<ExternalDeclaration>) {
 		use ExternalDeclaration::*;

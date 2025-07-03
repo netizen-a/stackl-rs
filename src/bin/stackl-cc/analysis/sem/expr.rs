@@ -1,4 +1,4 @@
-use crate::syn::*;
+use crate::analysis::syn::*;
 
 impl super::SemanticParser {
 	pub(super) fn expr(&mut self, expr: Expr) {
@@ -24,7 +24,6 @@ impl super::SemanticParser {
 		let _rhs_id = self.expr(*binary.right);
 		match binary.op {
 			BinOp::Add => {
-				self.builder.i_add(0, 0, 0);
 				todo!()
 			}
 			_ => todo!(),

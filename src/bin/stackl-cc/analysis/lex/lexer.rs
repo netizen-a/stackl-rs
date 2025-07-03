@@ -2,8 +2,8 @@ use std::fmt::Debug;
 use std::iter::{Enumerate, Peekable};
 use std::vec::IntoIter;
 
-use crate::diag::lex;
-use crate::tok;
+use crate::analysis::tok;
+use crate::diagnostics::lex;
 
 #[derive(Debug)]
 pub struct Lexer {

@@ -1,7 +1,7 @@
 //! Declarations
 
 use super::expr;
-use crate::tok;
+use crate::analysis::tok;
 
 /// (6.9.1) declaration-list
 pub struct DeclarationList(Vec<Declaration>);

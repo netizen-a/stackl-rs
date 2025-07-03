@@ -1,8 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::tok::Token;
-
-use crate::diag::syn;
+use crate::analysis::tok::Token;
+use crate::diagnostics::syn;
 
 #[derive(Default)]
 pub struct TokenStack {

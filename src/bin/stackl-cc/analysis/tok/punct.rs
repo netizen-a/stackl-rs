@@ -1,4 +1,4 @@
-use crate::diag::lex;
+use crate::diagnostics::lex;
 use std::fmt;
 
 #[non_exhaustive]
