@@ -30,6 +30,6 @@ where
 
 	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
-	let unit = SyntaxParser::new().parse(tok_iter).unwrap();
-	sem::SemanticParser::new().parse(unit);
+	let mut unit = SyntaxParser::new().parse(tok_iter).unwrap();
+	sem::SemanticParser::new().parse(&mut unit);
 }

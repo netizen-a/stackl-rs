@@ -1,19 +1,19 @@
 use crate::analysis::syn::*;
 
 impl super::SemanticParser {
-	pub(super) fn compound_stmt(&mut self, stmt: CompoundStmt) {
-		for item in stmt.0 {
+	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
+		for item in stmt.0.iter_mut() {
 			self.block_item(item)
 		}
 	}
-	pub(super) fn block_item(&mut self, item: BlockItem) {
+	pub(super) fn block_item(&mut self, item: &mut BlockItem) {
 		use BlockItem::*;
 		match item {
 			Declaration(decl) => self.declaration(decl),
 			Statement(stmt) => self.statement(stmt),
 		}
 	}
-	pub(super) fn statement(&mut self, stmt: Stmt) {
+	pub(super) fn statement(&mut self, stmt: &mut Stmt) {
 		use Stmt::*;
 		match stmt {
 			LabeledStatement(_labeled_stmt) => (),
