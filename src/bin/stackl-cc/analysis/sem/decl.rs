@@ -1,6 +1,16 @@
 use crate::analysis::syn::*;
 
 impl super::SemanticParser {
+	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
+		for ref mut specifier in decl.declaration_specifiers.iter_mut() {
+			self.declaration_specifier(specifier);
+		}
+		self.declarator(&mut decl.declarator);
+		for declaration in decl.declaration_list.iter_mut() {
+			self.declaration(declaration);
+		}
+		self.compound_stmt(&mut decl.compound_stmt);
+	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
 		for ref mut spec in decl.declaration_specifiers.iter_mut() {
 			self.declaration_specifier(spec);
