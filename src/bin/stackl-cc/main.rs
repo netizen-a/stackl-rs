@@ -2,7 +2,6 @@ use std::process::ExitCode;
 
 mod analysis;
 mod cli;
-mod diagnostics;
 mod synthesis;
 
 fn main() -> ExitCode {

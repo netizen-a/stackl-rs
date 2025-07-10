@@ -3,7 +3,7 @@
 pub mod keyword;
 pub mod punct;
 
-use crate::diagnostics::lex;
+use crate::analysis::prt::lex;
 pub use keyword::*;
 pub use punct::*;
 use std::iter::Peekable;

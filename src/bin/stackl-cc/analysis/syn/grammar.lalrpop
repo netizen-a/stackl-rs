@@ -1,7 +1,7 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok::*;
 
-use crate::diagnostics::syn::Error as SyntaxError;
+use crate::analysis::prt::syn::Error as SyntaxError;
 
 grammar;
 

@@ -4,7 +4,7 @@ use std::io::{Read, BufReader};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::diagnostics::lex as diag;
+use crate::analysis::prt::lex as diag;
 use lalrpop_util as lalr;
 use crate::analysis::lex::PPTokenStack;
 use crate::analysis::lex::lexer::Lexer;
