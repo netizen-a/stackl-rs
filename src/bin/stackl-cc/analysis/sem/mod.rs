@@ -10,13 +10,14 @@ impl SemanticParser {
 	pub fn new() -> Self {
 		Self {}
 	}
-	pub fn parse(mut self, unit: &mut [ExternalDeclaration]) {
+	pub fn parse(mut self, mut unit: Vec<ExternalDeclaration>) -> Result<Vec<ExternalDeclaration>, ()>{
 		use ExternalDeclaration::*;
-		for external_decl in unit {
+		for external_decl in unit.iter_mut() {
 			match external_decl {
 				FunctionDefinition(decl) => self.function_definition(decl),
 				Declaration(decl) => self.declaration(decl),
 			}
 		}
+		Ok(unit)
 	}
 }

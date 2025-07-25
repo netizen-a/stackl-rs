@@ -1,7 +1,7 @@
 mod lex;
 mod prt;
 mod sem;
-mod syn;
+pub mod syn;
 mod tok;
 
 use lex::grammar::TokensParser;
@@ -13,7 +13,10 @@ use std::{
 };
 use syn::grammar::SyntaxParser;
 
-pub fn parse<P>(in_file: P)
+use crate::analysis::syn::ExternalDeclaration;
+
+// TODO: fix Return error
+pub fn parse<P>(in_file: P) -> Result<Vec<ExternalDeclaration>, ()>
 where
 	P: AsRef<Path>,
 {
@@ -31,6 +34,6 @@ where
 
 	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
-	let mut unit = SyntaxParser::new().parse(tok_iter).unwrap();
-	sem::SemanticParser::new().parse(&mut unit);
+	let unit = SyntaxParser::new().parse(tok_iter).unwrap();
+	sem::SemanticParser::new().parse(unit)
 }

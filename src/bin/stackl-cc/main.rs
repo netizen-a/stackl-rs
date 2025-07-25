@@ -6,7 +6,9 @@ mod synthesis;
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
-	analysis::parse(args.in_file);
+	let analysis_result = analysis::parse(args.in_file);
+	let ast = analysis_result.unwrap();
+	synthesis::parse(&ast);
 
 	ExitCode::SUCCESS
 }
