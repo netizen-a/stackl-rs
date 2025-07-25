@@ -1,10 +1,10 @@
+mod icg;
 mod opt;
 mod out;
-mod ssa;
 
 use crate::analysis::syn::ExternalDeclaration;
 
 // TODO: fix Return error
-pub fn parse(ast: &[ExternalDeclaration]) {
-    todo!()
+pub fn parse(_ast: &[ExternalDeclaration]) {
+	todo!()
 }
