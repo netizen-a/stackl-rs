@@ -1,0 +1,66 @@
+// Test arrays of structs
+//
+#include <string.h>
+#include <sysio.h>
+
+typedef struct
+{
+    int a;
+    int b[3];
+} struct1_t;
+
+typedef struct
+{
+    int a[3];
+    //struct1_t s1[2];
+    int b;
+} struct2_t;
+
+int main()
+{
+    int index;
+    int ii;
+    int jj;
+    struct2_t data[3];
+    int *datap;
+
+    datap = &data[0].a[0];
+
+    index = 1;
+    for (ii=0; ii<3; ii++)
+    {
+        data[ii].a[0] = index;
+        index++;
+        data[ii].a[1] = index;
+        index++;
+        data[ii].a[2] = index;
+        index++;
+
+        data[ii].b = index;
+        index++;
+    }
+
+    index--;
+    while (index > 0)
+    {
+        index--;
+        if (datap[index] != index+1)
+        {
+            prints("Error at offset ");
+            printi(index);
+            prints(" ");
+            printi((int)datap[index]);
+            prints("\n");
+        }
+        else
+        {
+            prints("Data at index ");
+            printi(index);
+            prints(" is OK\n");
+        }
+    }
+
+    prints("Test complete\n");
+
+    return 0;
+}
