@@ -12,15 +12,14 @@ impl IntermediateCodeGen {
 	}
 	pub fn parse(
 		mut self,
-		mut unit: Vec<syn::ExternalDeclaration>,
-	) -> Result<Vec<syn::ExternalDeclaration>, ()> {
+		unit: &[syn::ExternalDeclaration],
+	) {
 		use syn::ExternalDeclaration::*;
-		for external_decl in unit.iter_mut() {
+		for external_decl in unit.into_iter() {
 			match external_decl {
 				FunctionDefinition(decl) => self.function_definition(decl),
 				Declaration(decl) => self.declaration(decl),
 			}
 		}
-		Ok(unit)
 	}
 }

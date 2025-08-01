@@ -619,7 +619,7 @@ JumpStatement: JumpStmt = {
 
 // A.2.4 External definitions
 
-pub Syntax: Vec<ExternalDeclaration> = ExternalDeclaration+;
+pub Syntax: TranslationUnit = ExternalDeclaration+;
 
 ExternalDeclaration: ExternalDeclaration = {
 	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),

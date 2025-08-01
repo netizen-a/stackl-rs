@@ -12,10 +12,7 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");
 
 /// (6.9) translation-unit
-#[derive(Debug, Default)]
-pub struct TranslationUnit {
-	external_declaration: Vec<ExternalDeclaration>,
-}
+pub type TranslationUnit = Vec<ExternalDeclaration>;
 
 /// (6.9) external-declaration
 #[derive(Debug)]

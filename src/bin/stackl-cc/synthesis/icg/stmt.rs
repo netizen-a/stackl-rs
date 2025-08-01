@@ -1,19 +1,19 @@
 use crate::analysis::syn::*;
 
 impl super::IntermediateCodeGen {
-	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
-		for item in stmt.0.iter_mut() {
+	pub(super) fn compound_stmt(&mut self, stmt: &CompoundStmt) {
+		for item in stmt.0.iter() {
 			self.block_item(item)
 		}
 	}
-	pub(super) fn block_item(&mut self, item: &mut BlockItem) {
+	pub(super) fn block_item(&mut self, item: &BlockItem) {
 		use BlockItem::*;
 		match item {
 			Declaration(decl) => self.declaration(decl),
 			Statement(stmt) => self.statement(stmt),
 		}
 	}
-	pub(super) fn statement(&mut self, stmt: &mut Stmt) {
+	pub(super) fn statement(&mut self, stmt: &Stmt) {
 		use Stmt::*;
 		match stmt {
 			LabeledStatement(_labeled_stmt) => (),

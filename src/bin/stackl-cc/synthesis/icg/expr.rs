@@ -1,7 +1,7 @@
 use crate::analysis::syn::*;
 
 impl super::IntermediateCodeGen {
-	pub(super) fn expr(&mut self, expr: &mut Expr) {
+	pub(super) fn expr(&mut self, expr: &Expr) {
 		use Expr::*;
 		match expr {
 			Ident(_) => todo!(),
@@ -15,13 +15,13 @@ impl super::IntermediateCodeGen {
 			Sizeof(_) => todo!("sizeof"),
 		}
 	}
-	pub(super) fn expr_unary(&mut self, unary: &mut ExprUnary) {
-		self.expr(&mut *unary.expr);
+	pub(super) fn expr_unary(&mut self, unary: &ExprUnary) {
+		self.expr(&unary.expr);
 		todo!()
 	}
-	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary) {
-		let _lhs_id = self.expr(&mut *binary.left);
-		let _rhs_id = self.expr(&mut *binary.right);
+	pub(super) fn expr_binary(&mut self, binary: &ExprBinary) {
+		let _lhs_id = self.expr(&binary.left);
+		let _rhs_id = self.expr(&binary.right);
 		match binary.op {
 			BinOp::Add => {
 				todo!()
@@ -29,10 +29,10 @@ impl super::IntermediateCodeGen {
 			_ => todo!(),
 		}
 	}
-	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) {
-		self.expr(&mut *ternary.cond);
-		self.expr(&mut *ternary.then_branch);
-		self.expr(&mut *ternary.else_branch);
+	pub(super) fn expr_ternary(&mut self, ternary: &ExprTernary) {
+		self.expr(&ternary.cond);
+		self.expr(&ternary.then_branch);
+		self.expr(&ternary.else_branch);
 		todo!()
 	}
 }
