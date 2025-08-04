@@ -644,8 +644,8 @@ extern {
 	type Error = SyntaxError;
 
 	enum Token {
-		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, is_reg:false, ..}), ..},
-		TYPE_NAME => Token{kind: TokenKind::Ident(Ident{is_type:true, is_reg:false, ..}), ..},
+		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, ..}), ..},
+		TYPE_NAME => Token{kind: TokenKind::Ident(Ident{is_type:true, ..}), ..},
 		CONST => Token{kind: TokenKind::Const(_), ..},
 		STR_LIT => Token{kind: TokenKind::StrLit(_), ..},
 
@@ -684,6 +684,7 @@ extern {
 		"break" => Token{kind: TokenKind::Keyword(Keyword::Break), ..},
 		"return" => Token{kind: TokenKind::Keyword(Keyword::Return), ..},
 		"else" => Token{kind: TokenKind::Keyword(Keyword::Else), ..},
+		"asm" => Token{kind: TokenKind::Keyword(Keyword::Asm), ..},
 
 		"." => Token{kind: TokenKind::Punct(Punct::Dot), ..},
 		"..." => Token{kind: TokenKind::Punct(Punct::Ellipsis), ..},

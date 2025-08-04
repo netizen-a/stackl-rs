@@ -12,8 +12,8 @@ use std::str::Chars;
 #[derive(Debug, Clone)]
 pub struct Ident {
 	pub name: String,
+	/// is the identifier previously declared in a typedef?
 	pub is_type: bool,
-	pub is_reg: bool,
 }
 
 #[derive(Debug)]

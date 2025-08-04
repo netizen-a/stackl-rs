@@ -3,6 +3,7 @@ use crate::analysis::prt::*;
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Keyword {
+	Asm,
 	Auto,
 	Break,
 	Case,
@@ -45,6 +46,7 @@ impl TryFrom<&str> for Keyword {
 	fn try_from(value: &str) -> Result<Self, Self::Error> {
 		use Keyword as Term;
 		let terminal = match value {
+			"asm" => Term::Asm,
 			"auto" => Term::Auto,
 			"break" => Term::Break,
 			"case" => Term::Case,

@@ -15,8 +15,7 @@ use syn::grammar::SyntaxParser;
 
 use crate::analysis::syn::ExternalDeclaration;
 
-// TODO: fix Return error
-pub fn parse<P>(in_file: P) -> Result<Vec<ExternalDeclaration>, ()>
+pub fn parse<P>(in_file: P) -> Option<Vec<ExternalDeclaration>>
 where
 	P: AsRef<Path>,
 {

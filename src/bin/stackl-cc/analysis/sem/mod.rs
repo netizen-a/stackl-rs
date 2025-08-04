@@ -13,7 +13,7 @@ impl SemanticParser {
 	pub fn parse(
 		mut self,
 		mut unit: Vec<ExternalDeclaration>,
-	) -> Result<Vec<ExternalDeclaration>, ()> {
+	) -> Option<Vec<ExternalDeclaration>> {
 		use ExternalDeclaration::*;
 		for external_decl in unit.iter_mut() {
 			match external_decl {
@@ -21,6 +21,6 @@ impl SemanticParser {
 				Declaration(decl) => self.declaration(decl),
 			}
 		}
-		Ok(unit)
+		Some(unit)
 	}
 }

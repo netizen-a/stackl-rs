@@ -102,7 +102,6 @@ impl Lexer {
 		let ident = tok::Ident {
 			name,
 			is_type: false,
-			is_reg: false,
 		};
 		let (lo, hi) = self.pop_location();
 		Ok((
