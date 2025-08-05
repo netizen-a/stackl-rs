@@ -134,22 +134,28 @@ impl PPNumber {
 
 	fn integer_constant(&self) -> Result<TokenKind, lex::ErrorKind> {
 		let mut chars = self.name.chars().peekable();
-		match chars.next().expect("empty pp-number") {
+		match chars.peek().expect("empty pp-number") {
 			'0' => {
+				eprintln!("'0'");
 				if chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
 					todo!("hexadecimal-constant")
 				} else {
 					self.octal_constant(chars)
 				}
 			}
-			c @ '1'..='9' => {
-				let name = String::from(c);
+			z @ '1'..='9' => {
+				eprintln!("'{z}'");
+				let name = String::from(*z);
 				self.decimal_constant(name, chars)
 			}
-			_ => Err(lex::ErrorKind::InvalidToken),
+			e => {
+				eprintln!("err: '{e}'");
+				Err(lex::ErrorKind::InvalidToken)
+			},
 		}
 	}
 	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<TokenKind, lex::ErrorKind> {
+		eprintln!("octal constant");
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -158,7 +164,7 @@ impl PPNumber {
 			todo!("unsigned-suffix")
 		} else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
 			todo!("long-suffix")
-		} else if chars.peek().is_none() {
+		} else if chars.peek().is_none() && !name.is_empty() {
 			let integer = if let Ok(data) = i32::from_str_radix(&name, 8) {
 				IntegerConstant::I32(data)
 			} else if let Ok(data) = i64::from_str_radix(&name, 8) {
@@ -166,6 +172,7 @@ impl PPNumber {
 			} else if let Ok(data) = i128::from_str_radix(&name, 8) {
 				IntegerConstant::I128(data)
 			} else {
+				eprintln!("octal invalid token: `{name}`");
 				return Err(lex::ErrorKind::InvalidToken);
 			};
 			let constant = Const::Integer(integer);
@@ -187,7 +194,7 @@ impl PPNumber {
 			todo!("unsigned-suffix")
 		} else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
 			todo!("long-suffix")
-		} else if chars.peek().is_none() {
+		} else if chars.peek().is_none() && !name.is_empty() {
 			let integer = if let Ok(data) = name.parse::<i32>() {
 				IntegerConstant::I32(data)
 			} else if let Ok(data) = name.parse::<i64>() {
@@ -303,6 +310,7 @@ impl TryFrom<PPTokenKind> for TokenKind {
 				if inner.is_float() {
 					inner.floating_constant()
 				} else {
+					eprintln!("is integer!");
 					inner.integer_constant()
 				}
 			}

@@ -79,12 +79,15 @@ PreprocessingToken: (usize, Token, usize) = {
 				},
 				hi
 			)),
-			Err(kind) => Err(lalr::ParseError::User {
-				error: diag::Error{
-					kind,
-					loc: (lo, hi),
-				}
-			}),
+			Err(kind) => {
+				eprintln!("pp-number error");
+				Err(lalr::ParseError::User {
+					error: diag::Error{
+						kind,
+						loc: (lo, hi),
+					}
+				})
+			},
 		}
 	},
 	<lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
@@ -214,6 +217,7 @@ NonHashPunct: PPToken = {
 	"*",
 	"=",
 	";",
+	":",
 };
 
 
@@ -238,5 +242,6 @@ extern {
 		"*" => PPToken{kind: PPTokenKind::Punct(Punct::Star), ..},
 		"=" => PPToken{kind: PPTokenKind::Punct(Punct::Equal), ..},
 		";" => PPToken{kind: PPTokenKind::Punct(Punct::SemiColon), ..},
+		":" => PPToken{kind: PPTokenKind::Punct(Punct::Colon), ..},
 	}
 }
