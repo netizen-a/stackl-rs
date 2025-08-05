@@ -637,25 +637,28 @@ JumpStatement: JumpStmt = {
 AsmStatement: () = {
 	"asm" AsmQualifiers? "(" AssemblerTemplate
 		AsmOptionalConstraintList? ")" ";" => todo!("asm-stmt"),
-	"asm" "goto" "(" AssemblerTemplate
-		":" AsmConstraint?
-		":" AsmConstraint?
-		":" StringLiteralList?
-		":" IdentifierList ")" => todo!("asm-goto-stmt"),
 };
 
 AssemblerTemplate: StrLit = StringLiteral => <>;
 
 AsmQualifiers: () = {
-	"volatile" => (),
-	"inline" => (),
+	AsmQualifier => (),
+	AsmQualifiers AsmQualifier => (),
 };
 
-AsmOptionalConstraintList: () = AsmOutput => todo!("asm-constraints");
-AsmOutput: () = ":" AsmConstraint? AsmInput? => todo!("asm-output-constraint");
-AsmInput: () = ":" AsmConstraint? AsmClobber? => todo!("asm-input-constraint");
-AsmClobber: () = ":" StringLiteralList? => todo!("asm-clobber-constraint");
-AsmConstraint: () = StringLiteral "(" Expr ")" => ();
+AsmQualifier: () = {
+	"volatile" => (),
+	"inline" => (),
+	"goto" => (),
+};
+
+AsmOptionalConstraintList: () = AsmOutput;
+AsmOutput: () = ":" AsmOutputOperand? AsmInput? => todo!("asm-output-constraint");
+AsmInput: () = ":" AsmInputOperand? AsmClobber? => todo!("asm-input-constraint");
+AsmClobber: () = ":" StringLiteralList? AsmGotoLabels? => todo!("asm-clobber-constraint");
+AsmGotoLabels: () = ":" IdentifierList? => todo!("asm-goto-list");
+AsmOutputOperand: () = StringLiteral "(" Identifier ")" => ();
+AsmInputOperand: () = StringLiteral "(" Expr ")" => ();
 
 
 StringLiteralList: Vec<StrLit> = {
