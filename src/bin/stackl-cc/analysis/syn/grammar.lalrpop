@@ -20,7 +20,17 @@ EnumerationConstant: Ident = Identifier;
 
 // A.1.6 String literals
 
-StringLiteral: StrLit = STR_LIT => <>.kind.unwrap_str_lit();
+StringLiteral: StrLit = <v:STR_LIT+> => {
+	let mut str_lit = StrLit::default();
+	for literal in v {
+		let tmp = literal.kind.unwrap_str_lit();
+		str_lit.seq.push_str(&tmp.seq);
+		if !str_lit.is_wide {
+			str_lit.is_wide = tmp.is_wide;
+		}
+	}
+	str_lit
+};
 
 
 // A.2.1 Expressions
@@ -564,6 +574,7 @@ ClosedStatement: Stmt = {
 SimpleStatement: Stmt = {
 	ExprStatement => todo!("expr-stmt"),
 	JumpStatement => todo!("jump"),
+	AsmStatement => todo!("local asm stmt"),
 };
 
 ClosedLabeledStatement: LabeledStmt = {
@@ -619,6 +630,10 @@ JumpStatement: JumpStmt = {
 	"return" Expr? ";" => todo!("return"),
 };
 
+AsmStatement: () = {
+	"asm" "(" StringLiteral ")" ";" => todo!(),
+};
+
 // A.2.4 External definitions
 
 pub Syntax: TranslationUnit = ExternalDeclaration+;
@@ -626,6 +641,7 @@ pub Syntax: TranslationUnit = ExternalDeclaration+;
 ExternalDeclaration: ExternalDeclaration = {
 	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
 	Declaration => ExternalDeclaration::Declaration(<>),
+	AsmStatement => todo!("global asm stmt"),
 };
 
 FunctionDefinition: FunctionDefinition = {

@@ -53,7 +53,7 @@ pub enum Const {
 	CharConst(CharConst),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct StrLit {
 	pub seq: String,
 	pub is_wide: bool,
