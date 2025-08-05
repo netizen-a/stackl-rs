@@ -503,7 +503,10 @@ ParameterDeclarator: ParameterDeclarator = {
 
 IdentifierList: Vec<Ident> = {
 	Identifier => vec![<>],
-	IdentifierList "," Identifier => todo!("ident , ident"),
+	<mut v:IdentifierList> "," <elem:Identifier> => {
+		v.push(elem);
+		v
+	},
 };
 
 TypeName: TypeName = {
@@ -554,21 +557,21 @@ Statement: Stmt = {
 };
 
 OpenedStatement: Stmt = {
-	"if" "(" Expr ")" OpenedStatement => todo!(),
-	"if" "(" Expr ")" ClosedStatement "else" OpenedStatement => todo!(),
-	"switch" "(" Expr ")" OpenedStatement => todo!(),
-	OpenedLabeledStatement => todo!("Opened-label"),
-	OpenedCompoundStatement => todo!("Opened-compound"),
-	OpenedIterationStatement => todo!("iter-Opened"),
+	"if" "(" Expr ")" OpenedStatement => todo!("opened-if"),
+	"if" "(" Expr ")" ClosedStatement "else" OpenedStatement => todo!("opened-if-else"),
+	"switch" "(" Expr ")" OpenedStatement => todo!("opened-switch"),
+	OpenedLabeledStatement => todo!("opened-label"),
+	OpenedCompoundStatement => todo!("opened-compound"),
+	OpenedIterationStatement => todo!("opened-iter"),
 };
 
 ClosedStatement: Stmt = {
-	SimpleStatement => todo!(),
-	"if" "(" Expr ")" ClosedStatement "else" ClosedStatement => todo!(),
-	"switch" "(" Expr ")" ClosedStatement => todo!(),
-	ClosedLabeledStatement => todo!(),
-	ClosedCompoundStatement => todo!(),
-	ClosedIterationStatement => todo!("iter-Closed"),
+	SimpleStatement => todo!("simple-stmt"),
+	"if" "(" Expr ")" ClosedStatement "else" ClosedStatement => todo!("closed-if"),
+	"switch" "(" Expr ")" ClosedStatement => todo!("closed-switch"),
+	ClosedLabeledStatement => todo!("closed-label"),
+	ClosedCompoundStatement => todo!("closed-compound"),
+	ClosedIterationStatement => todo!("closed-iter"),
 };
 
 SimpleStatement: Stmt = {
@@ -577,38 +580,39 @@ SimpleStatement: Stmt = {
 	AsmStatement => todo!("local asm stmt"),
 };
 
-ClosedLabeledStatement: LabeledStmt = {
-	Identifier ":" ClosedStatement => todo!("label"),
-	"case" ConstantExpr ":" ClosedStatement => todo!("case"),
-	"default" ":" ClosedStatement => todo!("default"),
-};
+
 OpenedLabeledStatement: LabeledStmt = {
 	Identifier ":" OpenedStatement => todo!("label"),
 	"case" ConstantExpr ":" OpenedStatement => todo!("case"),
 	"default" ":" OpenedStatement => todo!("default"),
 };
 
-
-ClosedCompoundStatement: CompoundStmt = {
-	"{" <blocks:ClosedBlockItem*> "}" => CompoundStmt(blocks),
+ClosedLabeledStatement: LabeledStmt = {
+	Identifier ":" ClosedStatement => todo!("label"),
+	"case" ConstantExpr ":" ClosedStatement => todo!("case"),
+	"default" ":" ClosedStatement => todo!("default"),
 };
+
 
 OpenedCompoundStatement: CompoundStmt = {
 	"{" OpenedBlockItem* "}" => todo!("compound"),
 };
 
-ClosedBlockItem: BlockItem = {
-	Declaration => BlockItem::Declaration(<>),
-	ClosedStatement => todo!("Closed-stmt"),
+ClosedCompoundStatement: CompoundStmt = {
+	"{" <blocks:ClosedBlockItem*> "}" => CompoundStmt(blocks),
 };
+
+
 OpenedBlockItem: BlockItem = {
 	Declaration => todo!("decl"),
 	OpenedStatement => todo!("Opened-stmt"),
 };
-
-ExprStatement: ExprStmt = {
-	Expr? ";" => todo!("expr"),
+ClosedBlockItem: BlockItem = {
+	Declaration => BlockItem::Declaration(<>),
+	ClosedStatement => todo!("Closed-stmt"),
 };
+
+ExprStatement: ExprStmt = Expr? ";" => todo!("expr");
 
 ClosedIterationStatement: IterationStmt = {
 	"while" "(" Expr ")" ClosedStatement => todo!(),
@@ -631,8 +635,34 @@ JumpStatement: JumpStmt = {
 };
 
 AsmStatement: () = {
-	"asm" "(" StringLiteral ")" ";" => todo!(),
+	"asm" AsmQualifiers? "(" AssemblerTemplate
+		AsmOptionalConstraintList? ")" ";" => todo!("asm-stmt"),
+	"asm" "goto" "(" AssemblerTemplate
+		":" AsmConstraint?
+		":" AsmConstraint?
+		":" StringLiteralList?
+		":" IdentifierList ")" => todo!("asm-goto-stmt"),
 };
+
+AssemblerTemplate: StrLit = StringLiteral => <>;
+
+AsmQualifiers: () = {
+	"volatile" => (),
+	"inline" => (),
+};
+
+AsmOptionalConstraintList: () = AsmOutput => todo!("asm-constraints");
+AsmOutput: () = ":" AsmConstraint? AsmInput? => todo!("asm-output-constraint");
+AsmInput: () = ":" AsmConstraint? AsmClobber? => todo!("asm-input-constraint");
+AsmClobber: () = ":" StringLiteralList? => todo!("asm-clobber-constraint");
+AsmConstraint: () = StringLiteral "(" Expr ")" => ();
+
+
+StringLiteralList: Vec<StrLit> = {
+	StringLiteral => vec![<>],
+	StringLiteralList "," StringLiteral => todo!("string-list"),
+};
+
 
 // A.2.4 External definitions
 

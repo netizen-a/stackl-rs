@@ -218,6 +218,7 @@ NonHashPunct: PPToken = {
 	"=",
 	";",
 	":",
+	",",
 };
 
 
@@ -243,5 +244,6 @@ extern {
 		"=" => PPToken{kind: PPTokenKind::Punct(Punct::Equal), ..},
 		";" => PPToken{kind: PPTokenKind::Punct(Punct::SemiColon), ..},
 		":" => PPToken{kind: PPTokenKind::Punct(Punct::Colon), ..},
+		"," => PPToken{kind: PPTokenKind::Punct(Punct::Comma), ..},
 	}
 }
