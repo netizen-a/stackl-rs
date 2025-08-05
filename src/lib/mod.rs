@@ -10,12 +10,11 @@ pub mod sr;
 bitflags! {
 	#[derive(Debug, Clone, Copy)]
 	pub struct StacklFlags: u32 {
-		const LEGACY_MODE      = 1;
-		const FEATURE_GEN_IO   = 1 << 1;
-		const FEATURE_PIO_TERM = 1 << 2;
-		const FEATURE_DMA_TERM = 1 << 3;
-		const FEATURE_DISK     = 1 << 4;
-		const FEATURE_INP      = 1 << 5;
+		const FEATURE_GEN_IO   = 1;
+		const FEATURE_PIO_TERM = 1 << 1;
+		const FEATURE_DMA_TERM = 1 << 2;
+		const FEATURE_DISK     = 1 << 3;
+		const FEATURE_INP      = 1 << 4;
 		const _ = !0;
 	}
 }
@@ -72,7 +71,6 @@ impl StacklFormatV1 {
 	}
 	pub fn flags(&self) -> Result<StacklFlags, ErrorKind> {
 		let mut flags = StacklFlags::empty();
-		flags.set(StacklFlags::LEGACY_MODE, true);
 		let mut token_iter = self.iter_header();
 		while let Some(token) = token_iter.next() {
 			if token == "feature" {

@@ -359,17 +359,11 @@ pub fn next_opcode(
 			cpu.flag.set_status(Status::INT_DIS, true);
 		}
 		op::ROTATE_LEFT => {
-			if cpu.meta.contains(MetaFlags::LEGACY_MODE) {
-				return Err(MachineCheck::ILLEGAL_INST);
-			}
 			let rhs = cpu.pop_i32()?;
 			let lhs = cpu.pop_i32()?;
 			cpu.push_i32(lhs.rotate_left(rhs as u32))?;
 		}
 		op::ROTATE_RIGHT => {
-			if cpu.meta.contains(MetaFlags::LEGACY_MODE) {
-				return Err(MachineCheck::ILLEGAL_INST);
-			}
 			let rhs = cpu.pop_i32()?;
 			let lhs = cpu.pop_i32()?;
 			cpu.push_i32(lhs.rotate_right(rhs as u32))?;

@@ -9,7 +9,8 @@ bitflags! {
 		const USR_MODE         = 1 << 1;
 		const INT_MODE         = 1 << 2;
 		const INT_DIS          = 1 << 3;
-		const VMEM             = 1 << 4;
+		const VMEM_MODE        = 1 << 4;
+		const FPU_ENABLE       = 1 << 5;
 		const _                = !0;
 	}
 }
@@ -62,12 +63,11 @@ bitflags! {
 	#[derive(Debug, Clone, Copy, Default)]
 	pub struct MetaFlags: u32 {
 		const TRACE            = 1;
-		const LEGACY_MODE      = 1 << 1;
-		const FEATURE_GEN_IO   = 1 << 2;
-		const FEATURE_PIO_TERM = 1 << 3;
-		const FEATURE_DMA_TERM = 1 << 4;
-		const FEATURE_DISK     = 1 << 5;
-		const FEATURE_INP      = 1 << 6;
+		const FEATURE_GEN_IO   = 1 << 1;
+		const FEATURE_PIO_TERM = 1 << 2;
+		const FEATURE_DMA_TERM = 1 << 3;
+		const FEATURE_DISK     = 1 << 4;
+		const FEATURE_INP      = 1 << 5;
 		const _                = !0;
 	}
 }

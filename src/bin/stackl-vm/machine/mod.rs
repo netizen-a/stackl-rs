@@ -57,9 +57,6 @@ impl MachineState {
 				text_len
 			};
 			let mut meta = MetaFlags::empty();
-			if program.flags.contains(StacklFlags::LEGACY_MODE) {
-				meta.set(MetaFlags::LEGACY_MODE, true);
-			}
 			if program.flags.contains(StacklFlags::FEATURE_GEN_IO) {
 				meta.set(MetaFlags::FEATURE_GEN_IO, true);
 			}
