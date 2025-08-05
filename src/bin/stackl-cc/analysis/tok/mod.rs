@@ -136,7 +136,6 @@ impl PPNumber {
 		let mut chars = self.name.chars().peekable();
 		match chars.peek().expect("empty pp-number") {
 			'0' => {
-				eprintln!("'0'");
 				if chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
 					todo!("hexadecimal-constant")
 				} else {
@@ -155,7 +154,6 @@ impl PPNumber {
 		}
 	}
 	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<TokenKind, lex::ErrorKind> {
-		eprintln!("octal constant");
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -310,7 +308,6 @@ impl TryFrom<PPTokenKind> for TokenKind {
 				if inner.is_float() {
 					inner.floating_constant()
 				} else {
-					eprintln!("is integer!");
 					inner.integer_constant()
 				}
 			}

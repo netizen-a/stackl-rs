@@ -549,7 +549,7 @@ MatchedStatement: Stmt = {
 	MatchedLabeledStatement => todo!(),
 	MatchedCompoundStatement => todo!(),
 	ExprStatement => todo!("expr-stmt"),
-	IterationMatchedStatement => todo!("iter-matched"),
+	MatchedIterationStatement => todo!("iter-matched"),
 	JumpStatement => todo!("jump"),
 };
 
@@ -560,7 +560,7 @@ UnmatchedStatement: Stmt = {
 	UnmatchedLabeledStatement => todo!("unmatched-label"),
 	UnmatchedCompoundStatement => todo!("unmatched-compound"),
 	ExprStatement => todo!("expr-stmt"),
-	IterationUnmatchedStatement => todo!("iter-unmatched"),
+	UnmatchedIterationStatement => todo!("iter-unmatched"),
 	JumpStatement => todo!("jump"),
 };
 
@@ -597,13 +597,13 @@ ExprStatement: ExprStmt = {
 	Expr? ";" => todo!("expr"),
 };
 
-IterationMatchedStatement: IterationStmt = {
+MatchedIterationStatement: IterationStmt = {
 	"while" "(" Expr ")" MatchedStatement => todo!(),
 	"do" MatchedStatement "while" "(" Expr ")" ";"
 	"for" "(" Expr? ";" Expr? ";" Expr? ")" MatchedStatement => todo!(),
 	"for" "(" Declaration Expr? ";" Expr? ")" MatchedStatement => todo!(),
 };
-IterationUnmatchedStatement: IterationStmt = {
+UnmatchedIterationStatement: IterationStmt = {
 	"while" "(" Expr ")" UnmatchedStatement => todo!(),
 	"do" UnmatchedStatement "while" "(" Expr ")" ";"
 	"for" "(" Expr? ";" Expr? ";" Expr? ")" UnmatchedStatement => todo!(),
