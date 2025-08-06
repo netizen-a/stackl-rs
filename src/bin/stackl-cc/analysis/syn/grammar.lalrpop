@@ -566,7 +566,7 @@ OpenedStatement: Stmt = {
 };
 
 ClosedStatement: Stmt = {
-	SimpleStatement => todo!("simple-stmt"),
+	SimpleStatement,
 	"if" "(" Expr ")" ClosedStatement "else" ClosedStatement => todo!("closed-if"),
 	"switch" "(" Expr ")" ClosedStatement => todo!("closed-switch"),
 	ClosedLabeledStatement => todo!("closed-label"),
@@ -575,9 +575,9 @@ ClosedStatement: Stmt = {
 };
 
 SimpleStatement: Stmt = {
-	ExprStatement => todo!("expr-stmt"),
-	JumpStatement => todo!("jump"),
-	AsmStatement => todo!("local asm stmt"),
+	ExprStatement => Stmt::ExpressionStatement(<>),
+	JumpStatement => Stmt::JumpStatement(<>),
+	AsmStatement => Stmt::AssemblerStatement(<>),
 };
 
 
@@ -604,12 +604,12 @@ ClosedCompoundStatement: CompoundStmt = {
 
 
 OpenedBlockItem: BlockItem = {
-	Declaration => todo!("decl"),
-	OpenedStatement => todo!("Opened-stmt"),
+	Declaration => BlockItem::Declaration(<>),
+	OpenedStatement => BlockItem::Statement(<>),
 };
 ClosedBlockItem: BlockItem = {
 	Declaration => BlockItem::Declaration(<>),
-	ClosedStatement => todo!("Closed-stmt"),
+	ClosedStatement => BlockItem::Statement(<>),
 };
 
 ExprStatement: ExprStmt = Expr? ";" => todo!("expr");
@@ -628,37 +628,86 @@ OpenedIterationStatement: IterationStmt = {
 };
 
 JumpStatement: JumpStmt = {
-	"goto" Identifier ";" => todo!("goto"),
-	"continue" ";" => todo!("continue"),
-	"break" ";" => todo!("break"),
-	"return" Expr? ";" => todo!("return"),
+	"goto" <ident:Identifier> ";" => JumpStmt::Goto(ident),
+	"continue" ";" => JumpStmt::Continue,
+	"break" ";" => JumpStmt::Break,
+	"return" <expr:Expr?> ";" => JumpStmt::Return(expr),
 };
 
-AsmStatement: () = {
-	"asm" AsmQualifiers? "(" AssemblerTemplate
-		AsmOptionalConstraintList? ")" ";" => todo!("asm-stmt"),
+AsmStatement: AsmStmt = {
+	"asm" <q:AsmQualifiers?> "(" <template:StringLiteral>
+		<constraints:AsmOptionalConstraintList?> ")" ";"
+		=> AsmStmt{qualifiers: q.unwrap_or_default(), template, constraints},
 };
 
-AssemblerTemplate: StrLit = StringLiteral => <>;
-
-AsmQualifiers: () = {
-	AsmQualifier => (),
-	AsmQualifiers AsmQualifier => (),
+AsmQualifiers: Vec<AsmQualifier> = {
+	AsmQualifier => vec![<>],
+	<mut v:AsmQualifiers> <elem:AsmQualifier> => {
+		v.push(elem);
+		v
+	},
 };
 
-AsmQualifier: () = {
-	"volatile" => (),
-	"inline" => (),
-	"goto" => (),
+AsmQualifier: AsmQualifier = {
+	"volatile" => AsmQualifier::Volatile,
+	"inline" => AsmQualifier::Inline,
+	"goto" => AsmQualifier::Goto,
 };
 
-AsmOptionalConstraintList: () = AsmOutput;
-AsmOutput: () = ":" AsmOutputOperand? AsmInput? => todo!("asm-output-constraint");
-AsmInput: () = ":" AsmInputOperand? AsmClobber? => todo!("asm-input-constraint");
-AsmClobber: () = ":" StringLiteralList? AsmGotoLabels? => todo!("asm-clobber-constraint");
-AsmGotoLabels: () = ":" IdentifierList? => todo!("asm-goto-list");
-AsmOutputOperand: () = StringLiteral "(" Identifier ")" => ();
-AsmInputOperand: () = StringLiteral "(" Expr ")" => ();
+AsmOptionalConstraintList: AsmConstraints = AsmOutput;
+AsmOutput: AsmConstraints = ":" <operands:AsmOutputOperand*> <input:AsmInput?> => {
+	match input {
+		Some(mut inner) => {
+			inner.output_operands = operands;
+			inner
+		},
+		None => AsmConstraints {
+			output_operands: operands,
+			input_operands: Vec::new(),
+			clobber_operands: Vec::new(),
+			goto_labels: Vec::new(),
+		}
+	}
+};
+AsmInput: AsmConstraints = ":" <operands:AsmInputOperand*> <clobber:AsmClobber?> => {
+	match clobber {
+		Some(mut inner) => {
+			inner.input_operands = operands;
+			inner
+		},
+		None => AsmConstraints {
+			output_operands: Vec::new(),
+			input_operands: operands,
+			clobber_operands: Vec::new(),
+			goto_labels: Vec::new(),
+		}
+	}
+};
+AsmClobber: AsmConstraints = ":" <operands: StringLiteralList?> <labels: AsmGotoLabels?> => {
+	match labels {
+		Some(mut inner) => {
+			inner.clobber_operands = operands.unwrap_or_default();
+			inner
+		},
+		None => AsmConstraints {
+			output_operands: Vec::new(),
+			input_operands: Vec::new(),
+			clobber_operands: operands.unwrap_or_default(),
+			goto_labels: Vec::new(),
+		}
+	}
+};
+AsmGotoLabels: AsmConstraints = ":" <labels: IdentifierList?> => AsmConstraints {
+	output_operands: Vec::new(),
+	input_operands: Vec::new(),
+	clobber_operands: Vec::new(),
+	goto_labels: labels.unwrap_or_default(),
+};
+
+AsmOutputOperand: OutputOperand = <prefix: StringLiteral> "(" <ident:Identifier> ")"
+	=> OutputOperand {prefix, ident};
+AsmInputOperand: InputOperand = <prefix:StringLiteral> "(" <expr:Expr> ")"
+	=> InputOperand{prefix, expr};
 
 
 StringLiteralList: Vec<StrLit> = {

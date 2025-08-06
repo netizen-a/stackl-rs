@@ -21,6 +21,41 @@ pub enum Stmt {
 	SelectionStatement(SelectionStmt),
 	IterationStatement(IterationStmt),
 	JumpStatement(JumpStmt),
+	AssemblerStatement(AsmStmt),
+}
+
+#[derive(Debug)]
+pub enum AsmQualifier {
+	Volatile,
+	Inline,
+	Goto,
+}
+
+#[derive(Debug)]
+pub struct AsmStmt {
+	pub qualifiers: Vec<AsmQualifier>,
+	pub template: tok::StrLit,
+	pub constraints: Option<AsmConstraints>,
+}
+
+#[derive(Debug)]
+pub struct AsmConstraints {
+	pub output_operands: Vec<OutputOperand>,
+	pub input_operands: Vec<InputOperand>,
+	pub clobber_operands: Vec<tok::StrLit>,
+	pub goto_labels: Vec<tok::Ident>,
+}
+
+#[derive(Debug)]
+pub struct OutputOperand {
+	pub prefix: tok::StrLit,
+	pub ident: tok::Ident
+}
+
+#[derive(Debug)]
+pub struct InputOperand {
+	pub prefix: tok::StrLit,
+	pub expr: expr::Expr,
 }
 
 /// (6.8.1) labeled-statement

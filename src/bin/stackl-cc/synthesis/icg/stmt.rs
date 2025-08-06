@@ -22,6 +22,7 @@ impl super::IntermediateCodeGen {
 			SelectionStatement(_selection_stmt) => (),
 			IterationStatement(_iter_stmt) => (),
 			JumpStatement(_jmp_stmt) => (),
+			AssemblerStatement(_asm_stmt) => (),
 		}
 	}
 }
