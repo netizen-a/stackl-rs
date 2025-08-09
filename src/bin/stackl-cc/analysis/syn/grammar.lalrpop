@@ -278,7 +278,7 @@ AssignmentOperator: BinOp = {
 };
 
 Expr: Expr = {
-	AssignmentExpr => <>,
+	AssignmentExpr,
 	<lhs:Expr> "," <rhs:AssignmentExpr> => Expr::Binary(ExprBinary{
 		left: Box::new(lhs),
 		op: BinOp::Comma,

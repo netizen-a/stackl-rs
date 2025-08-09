@@ -80,7 +80,6 @@ impl super::IntermediateCodeGen {
 		if let Some(ref expr) = struct_decl.constant_expr {
 			self.expr(expr);
 		}
-		// todo!("struct-declarator")
 	}
 	pub(super) fn struct_or_union_specifier(&mut self, _spec: &StructOrUnionSpecifier) {
 		todo!("struct-or-union-specifier")

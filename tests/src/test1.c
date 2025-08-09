@@ -1,6 +1,7 @@
 // Test main and OUTS
 
 int main() {
-    asm ("OUTS" :: "m" ("Hello world\n"));
+    const char* s = "Hello world\n";
+    asm ("OUTS" :: "m" (s));
     return 0;
 }

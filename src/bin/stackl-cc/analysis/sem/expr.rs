@@ -4,9 +4,11 @@ impl super::SemanticParser {
 	pub(super) fn expr(&mut self, expr: &mut Expr) {
 		use Expr::*;
 		match expr {
-			Ident(_) => todo!(),
-			Const(_) => todo!(),
-			StrLit(_) => todo!(),
+			Ident(_inner) => {},
+			Const(_inner) => {},
+			StrLit(_inner) => {
+				println!("strlit:\"{}\"", _inner.seq);
+			},
 			Paren(inner) => self.expr(inner),
 			Unary(unary) => self.expr_unary(unary),
 			Binary(binary) => self.expr_binary(binary),

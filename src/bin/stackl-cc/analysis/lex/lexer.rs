@@ -197,16 +197,26 @@ impl Lexer {
 	}
 
 	fn escape_sequence(&mut self) -> lex::Result<char> {
-		let Some((_, term)) = self.chars.peek() else {
+		let Some((curr_pos, term)) = self.chars.next() else {
 			return Err(lex::Error {
 				kind: lex::ErrorKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			});
 		};
 		match term {
+			// alert
+			'a' => Ok('\x07'),
+			// backspace
+			'b' => Ok('\x08'),
+			// form feed
+			'f' => Ok('\x0C'),
+			// new line
+			'n' => Ok('\n'),
+			'r' => Ok('\r'),
+			't' => Ok('\t'),
+			'v' => Ok('\x0B'),
 			// [c89] simple-escape-sequence
-			'\'' | '"' | '?' | '\\' | 'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' => {
-				let (curr_pos, c) = self.chars.next().unwrap();
+			c @ ('\'' | '"' | '?' | '\\') => {
 				self.set_end(curr_pos);
 				Ok(c)
 			}

@@ -35,6 +35,7 @@ pub enum AsmQualifier {
 pub struct AsmStmt {
 	pub qualifiers: Vec<AsmQualifier>,
 	pub template: tok::StrLit,
+	// if none, then asm is basic
 	pub constraints: Option<AsmConstraints>,
 }
 
