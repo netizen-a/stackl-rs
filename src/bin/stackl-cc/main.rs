@@ -3,6 +3,7 @@ use std::process::ExitCode;
 mod analysis;
 mod cli;
 mod synthesis;
+mod symtab;
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
