@@ -150,7 +150,7 @@ impl PPNumber {
 			e => {
 				eprintln!("err: '{e}'");
 				Err(lex::ErrorKind::InvalidToken)
-			},
+			}
 		}
 	}
 	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<TokenKind, lex::ErrorKind> {

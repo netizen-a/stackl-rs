@@ -50,7 +50,7 @@ pub struct AsmConstraints {
 #[derive(Debug)]
 pub struct OutputOperand {
 	pub prefix: tok::StrLit,
-	pub ident: tok::Ident
+	pub ident: tok::Ident,
 }
 
 #[derive(Debug)]

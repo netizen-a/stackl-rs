@@ -10,10 +10,7 @@ impl IntermediateCodeGen {
 	pub fn new() -> Self {
 		Self {}
 	}
-	pub fn parse(
-		mut self,
-		unit: &[syn::ExternalDeclaration],
-	) {
+	pub fn parse(mut self, unit: &[syn::ExternalDeclaration]) {
 		use syn::ExternalDeclaration::*;
 		for external_decl in unit.into_iter() {
 			match external_decl {
