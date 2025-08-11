@@ -19,18 +19,21 @@ bitflags! {
 	#[derive(Debug, Clone, Copy, Default, PartialEq)]
 	pub struct MachineCheck: u8 {
 		/// Illegal Instruction
-		const ILLEGAL_INST     = 1;
+		const ILLEGAL_INST = 1;
 		/// Illegal Address
-		const ILLEGAL_ADDR     = 1 << 1;
+		const ILLEGAL_ADDR = 1 << 1;
 		/// Hardware Failure
-		const HW_FAILURE       = 1 << 2;
+		const HW_FAILURE   = 1 << 2;
 		/// Hardware Warning
-		const HW_WARNING       = 1 << 3;
+		const HW_WARNING   = 1 << 3;
 		/// Protected Instruction
-		const PROT_INST        = 1 << 4;
+		const PROT_INST    = 1 << 4;
 		/// Divide by zero
-		const DIVIDE_ZERO      = 1 << 5;
-		const _                = !0;
+		const DIVIDE_ZERO  = 1 << 5;
+		// TODO: Overflow exception
+		const OVF          = 1 << 6;
+		// TODO: Floating point arithmetic exception
+		const FPE          = 1 << 7;
 	}
 }
 
@@ -54,7 +57,13 @@ bitflags! {
 	pub struct IntVec: u16 {
 		const MACHINE_CHECK = 1;
 		const TRAP          = 1 << 1;
+		const DISK          = 1 << 2;
+		const TIMER         = 1 << 3;
+		const DMA_T         = 1 << 4;
+		const PIO_T         = 1 << 5;
 		const GEN_IO        = 1 << 8;
+		// TODO: Breakpoint caused by `BREAK` instruction
+		const BKPT          = 1 << 9;
 		const _ = !0;
 	}
 }
