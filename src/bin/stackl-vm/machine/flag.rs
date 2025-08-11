@@ -45,8 +45,7 @@ impl fmt::Display for MachineCheck {
 			MachineCheck::HW_FAILURE => "Hardware Failure".to_string(),
 			MachineCheck::HW_WARNING => "Hardware Warning".to_string(),
 			MachineCheck::PROT_INST => "Protected Instruction".to_string(),
-			MachineCheck::DIVIDE_ZERO => "Illegal Operation".to_string(),
-			_ => "Other".to_string(),
+			_ => "Illegal Operation".to_string(),
 		};
 		write!(f, "{kind}")
 	}
