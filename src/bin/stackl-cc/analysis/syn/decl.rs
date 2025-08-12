@@ -34,7 +34,7 @@ pub struct InitDeclarator {
 }
 
 /// (6.7.1) storage-class-specifier
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum StorageClassSpecifier {
 	Typedef,
 	Extern,

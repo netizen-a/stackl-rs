@@ -20,17 +20,7 @@ EnumerationConstant: Ident = Identifier;
 
 // A.1.6 String literals
 
-StringLiteral: StrLit = <v:STR_LIT+> => {
-	let mut str_lit = StrLit::default();
-	for literal in v {
-		let tmp = literal.kind.unwrap_str_lit();
-		str_lit.seq.push_str(&tmp.seq);
-		if !str_lit.is_wide {
-			str_lit.is_wide = tmp.is_wide;
-		}
-	}
-	str_lit
-};
+StringLiteral: StrLit = <v:STR_LIT+> => string_concat(v.into_boxed_slice());
 
 
 // A.2.1 Expressions

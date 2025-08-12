@@ -3,12 +3,38 @@ mod expr;
 mod stmt;
 
 use crate::analysis::syn::*;
+use crate::symtab::SymbolTable;
 
-pub struct SemanticParser {}
+#[derive(PartialEq, Eq, Hash)]
+enum Namespace {
+	Label(String),
+	Tag(String),
+	Member(Vec<String>),
+	Ordinary(String),
+}
+
+enum DataType {
+	Bool,
+	Int,
+	LongInt,
+	LongLongInt,
+	Float,
+	Double,
+	LongDouble,
+	Enum,
+	Struct,
+	Union,
+}
+
+pub struct SemanticParser {
+	symtab: SymbolTable<Namespace,DataType>,
+}
 
 impl SemanticParser {
 	pub fn new() -> Self {
-		Self {}
+		Self {
+			symtab: SymbolTable::new(),
+		}
 	}
 	pub fn parse(mut self, mut unit: Vec<ExternalDeclaration>) -> Option<Vec<ExternalDeclaration>> {
 		use ExternalDeclaration::*;

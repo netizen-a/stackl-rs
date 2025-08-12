@@ -7,6 +7,7 @@ pub use decl::*;
 pub use expr::*;
 pub use iter::*;
 pub use stmt::*;
+use super::tok;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");
@@ -28,4 +29,16 @@ pub struct FunctionDefinition {
 	pub declarator: Declarator,
 	pub declaration_list: Vec<Declaration>,
 	pub compound_stmt: CompoundStmt,
+}
+
+pub fn string_concat(v: Box<[tok::Token]>) -> tok::StrLit {
+	let mut str_lit = tok::StrLit::default();
+	for literal in v {
+		let tmp = literal.kind.unwrap_str_lit();
+		str_lit.seq.push_str(&tmp.seq);
+		if !str_lit.is_wide {
+			str_lit.is_wide = tmp.is_wide;
+		}
+	}
+	str_lit
 }
