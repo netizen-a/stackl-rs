@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::iter::{Enumerate, Peekable};
 use std::vec::IntoIter;
 
-use crate::analysis::prt::lex;
+use crate::diagnostics::lex;
 use crate::analysis::tok;
 
 #[derive(Debug)]
@@ -49,8 +49,8 @@ impl Lexer {
 				is_builtin = true;
 				let seq = self.h_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '>').is_none() {
-					return Err(lex::Error {
-						kind: lex::ErrorKind::InvalidToken,
+					return Err(lex::Diagnostic {
+						kind: lex::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					});
 				}
@@ -60,8 +60,8 @@ impl Lexer {
 				is_builtin = false;
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
-					return Err(lex::Error {
-						kind: lex::ErrorKind::InvalidToken,
+					return Err(lex::Diagnostic {
+						kind: lex::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					});
 				}
@@ -127,8 +127,8 @@ impl Lexer {
 			if let Some((_, next_c)) = self.chars.next() {
 				c = next_c;
 			} else {
-				return Err(lex::Error {
-					kind: lex::ErrorKind::UnexpectedEof,
+				return Err(lex::Diagnostic {
+					kind: lex::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				});
 			}
@@ -138,8 +138,8 @@ impl Lexer {
 			// name.push('\'');
 			self.set_end(curr_pos);
 		} else {
-			return Err(lex::Error {
-				kind: lex::ErrorKind::InvalidToken,
+			return Err(lex::Diagnostic {
+				kind: lex::DiagKind::InvalidToken,
 				loc: self.pop_location(),
 			});
 		}
@@ -163,8 +163,8 @@ impl Lexer {
 			if let Some((pos, _)) = self.chars.next() {
 				self.set_end(pos);
 			} else {
-				return Err(lex::Error {
-					kind: lex::ErrorKind::UnexpectedEof,
+				return Err(lex::Diagnostic {
+					kind: lex::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				});
 			}
@@ -173,8 +173,8 @@ impl Lexer {
 		if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '"') {
 			self.set_end(pos);
 		} else {
-			return Err(lex::Error {
-				kind: lex::ErrorKind::InvalidToken,
+			return Err(lex::Diagnostic {
+				kind: lex::DiagKind::InvalidToken,
 				loc: self.pop_location(),
 			});
 		}
@@ -198,8 +198,8 @@ impl Lexer {
 
 	fn escape_sequence(&mut self) -> lex::Result<char> {
 		let Some((curr_pos, term)) = self.chars.next() else {
-			return Err(lex::Error {
-				kind: lex::ErrorKind::UnexpectedEscape,
+			return Err(lex::Diagnostic {
+				kind: lex::DiagKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			});
 		};
@@ -226,8 +226,8 @@ impl Lexer {
 			'x' => todo!("hexadecimal-escape-sequence"),
 			// [c99] universal-character-name
 			// 'u' | 'U' => todo!("universal-character-name"),
-			_ => Err(lex::Error {
-				kind: lex::ErrorKind::UnexpectedEscape,
+			_ => Err(lex::Diagnostic {
+				kind: lex::DiagKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			}),
 		}
@@ -367,8 +367,8 @@ impl Iterator for Lexer {
 						name.push(curr_c);
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some((_, sign)) = self.chars.peek() else {
-								return Some(Err(lex::Error {
-									kind: lex::ErrorKind::UnexpectedEof,
+								return Some(Err(lex::Diagnostic {
+									kind: lex::DiagKind::UnexpectedEof,
 									loc: self.pop_location(),
 								}));
 							};
@@ -415,8 +415,8 @@ impl Iterator for Lexer {
 							hi,
 						)))
 					} else {
-						Some(Err(lex::Error {
-							kind: lex::ErrorKind::InvalidToken,
+						Some(Err(lex::Diagnostic {
+							kind: lex::DiagKind::InvalidToken,
 							loc: self.pop_location(),
 						}))
 					}
@@ -434,8 +434,8 @@ impl Iterator for Lexer {
 							name.push(c);
 							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 								let Some((_, sign)) = self.chars.peek() else {
-									return Some(Err(lex::Error {
-										kind: lex::ErrorKind::UnexpectedEof,
+									return Some(Err(lex::Diagnostic {
+										kind: lex::DiagKind::UnexpectedEof,
 										loc: self.pop_location(),
 									}));
 								};
@@ -460,8 +460,8 @@ impl Iterator for Lexer {
 						hi,
 					)))
 				} else {
-					Some(Err(lex::Error {
-						kind: lex::ErrorKind::InvalidToken,
+					Some(Err(lex::Diagnostic {
+						kind: lex::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					}))
 				}
@@ -532,8 +532,8 @@ impl Iterator for Lexer {
 				} else if self.chars.next_if(|&(_, c)| c == '*').is_some() {
 					name.push_str("/*");
 					let Some((pos, mut last_c)) = self.chars.next() else {
-						return Some(Err(lex::Error {
-							kind: lex::ErrorKind::UnexpectedEof,
+						return Some(Err(lex::Diagnostic {
+							kind: lex::DiagKind::UnexpectedEof,
 							loc: self.pop_location(),
 						}));
 					};
@@ -551,8 +551,8 @@ impl Iterator for Lexer {
 					if found_end {
 						return self.next();
 					} else {
-						return Some(Err(lex::Error {
-							kind: lex::ErrorKind::UnexpectedEof,
+						return Some(Err(lex::Diagnostic {
+							kind: lex::DiagKind::UnexpectedEof,
 							loc: self.pop_location(),
 						}));
 					}
@@ -590,13 +590,13 @@ impl Iterator for Lexer {
 						hi,
 					)))
 				}
-				Some(Ok(_)) => Some(Err(lex::Error {
-					kind: lex::ErrorKind::InvalidToken,
+				Some(Ok(_)) => Some(Err(lex::Diagnostic {
+					kind: lex::DiagKind::InvalidToken,
 					loc: self.pop_location(),
 				})),
 				Some(Err(error)) => Some(Err(error)),
-				None => Some(Err(lex::Error {
-					kind: lex::ErrorKind::UnexpectedEof,
+				None => Some(Err(lex::Diagnostic {
+					kind: lex::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				})),
 			},

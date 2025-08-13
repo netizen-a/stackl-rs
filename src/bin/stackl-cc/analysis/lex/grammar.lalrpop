@@ -4,7 +4,7 @@ use std::io::{Read, BufReader};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::analysis::prt::lex as diag;
+use crate::diagnostics::lex;
 use lalrpop_util as lalr;
 use crate::analysis::lex::PPTokenStack;
 use crate::analysis::lex::lexer::Lexer;
@@ -82,7 +82,7 @@ PreprocessingToken: (usize, Token, usize) = {
 			Err(kind) => {
 				eprintln!("pp-number error");
 				Err(lalr::ParseError::User {
-					error: diag::Error{
+					error: lex::Diagnostic{
 						kind,
 						loc: (lo, hi),
 					}
@@ -102,7 +102,7 @@ PreprocessingToken: (usize, Token, usize) = {
 				hi
 			)),
 			Err(kind) => Err(lalr::ParseError::User {
-				error: diag::Error{
+				error: lex::Diagnostic{
 					kind,
 					loc: (lo, hi),
 				}
@@ -122,7 +122,7 @@ PreprocessingToken: (usize, Token, usize) = {
 				hi
 			)),
 			Err(kind) => Err(lalr::ParseError::User {
-				error: diag::Error{
+				error: lex::Diagnostic{
 					kind,
 					loc: (lo, hi),
 				}
@@ -161,7 +161,7 @@ NonHash: (usize, Token, usize) = {
 				hi
 			)),
 			Err(kind) => Err(lalr::ParseError::User {
-				error: diag::Error{
+				error: lex::Diagnostic{
 					kind,
 					loc: (lo, hi),
 				}
@@ -182,7 +182,7 @@ Ident: (usize, Token, usize) = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 			hi
 		)),
 		Err(kind) => Err(lalr::ParseError::User {
-			error: diag::Error{
+			error: lex::Diagnostic{
 				kind,
 				loc: (lo, hi),
 			}
@@ -224,7 +224,7 @@ NonHashPunct: PPToken = {
 
 extern {
 	type Location = usize;
-	type Error = diag::Error;
+	type Error = lex::Diagnostic;
 
 	enum PPToken {
 		HEADER_NAME => PPToken{kind: PPTokenKind::HeaderName(_), ..},

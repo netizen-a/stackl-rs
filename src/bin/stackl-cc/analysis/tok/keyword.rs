@@ -1,4 +1,4 @@
-use crate::analysis::prt::*;
+use crate::diagnostics::lex;
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]

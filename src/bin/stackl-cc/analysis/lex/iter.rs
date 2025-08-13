@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::analysis::tok::PPToken;
 
 use super::lexer::Lexer;
-use crate::analysis::prt::lex;
+use crate::diagnostics::lex;
 
 pub enum StackKind {
 	Buffer(Vec<lex::ResultTriple<PPToken, usize>>),

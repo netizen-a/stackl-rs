@@ -1,5 +1,4 @@
 mod lex;
-mod prt;
 mod sem;
 pub mod syn;
 mod tok;

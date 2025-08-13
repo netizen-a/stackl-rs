@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::analysis::prt::syn;
+use crate::diagnostics::syn;
 use crate::analysis::tok::Token;
 
 #[derive(Default)]

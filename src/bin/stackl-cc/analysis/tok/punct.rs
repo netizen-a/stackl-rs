@@ -1,4 +1,4 @@
-use crate::analysis::prt::lex;
+use crate::diagnostics::lex;
 use std::fmt;
 
 #[non_exhaustive]

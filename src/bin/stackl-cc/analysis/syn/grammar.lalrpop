@@ -1,7 +1,7 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok::*;
 
-use crate::analysis::prt::syn::Error as SyntaxError;
+use crate::diagnostics::syn;
 
 grammar;
 
@@ -283,13 +283,11 @@ ConstantExpr = ConditionalExpr;
 // A.2.2 Declarations
 
 Declaration: Declaration = {
-	<specs:DeclarationSpecifiers> <init_list:InitDeclaratorList?> ";" => Declaration {
+	<specs:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => Declaration {
 		declaration_specifiers: specs,
 		init_declarator_list: init_list.unwrap_or_default(),
 	},
 };
-
-DeclarationSpecifiers: Vec<DeclarationSpecifier> = DeclarationSpecifier+;
 
 DeclarationSpecifier: DeclarationSpecifier = {
 	StorageClassSpecifier => DeclarationSpecifier::StorageClassSpecifier(<>),
@@ -478,7 +476,7 @@ ParameterList: Vec<ParameterDeclaration> = {
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	<specifiers:DeclarationSpecifiers> <decl:ParameterDeclarator> => ParameterDeclaration{
+	<specifiers:DeclarationSpecifier+> <decl:ParameterDeclarator> => ParameterDeclaration{
 		declaration_specifiers: specifiers,
 		parameter_declarator: decl,
 	},
@@ -715,7 +713,7 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	<specs: DeclarationSpecifiers> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
+	<specs: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
 			declaration_specifiers: specs,
 			declarator: decl,
@@ -729,7 +727,7 @@ FunctionDefinition: FunctionDefinition = {
 
 extern {
 	type Location = usize;
-	type Error = SyntaxError;
+	type Error = syn::Diagnostic;
 
 	enum Token {
 		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, ..}), ..},

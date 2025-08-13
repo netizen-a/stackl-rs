@@ -13,8 +13,8 @@ macro_rules! directive {
 			Ok(())
 		} else {
 			Err(lalr::ParseError::User {
-				error: diag::Error{
-					kind: diag::ErrorKind::InvalidToken,
+				error: lex::Diagnostic{
+					kind: lex::DiagKind::InvalidToken,
 					loc: ($lo, $hi)
 				}
 			})

@@ -22,7 +22,7 @@ impl fmt::Display for TryFromIdentifierError {
 impl error::Error for TryFromIdentifierError {}
 
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum DiagKind {
 	UnexpectedEof,
 	UnexpectedEscape,
 	InvalidToken,
@@ -30,10 +30,10 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug)]
-pub struct Error {
-	pub kind: ErrorKind,
+pub struct Diagnostic {
+	pub kind: DiagKind,
 	pub loc: (usize, usize),
 }
 
-pub type ResultTriple<Tok, Loc> = super::ResultTriple<Tok, Loc, Error>;
-pub type Result<T> = result::Result<T, Error>;
+pub type ResultTriple<Tok, Loc> = super::ResultTriple<Tok, Loc, Diagnostic>;
+pub type Result<T> = result::Result<T, Diagnostic>;
