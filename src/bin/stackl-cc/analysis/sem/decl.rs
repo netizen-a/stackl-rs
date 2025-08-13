@@ -1,30 +1,12 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 
-#[derive(Default)]
-struct TypeSpecifierInfo {
-	num_void: usize,
-	num_char: usize,
-	num_short: usize,
-	num_int: usize,
-	num_long: usize,
-	num_float: usize,
-	num_double: usize,
-	num_signed: usize,
-	num_unsigned: usize,
-	num_bool: usize,
-	num_struct_or_union: Vec<StructOrUnionSpecifier>,
-	num_enum: Vec<EnumSpecifier>,
-	typedef_name: Vec<tok::Ident>,
-}
-
-
-#[derive(Default)]
+#[derive(Debug,Default)]
 struct SpecifierInfo {
 	storage_class: Option<StorageClassSpecifier>,
-	type_info: TypeSpecifierInfo,
-	// tq_info
-	// fs_info
+	type_specifiers: Vec<TypeSpecifier>,
+	type_qualifiers: Vec<TypeQualifier>,
+	func_specifiers: Vec<FunctionSpecifier>
 }
 
 impl super::SemanticParser {
@@ -33,6 +15,7 @@ impl super::SemanticParser {
 		for ref mut specifier in decl.declaration_specifiers.iter_mut() {
 			self.declaration_specifier(specifier, &mut spec_info);
 		}
+		println!("function_definition: {spec_info:?}");
 		self.declarator(&mut decl.declarator);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
@@ -44,6 +27,7 @@ impl super::SemanticParser {
 		for ref mut spec in decl.declaration_specifiers.iter_mut() {
 			self.declaration_specifier(spec, &mut spec_info);
 		}
+		println!("declaration: {spec_info:?}");
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
 		}
@@ -62,33 +46,15 @@ impl super::SemanticParser {
 					panic!("cannot have more than one storage spec")
 				}
 			}
-			TypeSpecifier(spec) => self.type_specifier(spec, &mut info.type_info),
-			TypeQualifier(spec) => self.type_qualifier(spec),
-			FunctionSpecifier(spec) => self.function_specifier(spec),
+			TypeSpecifier(spec) => info.type_specifiers.push(spec.clone()),
+			TypeQualifier(spec) => info.type_qualifiers.push(spec.clone()),
+			FunctionSpecifier(spec) => info.func_specifiers.push(spec.clone()),
 		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
 		self.declarator(&mut decl.declarator);
 		if let Some(ref mut init) = decl.initializer {
 			self.initializer(init);
-		}
-	}
-	fn type_specifier(&mut self, spec: &mut TypeSpecifier, info: &mut TypeSpecifierInfo) {
-		use TypeSpecifier::*;
-		match spec {
-			Void => info.num_void += 1,
-			Char => info.num_char += 1,
-			Short => info.num_short += 1,
-			Int => info.num_int += 1,
-			Long => info.num_long += 1,
-			Float => info.num_float += 1,
-			Double => info.num_double += 1,
-			Signed => info.num_signed += 1,
-			Unsigned => info.num_unsigned += 1,
-			Bool => info.num_bool += 1,
-			StructOrUnionSpecifier(spec) => self.struct_or_union_specifier(spec),
-			EnumSpecifier(spec) => self.enum_specifier(spec),
-			TypedefName(_name) => todo!(),
 		}
 	}
 	fn enum_specifier(&mut self, _spec: &mut EnumSpecifier) {
@@ -230,9 +196,8 @@ impl super::SemanticParser {
 	}
 	fn specifier_qualifier(&mut self, spec: &mut SpecifierQualifier) {
 		use SpecifierQualifier::*;
-		let mut type_info = TypeSpecifierInfo::default();
 		match spec {
-			TypeSpecifier(ty) => self.type_specifier(ty, &mut type_info),
+			TypeSpecifier(ty) => todo!(),
 			TypeQualifier(ty) => self.type_qualifier(ty),
 		}
 	}

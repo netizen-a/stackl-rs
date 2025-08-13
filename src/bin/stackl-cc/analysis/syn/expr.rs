@@ -2,7 +2,7 @@ use super::decl;
 use crate::analysis::tok;
 
 /// (6.5.17) expression
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
 	Ident(tok::Ident),
 	Const(tok::Const),
@@ -16,27 +16,27 @@ pub enum Expr {
 }
 
 /// (6.5.3) unary-expression
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExprUnary {
 	pub op: UnOp,
 	pub expr: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExprBinary {
 	pub left: Box<Expr>,
 	pub op: BinOp,
 	pub right: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExprTernary {
 	pub cond: Box<Expr>,
 	pub then_branch: Box<Expr>,
 	pub else_branch: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinOp {
 	Mul,
 	Div,
@@ -73,7 +73,7 @@ pub enum BinOp {
 }
 
 /// (6.5.3) unary-operator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnOp {
 	/// `&`
 	Amp,
@@ -99,7 +99,7 @@ pub enum UnOp {
 }
 
 /// (6.5.2) postfix-expression
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Postfix {
 	Array(Box<Expr>),
 	/// (6.5.2) argument-expression-list

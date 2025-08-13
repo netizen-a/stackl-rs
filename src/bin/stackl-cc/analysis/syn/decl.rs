@@ -16,7 +16,7 @@ pub struct Declaration {
 }
 
 /// (6.7) declaration-specifiers
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DeclarationSpecifier {
 	StorageClassSpecifier(StorageClassSpecifier),
 	TypeSpecifier(TypeSpecifier),
@@ -44,7 +44,7 @@ pub enum StorageClassSpecifier {
 }
 
 /// (6.7.2) type-specifier
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TypeSpecifier {
 	Void,
 	Char,
@@ -63,7 +63,7 @@ pub enum TypeSpecifier {
 }
 
 /// (6.7.2.2) enum-specifier
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EnumSpecifier {
 	pub identifier: Option<tok::Ident>,
 	/// (6.7.2.2) enumerator-list
@@ -71,7 +71,7 @@ pub struct EnumSpecifier {
 }
 
 /// (6.7.2.2) enumerator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Enumerator {
 	/// (6.4.4.3) enumeration-constant
 	pub enumeration_constant: tok::Ident,
@@ -79,7 +79,7 @@ pub struct Enumerator {
 }
 
 /// (6.7.2.1) struct-or-union-specifier
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
 	pub struct_or_union: tok::Keyword,
@@ -89,40 +89,40 @@ pub struct StructOrUnionSpecifier {
 }
 
 /// (6.7.2.1) struct-declaration
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StructDeclaration {
 	pub specifier_qualifier_list: Vec<SpecifierQualifier>,
 	pub struct_declaration_list: Vec<StructDeclarator>,
 }
 
 /// (6.7.2.1) struct-declarator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StructDeclarator {
 	pub declarator: Option<Declarator>,
 	pub constant_expr: Option<expr::Expr>,
 }
 
 /// (6.7.8) initializer
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Initializer {
 	Expr(expr::Expr),
 	InitializerList(InitializerList),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum FunctionSpecifier {
 	Inline,
 }
 
 /// (6.7.5) declarator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Declarator {
 	pub pointer: Vec<Pointer>,
 	pub direct_declarator: Vec<DirectDeclarator>,
 }
 
 /// (6.7.5) direct-declarator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DirectDeclarator {
 	Identifier(tok::Ident),
 	/// ( declarator )
@@ -141,7 +141,7 @@ pub enum DirectDeclarator {
 }
 
 /// (6.7.5) parameter-type-list
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParameterTypeList {
 	/// (6.7.5) parameter-list
 	pub parameter_list: Vec<ParameterDeclaration>,
@@ -149,27 +149,27 @@ pub struct ParameterTypeList {
 }
 
 /// (6.7.5) pointer
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pointer {
 	/// (6.7.5) type-qualifier-list
 	pub type_qualifier_list: Vec<TypeQualifier>,
 }
 
 /// (6.7.5) parameter-declaration
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
 	pub declaration_specifiers: Vec<DeclarationSpecifier>,
 	pub parameter_declarator: ParameterDeclarator,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParameterDeclarator {
 	Declarator(Declarator),
 	AbstractDeclarator(Option<AbstractDeclarator>),
 }
 
 /// (6.7.6) abstract-declarator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AbstractDeclarator {
 	Pointer(Pointer),
 	DirectAbstractDeclarator {
@@ -179,7 +179,7 @@ pub enum AbstractDeclarator {
 }
 
 /// (6.7.6) direct-abstract-declarator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DirectAbstractDeclarator {
 	/// ( abstract-declarator )
 	AbstractDeclarator(AbstractDeclarator),
@@ -195,14 +195,14 @@ pub enum DirectAbstractDeclarator {
 }
 
 /// (6.7.3) type-qualifier
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TypeQualifier {
 	Const,
 	Restrict,
 	Volatile,
 }
 /// (6.7.6) type-name
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TypeName {
 	/// specifier-qualifier-list
 	pub specifier_qualifier_list: Vec<SpecifierQualifier>,
@@ -210,22 +210,22 @@ pub struct TypeName {
 	pub abstract_declarator: Option<AbstractDeclarator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SpecifierQualifier {
 	TypeSpecifier(TypeSpecifier),
 	TypeQualifier(TypeQualifier),
 }
 
 /// (6.7.8) initializer-list
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InitializerList(pub Vec<(Option<Designation>, Initializer)>);
 
 /// (6.7.8) designation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Designation(pub Vec<Designator>);
 
 /// (6.7.8) designator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Designator {
 	ConstantExpr(expr::Expr),
 	Dot(tok::Ident),
