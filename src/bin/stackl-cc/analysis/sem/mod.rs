@@ -27,7 +27,7 @@ enum DataType {
 }
 
 pub struct SemanticParser {
-	symtab: SymbolTable<Namespace,DataType>,
+	symtab: SymbolTable<Namespace, DataType>,
 }
 
 impl SemanticParser {

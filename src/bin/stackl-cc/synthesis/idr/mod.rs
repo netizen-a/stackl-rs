@@ -15,15 +15,15 @@ impl IntDataRepr {
 		self.next_id += 1;
 		id
 	}
-    pub fn add(&mut self, src1: u32, src2: u32) -> u32 {
-        let dest = self.id();
-        self.code.push(SSA::Add([dest, src1, src2]));
-        dest
-    }
+	pub fn add(&mut self, src1: u32, src2: u32) -> u32 {
+		let dest = self.id();
+		self.code.push(SSA::Add([dest, src1, src2]));
+		dest
+	}
 }
 
 pub enum SSA {
-	Add([u32;3]),
-    Sub([u32;3]),
-    BeginFn
+	Add([u32; 3]),
+	Sub([u32; 3]),
+	BeginFn,
 }

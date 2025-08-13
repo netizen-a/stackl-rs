@@ -3,11 +3,11 @@ pub mod expr;
 pub mod iter;
 pub mod stmt;
 
+use super::tok;
 pub use decl::*;
 pub use expr::*;
 pub use iter::*;
 pub use stmt::*;
-use super::tok;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");

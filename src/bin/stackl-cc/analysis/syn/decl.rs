@@ -84,12 +84,9 @@ pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
 	pub struct_or_union: tok::Keyword,
 	pub identifier: Option<tok::Ident>,
-	pub struct_declaration_list: Option<StructDeclarationList>,
+	/// (6.7.2.1) struct-declaration-list
+	pub struct_declaration_list: Vec<StructDeclaration>,
 }
-
-/// (6.7.2.1) struct-declaration-list
-#[derive(Debug)]
-pub struct StructDeclarationList(pub Vec<StructDeclaration>);
 
 /// (6.7.2.1) struct-declaration
 #[derive(Debug)]

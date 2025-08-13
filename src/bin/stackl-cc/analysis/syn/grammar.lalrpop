@@ -342,7 +342,7 @@ TypeSpecifier: TypeSpecifier = {
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
-	StructOrUnion Identifier? "{" StructDeclarationList "}" => todo!(),
+	StructOrUnion Identifier? "{" StructDeclaration+ "}" => todo!(),
 	StructOrUnion Identifier => todo!(),
 };
 
@@ -350,8 +350,6 @@ StructOrUnion: Keyword = {
 	"struct" => todo!("struct"),
 	"union" => todo!("union"),
 };
-
-StructDeclarationList: StructDeclarationList = StructDeclaration+ => StructDeclarationList(<>);
 
 StructDeclaration: StructDeclaration = {
 	<list0:SpecifierQualifierList> <list1:StructDeclaratorList> ";" => StructDeclaration {
