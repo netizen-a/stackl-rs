@@ -13,8 +13,9 @@ use std::{
 use syn::grammar::SyntaxParser;
 
 use crate::analysis::syn::ExternalDeclaration;
+use crate::diagnostics::DiagnosticEngine;
 
-pub fn parse<P>(in_file: P) -> Option<Vec<ExternalDeclaration>>
+pub fn parse<P>(in_file: P, _diag_engine: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
 where
 	P: AsRef<Path>,
 {

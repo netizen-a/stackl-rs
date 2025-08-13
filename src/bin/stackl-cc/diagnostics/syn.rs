@@ -7,6 +7,7 @@ pub enum DiagKind {
 
 #[derive(Debug)]
 pub struct Diagnostic {
+	pub level: super::DiagLevel,
 	pub kind: DiagKind,
 	pub loc: (usize, usize),
 }

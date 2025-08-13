@@ -2,8 +2,8 @@ use std::fmt::Debug;
 use std::iter::{Enumerate, Peekable};
 use std::vec::IntoIter;
 
-use crate::diagnostics::lex;
 use crate::analysis::tok;
+use crate::diagnostics::{self as diag, lex};
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -50,6 +50,7 @@ impl Lexer {
 				let seq = self.h_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '>').is_none() {
 					return Err(lex::Diagnostic {
+						level: diag::DiagLevel::Error,
 						kind: lex::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					});
@@ -61,6 +62,7 @@ impl Lexer {
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
 					return Err(lex::Diagnostic {
+						level: diag::DiagLevel::Error,
 						kind: lex::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					});
@@ -128,6 +130,7 @@ impl Lexer {
 				c = next_c;
 			} else {
 				return Err(lex::Diagnostic {
+					level: diag::DiagLevel::Error,
 					kind: lex::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				});
@@ -139,6 +142,7 @@ impl Lexer {
 			self.set_end(curr_pos);
 		} else {
 			return Err(lex::Diagnostic {
+				level: diag::DiagLevel::Error,
 				kind: lex::DiagKind::InvalidToken,
 				loc: self.pop_location(),
 			});
@@ -164,6 +168,7 @@ impl Lexer {
 				self.set_end(pos);
 			} else {
 				return Err(lex::Diagnostic {
+					level: diag::DiagLevel::Error,
 					kind: lex::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				});
@@ -174,6 +179,7 @@ impl Lexer {
 			self.set_end(pos);
 		} else {
 			return Err(lex::Diagnostic {
+				level: diag::DiagLevel::Error,
 				kind: lex::DiagKind::InvalidToken,
 				loc: self.pop_location(),
 			});
@@ -199,6 +205,7 @@ impl Lexer {
 	fn escape_sequence(&mut self) -> lex::Result<char> {
 		let Some((curr_pos, term)) = self.chars.next() else {
 			return Err(lex::Diagnostic {
+				level: diag::DiagLevel::Error,
 				kind: lex::DiagKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			});
@@ -227,6 +234,7 @@ impl Lexer {
 			// [c99] universal-character-name
 			// 'u' | 'U' => todo!("universal-character-name"),
 			_ => Err(lex::Diagnostic {
+				level: diag::DiagLevel::Error,
 				kind: lex::DiagKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			}),
@@ -368,6 +376,7 @@ impl Iterator for Lexer {
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some((_, sign)) = self.chars.peek() else {
 								return Some(Err(lex::Diagnostic {
+									level: diag::DiagLevel::Error,
 									kind: lex::DiagKind::UnexpectedEof,
 									loc: self.pop_location(),
 								}));
@@ -416,6 +425,7 @@ impl Iterator for Lexer {
 						)))
 					} else {
 						Some(Err(lex::Diagnostic {
+							level: diag::DiagLevel::Error,
 							kind: lex::DiagKind::InvalidToken,
 							loc: self.pop_location(),
 						}))
@@ -435,6 +445,7 @@ impl Iterator for Lexer {
 							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 								let Some((_, sign)) = self.chars.peek() else {
 									return Some(Err(lex::Diagnostic {
+										level: diag::DiagLevel::Error,
 										kind: lex::DiagKind::UnexpectedEof,
 										loc: self.pop_location(),
 									}));
@@ -461,6 +472,7 @@ impl Iterator for Lexer {
 					)))
 				} else {
 					Some(Err(lex::Diagnostic {
+						level: diag::DiagLevel::Error,
 						kind: lex::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					}))
@@ -533,6 +545,7 @@ impl Iterator for Lexer {
 					name.push_str("/*");
 					let Some((pos, mut last_c)) = self.chars.next() else {
 						return Some(Err(lex::Diagnostic {
+							level: diag::DiagLevel::Error,
 							kind: lex::DiagKind::UnexpectedEof,
 							loc: self.pop_location(),
 						}));
@@ -552,6 +565,7 @@ impl Iterator for Lexer {
 						return self.next();
 					} else {
 						return Some(Err(lex::Diagnostic {
+							level: diag::DiagLevel::Error,
 							kind: lex::DiagKind::UnexpectedEof,
 							loc: self.pop_location(),
 						}));
@@ -591,11 +605,13 @@ impl Iterator for Lexer {
 					)))
 				}
 				Some(Ok(_)) => Some(Err(lex::Diagnostic {
+					level: diag::DiagLevel::Error,
 					kind: lex::DiagKind::InvalidToken,
 					loc: self.pop_location(),
 				})),
 				Some(Err(error)) => Some(Err(error)),
 				None => Some(Err(lex::Diagnostic {
+					level: diag::DiagLevel::Error,
 					kind: lex::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				})),

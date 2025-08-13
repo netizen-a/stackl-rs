@@ -1,12 +1,12 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 struct SpecifierInfo {
 	storage_class: Option<StorageClassSpecifier>,
 	type_specifiers: Vec<TypeSpecifier>,
 	type_qualifiers: Vec<TypeQualifier>,
-	func_specifiers: Vec<FunctionSpecifier>
+	func_specifiers: Vec<FunctionSpecifier>,
 }
 
 impl super::SemanticParser {
