@@ -51,26 +51,40 @@ impl DiagnosticEngine {
 		}
 		false
 	}
-	pub fn contains_warning(&self) -> bool {
+	pub fn print_errors(&self) {
 		for diag in self.diag_lex.iter() {
 			if let DiagLevel::Warning = diag.level {
-				return true;
+				eprintln!("error: {:?}", diag.kind);
 			}
 		}
 		for diag in self.diag_syn.iter() {
 			if let DiagLevel::Warning = diag.level {
-				return true;
+				eprintln!("error: {:?}", diag.kind);
 			}
 		}
 		for diag in self.diag_sem.iter() {
 			if let DiagLevel::Warning = diag.level {
-				return true;
+				eprintln!("error: {:?}", diag.kind);
 			}
 		}
-		false
 	}
-	pub fn print_errors(&self) {}
-	pub fn print_warnings(&self) {}
+	pub fn print_warnings(&self) {
+		for diag in self.diag_lex.iter() {
+			if let DiagLevel::Warning = diag.level {
+				eprintln!("warning: {:?}", diag.kind);
+			}
+		}
+		for diag in self.diag_syn.iter() {
+			if let DiagLevel::Warning = diag.level {
+				eprintln!("warning: {:?}", diag.kind);
+			}
+		}
+		for diag in self.diag_sem.iter() {
+			if let DiagLevel::Warning = diag.level {
+				eprintln!("warning: {:?}", diag.kind);
+			}
+		}
+	}
 }
 
 pub type ResultTriple<Tok, Loc, Err> = result::Result<(Loc, Tok, Loc), Err>;

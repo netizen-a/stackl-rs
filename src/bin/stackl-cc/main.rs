@@ -15,12 +15,11 @@ fn main() -> ExitCode {
 		diag_engine.print_errors();
 		return ExitCode::FAILURE;
 	}
-	if diag_engine.contains_warning() {
-		diag_engine.print_warnings();
-	}
+	// We do not print warnings with errors.
+	// Warnings are a liability if the code is erroneous.
+	diag_engine.print_warnings();
 
-	let ast = analysis_result.unwrap();
-	synthesis::parse(&ast);
+	synthesis::parse(&analysis_result.unwrap());
 
 	ExitCode::SUCCESS
 }
