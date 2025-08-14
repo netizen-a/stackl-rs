@@ -11,6 +11,7 @@ impl super::SemanticParser {
 		match item {
 			Declaration(decl) => self.declaration(decl),
 			Statement(stmt) => self.statement(stmt),
+			_ => todo!("block-item error"),
 		}
 	}
 	pub(super) fn statement(&mut self, stmt: &mut Stmt) {

@@ -593,10 +593,12 @@ ClosedCompoundStatement: CompoundStmt = {
 OpenedBlockItem: BlockItem = {
 	Declaration => BlockItem::Declaration(<>),
 	OpenedStatement => BlockItem::Statement(<>),
+	! => { errors.push(<>); BlockItem::Error },
 };
 ClosedBlockItem: BlockItem = {
 	Declaration => BlockItem::Declaration(<>),
 	ClosedStatement => BlockItem::Statement(<>),
+	! => { errors.push(<>); BlockItem::Error },
 };
 
 ExprStatement: ExprStmt = Expr? ";" => todo!("expr");

@@ -10,6 +10,7 @@ pub struct CompoundStmt(pub Vec<BlockItem>);
 pub enum BlockItem {
 	Declaration(decl::Declaration),
 	Statement(Stmt),
+	Error,
 }
 
 /// (6.8) statement
