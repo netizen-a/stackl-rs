@@ -1,7 +1,7 @@
 mod lex;
 mod sem;
 pub mod syn;
-mod tok;
+pub mod tok;
 
 use lex::grammar::TokensParser;
 use std::io::Read;
@@ -15,7 +15,7 @@ use syn::grammar::SyntaxParser;
 use crate::analysis::syn::ExternalDeclaration;
 use crate::diagnostics::DiagnosticEngine;
 
-pub fn parse<P>(in_file: P, _diag_engine: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
+pub fn parse<P>(in_file: P, diag_engine: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
 where
 	P: AsRef<Path>,
 {
@@ -36,5 +36,8 @@ where
 	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
 	let unit = SyntaxParser::new().parse(&mut errors, tok_iter).unwrap();
+	for err in errors {
+		diag_engine.push_syn(err)
+	}
 	sem::SemanticParser::new().parse(unit)
 }

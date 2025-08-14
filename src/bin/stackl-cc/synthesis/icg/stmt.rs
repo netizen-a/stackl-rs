@@ -11,7 +11,7 @@ impl super::IntermediateCodeGen {
 		match item {
 			Declaration(decl) => self.declaration(decl),
 			Statement(stmt) => self.statement(stmt),
-			Error => todo!("block item error"),
+			Error => {},
 		}
 	}
 	pub(super) fn statement(&mut self, stmt: &Stmt) {

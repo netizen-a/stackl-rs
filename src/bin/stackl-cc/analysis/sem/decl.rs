@@ -15,7 +15,7 @@ impl super::SemanticParser {
 		for ref mut specifier in decl.declaration_specifiers.iter_mut() {
 			self.declaration_specifier(specifier, &mut spec_info);
 		}
-		println!("function_definition: {spec_info:?}");
+		println!("DEBUG function_definition: {spec_info:?}");
 		self.declarator(&mut decl.declarator);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
@@ -27,7 +27,7 @@ impl super::SemanticParser {
 		for ref mut spec in decl.declaration_specifiers.iter_mut() {
 			self.declaration_specifier(spec, &mut spec_info);
 		}
-		println!("declaration: {spec_info:?}");
+		println!("DEBUG declaration: {spec_info:?}");
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
 		}
