@@ -19,6 +19,8 @@ pub fn parse<P>(in_file: P, _diag_engine: &mut DiagnosticEngine) -> Option<Vec<E
 where
 	P: AsRef<Path>,
 {
+	let mut errors = Vec::new();
+
 	let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
 	file_map.insert(0, in_file.as_ref().to_owned());
 	let mut file = fs::File::open(in_file.as_ref()).unwrap();
@@ -33,6 +35,6 @@ where
 
 	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
-	let unit = SyntaxParser::new().parse(tok_iter).unwrap();
+	let unit = SyntaxParser::new().parse(&mut errors, tok_iter).unwrap();
 	sem::SemanticParser::new().parse(unit)
 }

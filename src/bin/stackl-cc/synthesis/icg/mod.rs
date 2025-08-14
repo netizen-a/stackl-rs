@@ -16,6 +16,7 @@ impl IntermediateCodeGen {
 			match external_decl {
 				FunctionDefinition(decl) => self.function_definition(decl),
 				Declaration(decl) => self.declaration(decl),
+				_ => todo!("external decl error"),
 			}
 		}
 	}

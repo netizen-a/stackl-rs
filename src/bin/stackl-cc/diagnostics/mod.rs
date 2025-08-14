@@ -53,17 +53,17 @@ impl DiagnosticEngine {
 	}
 	pub fn print_errors(&self) {
 		for diag in self.diag_lex.iter() {
-			if let DiagLevel::Warning = diag.level {
+			if let DiagLevel::Error = diag.level {
 				eprintln!("error: {:?}", diag.kind);
 			}
 		}
 		for diag in self.diag_syn.iter() {
-			if let DiagLevel::Warning = diag.level {
+			if let DiagLevel::Error = diag.level {
 				eprintln!("error: {:?}", diag.kind);
 			}
 		}
 		for diag in self.diag_sem.iter() {
-			if let DiagLevel::Warning = diag.level {
+			if let DiagLevel::Error = diag.level {
 				eprintln!("error: {:?}", diag.kind);
 			}
 		}

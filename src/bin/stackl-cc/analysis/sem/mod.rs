@@ -42,6 +42,7 @@ impl SemanticParser {
 			match external_decl {
 				FunctionDefinition(decl) => self.function_definition(decl),
 				Declaration(decl) => self.declaration(decl),
+				Error => todo!("external decl error"),
 			}
 		}
 		Some(unit)

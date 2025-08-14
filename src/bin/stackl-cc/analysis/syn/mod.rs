@@ -20,6 +20,7 @@ pub type TranslationUnit = Vec<ExternalDeclaration>;
 pub enum ExternalDeclaration {
 	FunctionDefinition(FunctionDefinition),
 	Declaration(Declaration),
+	Error,
 }
 
 /// (6.9.1) function-definition

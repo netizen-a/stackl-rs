@@ -7,7 +7,7 @@ use crate::analysis::tok;
 pub struct DeclarationList(Vec<Declaration>);
 
 /// (6.7) declaration
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Declaration {
 	/// (6.7) declaration-specifiers
 	pub declaration_specifiers: Vec<DeclarationSpecifier>,

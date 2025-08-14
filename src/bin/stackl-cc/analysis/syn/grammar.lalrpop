@@ -1,9 +1,10 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok::*;
-
 use crate::diagnostics::syn;
+use lalrpop_util::ErrorRecovery;
 
-grammar;
+
+grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token, syn::Diagnostic>>);
 
 
 // A.1.3 Identifiers
@@ -710,6 +711,7 @@ ExternalDeclaration: ExternalDeclaration = {
 	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
 	Declaration => ExternalDeclaration::Declaration(<>),
 	AsmStatement => todo!("global asm stmt"),
+	! => { errors.push(<>); ExternalDeclaration::Error },
 };
 
 FunctionDefinition: FunctionDefinition = {
