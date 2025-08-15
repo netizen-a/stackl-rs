@@ -10,13 +10,13 @@ pub struct TokenStack {
 }
 
 impl TokenStack {
-	fn next_token(&mut self) -> Option<syn::ResultTriple<Token, usize>> {
+	fn next_token(&mut self) -> Option<(usize, Token, usize)> {
 		if self.index == self.stack.len() {
 			None
 		} else {
 			let index = self.index;
 			self.index += 1;
-			Some(Ok(self.stack[index].clone()))
+			Some(self.stack[index].clone())
 		}
 	}
 }
@@ -40,6 +40,6 @@ impl From<Box<[(usize, Token, usize)]>> for TokenIter {
 impl Iterator for TokenIter {
 	type Item = syn::ResultTriple<Token, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
-		self.stack_ref.borrow_mut().next_token()
+		self.stack_ref.borrow_mut().next_token().map(Ok)
 	}
 }

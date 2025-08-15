@@ -2,8 +2,8 @@ pub mod lex;
 pub mod sem;
 pub mod syn;
 
-use std::result;
 use crate::analysis::tok;
+use std::result;
 
 use lalrpop_util::ErrorRecovery;
 
