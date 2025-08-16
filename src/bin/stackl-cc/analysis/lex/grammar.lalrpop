@@ -16,7 +16,7 @@ grammar<'a>(
 	stack_ref: &'a Rc<RefCell<PPTokenStack>>
 );
 
-pub Tokens: Vec<(usize, Token, usize)> = {
+pub Tokens: Vec<TokenTriple> = {
 	GroupPart,
 	<mut group: Tokens> <mut part: GroupPart> => {
 		group.append(&mut part);
@@ -24,14 +24,14 @@ pub Tokens: Vec<(usize, Token, usize)> = {
 	},
 }
 
-GroupPart: Vec<(usize, Token, usize)> = {
+GroupPart: Vec<TokenTriple> = {
 	// IfSection,
 	ControlLine,
 	TextLine,
 	// "#" <non_dir:NonDirective> => non_dir,
 };
 
-ControlLine: Vec<(usize, Token, usize)> = {
+ControlLine: Vec<TokenTriple> = {
 	// TODO: make this fallible
 	"#" DirectiveInclude <header:HEADER_NAME> "\n" => {
 		let origin_path = file_map.get_by_left(&header.file_key).unwrap();
@@ -57,7 +57,7 @@ ControlLine: Vec<(usize, Token, usize)> = {
 	},
 };
 
-TextLine: Vec<(usize, Token, usize)> = {
+TextLine: Vec<TokenTriple> = {
 	"\n" => vec![],
 	<nh:NonHash> <mut tokens: PreprocessingToken*> "\n" => {
 		let mut result = vec![nh];
@@ -66,7 +66,7 @@ TextLine: Vec<(usize, Token, usize)> = {
 	},
 };
 
-PreprocessingToken: (usize, Token, usize) = {
+PreprocessingToken: TokenTriple = {
 	Ident,
 	<lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
 		let file_key = tk.file_key;
@@ -149,7 +149,7 @@ DirectiveError: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "error",
 DirectivePragma: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "pragma", lo, hi);
 
 
-NonHash: (usize, Token, usize) = {
+NonHash: TokenTriple = {
 	Ident,
 	StrLit,
 	<lo:@L> <tk:NonHashPunct> <hi:@R> =>? {
@@ -174,7 +174,7 @@ NonHash: (usize, Token, usize) = {
 	},
 };
 
-Ident: (usize, Token, usize) = <lo:@L> <tk:IDENT> <hi:@R> =>? {
+Ident: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 	let file_key = tk.file_key;
 	match tk.kind.try_into() {
 		Ok(kind) => Ok((
@@ -195,7 +195,7 @@ Ident: (usize, Token, usize) = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 	}
 };
 
-StrLit: (usize, Token, usize) = <lo:@L> <tk:STR_LIT> <hi:@R> => {
+StrLit: TokenTriple = <lo:@L> <tk:STR_LIT> <hi:@R> => {
 	let file_key = tk.file_key;
 	(
 		lo,

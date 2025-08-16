@@ -1,16 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::analysis::tok::Token;
+use crate::analysis::tok::{Token, TokenTriple};
 use crate::diagnostics::syn;
 
 #[derive(Default)]
 pub struct TokenStack {
-	stack: Box<[(usize, Token, usize)]>,
+	stack: Box<[TokenTriple]>,
 	index: usize,
 }
 
 impl TokenStack {
-	fn next_token(&mut self) -> Option<(usize, Token, usize)> {
+	fn next_token(&mut self) -> Option<TokenTriple> {
 		if self.index == self.stack.len() {
 			None
 		} else {
@@ -25,8 +25,8 @@ pub struct TokenIter {
 	pub stack_ref: Rc<RefCell<TokenStack>>,
 }
 
-impl From<Box<[(usize, Token, usize)]>> for TokenIter {
-	fn from(value: Box<[(usize, Token, usize)]>) -> Self {
+impl From<Box<[TokenTriple]>> for TokenIter {
+	fn from(value: Box<[TokenTriple]>) -> Self {
 		let token_stack = TokenStack {
 			stack: value,
 			index: 0,
