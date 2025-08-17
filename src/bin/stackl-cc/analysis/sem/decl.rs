@@ -1,21 +1,9 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 
-#[derive(Debug, Default)]
-struct SpecifierInfo {
-	storage_class: Option<StorageClassSpecifier>,
-	type_specifiers: Vec<TypeSpecifier>,
-	type_qualifiers: Vec<TypeQualifier>,
-	func_specifiers: Vec<FunctionSpecifier>,
-}
-
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		let mut spec_info = SpecifierInfo::default();
-		for ref mut specifier in decl.declaration_specifiers.iter_mut() {
-			self.declaration_specifier(specifier, &mut spec_info);
-		}
-		println!("DEBUG function_definition: {spec_info:?}");
+		println!("DEBUG function_definition: {:?}", decl.specifiers);
 		self.declarator(&mut decl.declarator);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
@@ -23,32 +11,12 @@ impl super::SemanticParser {
 		self.compound_stmt(&mut decl.compound_stmt);
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
-		let mut spec_info = SpecifierInfo::default();
-		for ref mut spec in decl.declaration_specifiers.iter_mut() {
-			self.declaration_specifier(spec, &mut spec_info);
+		if decl.specifiers.storage_classes.len() > 1 {
+			panic!("cannot have more than one storage spec")
 		}
-		println!("DEBUG declaration: {spec_info:?}");
+		println!("DEBUG declaration: {:?}", decl.specifiers);
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
-		}
-	}
-	fn declaration_specifier(
-		&mut self,
-		specifier: &mut DeclarationSpecifier,
-		info: &mut SpecifierInfo,
-	) {
-		use DeclarationSpecifier::*;
-		match specifier {
-			StorageClassSpecifier(spec) => {
-				if let None = info.storage_class {
-					info.storage_class = Some(*spec);
-				} else {
-					panic!("cannot have more than one storage spec")
-				}
-			}
-			TypeSpecifier(spec) => info.type_specifiers.push(spec.clone()),
-			TypeQualifier(spec) => info.type_qualifiers.push(spec.clone()),
-			FunctionSpecifier(spec) => info.func_specifiers.push(spec.clone()),
 		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
@@ -142,10 +110,6 @@ impl super::SemanticParser {
 		}
 	}
 	fn parameter_declaration(&mut self, param: &mut ParameterDeclaration) {
-		let mut spec_info = SpecifierInfo::default();
-		for ref mut specifier in param.declaration_specifiers.iter_mut() {
-			self.declaration_specifier(specifier, &mut spec_info);
-		}
 		self.parameter_declarator(&mut param.parameter_declarator);
 	}
 	fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {

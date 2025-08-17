@@ -2,9 +2,6 @@ use crate::analysis::syn::*;
 
 impl super::IntermediateCodeGen {
 	pub(super) fn function_definition(&mut self, decl: &FunctionDefinition) {
-		for ref mut specifier in decl.declaration_specifiers.iter() {
-			self.declaration_specifier(specifier);
-		}
 		self.declarator(&decl.declarator);
 		for declaration in decl.declaration_list.iter() {
 			self.declaration(declaration);
@@ -12,20 +9,8 @@ impl super::IntermediateCodeGen {
 		self.compound_stmt(&decl.compound_stmt);
 	}
 	pub(super) fn declaration(&mut self, decl: &Declaration) {
-		for ref mut spec in decl.declaration_specifiers.iter() {
-			self.declaration_specifier(spec);
-		}
 		for ref mut init_decl in decl.init_declarator_list.iter() {
 			self.init_declarator(init_decl);
-		}
-	}
-	pub(super) fn declaration_specifier(&mut self, specifier: &DeclarationSpecifier) {
-		use DeclarationSpecifier::*;
-		match specifier {
-			StorageClassSpecifier(spec) => self.storage_class_specifier(spec),
-			TypeSpecifier(spec) => self.type_specifier(spec),
-			TypeQualifier(spec) => self.type_qualifier(spec),
-			FunctionSpecifier(spec) => self.function_specifier(spec),
 		}
 	}
 	pub(super) fn init_declarator(&mut self, decl: &InitDeclarator) {
@@ -140,9 +125,6 @@ impl super::IntermediateCodeGen {
 		}
 	}
 	pub(super) fn parameter_declaration(&mut self, param: &ParameterDeclaration) {
-		for ref mut specifier in param.declaration_specifiers.iter() {
-			self.declaration_specifier(specifier);
-		}
 		self.parameter_declarator(&param.parameter_declarator);
 	}
 	pub(super) fn parameter_declarator(&mut self, param_decl: &ParameterDeclarator) {

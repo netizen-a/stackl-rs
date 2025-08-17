@@ -10,14 +10,38 @@ pub struct DeclarationList(Vec<Declaration>);
 #[derive(Debug, Default)]
 pub struct Declaration {
 	/// (6.7) declaration-specifiers
-	pub declaration_specifiers: Vec<DeclarationSpecifier>,
+	pub specifiers: DeclarationSpecifiers,
 	/// (6.7) init-declarator-list
 	pub init_declarator_list: Vec<InitDeclarator>,
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct DeclarationSpecifiers {
+	pub storage_classes: Vec<StorageClassSpecifier>,
+	pub type_specifiers: Vec<TypeSpecifier>,
+	pub type_qualifiers: Vec<TypeQualifier>,
+	pub func_specifiers: Vec<FunctionSpecifier>,
+}
+
+impl From<Vec<DeclarationSpecifierKind>> for DeclarationSpecifiers {
+	fn from(value: Vec<DeclarationSpecifierKind>) -> Self {
+		let mut specifiers = DeclarationSpecifiers::default();
+		for kind in value {
+			use DeclarationSpecifierKind::*;
+			match kind {
+				StorageClassSpecifier(inner) => specifiers.storage_classes.push(inner),
+				TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
+				TypeQualifier(inner) => specifiers.type_qualifiers.push(inner),
+				FunctionSpecifier(inner) => specifiers.func_specifiers.push(inner),
+			}
+		}
+		specifiers
+	}
+}
+
 /// (6.7) declaration-specifiers
-#[derive(Debug, Clone)]
-pub enum DeclarationSpecifier {
+#[derive(Debug)]
+pub enum DeclarationSpecifierKind {
 	StorageClassSpecifier(StorageClassSpecifier),
 	TypeSpecifier(TypeSpecifier),
 	/// (6.7.3) type-qualifier
@@ -158,7 +182,7 @@ pub struct Pointer {
 /// (6.7.5) parameter-declaration
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
-	pub declaration_specifiers: Vec<DeclarationSpecifier>,
+	pub specifiers: DeclarationSpecifiers,
 	pub parameter_declarator: ParameterDeclarator,
 }
 

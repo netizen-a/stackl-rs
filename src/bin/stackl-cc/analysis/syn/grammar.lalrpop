@@ -289,20 +289,20 @@ ConstantExpr = ConditionalExpr;
 // A.2.2 Declarations
 
 Declaration: Declaration = {
-	<specs:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
+	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
 		tk_ref.borrow_mut().is_typedef = false;
 		Declaration {
-			declaration_specifiers: specs,
+			specifiers: DeclarationSpecifiers::from(kind_list),
 			init_declarator_list: init_list.unwrap_or_default(),
 		}
 	},
 };
 
-DeclarationSpecifier: DeclarationSpecifier = {
-	StorageClassSpecifier => DeclarationSpecifier::StorageClassSpecifier(<>),
-	TypeSpecifier => DeclarationSpecifier::TypeSpecifier(<>),
-	TypeQualifier => DeclarationSpecifier::TypeQualifier(<>),
-	FunctionSpecifier => DeclarationSpecifier::FunctionSpecifier(<>),
+DeclarationSpecifier: DeclarationSpecifierKind = {
+	StorageClassSpecifier => DeclarationSpecifierKind::StorageClassSpecifier(<>),
+	TypeSpecifier => DeclarationSpecifierKind::TypeSpecifier(<>),
+	TypeQualifier => DeclarationSpecifierKind::TypeQualifier(<>),
+	FunctionSpecifier => DeclarationSpecifierKind::FunctionSpecifier(<>),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -495,9 +495,11 @@ ParameterList: Vec<ParameterDeclaration> = {
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	<specifiers:DeclarationSpecifier+> <decl:ParameterDeclarator> => ParameterDeclaration{
-		declaration_specifiers: specifiers,
-		parameter_declarator: decl,
+	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
+		ParameterDeclaration{
+			specifiers: DeclarationSpecifiers::from(kind_list),
+			parameter_declarator: decl,
+		}
 	},
 };
 
@@ -740,9 +742,9 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	<specs: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
+	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
-			declaration_specifiers: specs,
+			specifiers: DeclarationSpecifiers::from(kind_list),
 			declarator: decl,
 			declaration_list: list,
 			compound_stmt: compound,
