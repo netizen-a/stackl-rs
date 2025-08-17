@@ -15,15 +15,14 @@ impl super::SemanticParser {
 		}
 	}
 	pub(super) fn statement(&mut self, stmt: &mut Stmt) {
-		use Stmt::*;
 		match stmt {
-			LabeledStatement(_labeled_stmt) => (),
-			CompoundStatement(_compound_stmt) => (),
-			ExpressionStatement(_expr_stmt) => (),
-			SelectionStatement(_selection_stmt) => (),
-			IterationStatement(_iter_stmt) => (),
-			JumpStatement(_jmp_stmt) => (),
-			AssemblerStatement(_asm_stmt) => (),
+			Stmt::Labeled(_labeled_stmt) => (),
+			Stmt::Compound(_compound_stmt) => (),
+			Stmt::Expr(_expr_stmt) => (),
+			Stmt::Selection(_selection_stmt) => (),
+			Stmt::Iter(_iter_stmt) => (),
+			Stmt::Jump(_jmp_stmt) => (),
+			Stmt::Asm(_asm_stmt) => (),
 		}
 	}
 }

@@ -1,3 +1,6 @@
+// warnings are unhelpful when debugging hard errors
+#![allow(warnings)]
+
 use std::process::ExitCode;
 
 mod analysis;
@@ -9,7 +12,7 @@ mod synthesis;
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
 	let mut diag_engine = diagnostics::DiagnosticEngine::new();
-	let analysis_result = analysis::parse(args.in_file, &mut diag_engine);
+	let _analysis_result = analysis::parse(args.in_file, &mut diag_engine);
 
 	if diag_engine.contains_error() {
 		diag_engine.print_errors();
@@ -20,6 +23,7 @@ fn main() -> ExitCode {
 	diag_engine.print_warnings();
 
 	//synthesis::parse(&analysis_result.unwrap());
+	println!("{:#?}", _analysis_result);
 
 	ExitCode::SUCCESS
 }

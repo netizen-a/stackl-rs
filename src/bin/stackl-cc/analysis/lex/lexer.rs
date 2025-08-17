@@ -127,7 +127,8 @@ impl Lexer {
 		let is_wide = c == 'L';
 		if is_wide {
 			if let Some((_, next_c)) = self.chars.next() {
-				#[allow(unused_assignments)] {
+				#[allow(unused_assignments)]
+				{
 					c = next_c;
 				}
 			} else {

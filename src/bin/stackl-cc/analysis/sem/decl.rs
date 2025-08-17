@@ -108,7 +108,7 @@ impl super::SemanticParser {
 		use DirectDeclarator::*;
 		match direct_decl {
 			Identifier(_) => (),
-			Declarator(_) => todo!("direct-declarator decl"),
+			Declarator(_decl) => eprintln!("{:?}", _decl),
 			Array {
 				type_qualifier_list,
 				assignment_expr,

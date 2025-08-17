@@ -16,13 +16,13 @@ pub enum BlockItem {
 /// (6.8) statement
 #[derive(Debug)]
 pub enum Stmt {
-	LabeledStatement(LabeledStmt),
-	CompoundStatement(CompoundStmt),
-	ExpressionStatement(ExprStmt),
-	SelectionStatement(SelectionStmt),
-	IterationStatement(IterationStmt),
-	JumpStatement(JumpStmt),
-	AssemblerStatement(AsmStmt),
+	Labeled(LabeledStmt),
+	Compound(CompoundStmt),
+	Expr(ExprStmt),
+	Selection(SelectionStmt),
+	Iter(IterStmt),
+	Jump(JumpStmt),
+	Asm(AsmStmt),
 }
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ pub enum LabeledStmt {
 
 /// (6.8.3) expression-statement
 #[derive(Debug)]
-pub struct ExprStmt(Option<expr::Expr>);
+pub struct ExprStmt(pub Option<expr::Expr>);
 
 /// (6.8.4) selection-statement
 #[derive(Debug)]
@@ -88,7 +88,7 @@ pub enum SelectionStmt {
 
 /// (6.8.5) iteration-statement
 #[derive(Debug)]
-pub enum IterationStmt {
+pub enum IterStmt {
 	While {
 		cond: expr::Expr,
 		stmt: Box<Stmt>,

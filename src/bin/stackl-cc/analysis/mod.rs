@@ -36,7 +36,9 @@ where
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let tk_ref = Rc::clone(&tk_iter.inner);
-	let unit = SyntaxParser::new().parse(&mut errors, &tk_ref, tk_iter).unwrap();
+	let unit = SyntaxParser::new()
+		.parse(&mut errors, &tk_ref, tk_iter)
+		.unwrap();
 	for err in errors {
 		diag_engine.push_syn(err)
 	}

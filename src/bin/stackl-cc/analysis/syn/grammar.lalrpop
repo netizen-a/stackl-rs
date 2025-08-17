@@ -348,7 +348,7 @@ TypeSpecifier: TypeSpecifier = {
 	"_Bool" => TypeSpecifier::Bool,
 	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
 	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
-	TypedefName => todo!("typedef-name"),
+	TYPE_NAME => TypeSpecifier::TypedefName(<>.kind.unwrap_ident()),
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
@@ -442,12 +442,13 @@ Declarator: Declarator = {
 };
 
 DirectDeclaratorList: Vec<DirectDeclarator> = {
-	Identifier => {
+	<mut ident:Identifier> => {
 		let mut tk_mut = tk_ref.borrow_mut();
 		if tk_mut.is_typedef == true {
-			tk_mut.push_type(<>.clone());
+			ident.is_type = true;
+			tk_mut.push_type(ident.clone());
 		}
-		vec![DirectDeclarator::Identifier(<>)]
+		vec![DirectDeclarator::Identifier(ident)]
 	},
 	"(" <decl:Declarator> ")" => vec![DirectDeclarator::Declarator(Box::new(decl))],
 	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
@@ -530,9 +531,6 @@ DirectAbstractDeclarator: DirectAbstractDeclarator = {
 	DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!("direct param"),
 };
 
-
-TypedefName: Ident = TYPE_NAME => todo!("typedef-name");
-
 Initializer: Initializer = {
 	AssignmentExpr => Initializer::Expr(<>),
 	"{" InitializerList ","? "}" => todo!("init-list"),
@@ -574,14 +572,14 @@ ClosedStatement: Stmt = {
 	"if" "(" Expr ")" ClosedStatement "else" ClosedStatement => todo!("closed-if"),
 	"switch" "(" Expr ")" ClosedStatement => todo!("closed-switch"),
 	ClosedLabeledStatement => todo!("closed-label"),
-	ClosedCompoundStatement => todo!("closed-compound"),
+	ClosedCompoundStatement => Stmt::Compound(<>),
 	ClosedIterationStatement => todo!("closed-iter"),
 };
 
 SimpleStatement: Stmt = {
-	ExprStatement => Stmt::ExpressionStatement(<>),
-	JumpStatement => Stmt::JumpStatement(<>),
-	AsmStatement => Stmt::AssemblerStatement(<>),
+	ExprStatement => Stmt::Expr(<>),
+	JumpStatement => Stmt::Jump(<>),
+	AsmStatement => Stmt::Asm(<>),
 };
 
 
@@ -599,11 +597,19 @@ ClosedLabeledStatement: LabeledStmt = {
 
 
 OpenedCompoundStatement: CompoundStmt = {
-	"{" OpenedBlockItem* "}" => todo!("compound"),
+	IncScope <blocks:OpenedBlockItem*> DecScope => CompoundStmt(blocks),
 };
 
 ClosedCompoundStatement: CompoundStmt = {
-	"{" <blocks:ClosedBlockItem*> "}" => CompoundStmt(blocks),
+	IncScope <blocks:ClosedBlockItem*> DecScope => CompoundStmt(blocks),
+};
+
+IncScope: () = "{" => {
+	tk_ref.borrow_mut().increase_scope();
+};
+
+DecScope: () = "}" => {
+	tk_ref.borrow_mut().decrease_scope();
 };
 
 
@@ -618,15 +624,15 @@ ClosedBlockItem: BlockItem = {
 	! => { errors.push(<>); BlockItem::Error },
 };
 
-ExprStatement: ExprStmt = Expr? ";" => todo!("expr");
+ExprStatement: ExprStmt = <expr:Expr?> ";" => ExprStmt(expr);
 
-ClosedIterationStatement: IterationStmt = {
+ClosedIterationStatement: IterStmt = {
 	"while" "(" Expr ")" ClosedStatement => todo!(),
 	"do" ClosedStatement "while" "(" Expr ")" ";"
 	"for" "(" Expr? ";" Expr? ";" Expr? ")" ClosedStatement => todo!(),
 	"for" "(" Declaration Expr? ";" Expr? ")" ClosedStatement => todo!(),
 };
-OpenedIterationStatement: IterationStmt = {
+OpenedIterationStatement: IterStmt = {
 	"while" "(" Expr ")" OpenedStatement => todo!(),
 	"do" OpenedStatement "while" "(" Expr ")" ";"
 	"for" "(" Expr? ";" Expr? ";" Expr? ")" OpenedStatement => todo!(),

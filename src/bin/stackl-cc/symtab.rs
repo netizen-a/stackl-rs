@@ -12,6 +12,12 @@ pub struct SymbolTable<K, V> {
 	table: Vec<HashMap<K, V>>,
 }
 
+impl<K: Eq + Hash, V> Default for SymbolTable<K, V> {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 impl<K: Eq + Hash, V> SymbolTable<K, V> {
 	pub fn new() -> Self {
 		Self {

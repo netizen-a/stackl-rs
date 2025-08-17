@@ -1,19 +1,36 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::analysis::tok::{Ident, Token, TokenTriple};
+use crate::analysis::tok::{Ident, Token, TokenKind, TokenTriple};
 use crate::diagnostics::syn;
+use crate::symtab::SymbolTable;
 
 #[derive(Default)]
 pub struct InnerIter {
-	pub data: Box<[TokenTriple]>,
-	pub pos: usize,
+	data: Box<[TokenTriple]>,
+	pos: usize,
 	pub is_typedef: bool,
-	typenames: Vec<String>,
+	typename_table: SymbolTable<String, Ident>,
 }
 impl InnerIter {
+	fn new(data: Box<[TokenTriple]>) -> Self {
+		Self {
+			data,
+			..Default::default()
+		}
+	}
 	pub fn push_type(&mut self, ident: Ident) {
 		eprintln!("TYPEDEF: {}", ident.name);
-		self.typenames.push(ident.name);
+		self.typename_table
+			.insert(ident.name.clone(), ident)
+			.expect("failed to insert into token symbol table");
+	}
+	#[inline]
+	pub fn increase_scope(&mut self) {
+		self.typename_table.increase_scope();
+	}
+	#[inline]
+	pub fn decrease_scope(&mut self) {
+		self.typename_table.decrease_scope();
 	}
 }
 
@@ -25,6 +42,9 @@ impl Iterator for InnerIter {
 		} else {
 			let pos = self.pos;
 			self.pos += 1;
+			if let TokenKind::Ident(ident) = &mut self.data[pos].1.kind {
+				ident.is_type = self.typename_table.lookup(&ident.name).is_some();
+			}
 			Some(self.data[pos].clone())
 		}
 	}
@@ -36,12 +56,7 @@ pub struct TokenIter {
 
 impl From<Box<[TokenTriple]>> for TokenIter {
 	fn from(value: Box<[TokenTriple]>) -> Self {
-		let iter = InnerIter {
-			data: value,
-			pos: 0,
-			is_typedef: false,
-			typenames: vec![],
-		};
+		let iter = InnerIter::new(value);
 		Self {
 			inner: Rc::new(RefCell::new(iter)),
 		}
