@@ -327,8 +327,6 @@ pub struct Token {
 	pub file_key: usize,
 }
 
-pub type TokenTriple = (usize, Token, usize);
-
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum PPTokenKind {
@@ -373,3 +371,6 @@ pub struct PPToken {
 	pub file_key: usize,
 	pub leading_space: bool,
 }
+
+pub type TokenTriple = (usize, Token, usize);
+pub type PPTokenTriple = (usize, PPToken, usize);

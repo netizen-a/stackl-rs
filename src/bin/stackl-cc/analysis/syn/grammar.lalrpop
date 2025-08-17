@@ -1,10 +1,15 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::analysis::syn::*;
 use crate::analysis::tok::*;
 use crate::diagnostics::syn;
 use lalrpop_util::ErrorRecovery;
 
 
-grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token, syn::Diagnostic>>);
+grammar<'a>(
+	errors: &'a mut Vec<ErrorRecovery<usize, Token, syn::Diagnostic>>,
+	tk_ref: &'a Rc<RefCell<InnerIter>>
+);
 
 
 // A.1.3 Identifiers
@@ -284,9 +289,12 @@ ConstantExpr = ConditionalExpr;
 // A.2.2 Declarations
 
 Declaration: Declaration = {
-	<specs:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => Declaration {
-		declaration_specifiers: specs,
-		init_declarator_list: init_list.unwrap_or_default(),
+	<specs:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
+		tk_ref.borrow_mut().is_typedef = false;
+		Declaration {
+			declaration_specifiers: specs,
+			init_declarator_list: init_list.unwrap_or_default(),
+		}
 	},
 };
 
@@ -317,7 +325,10 @@ InitDeclarator: InitDeclarator = {
 };
 
 StorageClassSpecifier: StorageClassSpecifier = {
-	"typedef" => StorageClassSpecifier::Typedef,
+	"typedef" => {
+		tk_ref.borrow_mut().is_typedef = true;
+		StorageClassSpecifier::Typedef
+	},
 	"extern" => StorageClassSpecifier::Extern,
 	"static" => StorageClassSpecifier::Static,
 	"auto" => StorageClassSpecifier::Auto,
@@ -431,7 +442,13 @@ Declarator: Declarator = {
 };
 
 DirectDeclaratorList: Vec<DirectDeclarator> = {
-	Identifier => vec![DirectDeclarator::Identifier(<>)],
+	Identifier => {
+		let mut tk_mut = tk_ref.borrow_mut();
+		if tk_mut.is_typedef == true {
+			tk_mut.push_type(<>.clone());
+		}
+		vec![DirectDeclarator::Identifier(<>)]
+	},
 	"(" <decl:Declarator> ")" => vec![DirectDeclarator::Declarator(Box::new(decl))],
 	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
 		list.push(DirectDeclarator::Array{

@@ -13,6 +13,7 @@ use std::{
 use syn::grammar::SyntaxParser;
 
 use crate::analysis::syn::ExternalDeclaration;
+use crate::analysis::tok::TokenTriple;
 use crate::diagnostics::DiagnosticEngine;
 
 pub fn parse<P>(in_file: P, diag_engine: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
@@ -29,13 +30,13 @@ where
 	let lexer = lex::lexer::Lexer::new(text, 0);
 	let pp_iter = lex::PPTokenIter::from(lexer);
 	let pp_ref = Rc::clone(&pp_iter.stack_ref);
-	let tokens: Vec<(usize, tok::Token, usize)> = TokensParser::new()
+	let tokens: Vec<TokenTriple> = TokensParser::new()
 		.parse(&mut file_map, &pp_ref, pp_iter)
 		.unwrap();
 
-	let tok_iter = syn::TokenIter::from(tokens.into_boxed_slice());
-	let _tok_ref = Rc::clone(&tok_iter.stack_ref);
-	let unit = SyntaxParser::new().parse(&mut errors, tok_iter).unwrap();
+	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
+	let tk_ref = Rc::clone(&tk_iter.inner);
+	let unit = SyntaxParser::new().parse(&mut errors, &tk_ref, tk_iter).unwrap();
 	for err in errors {
 		diag_engine.push_syn(err)
 	}

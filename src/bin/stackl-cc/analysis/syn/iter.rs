@@ -1,38 +1,49 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::analysis::tok::{Token, TokenTriple};
+use crate::analysis::tok::{Ident, Token, TokenTriple};
 use crate::diagnostics::syn;
 
 #[derive(Default)]
-pub struct TokenStack {
-	stack: Box<[TokenTriple]>,
-	index: usize,
+pub struct InnerIter {
+	pub data: Box<[TokenTriple]>,
+	pub pos: usize,
+	pub is_typedef: bool,
+	typenames: Vec<String>,
+}
+impl InnerIter {
+	pub fn push_type(&mut self, ident: Ident) {
+		eprintln!("TYPEDEF: {}", ident.name);
+		self.typenames.push(ident.name);
+	}
 }
 
-impl TokenStack {
-	fn next_token(&mut self) -> Option<TokenTriple> {
-		if self.index == self.stack.len() {
+impl Iterator for InnerIter {
+	type Item = TokenTriple;
+	fn next(&mut self) -> Option<TokenTriple> {
+		if self.pos == self.data.len() {
 			None
 		} else {
-			let index = self.index;
-			self.index += 1;
-			Some(self.stack[index].clone())
+			let pos = self.pos;
+			self.pos += 1;
+			Some(self.data[pos].clone())
 		}
 	}
 }
 
 pub struct TokenIter {
-	pub stack_ref: Rc<RefCell<TokenStack>>,
+	pub inner: Rc<RefCell<InnerIter>>,
 }
 
 impl From<Box<[TokenTriple]>> for TokenIter {
 	fn from(value: Box<[TokenTriple]>) -> Self {
-		let token_stack = TokenStack {
-			stack: value,
-			index: 0,
+		let iter = InnerIter {
+			data: value,
+			pos: 0,
+			is_typedef: false,
+			typenames: vec![],
 		};
 		Self {
-			stack_ref: Rc::new(RefCell::new(token_stack)),
+			inner: Rc::new(RefCell::new(iter)),
 		}
 	}
 }
@@ -40,6 +51,6 @@ impl From<Box<[TokenTriple]>> for TokenIter {
 impl Iterator for TokenIter {
 	type Item = syn::ResultTriple<Token, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
-		self.stack_ref.borrow_mut().next_token().map(Ok)
+		self.inner.borrow_mut().next().map(Ok)
 	}
 }

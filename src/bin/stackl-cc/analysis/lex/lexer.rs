@@ -127,7 +127,9 @@ impl Lexer {
 		let is_wide = c == 'L';
 		if is_wide {
 			if let Some((_, next_c)) = self.chars.next() {
-				c = next_c;
+				#[allow(unused_assignments)] {
+					c = next_c;
+				}
 			} else {
 				return Err(lex::Diagnostic {
 					level: diag::DiagLevel::Error,

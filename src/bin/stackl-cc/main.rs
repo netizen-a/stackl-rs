@@ -19,7 +19,7 @@ fn main() -> ExitCode {
 	// Warnings are a liability if the code is erroneous.
 	diag_engine.print_warnings();
 
-	synthesis::parse(&analysis_result.unwrap());
+	//synthesis::parse(&analysis_result.unwrap());
 
 	ExitCode::SUCCESS
 }
