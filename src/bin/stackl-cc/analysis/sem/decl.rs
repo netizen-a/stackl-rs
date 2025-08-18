@@ -15,7 +15,10 @@ impl super::SemanticParser<'_> {
 		if decl.specifiers.storage_classes.len() > 1 {
 			let diag = diag::Diagnostic::error(
 				diag::DiagKind::MultStorageClasses,
-				(usize::MAX, usize::MAX),
+				diag::Span {
+					loc: (usize::MAX, usize::MAX),
+					file_id: usize::MAX,
+				},
 			);
 			self.diagnostics.push_sem(diag);
 		}

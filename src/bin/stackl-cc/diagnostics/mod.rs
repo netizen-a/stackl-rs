@@ -1,13 +1,15 @@
 mod kind;
 pub mod lex;
 mod sem;
+mod span;
 
 use crate::analysis::tok;
-use std::result;
+use std::{path::PathBuf, result};
 
 use lalrpop_util::ErrorRecovery;
 
 pub use kind::*;
+pub use span::*;
 
 #[derive(Debug)]
 pub enum DiagLevel {
@@ -19,28 +21,29 @@ pub enum DiagLevel {
 pub struct Diagnostic {
 	pub level: DiagLevel,
 	pub kind: kind::DiagKind,
-	pub loc: (usize, usize),
+	pub span: Span,
 }
 
 impl Diagnostic {
-	pub fn error(kind: kind::DiagKind, loc: (usize, usize)) -> Self {
+	pub fn error(kind: kind::DiagKind, span: Span) -> Self {
 		Self {
 			level: DiagLevel::Error,
 			kind,
-			loc,
+			span,
 		}
 	}
-	pub fn warn(kind: kind::DiagKind, loc: (usize, usize)) -> Self {
+	pub fn warn(kind: kind::DiagKind, span: Span) -> Self {
 		Self {
 			level: DiagLevel::Warning,
 			kind,
-			loc,
+			span,
 		}
 	}
 }
 
 #[derive(Default)]
 pub struct DiagnosticEngine {
+	pub file_map: bimap::BiHashMap<usize, PathBuf>,
 	diag_lex: Vec<Diagnostic>,
 	diag_syn: Vec<ErrorRecovery<usize, tok::Token, Diagnostic>>,
 	diag_sem: Vec<Diagnostic>,

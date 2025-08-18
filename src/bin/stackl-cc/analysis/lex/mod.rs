@@ -16,7 +16,7 @@ macro_rules! directive {
 				error: $crate::diagnostics::Diagnostic{
 					level: $crate::diagnostics::DiagLevel::Error,
 					kind: $crate::diagnostics::DiagKind::InvalidToken,
-					loc: ($lo, $hi)
+					span: $crate::diagnostics::Span{ loc: ($lo, $hi), file_id: usize::MAX },
 				}
 			})
 		}

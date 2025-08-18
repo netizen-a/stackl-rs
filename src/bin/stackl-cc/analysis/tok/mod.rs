@@ -324,7 +324,7 @@ impl TryFrom<PPTokenKind> for TokenKind {
 #[derive(Debug, Clone)]
 pub struct Token {
 	pub kind: TokenKind,
-	pub file_key: usize,
+	pub file_id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -368,7 +368,7 @@ impl From<Punct> for PPTokenKind {
 #[derive(Debug, Clone)]
 pub struct PPToken {
 	pub kind: PPTokenKind,
-	pub file_key: usize,
+	pub file_id: usize,
 	pub leading_space: bool,
 }
 
