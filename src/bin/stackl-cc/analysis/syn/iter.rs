@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::analysis::tok::{Ident, Token, TokenKind, TokenTriple};
-use crate::diagnostics::syn;
+use crate::diagnostics as diag;
 use crate::symtab::SymbolTable;
 
 #[derive(Default)]
@@ -64,7 +64,7 @@ impl From<Box<[TokenTriple]>> for TokenIter {
 }
 
 impl Iterator for TokenIter {
-	type Item = syn::ResultTriple<Token, usize>;
+	type Item = diag::ResultTriple<Token, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.inner.borrow_mut().next().map(Ok)
 	}

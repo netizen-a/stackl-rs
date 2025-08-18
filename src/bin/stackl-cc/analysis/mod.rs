@@ -16,7 +16,7 @@ use crate::analysis::syn::ExternalDeclaration;
 use crate::analysis::tok::TokenTriple;
 use crate::diagnostics::DiagnosticEngine;
 
-pub fn parse<P>(in_file: P, diag_engine: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
+pub fn parse<P>(in_file: P, diagnostics: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
 where
 	P: AsRef<Path>,
 {
@@ -40,7 +40,7 @@ where
 		.parse(&mut errors, &tk_ref, tk_iter)
 		.unwrap();
 	for err in errors {
-		diag_engine.push_syn(err)
+		diagnostics.push_syn(err)
 	}
-	sem::SemanticParser::new().parse(unit)
+	sem::SemanticParser::new(diagnostics).parse(unit)
 }

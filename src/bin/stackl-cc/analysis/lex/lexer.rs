@@ -40,7 +40,7 @@ impl Lexer {
 	}
 
 	#[allow(dead_code)]
-	fn header_name(&mut self, c: char) -> lex::ResultTriple<tok::PPToken, usize> {
+	fn header_name(&mut self, c: char) -> diag::ResultTriple<tok::PPToken, usize> {
 		let mut name = String::new();
 		// name.push(c);
 		let is_builtin;
@@ -49,9 +49,9 @@ impl Lexer {
 				is_builtin = true;
 				let seq = self.h_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '>').is_none() {
-					return Err(lex::Diagnostic {
+					return Err(diag::Diagnostic {
 						level: diag::DiagLevel::Error,
-						kind: lex::DiagKind::InvalidToken,
+						kind: diag::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					});
 				}
@@ -61,9 +61,9 @@ impl Lexer {
 				is_builtin = false;
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
-					return Err(lex::Diagnostic {
+					return Err(diag::Diagnostic {
 						level: diag::DiagLevel::Error,
-						kind: lex::DiagKind::InvalidToken,
+						kind: diag::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					});
 				}
@@ -86,7 +86,7 @@ impl Lexer {
 		))
 	}
 
-	fn identifier(&mut self, c: char) -> lex::ResultTriple<tok::PPToken, usize> {
+	fn identifier(&mut self, c: char) -> diag::ResultTriple<tok::PPToken, usize> {
 		let mut name = String::new();
 		name.push(c);
 		while let Some((pos, next_c)) = self
@@ -118,11 +118,11 @@ impl Lexer {
 	}
 
 	#[allow(dead_code)]
-	fn pp_number(&mut self) -> lex::ResultTriple<tok::PPToken, usize> {
+	fn pp_number(&mut self) -> diag::ResultTriple<tok::PPToken, usize> {
 		todo!("pp-number")
 	}
 
-	fn character_constant(&mut self, mut c: char) -> lex::ResultTriple<tok::PPToken, usize> {
+	fn character_constant(&mut self, mut c: char) -> diag::ResultTriple<tok::PPToken, usize> {
 		self.include_state = 0;
 		let is_wide = c == 'L';
 		if is_wide {
@@ -132,9 +132,9 @@ impl Lexer {
 					c = next_c;
 				}
 			} else {
-				return Err(lex::Diagnostic {
+				return Err(diag::Diagnostic {
 					level: diag::DiagLevel::Error,
-					kind: lex::DiagKind::UnexpectedEof,
+					kind: diag::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				});
 			}
@@ -144,9 +144,9 @@ impl Lexer {
 			// name.push('\'');
 			self.set_end(curr_pos);
 		} else {
-			return Err(lex::Diagnostic {
+			return Err(diag::Diagnostic {
 				level: diag::DiagLevel::Error,
-				kind: lex::DiagKind::InvalidToken,
+				kind: diag::DiagKind::InvalidToken,
 				loc: self.pop_location(),
 			});
 		}
@@ -164,15 +164,15 @@ impl Lexer {
 		))
 	}
 
-	fn string_literal(&mut self, c: char) -> lex::ResultTriple<tok::PPToken, usize> {
+	fn string_literal(&mut self, c: char) -> diag::ResultTriple<tok::PPToken, usize> {
 		let is_wide = c == 'L';
 		if is_wide {
 			if let Some((pos, _)) = self.chars.next() {
 				self.set_end(pos);
 			} else {
-				return Err(lex::Diagnostic {
+				return Err(diag::Diagnostic {
 					level: diag::DiagLevel::Error,
-					kind: lex::DiagKind::UnexpectedEof,
+					kind: diag::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				});
 			}
@@ -181,9 +181,9 @@ impl Lexer {
 		if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '"') {
 			self.set_end(pos);
 		} else {
-			return Err(lex::Diagnostic {
+			return Err(diag::Diagnostic {
 				level: diag::DiagLevel::Error,
-				kind: lex::DiagKind::InvalidToken,
+				kind: diag::DiagKind::InvalidToken,
 				loc: self.pop_location(),
 			});
 		}
@@ -201,15 +201,15 @@ impl Lexer {
 		))
 	}
 	#[allow(dead_code)]
-	fn punctuator(&mut self) -> lex::ResultTriple<tok::PPToken, usize> {
+	fn punctuator(&mut self) -> diag::ResultTriple<tok::PPToken, usize> {
 		todo!("punctuator")
 	}
 
-	fn escape_sequence(&mut self) -> lex::Result<char> {
+	fn escape_sequence(&mut self) -> diag::Result<char> {
 		let Some((curr_pos, term)) = self.chars.next() else {
-			return Err(lex::Diagnostic {
+			return Err(diag::Diagnostic {
 				level: diag::DiagLevel::Error,
-				kind: lex::DiagKind::UnexpectedEscape,
+				kind: diag::DiagKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			});
 		};
@@ -236,15 +236,15 @@ impl Lexer {
 			'x' => todo!("hexadecimal-escape-sequence"),
 			// [c99] universal-character-name
 			// 'u' | 'U' => todo!("universal-character-name"),
-			_ => Err(lex::Diagnostic {
+			_ => Err(diag::Diagnostic {
 				level: diag::DiagLevel::Error,
-				kind: lex::DiagKind::UnexpectedEscape,
+				kind: diag::DiagKind::UnexpectedEscape,
 				loc: self.pop_location(),
 			}),
 		}
 	}
 
-	fn s_char_sequence(&mut self) -> lex::Result<String> {
+	fn s_char_sequence(&mut self) -> diag::Result<String> {
 		let mut seq = String::new();
 		while let Some((pos, c)) = self.chars.next_if(|&(_, c)| c != '"' && c != '\n') {
 			self.set_end(pos);
@@ -257,7 +257,7 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
-	fn c_char_sequence(&mut self) -> lex::Result<String> {
+	fn c_char_sequence(&mut self) -> diag::Result<String> {
 		let mut seq = String::new();
 		while let Some((pos, c)) = self.chars.next_if(|&(_, c)| c != '\'' && c != '\n') {
 			self.set_end(pos);
@@ -270,14 +270,14 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
-	fn h_char_sequence(&mut self) -> lex::ResultTriple<String, usize> {
+	fn h_char_sequence(&mut self) -> diag::ResultTriple<String, usize> {
 		let mut seq = String::new();
 		while let Some((_, h_char)) = self.chars.next_if(|&(_, c)| c != '>' && c != '\n') {
 			seq.push(h_char);
 		}
 		Ok((0, seq, 0))
 	}
-	fn q_char_sequence(&mut self) -> lex::ResultTriple<String, usize> {
+	fn q_char_sequence(&mut self) -> diag::ResultTriple<String, usize> {
 		let mut seq = String::new();
 		while let Some((_, q_char)) = self.chars.next_if(|&(_, c)| c != '"' && c != '\n') {
 			seq.push(q_char);
@@ -287,7 +287,7 @@ impl Lexer {
 }
 
 impl Iterator for Lexer {
-	type Item = lex::ResultTriple<tok::PPToken, usize>;
+	type Item = diag::ResultTriple<tok::PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.leading_space = false;
 		let mut curr_pos = 0;
@@ -378,9 +378,9 @@ impl Iterator for Lexer {
 						name.push(curr_c);
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some((_, sign)) = self.chars.peek() else {
-								return Some(Err(lex::Diagnostic {
+								return Some(Err(diag::Diagnostic {
 									level: diag::DiagLevel::Error,
-									kind: lex::DiagKind::UnexpectedEof,
+									kind: diag::DiagKind::UnexpectedEof,
 									loc: self.pop_location(),
 								}));
 							};
@@ -427,9 +427,9 @@ impl Iterator for Lexer {
 							hi,
 						)))
 					} else {
-						Some(Err(lex::Diagnostic {
+						Some(Err(diag::Diagnostic {
 							level: diag::DiagLevel::Error,
-							kind: lex::DiagKind::InvalidToken,
+							kind: diag::DiagKind::InvalidToken,
 							loc: self.pop_location(),
 						}))
 					}
@@ -447,9 +447,9 @@ impl Iterator for Lexer {
 							name.push(c);
 							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 								let Some((_, sign)) = self.chars.peek() else {
-									return Some(Err(lex::Diagnostic {
+									return Some(Err(diag::Diagnostic {
 										level: diag::DiagLevel::Error,
-										kind: lex::DiagKind::UnexpectedEof,
+										kind: diag::DiagKind::UnexpectedEof,
 										loc: self.pop_location(),
 									}));
 								};
@@ -474,9 +474,9 @@ impl Iterator for Lexer {
 						hi,
 					)))
 				} else {
-					Some(Err(lex::Diagnostic {
+					Some(Err(diag::Diagnostic {
 						level: diag::DiagLevel::Error,
-						kind: lex::DiagKind::InvalidToken,
+						kind: diag::DiagKind::InvalidToken,
 						loc: self.pop_location(),
 					}))
 				}
@@ -547,9 +547,9 @@ impl Iterator for Lexer {
 				} else if self.chars.next_if(|&(_, c)| c == '*').is_some() {
 					name.push_str("/*");
 					let Some((pos, mut last_c)) = self.chars.next() else {
-						return Some(Err(lex::Diagnostic {
+						return Some(Err(diag::Diagnostic {
 							level: diag::DiagLevel::Error,
-							kind: lex::DiagKind::UnexpectedEof,
+							kind: diag::DiagKind::UnexpectedEof,
 							loc: self.pop_location(),
 						}));
 					};
@@ -567,9 +567,9 @@ impl Iterator for Lexer {
 					if found_end {
 						return self.next();
 					} else {
-						return Some(Err(lex::Diagnostic {
+						return Some(Err(diag::Diagnostic {
 							level: diag::DiagLevel::Error,
-							kind: lex::DiagKind::UnexpectedEof,
+							kind: diag::DiagKind::UnexpectedEof,
 							loc: self.pop_location(),
 						}));
 					}
@@ -607,15 +607,15 @@ impl Iterator for Lexer {
 						hi,
 					)))
 				}
-				Some(Ok(_)) => Some(Err(lex::Diagnostic {
+				Some(Ok(_)) => Some(Err(diag::Diagnostic {
 					level: diag::DiagLevel::Error,
-					kind: lex::DiagKind::InvalidToken,
+					kind: diag::DiagKind::InvalidToken,
 					loc: self.pop_location(),
 				})),
 				Some(Err(error)) => Some(Err(error)),
-				None => Some(Err(lex::Diagnostic {
+				None => Some(Err(diag::Diagnostic {
 					level: diag::DiagLevel::Error,
-					kind: lex::DiagKind::UnexpectedEof,
+					kind: diag::DiagKind::UnexpectedEof,
 					loc: self.pop_location(),
 				})),
 			},

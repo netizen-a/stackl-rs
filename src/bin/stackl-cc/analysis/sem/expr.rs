@@ -1,6 +1,6 @@
 use crate::analysis::syn::*;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn expr(&mut self, expr: &mut Expr) {
 		use Expr::*;
 		match expr {

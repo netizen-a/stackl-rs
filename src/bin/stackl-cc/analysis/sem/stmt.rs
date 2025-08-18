@@ -1,6 +1,6 @@
 use crate::analysis::syn::*;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
 		for item in stmt.0.iter_mut() {
 			self.block_item(item)

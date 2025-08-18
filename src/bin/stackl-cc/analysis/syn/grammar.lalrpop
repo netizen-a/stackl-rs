@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use crate::analysis::syn::*;
 use crate::analysis::tok::*;
-use crate::diagnostics::syn;
+use crate::diagnostics as diag;
 use lalrpop_util::ErrorRecovery;
 
 
 grammar<'a>(
-	errors: &'a mut Vec<ErrorRecovery<usize, Token, syn::Diagnostic>>,
+	errors: &'a mut Vec<ErrorRecovery<usize, Token, diag::Diagnostic>>,
 	tk_ref: &'a Rc<RefCell<InnerIter>>
 );
 
@@ -756,7 +756,7 @@ FunctionDefinition: FunctionDefinition = {
 
 extern {
 	type Location = usize;
-	type Error = syn::Diagnostic;
+	type Error = diag::Diagnostic;
 
 	enum Token {
 		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, ..}), ..},

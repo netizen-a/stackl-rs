@@ -3,6 +3,7 @@ mod expr;
 mod stmt;
 
 use crate::analysis::syn::*;
+use crate::diagnostics::DiagnosticEngine;
 use crate::symtab::SymbolTable;
 
 #[derive(PartialEq, Eq, Hash)]
@@ -26,17 +27,22 @@ enum DataType {
 	Union,
 }
 
-pub struct SemanticParser {
+pub struct SemanticParser<'a> {
 	symtab: SymbolTable<Namespace, DataType>,
+	diagnostics: &'a mut DiagnosticEngine,
 }
 
-impl SemanticParser {
-	pub fn new() -> Self {
+impl<'a> SemanticParser<'a> {
+	pub fn new(diagnostics: &'a mut DiagnosticEngine) -> Self {
 		Self {
 			symtab: SymbolTable::new(),
+			diagnostics,
 		}
 	}
-	pub fn parse(mut self, mut unit: Vec<ExternalDeclaration>) -> Option<Vec<ExternalDeclaration>> {
+	pub fn parse(
+		&mut self,
+		mut unit: Vec<ExternalDeclaration>,
+	) -> Option<Vec<ExternalDeclaration>> {
 		use ExternalDeclaration::*;
 		for external_decl in unit.iter_mut() {
 			match external_decl {

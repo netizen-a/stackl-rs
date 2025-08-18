@@ -3,7 +3,7 @@
 pub mod keyword;
 pub mod punct;
 
-use crate::diagnostics::lex;
+use crate::diagnostics::{self as diag, lex};
 pub use keyword::*;
 pub use punct::*;
 use std::iter::Peekable;
@@ -88,7 +88,7 @@ impl PPNumber {
 			chars.any(|c| c == 'e' || c == 'E')
 		}
 	}
-	fn floating_constant(&self) -> Result<TokenKind, lex::DiagKind> {
+	fn floating_constant(&self) -> Result<TokenKind, diag::DiagKind> {
 		let mut chars = self.name.chars().peekable();
 		let c = chars.next().expect("empty pp-number");
 		if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
@@ -105,24 +105,24 @@ impl PPNumber {
 				while let Some(c) = chars.next_if(|&c| c.is_ascii_digit()) {
 					digit_seq.push(c);
 				}
-				exponent = digit_seq.parse().or(Err(lex::DiagKind::InvalidToken))?;
+				exponent = digit_seq.parse().or(Err(diag::DiagKind::InvalidToken))?;
 				if let Some('-') = sign {
 					exponent *= -1;
 				}
 			}
 			let floating = match chars.next_if(|&c| c == 'f' || c == 'F' || c == 'l' || c == 'L') {
 				Some('f' | 'F') => {
-					let data: f32 = decimal.parse().or(Err(lex::DiagKind::InvalidToken))?;
+					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
 					let data = data.powi(exponent);
 					FloatingConstant::F32(data)
 				}
 				Some('l' | 'L') => {
-					let data: f64 = decimal.parse().or(Err(lex::DiagKind::InvalidToken))?;
+					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
 					let data = data.powi(exponent);
 					FloatingConstant::Long(data)
 				}
 				None => {
-					let data: f64 = decimal.parse().or(Err(lex::DiagKind::InvalidToken))?;
+					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
 					let data = data.powi(exponent);
 					FloatingConstant::F64(data)
 				}
@@ -132,7 +132,7 @@ impl PPNumber {
 		}
 	}
 
-	fn integer_constant(&self) -> Result<TokenKind, lex::DiagKind> {
+	fn integer_constant(&self) -> Result<TokenKind, diag::DiagKind> {
 		let mut chars = self.name.chars().peekable();
 		match chars.peek().expect("empty pp-number") {
 			'0' => {
@@ -149,11 +149,11 @@ impl PPNumber {
 			}
 			e => {
 				eprintln!("err: '{e}'");
-				Err(lex::DiagKind::InvalidToken)
+				Err(diag::DiagKind::InvalidToken)
 			}
 		}
 	}
-	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<TokenKind, lex::DiagKind> {
+	fn octal_constant(&self, mut chars: Peekable<Chars>) -> Result<TokenKind, diag::DiagKind> {
 		let mut name = String::new();
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
@@ -171,7 +171,7 @@ impl PPNumber {
 				IntegerConstant::I128(data)
 			} else {
 				eprintln!("octal invalid token: `{name}`");
-				return Err(lex::DiagKind::InvalidToken);
+				return Err(diag::DiagKind::InvalidToken);
 			};
 			let constant = Const::Integer(integer);
 			Ok(TokenKind::Const(constant))
@@ -184,7 +184,7 @@ impl PPNumber {
 		&self,
 		mut name: String,
 		mut chars: Peekable<Chars>,
-	) -> Result<TokenKind, lex::DiagKind> {
+	) -> Result<TokenKind, diag::DiagKind> {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
@@ -200,7 +200,7 @@ impl PPNumber {
 			} else if let Ok(data) = name.parse::<i128>() {
 				IntegerConstant::I128(data)
 			} else {
-				return Err(lex::DiagKind::InvalidToken);
+				return Err(diag::DiagKind::InvalidToken);
 			};
 			let constant = Const::Integer(integer);
 			Ok(TokenKind::Const(constant))
@@ -298,7 +298,7 @@ impl From<StrLit> for TokenKind {
 }
 
 impl TryFrom<PPTokenKind> for TokenKind {
-	type Error = lex::DiagKind;
+	type Error = diag::DiagKind;
 	fn try_from(value: PPTokenKind) -> Result<Self, Self::Error> {
 		match value {
 			PPTokenKind::Ident(inner) => Keyword::try_from(inner.name.as_str())
@@ -315,7 +315,7 @@ impl TryFrom<PPTokenKind> for TokenKind {
 			PPTokenKind::StrLit(inner) => Ok(Self::StrLit(inner)),
 			PPTokenKind::Punct(inner) => Ok(Self::Punct(inner)),
 			PPTokenKind::NewLine(_) | PPTokenKind::HeaderName(_) => {
-				Err(lex::DiagKind::InvalidToken)
+				Err(diag::DiagKind::InvalidToken)
 			}
 		}
 	}

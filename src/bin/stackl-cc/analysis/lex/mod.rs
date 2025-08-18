@@ -13,9 +13,9 @@ macro_rules! directive {
 			Ok(())
 		} else {
 			Err(lalr::ParseError::User {
-				error: $crate::diagnostics::lex::Diagnostic{
+				error: $crate::diagnostics::Diagnostic{
 					level: $crate::diagnostics::DiagLevel::Error,
-					kind: lex::DiagKind::InvalidToken,
+					kind: $crate::diagnostics::DiagKind::InvalidToken,
 					loc: ($lo, $hi)
 				}
 			})

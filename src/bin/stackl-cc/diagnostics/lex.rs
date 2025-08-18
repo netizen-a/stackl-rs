@@ -1,5 +1,7 @@
 use std::{error, fmt, result};
 
+use crate::diagnostics::{DiagKind, Diagnostic};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TryFromCharError;
 
@@ -21,20 +23,21 @@ impl fmt::Display for TryFromIdentifierError {
 
 impl error::Error for TryFromIdentifierError {}
 
-#[derive(Debug)]
-pub enum DiagKind {
-	UnexpectedEof,
-	UnexpectedEscape,
-	InvalidToken,
-	HeaderNameError,
+pub fn print_error(diag: &Diagnostic) {
+    eprint!("error: ");
+    match diag.kind {
+        DiagKind::HeaderNameError => {
+            eprintln!("invalid header name");
+        }
+		DiagKind::InvalidToken => {
+			eprintln!("invalid token");
+		}
+		DiagKind::UnexpectedEof => {
+			eprintln!("unexpected end of line");
+		}
+		DiagKind::UnexpectedEscape => {
+			eprintln!("unexpected escape");
+		}
+        _ => unreachable!(),
+    }
 }
-
-#[derive(Debug)]
-pub struct Diagnostic {
-	pub level: super::DiagLevel,
-	pub kind: DiagKind,
-	pub loc: (usize, usize),
-}
-
-pub type ResultTriple<Tok, Loc> = super::ResultTriple<Tok, Loc, Diagnostic>;
-pub type Result<T> = result::Result<T, Diagnostic>;

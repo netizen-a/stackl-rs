@@ -3,10 +3,10 @@ use std::{cell::RefCell, rc::Rc};
 use crate::analysis::tok::{PPToken, PPTokenTriple};
 
 use super::lexer::Lexer;
-use crate::diagnostics::lex;
+use crate::diagnostics as diag;
 
 pub enum StackKind {
-	Buffer(Vec<lex::ResultTriple<PPToken, usize>>),
+	Buffer(Vec<diag::ResultTriple<PPToken, usize>>),
 	Lexer(Lexer),
 }
 
@@ -29,7 +29,7 @@ impl PPTokenStack {
 			}
 		}
 	}
-	fn pop_token(&mut self) -> Option<lex::ResultTriple<PPToken, usize>> {
+	fn pop_token(&mut self) -> Option<diag::ResultTriple<PPToken, usize>> {
 		while let Some(queue) = self.stack.last_mut() {
 			if let StackKind::Buffer(buffer) = queue {
 				if let Some(result) = buffer.pop() {
@@ -62,7 +62,7 @@ impl From<Lexer> for PPTokenIter {
 }
 
 impl Iterator for PPTokenIter {
-	type Item = lex::ResultTriple<PPToken, usize>;
+	type Item = diag::ResultTriple<PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.stack_ref.borrow_mut().pop_token()
 	}

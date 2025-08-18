@@ -1,15 +1,11 @@
-use std::result;
+use crate::diagnostics::{DiagKind, Diagnostic};
 
-#[derive(Debug)]
-pub enum DiagKind {
-	Unknown,
+pub fn print_error(diag: &Diagnostic) {
+    eprint!("error: ");
+    match diag.kind {
+        DiagKind::MultStorageClasses => {
+            eprintln!("multiple storage classes in declaration specifiers");
+        }
+        _ => unreachable!(),
+    }
 }
-
-#[derive(Debug)]
-pub struct Diagnostic {
-	pub level: super::DiagLevel,
-	pub kind: DiagKind,
-	pub loc: (usize, usize),
-}
-
-pub type ResultTriple<Tok, Loc> = result::Result<(Loc, Tok, Loc), Diagnostic>;

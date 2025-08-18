@@ -1,7 +1,8 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok;
+use crate::diagnostics as diag;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
 		println!("DEBUG function_definition: {:?}", decl.specifiers);
 		self.declarator(&mut decl.declarator);
@@ -12,7 +13,11 @@ impl super::SemanticParser {
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
 		if decl.specifiers.storage_classes.len() > 1 {
-			panic!("cannot have more than one storage spec")
+			let diag = diag::Diagnostic::error(
+				diag::DiagKind::MultStorageClasses,
+				(usize::MAX, usize::MAX),
+			);
+			self.diagnostics.push_sem(diag);
 		}
 		println!("DEBUG declaration: {:?}", decl.specifiers);
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {

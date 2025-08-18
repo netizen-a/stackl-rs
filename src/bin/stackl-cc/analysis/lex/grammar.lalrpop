@@ -82,7 +82,7 @@ PreprocessingToken: TokenTriple = {
 			Err(kind) => {
 				eprintln!("pp-number error");
 				Err(lalr::ParseError::User {
-					error: lex::Diagnostic{
+					error: diag::Diagnostic{
 						level: diag::DiagLevel::Error,
 						kind,
 						loc: (lo, hi),
@@ -103,7 +103,7 @@ PreprocessingToken: TokenTriple = {
 				hi
 			)),
 			Err(kind) => Err(lalr::ParseError::User {
-				error: lex::Diagnostic{
+				error: diag::Diagnostic{
 					level: diag::DiagLevel::Error,
 					kind,
 					loc: (lo, hi),
@@ -124,7 +124,7 @@ PreprocessingToken: TokenTriple = {
 				hi
 			)),
 			Err(kind) => Err(lalr::ParseError::User {
-				error: lex::Diagnostic{
+				error: diag::Diagnostic{
 					level: diag::DiagLevel::Error,
 					kind,
 					loc: (lo, hi),
@@ -164,7 +164,7 @@ NonHash: TokenTriple = {
 				hi
 			)),
 			Err(kind) => Err(lalr::ParseError::User {
-				error: lex::Diagnostic{
+				error: diag::Diagnostic{
 					level: diag::DiagLevel::Error,
 					kind,
 					loc: (lo, hi),
@@ -186,7 +186,7 @@ Ident: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 			hi
 		)),
 		Err(kind) => Err(lalr::ParseError::User {
-			error: lex::Diagnostic{
+			error: diag::Diagnostic{
 				level: diag::DiagLevel::Error,
 				kind,
 				loc: (lo, hi),
@@ -229,7 +229,7 @@ NonHashPunct: PPToken = {
 
 extern {
 	type Location = usize;
-	type Error = lex::Diagnostic;
+	type Error = diag::Diagnostic;
 
 	enum PPToken {
 		HEADER_NAME => PPToken{kind: PPTokenKind::HeaderName(_), ..},
