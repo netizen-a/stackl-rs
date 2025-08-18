@@ -25,14 +25,16 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-	pub fn error(kind: kind::DiagKind, span: Span) -> Self {
+	#[inline]
+	pub const fn error(kind: kind::DiagKind, span: Span) -> Self {
 		Self {
 			level: DiagLevel::Error,
 			kind,
 			span,
 		}
 	}
-	pub fn warn(kind: kind::DiagKind, span: Span) -> Self {
+	#[inline]
+	pub const fn warn(kind: kind::DiagKind, span: Span) -> Self {
 		Self {
 			level: DiagLevel::Warning,
 			kind,
@@ -50,6 +52,7 @@ pub struct DiagnosticEngine {
 }
 
 impl DiagnosticEngine {
+	#[inline]
 	pub fn new() -> Self {
 		Self::default()
 	}

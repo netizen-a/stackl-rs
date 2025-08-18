@@ -21,8 +21,6 @@ where
 	P: AsRef<Path>,
 {
 	let mut errors = Vec::new();
-
-	//let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
 	diagnostics.file_map.insert(0, in_file.as_ref().to_owned());
 	let mut file = fs::File::open(in_file.as_ref()).unwrap();
 	let mut text = String::new();
