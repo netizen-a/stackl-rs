@@ -22,8 +22,8 @@ where
 {
 	let mut errors = Vec::new();
 
-	let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
-	file_map.insert(0, in_file.as_ref().to_owned());
+	//let mut file_map = bimap::BiHashMap::<usize, PathBuf>::new();
+	diagnostics.file_map.insert(0, in_file.as_ref().to_owned());
 	let mut file = fs::File::open(in_file.as_ref()).unwrap();
 	let mut text = String::new();
 	file.read_to_string(&mut text).unwrap();
@@ -31,7 +31,7 @@ where
 	let pp_iter = lex::PPTokenIter::from(lexer);
 	let pp_ref = Rc::clone(&pp_iter.stack_ref);
 	let tokens: Vec<TokenTriple> = TokensParser::new()
-		.parse(&mut file_map, &pp_ref, pp_iter)
+		.parse(&mut diagnostics.file_map, &pp_ref, pp_iter)
 		.unwrap();
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
