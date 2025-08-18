@@ -1,16 +1,16 @@
 // intermediate code generation
-mod icg;
+//mod icg;
 // optimizer
-mod opt;
+//mod opt;
 // output code generation
-mod out;
+//mod out;
 // intermediate data representation
-mod idr;
+//mod idr;
 
 use crate::analysis::syn::ExternalDeclaration;
 
 // TODO: fix Return type
 pub fn parse(ast: &[ExternalDeclaration]) {
-	let icg = icg::IntermediateCodeGen::new();
-	icg.parse(ast)
+	// let icg = icg::IntermediateCodeGen::new();
+	// icg.parse(ast)
 }

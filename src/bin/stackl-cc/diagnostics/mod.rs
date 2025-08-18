@@ -50,12 +50,15 @@ impl DiagnosticEngine {
 	pub fn new() -> Self {
 		Self::default()
 	}
+	#[inline]
 	pub fn push_lex(&mut self, diag: Diagnostic) {
 		self.diag_lex.push(diag)
 	}
+	#[inline]
 	pub fn push_syn(&mut self, diag: ErrorRecovery<usize, tok::Token, Diagnostic>) {
 		self.diag_syn.push(diag)
 	}
+	#[inline]
 	pub fn push_sem(&mut self, diag: Diagnostic) {
 		self.diag_sem.push(diag)
 	}
