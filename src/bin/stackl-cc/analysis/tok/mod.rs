@@ -39,9 +39,9 @@ pub enum IntegerConstant {
 
 #[derive(Debug, Clone)]
 pub enum FloatingConstant {
-	F32(f32),
-	F64(f64),
-	// same as F64, but higher rank
+	Float(f32),
+	Double(f64),
+	// same as Double, but higher rank
 	Long(f64),
 }
 
@@ -114,7 +114,7 @@ impl PPNumber {
 				Some('f' | 'F') => {
 					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
 					let data = data.powi(exponent);
-					FloatingConstant::F32(data)
+					FloatingConstant::Float(data)
 				}
 				Some('l' | 'L') => {
 					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
@@ -124,7 +124,7 @@ impl PPNumber {
 				None => {
 					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
 					let data = data.powi(exponent);
-					FloatingConstant::F64(data)
+					FloatingConstant::Double(data)
 				}
 				_ => unreachable!(),
 			};

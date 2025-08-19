@@ -15,16 +15,29 @@ enum Namespace {
 }
 
 enum DataType {
+	Void,
 	Bool,
-	Int,
-	LongInt,
-	LongLongInt,
+	I8,
+	U8,
+	I16,
+	U16,
+	I32,
+	U32,
+	I64,
+	U64,
+	I128,
+	U128,
 	Float,
 	Double,
 	LongDouble,
 	Enum,
-	Struct,
-	Union,
+	Struct(Vec<DataType>),
+	Union(Vec<DataType>),
+	Array{
+		data: Box<DataType>,
+		size: u32
+	},
+	Func,
 }
 
 pub struct SemanticParser<'a> {
