@@ -24,20 +24,5 @@ impl fmt::Display for TryFromIdentifierError {
 impl error::Error for TryFromIdentifierError {}
 
 pub fn print_error(diag: &Diagnostic) {
-	eprint!("error: ");
-	match diag.kind {
-		DiagKind::HeaderNameError => {
-			eprintln!("invalid header name");
-		}
-		DiagKind::InvalidToken => {
-			eprintln!("invalid token");
-		}
-		DiagKind::UnexpectedEof => {
-			eprintln!("unexpected end of line");
-		}
-		DiagKind::UnexpectedEscape => {
-			eprintln!("unexpected escape");
-		}
-		_ => unreachable!(),
-	}
+	eprint!("error: {}", diag.kind.to_string());
 }
