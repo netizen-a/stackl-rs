@@ -325,14 +325,44 @@ InitDeclarator: InitDeclarator = {
 };
 
 StorageClassSpecifier: StorageClassSpecifier = {
-	"typedef" => {
+	<lo:@L> <kw:"typedef"> <hi:@R> => {
 		tk_ref.borrow_mut().is_typedef = true;
-		StorageClassSpecifier::Typedef
+		StorageClassSpecifier {
+			span: diag::Span{
+				loc: (lo,hi),
+				file_id: kw.file_id,
+			},
+			keyword: Keyword::Typedef,
+		}
 	},
-	"extern" => StorageClassSpecifier::Extern,
-	"static" => StorageClassSpecifier::Static,
-	"auto" => StorageClassSpecifier::Auto,
-	"register" => StorageClassSpecifier::Register,
+	<lo:@L> <kw:"extern"> <hi:@R> => StorageClassSpecifier {
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: kw.file_id,
+		},
+		keyword: Keyword::Extern,
+	},
+	<lo:@L> <kw:"static"> <hi:@R> => StorageClassSpecifier {
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: kw.file_id,
+		},
+		keyword: Keyword::Static,
+	},
+	<lo:@L> <kw:"auto"> <hi:@R> => StorageClassSpecifier {
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: kw.file_id,
+		},
+		keyword: Keyword::Auto,
+	},
+	<lo:@L> <kw:"register"> <hi:@R> => StorageClassSpecifier {
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: kw.file_id,
+		},
+		keyword: Keyword::Register,
+	},
 }
 
 TypeSpecifier: TypeSpecifier = {

@@ -13,14 +13,13 @@ impl super::SemanticParser<'_> {
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
 		if decl.specifiers.storage_classes.len() > 1 {
-			let diag = diag::Diagnostic::error(
-				diag::DiagKind::MultStorageClasses,
-				diag::Span {
-					loc: (usize::MAX, usize::MAX),
-					file_id: usize::MAX,
-				},
-			);
-			self.diagnostics.push_sem(diag);
+			for storage_class in decl.specifiers.storage_classes.iter().skip(1) {
+				let diag = diag::Diagnostic::error(
+					diag::DiagKind::MultStorageClasses,
+					storage_class.span.clone(),
+				);
+				self.diagnostics.push_sem(diag);
+			}
 		}
 		println!("DEBUG declaration: {:?}", decl.specifiers);
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {

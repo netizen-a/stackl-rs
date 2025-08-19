@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Span {
 	pub loc: (usize, usize),
 	pub file_id: usize,

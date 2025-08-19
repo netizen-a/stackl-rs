@@ -1,7 +1,7 @@
 //! Declarations
 
 use super::expr;
-use crate::analysis::tok;
+use crate::{analysis::tok, diagnostics as diag};
 
 /// (6.9.1) declaration-list
 pub struct DeclarationList(Vec<Declaration>);
@@ -58,13 +58,10 @@ pub struct InitDeclarator {
 }
 
 /// (6.7.1) storage-class-specifier
-#[derive(Debug, Clone, Copy)]
-pub enum StorageClassSpecifier {
-	Typedef,
-	Extern,
-	Static,
-	Auto,
-	Register,
+#[derive(Debug, Clone)]
+pub struct StorageClassSpecifier {
+	pub span: diag::Span,
+	pub keyword: tok::Keyword,
 }
 
 /// (6.7.2) type-specifier
