@@ -386,9 +386,21 @@ StructOrUnionSpecifier: StructOrUnionSpecifier = {
 	StructOrUnion Identifier => todo!(),
 };
 
-StructOrUnion: Keyword = {
-	"struct" => todo!("struct"),
-	"union" => todo!("union"),
+StructOrUnion: StructOrUnion = {
+	<lo:@L> <kw:"struct"> <hi:@R> => StructOrUnion{
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: kw.file_id,
+		},
+		keyword: Keyword::Struct,
+	},
+	<lo:@L> <kw:"union"> <hi:@R> => StructOrUnion{
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: kw.file_id,
+		},
+		keyword: Keyword::Union,
+	},
 };
 
 StructDeclaration: StructDeclaration = {

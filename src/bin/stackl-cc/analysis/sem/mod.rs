@@ -10,8 +10,16 @@ use crate::symtab::SymbolTable;
 enum Namespace {
 	Label(String),
 	Tag(String),
-	Member(Vec<String>),
+	Member{
+		tag: String,
+		members: Vec<String>
+	},
 	Ordinary(String),
+}
+
+struct MemberType {
+	name: String,
+	data: DataType,
 }
 
 enum DataType {
@@ -31,8 +39,8 @@ enum DataType {
 	Double,
 	LongDouble,
 	Enum,
-	Struct(Vec<DataType>),
-	Union(Vec<DataType>),
+	Struct(Vec<MemberType>),
+	Union(Vec<MemberType>),
 	Array{
 		data: Box<DataType>,
 		size: u32

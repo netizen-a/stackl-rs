@@ -103,10 +103,17 @@ pub struct Enumerator {
 #[derive(Debug, Clone)]
 pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
-	pub struct_or_union: tok::Keyword,
+	pub struct_or_union: StructOrUnion,
 	pub identifier: Option<tok::Ident>,
 	/// (6.7.2.1) struct-declaration-list
 	pub struct_declaration_list: Vec<StructDeclaration>,
+}
+
+/// (6.7.2.1) struct-or-union
+#[derive(Debug, Clone)]
+pub struct StructOrUnion {
+	pub span: diag::Span,
+	pub keyword: tok::Keyword,
 }
 
 /// (6.7.2.1) struct-declaration
