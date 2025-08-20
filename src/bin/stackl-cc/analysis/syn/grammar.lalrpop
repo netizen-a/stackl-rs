@@ -546,9 +546,33 @@ DirectDeclaratorList: Vec<DirectDeclarator> = {
 		});
 		list
 	},
-	<mut list:DirectDeclaratorList> "[" "static" TypeQualifier* AssignmentExpr "]" => todo!("direct static"),
-	<mut list:DirectDeclaratorList> "[" TypeQualifier+ "static" AssignmentExpr "]" => todo!("direct typeq"),
-	<mut list:DirectDeclaratorList> "[" TypeQualifier* "*" "]" => todo!("direct typeq *"),
+	<mut list:DirectDeclaratorList> "[" "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		list.push(DirectDeclarator::Array{
+			type_qualifier_list: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+			has_ptr: false,
+		});
+		list
+	},
+	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		list.push(DirectDeclarator::Array{
+			type_qualifier_list: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+			has_ptr: false,
+		});
+		list
+	},
+	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier*> "*" "]" => {
+		list.push(DirectDeclarator::Array{
+			type_qualifier_list: qual,
+			assignment_expr: None,
+			has_static: false,
+			has_ptr: true,
+		});
+		list
+	},
 	<mut dd:DirectDeclaratorList> "(" <list: ParameterTypeList> ")" => {
 		dd.push(DirectDeclarator::ParameterTypeList(list));
 		dd
