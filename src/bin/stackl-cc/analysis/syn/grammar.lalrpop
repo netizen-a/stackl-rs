@@ -560,24 +560,31 @@ DirectDeclaratorList: Vec<DirectDeclarator> = {
 };
 
 Pointer: Vec<Pointer> = {
-	"*" <tq:TypeQualifier*> => vec![Pointer {
-		type_qualifier_list: tq,
+	"*" <type_qualifier_list:TypeQualifier*> => vec![Pointer {
+		type_qualifier_list,
 	}],
-	"*" TypeQualifier* Pointer => todo!("* type-qualifier pointer"),
+	"*" <type_qualifier_list:TypeQualifier*> <mut v:Pointer> => {
+		v.push(Pointer{type_qualifier_list});
+		v
+	},
 };
 ParameterTypeList: ParameterTypeList = {
-	ParameterList => {
-		ParameterTypeList{
-			parameter_list: <>,
-			comma_ellipsis: false,
-		}
+	ParameterList => ParameterTypeList {
+		parameter_list: <>,
+		comma_ellipsis: false,
 	},
-	ParameterList "," "..." => todo!("parameter-list , ..."),
+	<parameter_list:ParameterList> "," "..." => ParameterTypeList {
+		parameter_list,
+		comma_ellipsis: true,
+	},
 };
 
 ParameterList: Vec<ParameterDeclaration> = {
 	ParameterDeclaration => vec![<>],
-	ParameterList "," ParameterDeclaration => todo!("parameter-list , parameter-declaration"),
+	<mut v:ParameterList> "," <elem:ParameterDeclaration> => {
+		v.push(elem);
+		v
+	},
 };
 
 ParameterDeclaration: ParameterDeclaration = {
