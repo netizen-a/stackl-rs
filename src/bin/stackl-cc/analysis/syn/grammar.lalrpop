@@ -366,24 +366,68 @@ StorageClassSpecifier: StorageClassSpecifier = {
 }
 
 TypeSpecifier: TypeSpecifier = {
-	"void" => TypeSpecifier::Void,
-	"char" => TypeSpecifier::Char,
-	"short" => TypeSpecifier::Short,
-	"int" => TypeSpecifier::Int,
-	"long" => TypeSpecifier::Long,
-	"float" => TypeSpecifier::Float,
-	"double" => TypeSpecifier::Double,
-	"signed" => TypeSpecifier::Signed,
-	"unsigned" => TypeSpecifier::Unsigned,
-	"_Bool" => TypeSpecifier::Bool,
+	<lo:@L> <kw:"void"> <hi:@R> => TypeSpecifier::Void(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"char"> <hi:@R> => TypeSpecifier::Char(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"short"> <hi:@R> => TypeSpecifier::Short(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"int"> <hi:@R> => TypeSpecifier::Int(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"long"> <hi:@R> => TypeSpecifier::Long(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"float"> <hi:@R> => TypeSpecifier::Float(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"double"> <hi:@R> => TypeSpecifier::Double(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"signed"> <hi:@R> => TypeSpecifier::Signed(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"unsigned"> <hi:@R> => TypeSpecifier::Unsigned(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
+	<lo:@L> <kw:"_Bool"> <hi:@R> => TypeSpecifier::Bool(diag::Span{
+		loc: (lo,hi),
+		file_id: kw.file_id,
+	}),
 	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
 	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
-	TYPE_NAME => TypeSpecifier::TypedefName(<>.kind.unwrap_ident()),
+	<lo:@L> <name:TYPE_NAME> <hi:@R> => TypeSpecifier::TypedefName{
+		span: diag::Span{
+			loc: (lo,hi),
+			file_id: name.file_id,
+		},
+		name: name.kind.unwrap_ident()
+	},
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
-	StructOrUnion Identifier? "{" StructDeclaration+ "}" => todo!(),
-	StructOrUnion Identifier => todo!(),
+	<prefix:StructOrUnion> <ident:Identifier?> "{" <list:StructDeclaration+> "}" => StructOrUnionSpecifier {
+		struct_or_union: prefix,
+		ident,
+		struct_declaration_list: list,
+	},
+	<prefix:StructOrUnion> <ident:Identifier> => StructOrUnionSpecifier {
+		struct_or_union: prefix,
+		ident: Some(ident),
+		struct_declaration_list: vec![],
+	},
 };
 
 StructOrUnion: StructOrUnion = {

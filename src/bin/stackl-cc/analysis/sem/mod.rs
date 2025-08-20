@@ -39,8 +39,14 @@ enum DataType {
 	Double,
 	LongDouble,
 	Enum,
-	Struct(Vec<MemberType>),
-	Union(Vec<MemberType>),
+	Struct{
+		tag: String,
+		members: Vec<MemberType>,
+	},
+	Union{
+		tag: String,
+		members: Vec<MemberType>,
+	},
 	Array{
 		data: Box<DataType>,
 		size: u32

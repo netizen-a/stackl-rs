@@ -67,20 +67,23 @@ pub struct StorageClassSpecifier {
 /// (6.7.2) type-specifier
 #[derive(Debug, Clone)]
 pub enum TypeSpecifier {
-	Void,
-	Char,
-	Short,
-	Int,
-	Long,
-	Float,
-	Double,
-	Signed,
-	Unsigned,
-	Bool,
+	Void(diag::Span),
+	Char(diag::Span),
+	Short(diag::Span),
+	Int(diag::Span),
+	Long(diag::Span),
+	Float(diag::Span),
+	Double(diag::Span),
+	Signed(diag::Span),
+	Unsigned(diag::Span),
+	Bool(diag::Span),
 	StructOrUnionSpecifier(StructOrUnionSpecifier),
 	EnumSpecifier(EnumSpecifier),
 	/// (6.7.7) typedef-name
-	TypedefName(tok::Ident),
+	TypedefName{
+		span: diag::Span,
+		name: tok::Ident
+	},
 }
 
 /// (6.7.2.2) enum-specifier
@@ -104,7 +107,7 @@ pub struct Enumerator {
 pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
 	pub struct_or_union: StructOrUnion,
-	pub identifier: Option<tok::Ident>,
+	pub ident: Option<tok::Ident>,
 	/// (6.7.2.1) struct-declaration-list
 	pub struct_declaration_list: Vec<StructDeclaration>,
 }
