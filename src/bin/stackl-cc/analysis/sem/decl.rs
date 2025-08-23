@@ -88,7 +88,7 @@ impl super::SemanticParser<'_> {
 				assignment_expr,
 				has_static,
 				has_ptr,
-			} => todo!("direct-declarator array"),
+			} => (),
 			ParameterTypeList(type_list) => {
 				for param in type_list.parameter_list.iter_mut() {
 					self.parameter_declaration(param);

@@ -854,7 +854,7 @@ pub Syntax: TranslationUnit = ExternalDeclaration+;
 ExternalDeclaration: ExternalDeclaration = {
 	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
 	Declaration => ExternalDeclaration::Declaration(<>),
-	AsmStatement => todo!("global asm stmt"),
+	AsmStatement => ExternalDeclaration::Asm(<>),
 	! => { errors.push(<>); ExternalDeclaration::Error },
 };
 

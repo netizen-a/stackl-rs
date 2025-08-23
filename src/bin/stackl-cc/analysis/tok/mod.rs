@@ -143,7 +143,6 @@ impl PPNumber {
 				}
 			}
 			z @ '1'..='9' => {
-				eprintln!("'{z}'");
 				let name = String::from(*z);
 				self.decimal_constant(name, chars)
 			}

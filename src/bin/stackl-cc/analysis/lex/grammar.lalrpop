@@ -234,6 +234,11 @@ NonHashPunct: PPToken = {
 	";",
 	":",
 	",",
+	"[",
+	"]",
+	"?",
+	"~",
+	"...",
 };
 
 
@@ -260,5 +265,10 @@ extern {
 		";" => PPToken{kind: PPTokenKind::Punct(Punct::SemiColon), ..},
 		":" => PPToken{kind: PPTokenKind::Punct(Punct::Colon), ..},
 		"," => PPToken{kind: PPTokenKind::Punct(Punct::Comma), ..},
+		"[" => PPToken{kind: PPTokenKind::Punct(Punct::LSquare), ..},
+		"]" => PPToken{kind: PPTokenKind::Punct(Punct::RSquare), ..},
+		"?" => PPToken{kind: PPTokenKind::Punct(Punct::QMark), ..},
+		"~" => PPToken{kind: PPTokenKind::Punct(Punct::Tilde), ..},
+		"..." => PPToken{kind: PPTokenKind::Punct(Punct::Ellipsis), ..},
 	}
 }
