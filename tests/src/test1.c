@@ -1,9 +1,10 @@
 // Test main and OUTS
 
 int main() {
-    asm ("PUSHVAR $1"
-        "OUTS\n"
+    const char *s = "Hello world\n";
+    asm ("PUSHVAR %0\n"
+        "OUTS"
         :
-        : "m" ("Hello world\n"));
+        : "p" (s));
     return 0;
 }
