@@ -13,9 +13,9 @@ fn to_exitcode(cond: bool) -> ExitCode {
 }
 
 #[test]
-fn test1() -> ExitCode {
+fn syntax() -> ExitCode {
 	let compiler_path = PathBuf::from(env!("CARGO_BIN_EXE_stackl-cc"));
-	let test1_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/src/test1.c");
+	let test1_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/src/syntax.c");
 	println!("path: {}", test1_path.display());
 	let out = process::Command::new(compiler_path)
 		.arg(test1_path)
