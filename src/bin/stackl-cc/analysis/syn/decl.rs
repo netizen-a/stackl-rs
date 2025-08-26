@@ -53,6 +53,7 @@ pub enum DeclarationSpecifierKind {
 /// (6.7) init-declarator
 #[derive(Debug)]
 pub struct InitDeclarator {
+	pub identifier: tok::Ident,
 	pub declarator: Declarator,
 	pub initializer: Option<Initializer>,
 }
@@ -129,6 +130,7 @@ pub struct StructDeclaration {
 /// (6.7.2.1) struct-declarator
 #[derive(Debug, Clone)]
 pub struct StructDeclarator {
+	pub identifier: Option<tok::Ident>,
 	pub declarator: Option<Declarator>,
 	pub constant_expr: Option<expr::Expr>,
 }
@@ -155,7 +157,6 @@ pub struct Declarator {
 /// (6.7.5) direct-declarator
 #[derive(Debug, Clone)]
 pub enum DirectDeclarator {
-	Identifier(tok::Ident),
 	/// ( declarator )
 	Declarator(Box<Declarator>),
 	Array {
@@ -181,6 +182,7 @@ pub struct ParameterTypeList {
 
 /// (6.7.5) pointer
 #[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct Pointer {
 	/// (6.7.5) type-qualifier-list
 	pub type_qualifier_list: Vec<TypeQualifier>,

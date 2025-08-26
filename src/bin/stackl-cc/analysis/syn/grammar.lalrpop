@@ -314,12 +314,14 @@ InitDeclaratorList: Vec<InitDeclarator> = {
 };
 
 InitDeclarator: InitDeclarator = {
-	Declarator => InitDeclarator {
-		declarator: <>,
+	<decl:Declarator> => InitDeclarator {
+		identifier: decl.0,
+		declarator: decl.1,
 		initializer: None,
 	},
 	<decl:Declarator> "=" <init:Initializer> => InitDeclarator {
-		declarator: decl,
+		identifier: decl.0,
+		declarator: decl.1,
 		initializer: Some(init)
 	},
 };
@@ -471,11 +473,13 @@ StructDeclaratorList: Vec<StructDeclarator> = {
 
 StructDeclarator: StructDeclarator = {
 	<decl:Declarator> => StructDeclarator {
-		declarator: Some(decl),
+		identifier: Some(decl.0),
+		declarator: Some(decl.1),
 		constant_expr: None,
 	},
 	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
-		declarator: decl,
+		identifier: decl.clone().map(|inner| inner.0),
+		declarator: decl.map(|inner| inner.1),
 		constant_expr: Some(expr),
 	},
 };
@@ -520,66 +524,72 @@ TypeQualifier: TypeQualifier = {
 
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
 
-Declarator: Declarator = {
-	<ptr:Pointer?> <dd_list:DirectDeclaratorList> => Declarator {
-		pointer: ptr.unwrap_or_default(),
-		direct_declarator: dd_list,
-	},
+Declarator: (Ident, Declarator) = {
+	<ptr:Pointer?> <dd_list:DirectDeclaratorList> => (
+		dd_list.0,
+		Declarator {
+			pointer: ptr.unwrap_or_default(),
+			direct_declarator: dd_list.1,
+		},
+	),
 };
 
-DirectDeclaratorList: Vec<DirectDeclarator> = {
+DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 	<mut ident:Identifier> => {
 		let mut tk_mut = tk_ref.borrow_mut();
 		if tk_mut.is_typedef == true {
 			ident.is_type = true;
 			tk_mut.push_type(ident.clone());
 		}
-		vec![DirectDeclarator::Identifier(ident)]
+		(ident, vec![])
 	},
-	"(" <decl:Declarator> ")" => vec![DirectDeclarator::Declarator(Box::new(decl))],
-	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
-		list.push(DirectDeclarator::Array{
+	"(" <decl:Declarator> ")" => (
+		decl.0,
+		vec![DirectDeclarator::Declarator(Box::new(decl.1))]
+	),
+	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
+		dd_list.1.push(DirectDeclarator::Array{
 			type_qualifier_list: qual,
 			assignment_expr: expr,
 			has_static: false,
 			has_ptr: false,
 		});
-		list
+		dd_list
 	},
-	<mut list:DirectDeclaratorList> "[" "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
-		list.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> "[" "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		dd_list.1.push(DirectDeclarator::Array{
 			type_qualifier_list: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
 			has_ptr: false,
 		});
-		list
+		dd_list
 	},
-	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
-		list.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		dd_list.1.push(DirectDeclarator::Array{
 			type_qualifier_list: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
 			has_ptr: false,
 		});
-		list
+		dd_list
 	},
-	<mut list:DirectDeclaratorList> "[" <qual:TypeQualifier*> "*" "]" => {
-		list.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier*> "*" "]" => {
+		dd_list.1.push(DirectDeclarator::Array{
 			type_qualifier_list: qual,
 			assignment_expr: None,
 			has_static: false,
 			has_ptr: true,
 		});
-		list
+		dd_list
 	},
-	<mut dd:DirectDeclaratorList> "(" <list: ParameterTypeList> ")" => {
-		dd.push(DirectDeclarator::ParameterTypeList(list));
-		dd
+	<mut dd_list:DirectDeclaratorList> "(" <list: ParameterTypeList> ")" => {
+		dd_list.1.push(DirectDeclarator::ParameterTypeList(list));
+		dd_list
 	},
-	<mut dd:DirectDeclaratorList> "(" <ident_list:IdentifierList?> ")" => {
-		dd.push(DirectDeclarator::IdentifierList(ident_list.unwrap_or_default()));
-		dd
+	<mut dd_list:DirectDeclaratorList> "(" <ident_list:IdentifierList?> ")" => {
+		dd_list.1.push(DirectDeclarator::IdentifierList(ident_list.unwrap_or_default()));
+		dd_list
 	},
 };
 
@@ -862,14 +872,12 @@ FunctionDefinition: FunctionDefinition = {
 	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
 			specifiers: DeclarationSpecifiers::from(kind_list),
-			declarator: decl,
+			declarator: decl.1,
 			declaration_list: list,
 			compound_stmt: compound,
 		}
 	},
 };
-
-//DeclarationList: Vec<Declaration> = Declaration+;
 
 extern {
 	type Location = usize;

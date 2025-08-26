@@ -81,7 +81,6 @@ impl super::SemanticParser<'_> {
 	fn direct_declarator(&mut self, direct_decl: &mut DirectDeclarator) {
 		use DirectDeclarator::*;
 		match direct_decl {
-			Identifier(_) => (),
 			Declarator(_decl) => eprintln!("{:?}", _decl),
 			Array {
 				type_qualifier_list,
