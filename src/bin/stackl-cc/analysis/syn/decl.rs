@@ -181,11 +181,21 @@ pub struct ParameterTypeList {
 }
 
 /// (6.7.5) pointer
-#[derive(Debug, Clone)]
-#[repr(transparent)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Pointer {
-	/// (6.7.5) type-qualifier-list
-	pub type_qualifier_list: Vec<TypeQualifier>,
+	pub is_const: bool,
+	pub is_volatile: bool,
+	pub is_restrict: bool,
+}
+
+impl From<&[TypeQualifier]> for Pointer {
+	fn from(value: &[TypeQualifier]) -> Self {
+		Self{
+			is_const: value.contains(&TypeQualifier::Const),
+			is_volatile: value.contains(&TypeQualifier::Volatile),
+			is_restrict: value.contains(&TypeQualifier::Restrict),
+		}
+	}
 }
 
 /// (6.7.5) parameter-declaration
@@ -228,7 +238,7 @@ pub enum DirectAbstractDeclarator {
 }
 
 /// (6.7.3) type-qualifier
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeQualifier {
 	Const,
 	Restrict,

@@ -71,10 +71,10 @@ impl super::SemanticParser<'_> {
 		todo!("function-specifier")
 	}
 	fn declarator(&mut self, decl: &mut Declarator) {
-		for ref mut ptr in decl.pointer.iter_mut() {
-			self.pointer(ptr);
+		for ptr in decl.pointer.iter_mut() {
+			// pointer
 		}
-		for ref mut direct_decl in decl.direct_declarator.iter_mut() {
+		for direct_decl in decl.direct_declarator.iter_mut() {
 			self.direct_declarator(direct_decl);
 		}
 	}
@@ -99,11 +99,6 @@ impl super::SemanticParser<'_> {
 	fn parameter_type_list(&mut self, list: &mut ParameterTypeList) {
 		for param in list.parameter_list.iter_mut() {
 			self.parameter_declaration(param);
-		}
-	}
-	fn pointer(&mut self, ptr: &mut Pointer) {
-		for qual in ptr.type_qualifier_list.iter_mut() {
-			self.type_qualifier(qual);
 		}
 	}
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
@@ -131,13 +126,15 @@ impl super::SemanticParser<'_> {
 	fn abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
 		use AbstractDeclarator::*;
 		match decl {
-			Pointer(ptr) => self.pointer(ptr),
+			Pointer(ptr) => {
+				// pointer
+			},
 			DirectAbstractDeclarator {
 				pointer,
 				direct_abstract_declarator,
 			} => {
-				self.pointer(pointer);
-				for ref mut declarator in direct_abstract_declarator {
+				// pointer
+				for declarator in direct_abstract_declarator {
 					self.direct_abstract_declarator(declarator);
 				}
 			}

@@ -594,11 +594,9 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 };
 
 Pointer: Vec<Pointer> = {
-	"*" <type_qualifier_list:TypeQualifier*> => vec![Pointer {
-		type_qualifier_list,
-	}],
+	"*" <type_qualifier_list:TypeQualifier*> => vec![Pointer::from(type_qualifier_list.as_slice())],
 	"*" <type_qualifier_list:TypeQualifier*> <mut v:Pointer> => {
-		v.push(Pointer{type_qualifier_list});
+		v.push(Pointer::from(type_qualifier_list.as_slice()));
 		v
 	},
 };
