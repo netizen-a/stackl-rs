@@ -292,7 +292,7 @@ Declaration: Declaration = {
 	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
 		tk_ref.borrow_mut().is_typedef = false;
 		Declaration {
-			specifiers: DeclarationSpecifiers::from(kind_list),
+			specifiers: DeclarationSpecifiers::try_from(kind_list).unwrap(),
 			init_declarator_list: init_list.unwrap_or_default(),
 		}
 	},
@@ -622,7 +622,7 @@ ParameterList: Vec<ParameterDeclaration> = {
 ParameterDeclaration: ParameterDeclaration = {
 	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
 		ParameterDeclaration{
-			specifiers: DeclarationSpecifiers::from(kind_list),
+			specifiers: DeclarationSpecifiers::try_from(kind_list).unwrap(),
 			parameter_declarator: decl,
 		}
 	},
@@ -869,7 +869,7 @@ ExternalDeclaration: ExternalDeclaration = {
 FunctionDefinition: FunctionDefinition = {
 	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
-			specifiers: DeclarationSpecifiers::from(kind_list),
+			specifiers: DeclarationSpecifiers::try_from(kind_list).unwrap(),
 			declarator: decl.1,
 			declaration_list: list,
 			compound_stmt: compound,

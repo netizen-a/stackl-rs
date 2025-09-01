@@ -12,9 +12,15 @@ enum Namespace {
 	Tag(String),
 	Member{
 		tag: String,
-		members: Vec<String>
+		member: String
 	},
 	Ordinary(String),
+}
+
+pub enum TypePartition {
+    ObjectType,
+    FunctionType,
+    IncompleteType,
 }
 
 struct MemberType {
@@ -46,23 +52,56 @@ pub struct Array {
     pub length: u32,
 }
 
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Pointer{
+	pub is_const: bool,
+	pub is_volatile: bool,
+	pub is_restrict: bool,
+	inner: Box<DataType>,
+}
+
+pub enum StorageDuration {
+	Static,
+	Auto,
+}
+
+pub enum Linkage {
+	None,
+	External,
+	Internal,
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct FuncType {
+	params: Vec<DataType>,
+    ret: Box<DataType>,
+	is_variadic: bool
+}
+
 #[non_exhaustive]
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub enum DataType {
-    Function {
-        params: Vec<DataType>,
-        ret: Box<DataType>,
-		is_bounded: bool
-    },
-    Scalar(Scalar),
-    Structure(Vec<DataType>),
-    Void,
-    Pointer(syn::Pointer),
+	Void,
+	Scalar(Scalar),
+	Struct(Vec<DataType>),
+	Union(Vec<DataType>),
+	Enum{
+		is_incomplete: bool,
+	},
+    Function(FuncType),
+    Pointer(Pointer),
 	Array(Array),
 }
 
+pub struct SymbolTableEntry {
+    pub partition: TypePartition,
+    pub data_type: DataType,
+    pub storage_duration: StorageDuration,
+    pub linkage: Linkage,
+}
+
 pub struct SemanticParser<'a> {
-	symtab: SymbolTable<Namespace, DataType>,
+	symtab: SymbolTable<Namespace, SymbolTableEntry>,
 	diagnostics: &'a mut DiagnosticEngine,
 }
 

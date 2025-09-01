@@ -23,8 +23,9 @@ pub struct DeclarationSpecifiers {
 	pub func_specifiers: Vec<FunctionSpecifier>,
 }
 
-impl From<Vec<DeclarationSpecifierKind>> for DeclarationSpecifiers {
-	fn from(value: Vec<DeclarationSpecifierKind>) -> Self {
+impl TryFrom<Vec<DeclarationSpecifierKind>> for DeclarationSpecifiers {
+	type Error = ();
+	fn try_from(value: Vec<DeclarationSpecifierKind>) -> Result<Self, Self::Error> {
 		let mut specifiers = DeclarationSpecifiers::default();
 		for kind in value {
 			use DeclarationSpecifierKind::*;
@@ -35,7 +36,7 @@ impl From<Vec<DeclarationSpecifierKind>> for DeclarationSpecifiers {
 				FunctionSpecifier(inner) => specifiers.func_specifiers.push(inner),
 			}
 		}
-		specifiers
+		Ok(specifiers)
 	}
 }
 
