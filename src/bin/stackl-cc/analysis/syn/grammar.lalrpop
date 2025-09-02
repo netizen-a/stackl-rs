@@ -615,11 +615,11 @@ Pointer: Vec<Pointer> = {
 ParameterTypeList: ParameterTypeList = {
 	ParameterList => ParameterTypeList {
 		parameter_list: <>,
-		comma_ellipsis: false,
+		is_variadic: false,
 	},
 	<parameter_list:ParameterList> "," "..." => ParameterTypeList {
 		parameter_list,
-		comma_ellipsis: true,
+		is_variadic: true,
 	},
 };
 

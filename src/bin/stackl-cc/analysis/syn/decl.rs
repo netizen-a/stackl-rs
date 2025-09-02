@@ -184,7 +184,7 @@ pub enum DirectDeclarator {
 pub struct ParameterTypeList {
 	/// (6.7.5) parameter-list
 	pub parameter_list: Vec<ParameterDeclaration>,
-	pub comma_ellipsis: bool,
+	pub is_variadic: bool,
 }
 
 /// (6.7.5) pointer

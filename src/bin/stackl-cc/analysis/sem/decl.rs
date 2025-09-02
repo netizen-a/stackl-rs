@@ -4,7 +4,6 @@ use crate::diagnostics as diag;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		println!("DEBUG function_definition: {:?}", decl.specifiers);
 		self.declarator(&mut decl.declarator);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
@@ -20,7 +19,6 @@ impl super::SemanticParser<'_> {
 			);
 			self.diagnostics.push_sem(diag);
 		}
-		println!("DEBUG declaration: {:?}", decl.specifiers);
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
 		}
@@ -81,7 +79,7 @@ impl super::SemanticParser<'_> {
 	fn direct_declarator(&mut self, direct_decl: &mut DirectDeclarator) {
 		use DirectDeclarator::*;
 		match direct_decl {
-			Declarator(_decl) => eprintln!("{:?}", _decl),
+			Declarator(_decl) => {},
 			Array {
 				type_qualifier_list,
 				assignment_expr,
