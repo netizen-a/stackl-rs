@@ -102,11 +102,10 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
-		use TypeQualifier::*;
-		match qual {
-			Const => (),
-			Restrict => (),
-			Volatile => (),
+		match qual.kind {
+			TypeQualifierKind::Const => (),
+			TypeQualifierKind::Restrict => (),
+			TypeQualifierKind::Volatile => (),
 		}
 	}
 	fn parameter_declaration(&mut self, param: &mut ParameterDeclaration) {

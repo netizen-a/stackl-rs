@@ -19,21 +19,27 @@ pub struct Declaration {
 pub struct DeclarationSpecifiers {
 	pub storage_classes: Vec<StorageClassSpecifier>,
 	pub type_specifiers: Vec<TypeSpecifier>,
-	pub type_qualifiers: Vec<TypeQualifier>,
+	pub is_const: bool,
+	pub is_volatile: bool,
 	pub func_specifiers: Vec<FunctionSpecifier>,
 }
 
-impl TryFrom<Vec<DeclarationSpecifierKind>> for DeclarationSpecifiers {
-	type Error = ();
-	fn try_from(value: Vec<DeclarationSpecifierKind>) -> Result<Self, Self::Error> {
+impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
+	type Error = diag::Diagnostic;
+	fn try_from(value: Vec<DeclSpecKind>) -> Result<Self, Self::Error> {
 		let mut specifiers = DeclarationSpecifiers::default();
 		for kind in value {
-			use DeclarationSpecifierKind::*;
 			match kind {
-				StorageClassSpecifier(inner) => specifiers.storage_classes.push(inner),
-				TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
-				TypeQualifier(inner) => specifiers.type_qualifiers.push(inner),
-				FunctionSpecifier(inner) => specifiers.func_specifiers.push(inner),
+				DeclSpecKind::StorageClassSpecifier(inner) => specifiers.storage_classes.push(inner),
+				DeclSpecKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
+				DeclSpecKind::TypeQualifier(inner) => {
+					specifiers.is_const = inner.kind == TypeQualifierKind::Const;
+					specifiers.is_volatile = inner.kind == TypeQualifierKind::Volatile;
+					if inner.kind == TypeQualifierKind::Restrict {
+						return Err(diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, inner.span));
+					}
+				},
+				DeclSpecKind::FunctionSpecifier(inner) => specifiers.func_specifiers.push(inner),
 			}
 		}
 		Ok(specifiers)
@@ -42,7 +48,7 @@ impl TryFrom<Vec<DeclarationSpecifierKind>> for DeclarationSpecifiers {
 
 /// (6.7) declaration-specifiers
 #[derive(Debug)]
-pub enum DeclarationSpecifierKind {
+pub enum DeclSpecKind {
 	StorageClassSpecifier(StorageClassSpecifier),
 	TypeSpecifier(TypeSpecifier),
 	/// (6.7.3) type-qualifier
@@ -192,9 +198,9 @@ pub struct Pointer {
 impl From<&[TypeQualifier]> for Pointer {
 	fn from(value: &[TypeQualifier]) -> Self {
 		Self{
-			is_const: value.contains(&TypeQualifier::Const),
-			is_volatile: value.contains(&TypeQualifier::Volatile),
-			is_restrict: value.contains(&TypeQualifier::Restrict),
+			is_const: value.iter().find(|q| q.kind == TypeQualifierKind::Const).is_some(),
+			is_volatile: value.iter().find(|q| q.kind == TypeQualifierKind::Volatile).is_some(),
+			is_restrict: value.iter().find(|q| q.kind == TypeQualifierKind::Restrict).is_some(),
 		}
 	}
 }
@@ -202,6 +208,7 @@ impl From<&[TypeQualifier]> for Pointer {
 /// (6.7.5) parameter-declaration
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
+	pub name: Option<tok::Ident>,
 	pub specifiers: DeclarationSpecifiers,
 	pub parameter_declarator: ParameterDeclarator,
 }
@@ -240,11 +247,17 @@ pub enum DirectAbstractDeclarator {
 
 /// (6.7.3) type-qualifier
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeQualifier {
+pub enum TypeQualifierKind {
 	Const,
 	Restrict,
 	Volatile,
 }
+#[derive(Debug, Clone)]
+pub struct TypeQualifier {
+	pub span: diag::Span,
+	pub kind: TypeQualifierKind,
+}
+
 /// (6.7.6) type-name
 #[derive(Debug, Clone)]
 pub struct TypeName {

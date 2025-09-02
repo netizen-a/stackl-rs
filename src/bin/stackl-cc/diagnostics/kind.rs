@@ -5,6 +5,7 @@ pub enum DiagKind {
 	InvalidToken,
 	HeaderNameError,
 	MultStorageClasses,
+	InvalidRestrict,
 }
 
 impl ToString for DiagKind {
@@ -15,6 +16,7 @@ impl ToString for DiagKind {
 			DiagKind::InvalidToken => "invalid token",
 			DiagKind::HeaderNameError => "header name error",
 			DiagKind::MultStorageClasses => "multiple storage classes in declaration specifiers",
+			DiagKind::InvalidRestrict => "invalid use of 'restrict'",
 		};
 		s.to_string()
 	}

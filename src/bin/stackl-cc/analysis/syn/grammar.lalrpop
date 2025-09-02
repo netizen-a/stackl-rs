@@ -3,11 +3,11 @@ use std::rc::Rc;
 use crate::analysis::syn::*;
 use crate::analysis::tok::*;
 use crate::diagnostics as diag;
-use lalrpop_util::ErrorRecovery;
+use lalrpop_util as lalr;
 
 
 grammar<'a>(
-	errors: &'a mut Vec<ErrorRecovery<usize, Token, diag::Diagnostic>>,
+	errors: &'a mut Vec<lalr::ErrorRecovery<usize, Token, diag::Diagnostic>>,
 	tk_ref: &'a Rc<RefCell<InnerIter>>
 );
 
@@ -289,20 +289,23 @@ ConstantExpr = ConditionalExpr;
 // A.2.2 Declarations
 
 Declaration: Declaration = {
-	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
+	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" =>? {
 		tk_ref.borrow_mut().is_typedef = false;
-		Declaration {
-			specifiers: DeclarationSpecifiers::try_from(kind_list).unwrap(),
-			init_declarator_list: init_list.unwrap_or_default(),
+		match DeclarationSpecifiers::try_from(kind_list) {
+			Ok(specifiers) => Ok(Declaration {
+				specifiers,
+				init_declarator_list: init_list.unwrap_or_default(),
+			}),
+			Err(error) => Err(lalr::ParseError::User{error}),
 		}
 	},
 };
 
-DeclarationSpecifier: DeclarationSpecifierKind = {
-	StorageClassSpecifier => DeclarationSpecifierKind::StorageClassSpecifier(<>),
-	TypeSpecifier => DeclarationSpecifierKind::TypeSpecifier(<>),
-	TypeQualifier => DeclarationSpecifierKind::TypeQualifier(<>),
-	FunctionSpecifier => DeclarationSpecifierKind::FunctionSpecifier(<>),
+DeclarationSpecifier: DeclSpecKind = {
+	StorageClassSpecifier => DeclSpecKind::StorageClassSpecifier(<>),
+	TypeSpecifier => DeclSpecKind::TypeSpecifier(<>),
+	TypeQualifier => DeclSpecKind::TypeQualifier(<>),
+	FunctionSpecifier => DeclSpecKind::FunctionSpecifier(<>),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -517,9 +520,18 @@ Enumerator: Enumerator = {
 };
 
 TypeQualifier: TypeQualifier = {
-	"const" => TypeQualifier::Const,
-	"restrict" => TypeQualifier::Restrict,
-	"volatile" => TypeQualifier::Volatile,
+	<lo:@L> <kw:"const"> <hi:@R>    => TypeQualifier{
+		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		kind: TypeQualifierKind::Const,
+	},
+	<lo:@L> <kw:"restrict"> <hi:@R> => TypeQualifier{
+		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		kind: TypeQualifierKind::Restrict,
+	},
+	<lo:@L> <kw:"volatile"> <hi:@R> => TypeQualifier{
+		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		kind: TypeQualifierKind::Volatile,
+	},
 };
 
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
@@ -620,17 +632,21 @@ ParameterList: Vec<ParameterDeclaration> = {
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
-		ParameterDeclaration{
-			specifiers: DeclarationSpecifiers::try_from(kind_list).unwrap(),
-			parameter_declarator: decl,
+	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> =>? {
+		match DeclarationSpecifiers::try_from(kind_list) {
+			Ok(specifiers) => Ok(ParameterDeclaration {
+				name: decl.0,
+				specifiers,
+				parameter_declarator: decl.1,
+			}),
+			Err(error) => Err(lalr::ParseError::User{error}),
 		}
 	},
 };
 
-ParameterDeclarator: ParameterDeclarator = {
-	Declarator => todo!("parameter-declarator"),
-	<decl:AbstractDeclarator?> => ParameterDeclarator::AbstractDeclarator(decl),
+ParameterDeclarator: (Option<Ident>,ParameterDeclarator) = {
+	Declarator => (Some(<>.0), ParameterDeclarator::Declarator(<>.1)),
+	<decl:AbstractDeclarator?> => (None, ParameterDeclarator::AbstractDeclarator(decl)),
 }
 
 IdentifierList: Vec<Ident> = {
@@ -867,12 +883,15 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
-		FunctionDefinition {
-			specifiers: DeclarationSpecifiers::try_from(kind_list).unwrap(),
-			declarator: decl.1,
-			declaration_list: list,
-			compound_stmt: compound,
+	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> =>? {
+		match DeclarationSpecifiers::try_from(kind_list) {
+			Ok(specifiers) => Ok(FunctionDefinition {
+				specifiers,
+				declarator: decl.1,
+				declaration_list: list,
+				compound_stmt: compound,
+			}),
+			Err(error) => Err(lalr::ParseError::User{error}),
 		}
 	},
 };
