@@ -43,6 +43,20 @@ struct Args {
 		help = "Enable the General IO device"
 	)]
 	gen_io: bool,
+	// TODO: implement processor delay
+	#[arg(
+		long,
+		default_value_t = 33.0,
+		help = "Set the processor speed in megahertz"
+	)]
+	mhz: f32,
+	#[arg(
+		short = 'g',
+		long,
+		default_value_t = false,
+		help = "Run in debug mode"
+	)]
+	debug: bool,
 }
 fn main() -> ExitCode {
 	let args = Args::parse();
