@@ -17,12 +17,6 @@ enum Namespace {
 	Ordinary(String),
 }
 
-pub enum TypePartition {
-    ObjectType,
-    FunctionType,
-    IncompleteType,
-}
-
 struct MemberType {
 	name: String,
 	data: DataType,
@@ -85,19 +79,17 @@ pub enum DataType {
 	Scalar(Scalar),
 	Struct(Vec<DataType>),
 	Union(Vec<DataType>),
-	Enum{
-		is_incomplete: bool,
-	},
+	Enum,
     Function(FuncType),
     Pointer(Pointer),
 	Array(Array),
 }
 
 pub struct SymbolTableEntry {
-    pub partition: TypePartition,
     pub data_type: DataType,
     pub storage_duration: StorageDuration,
     pub linkage: Linkage,
+	pub is_incomplete: bool
 }
 
 pub struct SemanticParser<'a> {
