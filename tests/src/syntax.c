@@ -1,5 +1,3 @@
-restrict restrict int foo(int a, int b) {}
-
 // Test for declarator syntax
 
 // int a;
@@ -10,5 +8,5 @@ restrict restrict int foo(int a, int b) {}
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
-restrict restrict int foo(int a, int b) {}
+restrict restrict int foo(void) {}
 
