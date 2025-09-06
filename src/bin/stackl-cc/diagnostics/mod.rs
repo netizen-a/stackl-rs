@@ -41,10 +41,7 @@ impl DiagnosticEngine {
 				return true;
 			}
 		}
-		if !self.list_syntax.is_empty() {
-			return true;
-		}
-		false
+		!self.list_syntax.is_empty()
 	}
 	pub fn print_errors(&self) {
 		for diag in self.list_other.iter() {
