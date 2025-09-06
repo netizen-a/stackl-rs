@@ -43,20 +43,14 @@ impl DiagnosticEngine {
 		}
 		!self.list_syntax.is_empty()
 	}
-	pub fn print_errors(&self) {
-		for diag in self.list_other.iter() {
-			if let DiagLevel::Error = diag.level {
-				self.print_error(diag)
-			}
-		}
+	pub fn print_diagnostics(&self) {
 		for diag in self.list_syntax.iter() {
 			self.print_recov(diag)
 		}
-	}
-	pub fn print_warnings(&self) {
 		for diag in self.list_other.iter() {
-			if let DiagLevel::Warning = diag.level {
-				eprintln!("warning: {:?}", diag.kind);
+			match diag.level {
+				DiagLevel::Error => self.print_error(diag),
+				DiagLevel::Warning => self.print_warning(diag),
 			}
 		}
 	}
@@ -69,6 +63,29 @@ impl DiagnosticEngine {
 
         eprint!("\x1b[0;31merror: ");
         match &diag.kind {
+			DiagKind::InvalidRestrict => {
+				eprintln!("restrict requires a pointer or reference\x1b[0m");
+                let (line, col) = diag.span.location(&source).unwrap();
+                let mut line_len = line.to_string().len();
+                line_len += line_len % 2;
+
+                eprintln!("{}--> {file_name}:{line}:{col}", " ".repeat(line_len));
+
+                line_len += 1;
+                let line_space = " ".repeat(line_len);
+                eprintln!("{line_space}|");
+                if (line_len % 2) == 1 {
+                    print!(" ");
+                }
+                for source_line in diag.span.to_string_vec(&source) {
+                    eprintln!("{} |{}", line, source_line);
+                    eprintln!(
+                        "{line_space}|{}{} ",
+                        " ".repeat(col - 1),
+                        "^".repeat(diag.span.loc.1 - diag.span.loc.0)
+                    );
+                }
+			}
             DiagKind::TypeError {
 				found,
 				expected,
@@ -101,5 +118,40 @@ impl DiagnosticEngine {
 	}
 	fn print_recov(&self, diag: &ErrorRecovery<usize, tok::Token, Diagnostic>) {
 
+	}
+	fn print_warning(&self, diag: &Diagnostic) {
+		let file_path = self.file_map.get_by_left(&diag.span.file_id).unwrap();
+		let file_name = file_path.to_string_lossy();
+		let mut file = fs::File::open(file_path).unwrap();
+		let mut source = String::new();
+		file.read_to_string(&mut source);
+
+        eprint!("\x1b[0;31mwarning: ");
+        match &diag.kind {
+            DiagKind::DuplicateSpecifier(name) => {
+                eprintln!("duplicate '{name}' declaration specifier\x1b[0m");
+                let (line, col) = diag.span.location(&source).unwrap();
+                let mut line_len = line.to_string().len();
+                line_len += line_len % 2;
+
+                eprintln!("{}--> {file_name}:{line}:{col}", " ".repeat(line_len));
+
+                line_len += 1;
+                let line_space = " ".repeat(line_len);
+                eprintln!("{line_space}|");
+                if (line_len % 2) == 1 {
+                    print!(" ");
+                }
+                for source_line in diag.span.to_string_vec(&source) {
+                    eprintln!("{} |{}", line, source_line);
+                    eprintln!(
+                        "{line_space}|{}{} ",
+                        " ".repeat(col - 1),
+                        "^".repeat(diag.span.loc.1 - diag.span.loc.0)
+                    );
+                }
+            }
+			_ => todo!()
+        }
 	}
 }

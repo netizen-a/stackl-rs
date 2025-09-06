@@ -314,7 +314,7 @@ impl Iterator for Lexer {
 	type Item = diag::ResultTriple<tok::PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.leading_space = false;
-		let mut curr_pos = 0;
+		let (mut curr_pos, _) = self.chars.peek()?;
 		// skip whitespace
 		while let Some((pos, whitespace)) = self
 			.chars

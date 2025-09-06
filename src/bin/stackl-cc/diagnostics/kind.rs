@@ -7,6 +7,7 @@ pub enum DiagKind {
 	InvalidToken,
 	HeaderNameError,
 	MultStorageClasses,
+	DuplicateSpecifier(String),
 	InvalidRestrict,
 	TypeError{
 		found: DataType,

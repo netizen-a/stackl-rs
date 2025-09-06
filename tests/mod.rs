@@ -21,7 +21,7 @@ fn syntax() -> ExitCode {
 		.arg(test1_path)
 		.output()
 		.unwrap();
-	println!("stdout: {}", String::from_utf8(out.stdout).unwrap());
-	println!("stderr: {}", String::from_utf8(out.stderr).unwrap());
+	println!("stdout:\n{}", String::from_utf8(out.stdout).unwrap());
+	println!("stderr:\n{}", String::from_utf8(out.stderr).unwrap());
 	to_exitcode(out.status.success())
 }

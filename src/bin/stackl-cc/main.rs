@@ -16,12 +16,9 @@ fn main() -> ExitCode {
 	let _analysis_result = analysis::parse(args.in_file, &mut diag_engine);
 
 	if diag_engine.contains_error() {
-		diag_engine.print_errors();
+		diag_engine.print_diagnostics();
 		return ExitCode::FAILURE;
 	}
-	// We do not print warnings with errors.
-	// Warnings are a liability if the code is erroneous.
-	diag_engine.print_warnings();
 
 	//synthesis::parse(&analysis_result.unwrap());
 	println!("{:#?}", _analysis_result);

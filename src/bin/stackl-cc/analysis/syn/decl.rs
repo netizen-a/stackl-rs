@@ -21,8 +21,8 @@ pub struct DeclarationSpecifiers {
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
 	pub is_volatile: bool,
-	pub span_restrict: Vec<diag::Span>,
-	pub span_inline: Vec<diag::Span>,
+	pub restrict_list: Vec<diag::Span>,
+	pub inline_list: Vec<diag::Span>,
 }
 
 impl From<Vec<DeclSpecKind>> for DeclarationSpecifiers {
@@ -38,11 +38,11 @@ impl From<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 					match inner.kind {
 						TypeQualifierKind::Const => specifiers.is_const = true,
 						TypeQualifierKind::Volatile => specifiers.is_volatile = true,
-						TypeQualifierKind::Restrict(span) => specifiers.span_restrict.push(span)
+						TypeQualifierKind::Restrict(span) => specifiers.restrict_list.push(span)
 					}
 				}
 				DeclSpecKind::Inline(span) => {
-					specifiers.span_inline.push(span)
+					specifiers.inline_list.push(span)
 				},
 			}
 		}

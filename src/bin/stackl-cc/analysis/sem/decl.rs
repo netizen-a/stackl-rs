@@ -4,7 +4,17 @@ use crate::diagnostics as diag;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		// self.declarator(&mut decl.declarator);
+		for (i, restrict_span) in decl.specifiers.restrict_list.iter().enumerate() {
+			let diag = if i == 0 {
+				diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, restrict_span.clone())
+			} else {
+				diag::Diagnostic::warn(
+					diag::DiagKind::DuplicateSpecifier("restrict".to_owned()),
+					restrict_span.clone()
+				)
+			};
+			self.diagnostics.push(diag);
+		}
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
 		}
@@ -65,14 +75,6 @@ impl super::SemanticParser<'_> {
 			InitializerList(list) => self.initializer_list(list),
 		}
 	}
-	// fn declarator(&mut self, decl: &mut Declarator) {
-	// 	for ptr in decl.pointer.iter_mut() {
-	// 		// pointer
-	// 	}
-	// 	for direct_decl in decl.direct_declarator.iter_mut() {
-	// 		self.direct_declarator(direct_decl);
-	// 	}
-	// }
 	fn direct_declarator(&mut self, direct_decl: &mut DirectDeclarator) {
 		use DirectDeclarator::*;
 		match direct_decl {
