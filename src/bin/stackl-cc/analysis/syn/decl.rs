@@ -30,15 +30,20 @@ impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 		let mut specifiers = DeclarationSpecifiers::default();
 		for kind in value {
 			match kind {
-				DeclSpecKind::StorageClassSpecifier(inner) => specifiers.storage_classes.push(inner),
+				DeclSpecKind::StorageClassSpecifier(inner) => {
+					specifiers.storage_classes.push(inner)
+				}
 				DeclSpecKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
 				DeclSpecKind::TypeQualifier(inner) => {
 					specifiers.is_const = inner.kind == TypeQualifierKind::Const;
 					specifiers.is_volatile = inner.kind == TypeQualifierKind::Volatile;
 					if inner.kind == TypeQualifierKind::Restrict {
-						return Err(diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, inner.span));
+						return Err(diag::Diagnostic::error(
+							diag::DiagKind::InvalidRestrict,
+							inner.span,
+						));
 					}
-				},
+				}
 				DeclSpecKind::FunctionSpecifier(inner) => specifiers.func_specifiers.push(inner),
 			}
 		}
@@ -88,9 +93,9 @@ pub enum TypeSpecifier {
 	StructOrUnionSpecifier(StructOrUnionSpecifier),
 	EnumSpecifier(EnumSpecifier),
 	/// (6.7.7) typedef-name
-	TypedefName{
+	TypedefName {
 		span: diag::Span,
-		name: tok::Ident
+		name: tok::Ident,
 	},
 }
 
@@ -198,10 +203,19 @@ pub struct Pointer {
 
 impl From<&[TypeQualifier]> for Pointer {
 	fn from(value: &[TypeQualifier]) -> Self {
-		Self{
-			is_const: value.iter().find(|q| q.kind == TypeQualifierKind::Const).is_some(),
-			is_volatile: value.iter().find(|q| q.kind == TypeQualifierKind::Volatile).is_some(),
-			is_restrict: value.iter().find(|q| q.kind == TypeQualifierKind::Restrict).is_some(),
+		Self {
+			is_const: value
+				.iter()
+				.find(|q| q.kind == TypeQualifierKind::Const)
+				.is_some(),
+			is_volatile: value
+				.iter()
+				.find(|q| q.kind == TypeQualifierKind::Volatile)
+				.is_some(),
+			is_restrict: value
+				.iter()
+				.find(|q| q.kind == TypeQualifierKind::Restrict)
+				.is_some(),
 		}
 	}
 }

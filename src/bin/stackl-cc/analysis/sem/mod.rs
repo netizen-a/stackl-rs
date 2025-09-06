@@ -10,10 +10,7 @@ use crate::symtab::SymbolTable;
 enum Namespace {
 	Label(String),
 	Tag(String),
-	Member{
-		tag: String,
-		member: String
-	},
+	Member { tag: String, member: String },
 	Ordinary(String),
 }
 
@@ -42,12 +39,12 @@ enum Scalar {
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Array {
-    pub component: Box<DataType>,
-    pub length: u32,
+	pub component: Box<DataType>,
+	pub length: u32,
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Pointer{
+pub struct Pointer {
 	pub is_const: bool,
 	pub is_volatile: bool,
 	pub is_restrict: bool,
@@ -68,8 +65,8 @@ pub enum Linkage {
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct FuncType {
 	params: Vec<DataType>,
-    ret: Box<DataType>,
-	is_variadic: bool
+	ret: Box<DataType>,
+	is_variadic: bool,
 }
 
 #[non_exhaustive]
@@ -80,16 +77,16 @@ pub enum DataType {
 	Struct(Vec<DataType>),
 	Union(Vec<DataType>),
 	Enum,
-    Function(FuncType),
-    Pointer(Pointer),
+	Function(FuncType),
+	Pointer(Pointer),
 	Array(Array),
 }
 
 pub struct SymbolTableEntry {
-    pub data_type: DataType,
-    pub storage_duration: StorageDuration,
-    pub linkage: Linkage,
-	pub is_incomplete: bool
+	pub data_type: DataType,
+	pub storage_duration: StorageDuration,
+	pub linkage: Linkage,
+	pub is_incomplete: bool,
 }
 
 pub struct SemanticParser<'a> {

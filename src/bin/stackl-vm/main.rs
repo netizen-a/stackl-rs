@@ -50,12 +50,7 @@ struct Args {
 		help = "Set the processor speed in megahertz"
 	)]
 	mhz: f32,
-	#[arg(
-		short = 'g',
-		long,
-		default_value_t = false,
-		help = "Run in debug mode"
-	)]
+	#[arg(short = 'g', long, default_value_t = false, help = "Run in debug mode")]
 	debug: bool,
 }
 fn main() -> ExitCode {

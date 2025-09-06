@@ -142,8 +142,8 @@ impl PPNumber {
 					self.octal_constant(chars)
 				}
 			}
-			z @ '1'..='9' => {
-				let name = String::from(*z);
+			'1'..='9' => {
+				let name = String::from(chars.next().unwrap());
 				self.decimal_constant(name, chars)
 			}
 			e => {

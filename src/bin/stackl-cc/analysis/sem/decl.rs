@@ -113,7 +113,7 @@ impl super::SemanticParser<'_> {
 	fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
 		use ParameterDeclarator::*;
 		match param_decl {
-			Declarator(decl) => {},
+			Declarator(decl) => {}
 			AbstractDeclarator(decl) => {
 				if let Some(decl) = decl {
 					self.abstract_declarator(decl)
@@ -126,7 +126,7 @@ impl super::SemanticParser<'_> {
 		match decl {
 			Pointer(ptr) => {
 				// pointer
-			},
+			}
 			DirectAbstractDeclarator {
 				pointer,
 				direct_abstract_declarator,
