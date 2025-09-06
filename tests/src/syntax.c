@@ -8,3 +8,5 @@ int *c[3];
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
+int foo(int, int);
+

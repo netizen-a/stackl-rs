@@ -65,9 +65,6 @@ impl super::SemanticParser<'_> {
 			InitializerList(list) => self.initializer_list(list),
 		}
 	}
-	fn function_specifier(&mut self, _spec: &mut FunctionSpecifier) {
-		todo!("function-specifier")
-	}
 	// fn declarator(&mut self, decl: &mut Declarator) {
 	// 	for ptr in decl.pointer.iter_mut() {
 	// 		// pointer

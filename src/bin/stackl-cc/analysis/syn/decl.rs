@@ -21,7 +21,7 @@ pub struct DeclarationSpecifiers {
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
 	pub is_volatile: bool,
-	pub func_specifiers: Vec<FunctionSpecifier>,
+	pub is_inline: bool,
 }
 
 impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
@@ -44,7 +44,9 @@ impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 						));
 					}
 				}
-				DeclSpecKind::FunctionSpecifier(inner) => specifiers.func_specifiers.push(inner),
+				DeclSpecKind::Inline => {
+					specifiers.is_inline = false
+				},
 			}
 		}
 		Ok(specifiers)
@@ -59,7 +61,7 @@ pub enum DeclSpecKind {
 	/// (6.7.3) type-qualifier
 	TypeQualifier(TypeQualifier),
 	/// (6.7.4) function-specifier
-	FunctionSpecifier(FunctionSpecifier),
+	Inline,
 }
 
 /// (6.7) init-declarator
@@ -154,23 +156,9 @@ pub enum Initializer {
 	InitializerList(InitializerList),
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum FunctionSpecifier {
-	Inline,
-}
-
-// (6.7.5) declarator
-// #[derive(Debug, Clone)]
-// pub struct Declarator {
-// 	pub pointer: Vec<Pointer>,
-// 	pub direct_declarator: Vec<DirectDeclarator>,
-// }
-
 /// (6.7.5) direct-declarator
 #[derive(Debug, Clone)]
 pub enum DirectDeclarator {
-	// ( declarator )
-	//Declarator(Box<Declarator>),
 	Pointer(Pointer),
 	Array {
 		/// (6.7.5) type-qualifier-list

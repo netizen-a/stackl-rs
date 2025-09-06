@@ -305,7 +305,7 @@ DeclarationSpecifier: DeclSpecKind = {
 	StorageClassSpecifier => DeclSpecKind::StorageClassSpecifier(<>),
 	TypeSpecifier => DeclSpecKind::TypeSpecifier(<>),
 	TypeQualifier => DeclSpecKind::TypeQualifier(<>),
-	FunctionSpecifier => DeclSpecKind::FunctionSpecifier(<>),
+	"inline" => DeclSpecKind::Inline,
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -533,8 +533,6 @@ TypeQualifier: TypeQualifier = {
 		kind: TypeQualifierKind::Volatile,
 	},
 };
-
-FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
 
 Declarator: (Ident, Vec<DirectDeclarator>) = {
 	<ptr:Pointer?> <mut dd_list:DirectDeclaratorList> => {
