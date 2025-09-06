@@ -38,7 +38,7 @@ where
 		.parse(&mut errors, &tk_ref, tk_iter)
 		.unwrap();
 	for err in errors {
-		diagnostics.push_syn(err)
+		diagnostics.push_recov(err)
 	}
 	sem::SemanticParser::new(diagnostics).parse(unit)
 }

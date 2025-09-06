@@ -17,7 +17,7 @@ impl super::SemanticParser<'_> {
 				diag::DiagKind::MultStorageClasses,
 				storage_class.span.clone(),
 			);
-			self.diagnostics.push_sem(diag);
+			self.diagnostics.push(diag);
 		}
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);

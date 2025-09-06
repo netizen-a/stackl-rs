@@ -1,3 +1,5 @@
+use crate::data_types::DataType;
+
 #[derive(Debug)]
 pub enum DiagKind {
 	UnexpectedEof,
@@ -6,18 +8,8 @@ pub enum DiagKind {
 	HeaderNameError,
 	MultStorageClasses,
 	InvalidRestrict,
-}
-
-impl ToString for DiagKind {
-	fn to_string(&self) -> String {
-		let s = match self {
-			DiagKind::UnexpectedEof => "unexpected end of file",
-			DiagKind::UnexpectedEscape => "unexpected escape",
-			DiagKind::InvalidToken => "invalid token",
-			DiagKind::HeaderNameError => "header name error",
-			DiagKind::MultStorageClasses => "multiple storage classes in declaration specifiers",
-			DiagKind::InvalidRestrict => "invalid use of 'restrict'",
-		};
-		s.to_string()
-	}
+	TypeError{
+		found: DataType,
+		expected: DataType,
+	},
 }
