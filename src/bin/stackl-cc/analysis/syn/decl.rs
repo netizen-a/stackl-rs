@@ -21,12 +21,12 @@ pub struct DeclarationSpecifiers {
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
 	pub is_volatile: bool,
-	pub is_inline: bool,
+	pub span_restrict: Vec<diag::Span>,
+	pub span_inline: Vec<diag::Span>,
 }
 
-impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
-	type Error = diag::Diagnostic;
-	fn try_from(value: Vec<DeclSpecKind>) -> Result<Self, Self::Error> {
+impl From<Vec<DeclSpecKind>> for DeclarationSpecifiers {
+	fn from(value: Vec<DeclSpecKind>) -> Self {
 		let mut specifiers = DeclarationSpecifiers::default();
 		for kind in value {
 			match kind {
@@ -35,21 +35,18 @@ impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 				}
 				DeclSpecKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
 				DeclSpecKind::TypeQualifier(inner) => {
-					specifiers.is_const = inner.kind == TypeQualifierKind::Const;
-					specifiers.is_volatile = inner.kind == TypeQualifierKind::Volatile;
-					if inner.kind == TypeQualifierKind::Restrict {
-						return Err(diag::Diagnostic::error(
-							diag::DiagKind::InvalidRestrict,
-							inner.span,
-						));
+					match inner.kind {
+						TypeQualifierKind::Const => specifiers.is_const = true,
+						TypeQualifierKind::Volatile => specifiers.is_volatile = true,
+						TypeQualifierKind::Restrict(span) => specifiers.span_restrict.push(span)
 					}
 				}
-				DeclSpecKind::Inline => {
-					specifiers.is_inline = true
+				DeclSpecKind::Inline(span) => {
+					specifiers.span_inline.push(span)
 				},
 			}
 		}
-		Ok(specifiers)
+		specifiers
 	}
 }
 
@@ -61,7 +58,7 @@ pub enum DeclSpecKind {
 	/// (6.7.3) type-qualifier
 	TypeQualifier(TypeQualifier),
 	/// (6.7.4) function-specifier
-	Inline,
+	Inline(diag::Span),
 }
 
 /// (6.7) init-declarator
@@ -194,15 +191,15 @@ impl From<&[TypeQualifier]> for Pointer {
 		Self {
 			is_const: value
 				.iter()
-				.find(|q| q.kind == TypeQualifierKind::Const)
+				.find(|q| matches!(q.kind, TypeQualifierKind::Const))
 				.is_some(),
 			is_volatile: value
 				.iter()
-				.find(|q| q.kind == TypeQualifierKind::Volatile)
+				.find(|q| matches!(q.kind, TypeQualifierKind::Volatile))
 				.is_some(),
 			is_restrict: value
 				.iter()
-				.find(|q| q.kind == TypeQualifierKind::Restrict)
+				.find(|q| matches!(q.kind, TypeQualifierKind::Restrict(_)))
 				.is_some(),
 		}
 	}
@@ -249,10 +246,10 @@ pub enum DirectAbstractDeclarator {
 }
 
 /// (6.7.3) type-qualifier
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum TypeQualifierKind {
 	Const,
-	Restrict,
+	Restrict(diag::Span),
 	Volatile,
 }
 #[derive(Debug, Clone)]

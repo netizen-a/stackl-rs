@@ -289,14 +289,11 @@ ConstantExpr = ConditionalExpr;
 // A.2.2 Declarations
 
 Declaration: Declaration = {
-	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" =>? {
+	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
 		tk_ref.borrow_mut().is_typedef = false;
-		match DeclarationSpecifiers::try_from(kind_list) {
-			Ok(specifiers) => Ok(Declaration {
-				specifiers,
-				init_declarator_list: init_list.unwrap_or_default(),
-			}),
-			Err(error) => Err(lalr::ParseError::User{error}),
+		Declaration {
+			specifiers: DeclarationSpecifiers::from(kind_list),
+			init_declarator_list: init_list.unwrap_or_default(),
 		}
 	},
 };
@@ -305,7 +302,10 @@ DeclarationSpecifier: DeclSpecKind = {
 	StorageClassSpecifier => DeclSpecKind::StorageClassSpecifier(<>),
 	TypeSpecifier => DeclSpecKind::TypeSpecifier(<>),
 	TypeQualifier => DeclSpecKind::TypeQualifier(<>),
-	"inline" => DeclSpecKind::Inline,
+	<lo:@L> <kw:"inline"> <hi:@R> => DeclSpecKind::Inline(diag::Span{
+		file_id: kw.file_id,
+		loc: (lo, hi),
+	}),
 };
 
 InitDeclaratorList: Vec<InitDeclarator> = {
@@ -526,7 +526,10 @@ TypeQualifier: TypeQualifier = {
 	},
 	<lo:@L> <kw:"restrict"> <hi:@R> => TypeQualifier{
 		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
-		kind: TypeQualifierKind::Restrict,
+		kind: TypeQualifierKind::Restrict(diag::Span{
+			file_id: kw.file_id,
+			loc: (lo, hi),
+		}),
 	},
 	<lo:@L> <kw:"volatile"> <hi:@R> => TypeQualifier{
 		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
@@ -629,14 +632,11 @@ ParameterList: Vec<ParameterDeclaration> = {
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> =>? {
-		match DeclarationSpecifiers::try_from(kind_list) {
-			Ok(specifiers) => Ok(ParameterDeclaration {
-				name: decl.0,
-				specifiers,
-				parameter_declarator: decl.1,
-			}),
-			Err(error) => Err(lalr::ParseError::User{error}),
+	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
+		ParameterDeclaration {
+			name: decl.0,
+			specifiers: DeclarationSpecifiers::from(kind_list),
+			parameter_declarator: decl.1,
 		}
 	},
 };
@@ -880,15 +880,12 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> =>? {
-		match DeclarationSpecifiers::try_from(kind_list) {
-			Ok(specifiers) => Ok(FunctionDefinition {
-				specifiers,
-				declarator: decl.1,
-				declaration_list: list,
-				compound_stmt: compound,
-			}),
-			Err(error) => Err(lalr::ParseError::User{error}),
+	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
+		FunctionDefinition {
+			specifiers: DeclarationSpecifiers::from(kind_list),
+			declarator: decl.1,
+			declaration_list: list,
+			compound_stmt: compound,
 		}
 	},
 };
