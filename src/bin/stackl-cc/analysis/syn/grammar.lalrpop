@@ -477,12 +477,12 @@ StructDeclaratorList: Vec<StructDeclarator> = {
 StructDeclarator: StructDeclarator = {
 	<decl:Declarator> => StructDeclarator {
 		identifier: Some(decl.0),
-		declarator: Some(decl.1),
+		declarator: decl.1,
 		constant_expr: None,
 	},
 	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
 		identifier: decl.clone().map(|inner| inner.0),
-		declarator: decl.map(|inner| inner.1),
+		declarator: decl.map(|inner| inner.1).unwrap_or_default(),
 		constant_expr: Some(expr),
 	},
 };
@@ -536,14 +536,16 @@ TypeQualifier: TypeQualifier = {
 
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
 
-Declarator: (Ident, Declarator) = {
-	<ptr:Pointer?> <dd_list:DirectDeclaratorList> => (
-		dd_list.0,
-		Declarator {
-			pointer: ptr.unwrap_or_default(),
-			direct_declarator: dd_list.1,
-		},
-	),
+Declarator: (Ident, Vec<DirectDeclarator>) = {
+	<ptr:Pointer?> <mut dd_list:DirectDeclaratorList> => {
+		let mut ptr_list: Vec<DirectDeclarator> = ptr
+			.unwrap_or_default()
+			.into_iter()
+			.map(DirectDeclarator::Pointer)
+			.collect();
+		dd_list.1.append(&mut ptr_list);
+		dd_list
+	},
 };
 
 DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
@@ -555,10 +557,7 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 		}
 		(ident, vec![])
 	},
-	"(" <decl:Declarator> ")" => (
-		decl.0,
-		vec![DirectDeclarator::Declarator(Box::new(decl.1))]
-	),
+	"(" <decl:Declarator> ")" => decl,
 	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
 		dd_list.1.push(DirectDeclarator::Array{
 			type_qualifier_list: qual,

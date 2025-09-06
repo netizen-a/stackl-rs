@@ -28,7 +28,7 @@ pub enum ExternalDeclaration {
 #[derive(Debug)]
 pub struct FunctionDefinition {
 	pub specifiers: DeclarationSpecifiers,
-	pub declarator: Declarator,
+	pub declarator: Vec<DirectDeclarator>,
 	pub declaration_list: Vec<Declaration>,
 	pub compound_stmt: CompoundStmt,
 }

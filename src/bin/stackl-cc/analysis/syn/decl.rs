@@ -61,7 +61,7 @@ pub enum DeclSpecKind {
 #[derive(Debug)]
 pub struct InitDeclarator {
 	pub identifier: tok::Ident,
-	pub declarator: Declarator,
+	pub declarator: Vec<DirectDeclarator>,
 	pub initializer: Option<Initializer>,
 }
 
@@ -138,7 +138,7 @@ pub struct StructDeclaration {
 #[derive(Debug, Clone)]
 pub struct StructDeclarator {
 	pub identifier: Option<tok::Ident>,
-	pub declarator: Option<Declarator>,
+	pub declarator: Vec<DirectDeclarator>,
 	pub constant_expr: Option<expr::Expr>,
 }
 
@@ -154,18 +154,19 @@ pub enum FunctionSpecifier {
 	Inline,
 }
 
-/// (6.7.5) declarator
-#[derive(Debug, Clone)]
-pub struct Declarator {
-	pub pointer: Vec<Pointer>,
-	pub direct_declarator: Vec<DirectDeclarator>,
-}
+// (6.7.5) declarator
+// #[derive(Debug, Clone)]
+// pub struct Declarator {
+// 	pub pointer: Vec<Pointer>,
+// 	pub direct_declarator: Vec<DirectDeclarator>,
+// }
 
 /// (6.7.5) direct-declarator
 #[derive(Debug, Clone)]
 pub enum DirectDeclarator {
-	/// ( declarator )
-	Declarator(Box<Declarator>),
+	// ( declarator )
+	//Declarator(Box<Declarator>),
+	Pointer(Pointer),
 	Array {
 		/// (6.7.5) type-qualifier-list
 		type_qualifier_list: Vec<TypeQualifier>,
@@ -215,7 +216,7 @@ pub struct ParameterDeclaration {
 
 #[derive(Debug, Clone)]
 pub enum ParameterDeclarator {
-	Declarator(Declarator),
+	Declarator(Vec<DirectDeclarator>),
 	AbstractDeclarator(Option<AbstractDeclarator>),
 }
 

@@ -4,7 +4,7 @@ use crate::diagnostics as diag;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		self.declarator(&mut decl.declarator);
+		// self.declarator(&mut decl.declarator);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
 		}
@@ -24,7 +24,7 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
-		self.declarator(&mut decl.declarator);
+		// self.declarator(&mut decl.declarator);
 		if let Some(ref mut init) = decl.initializer {
 			self.initializer(init);
 		}
@@ -48,9 +48,9 @@ impl super::SemanticParser<'_> {
 	}
 
 	fn struct_declarator(&mut self, struct_decl: &mut StructDeclarator) {
-		if let Some(ref mut decl) = struct_decl.declarator {
-			self.declarator(decl)
-		}
+		// if let Some(ref mut decl) = struct_decl.declarator {
+		// 	self.declarator(decl)
+		// }
 		if let Some(ref mut expr) = struct_decl.constant_expr {
 			self.expr(expr);
 		}
@@ -68,18 +68,19 @@ impl super::SemanticParser<'_> {
 	fn function_specifier(&mut self, _spec: &mut FunctionSpecifier) {
 		todo!("function-specifier")
 	}
-	fn declarator(&mut self, decl: &mut Declarator) {
-		for ptr in decl.pointer.iter_mut() {
-			// pointer
-		}
-		for direct_decl in decl.direct_declarator.iter_mut() {
-			self.direct_declarator(direct_decl);
-		}
-	}
+	// fn declarator(&mut self, decl: &mut Declarator) {
+	// 	for ptr in decl.pointer.iter_mut() {
+	// 		// pointer
+	// 	}
+	// 	for direct_decl in decl.direct_declarator.iter_mut() {
+	// 		self.direct_declarator(direct_decl);
+	// 	}
+	// }
 	fn direct_declarator(&mut self, direct_decl: &mut DirectDeclarator) {
 		use DirectDeclarator::*;
 		match direct_decl {
-			Declarator(_decl) => {},
+			//Declarator(_decl) => {},
+			Pointer(_ptr) => {}
 			Array {
 				type_qualifier_list,
 				assignment_expr,
@@ -112,7 +113,7 @@ impl super::SemanticParser<'_> {
 	fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
 		use ParameterDeclarator::*;
 		match param_decl {
-			Declarator(decl) => self.declarator(decl),
+			Declarator(decl) => {},
 			AbstractDeclarator(decl) => {
 				if let Some(decl) = decl {
 					self.abstract_declarator(decl)
