@@ -20,7 +20,6 @@ impl Span {
             }
             last_byte = *byte;
         }
-        println!("last_byte: {}", last_byte as char);
         Some((line, column))
     }
     pub fn to_string_vec(&self, source: &str) -> Vec<String> {

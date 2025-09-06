@@ -1,3 +1,5 @@
+restrict restrict int foo(int a, int b) {}
+
 // Test for declarator syntax
 
 // int a;

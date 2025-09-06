@@ -314,21 +314,21 @@ impl Iterator for Lexer {
 	type Item = diag::ResultTriple<tok::PPToken, usize>;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.leading_space = false;
-		let (mut curr_pos, _) = self.chars.peek()?;
 		// skip whitespace
 		while let Some((pos, whitespace)) = self
 			.chars
 			.next_if(|&(_, c)| c != '\n' && c.is_ascii_whitespace())
 		{
-			curr_pos = pos;
 			match whitespace {
 				' ' | '\t' => self.leading_space = true,
 				_ => (),
 			}
 		}
-		self.set_start(curr_pos);
+
 		let (pos, c) = self.chars.next()?;
+		self.set_start(pos);
 		self.set_end(pos);
+		let mut curr_pos = pos;
 
 		if c == '"' {
 			if self.include_state == 3 {

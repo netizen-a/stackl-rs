@@ -61,13 +61,12 @@ impl DiagnosticEngine {
 		let mut source = String::new();
 		file.read_to_string(&mut source);
 
-        eprint!("\x1b[0;31merror: ");
+        eprint!("\x1b[1;31merror:\x1b[0m ");
         match &diag.kind {
 			DiagKind::InvalidRestrict => {
-				eprintln!("restrict requires a pointer or reference\x1b[0m");
+				eprintln!("\x1b[1;97mrestrict requires a pointer or reference\x1b[0m");
                 let (line, col) = diag.span.location(&source).unwrap();
                 let mut line_len = line.to_string().len();
-                line_len += line_len % 2;
 
                 eprintln!("{}--> {file_name}:{line}:{col}", " ".repeat(line_len));
 
@@ -80,9 +79,9 @@ impl DiagnosticEngine {
                 for source_line in diag.span.to_string_vec(&source) {
                     eprintln!("{} |{}", line, source_line);
                     eprintln!(
-                        "{line_space}|{}{} ",
+                        "{line_space}|{}\x1b[1;31m{}\x1b[0m",
                         " ".repeat(col - 1),
-                        "^".repeat(diag.span.loc.1 - diag.span.loc.0)
+                        "^".repeat(1 + diag.span.loc.1 - diag.span.loc.0)
                     );
                 }
 			}
@@ -90,10 +89,9 @@ impl DiagnosticEngine {
 				found,
 				expected,
 			} => {
-                eprintln!("mismatched types\x1b[0m");
+                eprintln!("mismatched types");
                 let (line, col) = diag.span.location(&source).unwrap();
                 let mut line_len = line.to_string().len();
-                line_len += line_len % 2;
 
                 eprintln!("{}--> {file_name}:{line}:{col}", " ".repeat(line_len));
 
@@ -108,7 +106,7 @@ impl DiagnosticEngine {
                     eprint!(
                         "{line_space}|{}{} ",
                         " ".repeat(col - 1),
-                        "^".repeat(diag.span.loc.1 - diag.span.loc.0)
+                        "^".repeat(1 + diag.span.loc.1 - diag.span.loc.0)
                     );
                     eprintln!("expected `{expected}`, found `{found}`");
                 }
@@ -126,13 +124,12 @@ impl DiagnosticEngine {
 		let mut source = String::new();
 		file.read_to_string(&mut source);
 
-        eprint!("\x1b[0;31mwarning: ");
+        eprint!("\x1b[1;33mwarning:\x1b[0m ");
         match &diag.kind {
             DiagKind::DuplicateSpecifier(name) => {
-                eprintln!("duplicate '{name}' declaration specifier\x1b[0m");
+                eprintln!("\x1b[1;97mduplicate '{name}' declaration specifier\x1b[0m");
                 let (line, col) = diag.span.location(&source).unwrap();
                 let mut line_len = line.to_string().len();
-                line_len += line_len % 2;
 
                 eprintln!("{}--> {file_name}:{line}:{col}", " ".repeat(line_len));
 
@@ -145,9 +142,9 @@ impl DiagnosticEngine {
                 for source_line in diag.span.to_string_vec(&source) {
                     eprintln!("{} |{}", line, source_line);
                     eprintln!(
-                        "{line_space}|{}{} ",
+                        "{line_space}|{}\x1b[1;33m{}\x1b[0m",
                         " ".repeat(col - 1),
-                        "^".repeat(diag.span.loc.1 - diag.span.loc.0)
+                        "^".repeat(1 + diag.span.loc.1 - diag.span.loc.0)
                     );
                 }
             }

@@ -32,15 +32,6 @@ where
 		.parse(&mut diagnostics.file_map, &pp_ref, pp_iter)
 		.unwrap();
 
-	for (lo, tok, hi) in &tokens {
-		if *lo == 0 {
-			println!("DEBUG low span: {:?}", tok);
-		}
-		if *hi == 0 {
-			println!("DEBUG high span: {:?}", tok);
-		}
-	}
-
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let tk_ref = Rc::clone(&tk_iter.inner);
 	let unit = SyntaxParser::new()
