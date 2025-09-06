@@ -45,7 +45,7 @@ impl TryFrom<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 					}
 				}
 				DeclSpecKind::Inline => {
-					specifiers.is_inline = false
+					specifiers.is_inline = true
 				},
 			}
 		}
