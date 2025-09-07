@@ -17,17 +17,16 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn declaration_specifiers(&mut self, specifiers: &DeclarationSpecifiers) {
-		if specifiers.storage_classes.len() > 1 {
-			for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
-				if i > 0 {
-					let diag = diag::Diagnostic::error(
-						diag::DiagKind::MultStorageClasses,
-						storage_class.span.clone(),
-					);
-					self.diagnostics.push(diag);
-				}
+		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
+			if i > 0 {
+				let diag = diag::Diagnostic::error(
+					diag::DiagKind::MultStorageClasses,
+					storage_class.span.clone(),
+				);
+				self.diagnostics.push(diag);
 			}
 		}
+
 		for (i, restrict_span) in specifiers.restrict_list.iter().enumerate() {
 			let diag = if i == 0 {
 				diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, restrict_span.clone())
