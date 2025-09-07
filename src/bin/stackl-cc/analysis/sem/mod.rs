@@ -3,9 +3,9 @@ mod expr;
 mod stmt;
 
 use crate::analysis::syn::{self, *};
+use crate::data_types::DataType;
 use crate::diagnostics::DiagnosticEngine;
 use crate::symtab::SymbolTable;
-use crate::data_types::DataType;
 
 #[derive(PartialEq, Eq, Hash)]
 enum Namespace {

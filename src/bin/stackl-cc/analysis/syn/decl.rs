@@ -34,16 +34,12 @@ impl From<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 					specifiers.storage_classes.push(inner)
 				}
 				DeclSpecKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
-				DeclSpecKind::TypeQualifier(inner) => {
-					match inner.kind {
-						TypeQualifierKind::Const => specifiers.is_const = true,
-						TypeQualifierKind::Volatile => specifiers.is_volatile = true,
-						TypeQualifierKind::Restrict(span) => specifiers.restrict_list.push(span)
-					}
-				}
-				DeclSpecKind::Inline(span) => {
-					specifiers.inline_list.push(span)
+				DeclSpecKind::TypeQualifier(inner) => match inner.kind {
+					TypeQualifierKind::Const => specifiers.is_const = true,
+					TypeQualifierKind::Volatile => specifiers.is_volatile = true,
+					TypeQualifierKind::Restrict(span) => specifiers.restrict_list.push(span),
 				},
+				DeclSpecKind::Inline(span) => specifiers.inline_list.push(span),
 			}
 		}
 		specifiers

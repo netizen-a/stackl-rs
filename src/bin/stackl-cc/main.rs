@@ -5,10 +5,10 @@ use std::process::ExitCode;
 
 mod analysis;
 mod cli;
+mod data_types;
 mod diagnostics;
 mod symtab;
 mod synthesis;
-mod data_types;
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();

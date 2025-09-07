@@ -8,5 +8,5 @@
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
-restrict restrict int foo(void) {}
+static static int foo(void);
 

@@ -9,8 +9,5 @@ pub enum DiagKind {
 	MultStorageClasses,
 	DuplicateSpecifier(String),
 	InvalidRestrict,
-	TypeError{
-		found: DataType,
-		expected: DataType,
-	},
+	TypeError { found: DataType, expected: DataType },
 }
