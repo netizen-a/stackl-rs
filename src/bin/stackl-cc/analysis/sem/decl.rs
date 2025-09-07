@@ -4,25 +4,21 @@ use crate::diagnostics as diag;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		for (i, restrict_span) in decl.specifiers.restrict_list.iter().enumerate() {
-			let diag = if i == 0 {
-				diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, restrict_span.clone())
-			} else {
-				diag::Diagnostic::warn(
-					diag::DiagKind::DuplicateSpecifier("restrict".to_owned()),
-					restrict_span.clone(),
-				)
-			};
-			self.diagnostics.push(diag);
-		}
+		self.declaration_specifiers(&decl.specifiers);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
 		}
 		self.compound_stmt(&mut decl.compound_stmt);
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
-		if decl.specifiers.storage_classes.len() > 1 {
-			for (i, storage_class) in decl.specifiers.storage_classes.iter().enumerate() {
+		self.declaration_specifiers(&decl.specifiers);
+		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
+			self.init_declarator(init_decl);
+		}
+	}
+	fn declaration_specifiers(&mut self, specifiers: &DeclarationSpecifiers) {
+		if specifiers.storage_classes.len() > 1 {
+			for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 				if i > 0 {
 					let diag = diag::Diagnostic::error(
 						diag::DiagKind::MultStorageClasses,
@@ -32,7 +28,7 @@ impl super::SemanticParser<'_> {
 				}
 			}
 		}
-		for (i, restrict_span) in decl.specifiers.restrict_list.iter().enumerate() {
+		for (i, restrict_span) in specifiers.restrict_list.iter().enumerate() {
 			let diag = if i == 0 {
 				diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, restrict_span.clone())
 			} else {
@@ -42,9 +38,6 @@ impl super::SemanticParser<'_> {
 				)
 			};
 			self.diagnostics.push(diag);
-		}
-		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
-			self.init_declarator(init_decl);
 		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
@@ -121,17 +114,7 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn parameter_declaration(&mut self, param: &mut ParameterDeclaration) {
-		for (i, restrict_span) in param.specifiers.restrict_list.iter().enumerate() {
-			let diag = if i == 0 {
-				diag::Diagnostic::error(diag::DiagKind::InvalidRestrict, restrict_span.clone())
-			} else {
-				diag::Diagnostic::warn(
-					diag::DiagKind::DuplicateSpecifier("restrict".to_owned()),
-					restrict_span.clone(),
-				)
-			};
-			self.diagnostics.push(diag);
-		}
+		self.declaration_specifiers(&param.specifiers);
 		self.parameter_declarator(&mut param.parameter_declarator);
 	}
 	fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
