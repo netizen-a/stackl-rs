@@ -13,10 +13,15 @@ mod trace;
 
 #[derive(Debug)]
 pub struct MachineState {
+	/// base pointer
 	pub bp: i32,
+	/// limit pointer
 	pub lp: i32,
+	/// instruction pointer
 	pub ip: i32,
+	/// stack pointer
 	pub sp: i32,
+	/// frame pointer
 	pub fp: i32,
 	pub flag: MachineFlags,
 	pub ivec: i32,
