@@ -787,80 +787,8 @@ JumpStatement: JumpStmt = {
 };
 
 AsmStatement: AsmStmt = {
-	"asm" <q:AsmQualifiers?> "(" <template:StringLiteral>
-		<constraints:AsmOptionalConstraintList?> ")" ";"
-		=> AsmStmt{qualifiers: q.unwrap_or_default(), template, constraints},
+	"asm" "(" <template:StringLiteral> ")" ";" => AsmStmt(template),
 };
-
-AsmQualifiers: Vec<AsmQualifier> = {
-	AsmQualifier => vec![<>],
-	<mut v:AsmQualifiers> <elem:AsmQualifier> => {
-		v.push(elem);
-		v
-	},
-};
-
-AsmQualifier: AsmQualifier = {
-	"volatile" => AsmQualifier::Volatile,
-	"inline" => AsmQualifier::Inline,
-	"goto" => AsmQualifier::Goto,
-};
-
-AsmOptionalConstraintList: AsmConstraints = AsmOutput;
-AsmOutput: AsmConstraints = ":" <operands:AsmOutputOperand*> <input:AsmInput?> => {
-	match input {
-		Some(mut inner) => {
-			inner.output_operands = operands;
-			inner
-		},
-		None => AsmConstraints {
-			output_operands: operands,
-			input_operands: Vec::new(),
-			clobber_operands: Vec::new(),
-			goto_labels: Vec::new(),
-		}
-	}
-};
-AsmInput: AsmConstraints = ":" <operands:AsmInputOperand*> <clobber:AsmClobber?> => {
-	match clobber {
-		Some(mut inner) => {
-			inner.input_operands = operands;
-			inner
-		},
-		None => AsmConstraints {
-			output_operands: Vec::new(),
-			input_operands: operands,
-			clobber_operands: Vec::new(),
-			goto_labels: Vec::new(),
-		}
-	}
-};
-AsmClobber: AsmConstraints = ":" <operands: StringLiteralList?> <labels: AsmGotoLabels?> => {
-	match labels {
-		Some(mut inner) => {
-			inner.clobber_operands = operands.unwrap_or_default();
-			inner
-		},
-		None => AsmConstraints {
-			output_operands: Vec::new(),
-			input_operands: Vec::new(),
-			clobber_operands: operands.unwrap_or_default(),
-			goto_labels: Vec::new(),
-		}
-	}
-};
-AsmGotoLabels: AsmConstraints = ":" <labels: IdentifierList?> => AsmConstraints {
-	output_operands: Vec::new(),
-	input_operands: Vec::new(),
-	clobber_operands: Vec::new(),
-	goto_labels: labels.unwrap_or_default(),
-};
-
-AsmOutputOperand: OutputOperand = <prefix: StringLiteral> "(" <ident:Identifier> ")"
-	=> OutputOperand {prefix, ident};
-AsmInputOperand: InputOperand = <prefix:StringLiteral> "(" <expr:Expr> ")"
-	=> InputOperand{prefix, expr};
-
 
 StringLiteralList: Vec<StrLit> = {
 	StringLiteral => vec![<>],

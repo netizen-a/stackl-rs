@@ -33,12 +33,7 @@ pub enum AsmQualifier {
 }
 
 #[derive(Debug)]
-pub struct AsmStmt {
-	pub qualifiers: Vec<AsmQualifier>,
-	pub template: tok::StrLit,
-	// if none, then asm is basic
-	pub constraints: Option<AsmConstraints>,
-}
+pub struct AsmStmt (pub tok::StrLit);
 
 #[derive(Debug)]
 pub struct AsmConstraints {

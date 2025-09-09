@@ -40,7 +40,6 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
-		// self.declarator(&mut decl.declarator);
 		if let Some(ref mut init) = decl.initializer {
 			self.initializer(init);
 		}
