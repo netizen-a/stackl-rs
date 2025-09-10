@@ -38,6 +38,45 @@ impl super::SemanticParser<'_> {
 			};
 			self.diagnostics.push(diag);
 		}
+
+		let mut is_signed: Option<bool> = None;
+		for ty in specifiers.type_specifiers.iter() {
+			match ty {
+				TypeSpecifier::Void(_) => {}
+				TypeSpecifier::Char(_) => {}
+				TypeSpecifier::Short(_) => {}
+				TypeSpecifier::Int(_) => {}
+				TypeSpecifier::Long(_) => {}
+				TypeSpecifier::Float(_) => {}
+				TypeSpecifier::Double(_) => {}
+				TypeSpecifier::Signed(span) => match is_signed {
+					Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::DuplicateSpecifier("signed".to_owned()),
+						span.clone(),
+					)),
+					Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::BothSpecifiers("signed".to_owned(), "unsigned".to_owned()),
+						span.clone(),
+					)),
+					None => is_signed = Some(true),
+				},
+				TypeSpecifier::Unsigned(span) => match is_signed {
+					Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::BothSpecifiers("signed".to_owned(), "unsigned".to_owned()),
+						span.clone(),
+					)),
+					Some(false) => self.diagnostics.push(diag::Diagnostic::warn(
+						diag::DiagKind::DuplicateSpecifier("signed".to_owned()),
+						span.clone(),
+					)),
+					None => is_signed = Some(true),
+				},
+				TypeSpecifier::Bool(_) => {}
+				TypeSpecifier::StructOrUnionSpecifier(_) => {}
+				TypeSpecifier::EnumSpecifier(_) => {}
+				TypeSpecifier::TypedefName { .. } => {}
+			}
+		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
 		if let Some(ref mut init) = decl.initializer {

@@ -10,3 +10,5 @@
 
 static static int foo(void);
 
+unsigned signed unsigned bar;
+

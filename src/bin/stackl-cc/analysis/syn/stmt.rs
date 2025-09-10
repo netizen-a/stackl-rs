@@ -33,7 +33,7 @@ pub enum AsmQualifier {
 }
 
 #[derive(Debug)]
-pub struct AsmStmt (pub tok::StrLit);
+pub struct AsmStmt(pub tok::StrLit);
 
 #[derive(Debug)]
 pub struct AsmConstraints {

@@ -792,7 +792,10 @@ AsmStatement: AsmStmt = {
 
 StringLiteralList: Vec<StrLit> = {
 	StringLiteral => vec![<>],
-	StringLiteralList "," StringLiteral => todo!("string-list"),
+	<mut v:StringLiteralList> "," <s:StringLiteral> => {
+		v.push(s);
+		v
+	},
 };
 
 
