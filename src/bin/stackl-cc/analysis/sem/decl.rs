@@ -17,6 +17,8 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn declaration_specifiers(&mut self, specifiers: &DeclarationSpecifiers) {
+		const SIGNED_STR: &str = "signed";
+		const UNSIGNED_STR: &str = "unsigned";
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -51,25 +53,25 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::Double(_) => {}
 				TypeSpecifier::Signed(span) => match is_signed {
 					Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::DuplicateSpecifier("signed".to_owned()),
+						diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
 						span.clone(),
 					)),
 					Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::BothSpecifiers("signed".to_owned(), "unsigned".to_owned()),
+						diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), UNSIGNED_STR.to_owned()),
 						span.clone(),
 					)),
 					None => is_signed = Some(true),
 				},
 				TypeSpecifier::Unsigned(span) => match is_signed {
 					Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::BothSpecifiers("signed".to_owned(), "unsigned".to_owned()),
+						diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), UNSIGNED_STR.to_owned()),
 						span.clone(),
 					)),
-					Some(false) => self.diagnostics.push(diag::Diagnostic::warn(
-						diag::DiagKind::DuplicateSpecifier("signed".to_owned()),
+					Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
 						span.clone(),
 					)),
-					None => is_signed = Some(true),
+					None => is_signed = Some(false),
 				},
 				TypeSpecifier::Bool(_) => {}
 				TypeSpecifier::StructOrUnionSpecifier(_) => {}
