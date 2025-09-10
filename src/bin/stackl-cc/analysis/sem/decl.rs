@@ -19,6 +19,8 @@ impl super::SemanticParser<'_> {
 	fn declaration_specifiers(&mut self, specifiers: &DeclarationSpecifiers) {
 		const SIGNED_STR: &str = "signed";
 		const UNSIGNED_STR: &str = "unsigned";
+		const FLOAT_STR: &str = "float";
+		const DOUBLE_STR: &str = "double";
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -42,6 +44,7 @@ impl super::SemanticParser<'_> {
 		}
 
 		let mut is_signed: Option<bool> = None;
+		let mut is_double: Option<bool> = None;
 		for ty in specifiers.type_specifiers.iter() {
 			match ty {
 				TypeSpecifier::Void(_) => {}
@@ -49,30 +52,116 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::Short(_) => {}
 				TypeSpecifier::Int(_) => {}
 				TypeSpecifier::Long(_) => {}
-				TypeSpecifier::Float(_) => {}
-				TypeSpecifier::Double(_) => {}
-				TypeSpecifier::Signed(span) => match is_signed {
-					Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
-						span.clone(),
-					)),
-					Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), UNSIGNED_STR.to_owned()),
-						span.clone(),
-					)),
-					None => is_signed = Some(true),
-				},
-				TypeSpecifier::Unsigned(span) => match is_signed {
-					Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), UNSIGNED_STR.to_owned()),
-						span.clone(),
-					)),
-					Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
-						span.clone(),
-					)),
-					None => is_signed = Some(false),
-				},
+				TypeSpecifier::Float(span) => {
+					match is_signed {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								FLOAT_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								FLOAT_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => {
+							// do nothing
+						}
+					}
+					is_double = Some(false);
+				}
+				TypeSpecifier::Double(span) => {
+					match is_signed {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								DOUBLE_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								DOUBLE_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => {
+							// do nothing
+						}
+					}
+					is_double = Some(true);
+				}
+				TypeSpecifier::Signed(span) => {
+					match is_signed {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								UNSIGNED_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => is_signed = Some(true),
+					}
+					match is_double {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								DOUBLE_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								FLOAT_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => {},
+					}
+				}
+				TypeSpecifier::Unsigned(span) => {
+					match is_signed {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								UNSIGNED_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
+							span.clone(),
+						)),
+						None => is_signed = Some(false),
+					}
+					match is_double {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								DOUBLE_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								FLOAT_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => {},
+					}
+				}
 				TypeSpecifier::Bool(_) => {}
 				TypeSpecifier::StructOrUnionSpecifier(_) => {}
 				TypeSpecifier::EnumSpecifier(_) => {}

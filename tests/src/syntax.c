@@ -12,3 +12,14 @@ static static int foo(void);
 
 unsigned signed unsigned bar;
 
+signed float x;
+unsigned float y;
+
+signed double xx;
+unsigned double yy;
+
+float signed xxx;
+float unsigned yyy;
+
+double signed zz;
+double unsigned aa;
