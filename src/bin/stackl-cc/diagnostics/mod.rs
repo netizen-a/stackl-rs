@@ -59,37 +59,30 @@ impl DiagnosticEngine {
 			self.print_recov(diag)
 		}
 		for diag in self.list_other.iter() {
-			self.inner_print(diag);
-		}
-	}
-	fn inner_print(&self, diag: &Diagnostic) {
-		match &diag.level {
-			DiagLevel::Error => eprint!("\x1b[1;31merror:\x1b[0m "),
-			DiagLevel::Warning => eprint!("\x1b[1;33mwarning:\x1b[0m "),
-		}
-		match &diag.kind {
-			DiagKind::InvalidRestrict => {
-				let msg = "restrict requires a pointer or reference";
-				self.print_fmt_diag(&diag, msg, "");
+			match &diag.kind {
+				DiagKind::InvalidRestrict => {
+					let msg = "restrict requires a pointer or reference";
+					self.print_fmt_diag(&diag, msg, "");
+				}
+				DiagKind::TypeError { found, expected } => {
+					let msg0 = "mismatched types";
+					let msg1 = format!("expected `{expected}`, found `{found}`");
+					self.print_fmt_diag(&diag, msg0, msg1.as_str());
+				}
+				DiagKind::MultStorageClasses => {
+					let msg = "multiple storage classes in declaration specifiers";
+					self.print_fmt_diag(&diag, msg, "");
+				}
+				DiagKind::DuplicateSpecifier(name) => {
+					let msg0 = format!("duplicate '{name}' declaration specifier");
+					self.print_fmt_diag(&diag, msg0.as_str(), "");
+				}
+				DiagKind::BothSpecifiers(name0, name1) => {
+					let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
+					self.print_fmt_diag(&diag, msg0.as_str(), "");
+				}
+				_ => todo!(),
 			}
-			DiagKind::TypeError { found, expected } => {
-				let msg0 = "mismatched types";
-				let msg1 = format!("expected `{expected}`, found `{found}`");
-				self.print_fmt_diag(&diag, msg0, msg1.as_str());
-			}
-			DiagKind::MultStorageClasses => {
-				let msg = "multiple storage classes in declaration specifiers";
-				self.print_fmt_diag(&diag, msg, "");
-			}
-			DiagKind::DuplicateSpecifier(name) => {
-				let msg0 = format!("duplicate '{name}' declaration specifier");
-				self.print_fmt_diag(&diag, msg0.as_str(), "");
-			}
-			DiagKind::BothSpecifiers(name0, name1) => {
-				let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
-				self.print_fmt_diag(&diag, msg0.as_str(), "");
-			}
-			_ => todo!(),
 		}
 	}
 	fn print_recov(&self, diag: &ErrorRecovery<usize, tok::Token, Diagnostic>) {}
@@ -99,13 +92,20 @@ impl DiagnosticEngine {
 	{
 		let file_path = self.file_map.get_by_left(&diag.span.file_id).unwrap();
 		let level_color = match diag.level {
-			DiagLevel::Error => BOLD_RED,
-			DiagLevel::Warning => BOLD_YELLOW,
+			DiagLevel::Error => {
+				eprint!("{BOLD_RED}error:{DEFAULT} ");
+				BOLD_RED
+			}
+			DiagLevel::Warning => {
+				eprint!("{BOLD_YELLOW}warning:{DEFAULT} ");
+				BOLD_YELLOW
+			}
 		};
 		let file_name = file_path.to_string_lossy();
 		let mut file = fs::File::open(file_path).unwrap();
 		let mut source = String::new();
 		file.read_to_string(&mut source);
+
 		eprintln!("{BOLD_WHITE}{}{DEFAULT}", msg0.as_ref());
 		let (line, col) = diag.span.location(source.as_ref()).unwrap();
 		let mut line_len = line.to_string().len();
