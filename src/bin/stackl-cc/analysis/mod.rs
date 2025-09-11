@@ -21,7 +21,7 @@ where
 	P: AsRef<Path>,
 {
 	let mut errors = Vec::new();
-	diagnostics.file_map.insert(0, in_file.as_ref().to_owned());
+	diagnostics.insert_file_info(0, in_file.as_ref().to_owned());
 	let mut file = fs::File::open(in_file.as_ref()).unwrap();
 	let mut text = String::new();
 	file.read_to_string(&mut text).unwrap();

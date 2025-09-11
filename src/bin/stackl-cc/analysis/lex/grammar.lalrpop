@@ -34,7 +34,7 @@ GroupPart: Vec<TokenTriple> = {
 ControlLine: Vec<TokenTriple> = {
 	// TODO: make this fallible
 	"#" DirectiveInclude <header:HEADER_NAME> "\n" => {
-		let origin_path = diagnostics.file_map.get_by_left(&header.file_id).unwrap();
+		let origin_path = diagnostics.get_file_path(header.file_id).unwrap();
 		let header_name = PathBuf::from(header.kind.to_name());
 		let full_path = origin_path.parent().unwrap().join(header_name);
 		let mut stack = stack_ref.borrow_mut();
@@ -44,14 +44,13 @@ ControlLine: Vec<TokenTriple> = {
 		let mut buf = String::new();
 		reader.read_to_string(&mut buf).unwrap();
 
-		let file_id = if let Some(file_id) = diagnostics.file_map.get_by_right(&full_path) {
-			*file_id
+		let file_id = if let Some(file_id) = diagnostics.get_file_id(&full_path) {
+			file_id
 		} else {
-			let file_id = diagnostics.file_map.len();
-			diagnostics.file_map.insert(file_id, full_path);
+			let file_id = diagnostics.id();
+			diagnostics.insert_file_info(file_id, full_path);
 			file_id
 		};
-
 		stack.push_lexer(Lexer::new(buf, file_id));
 		vec![]
 	},

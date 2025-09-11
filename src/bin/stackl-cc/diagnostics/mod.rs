@@ -7,7 +7,7 @@ use crate::analysis::tok;
 use std::{
 	collections::HashMap,
 	fs,
-	io::Read,
+	io::{BufReader, Read},
 	path::{Path, PathBuf},
 	result,
 };
@@ -30,7 +30,7 @@ const BOLD_WHITE: &str = "\x1b[1;97m";
 
 #[derive(Default)]
 pub struct DiagnosticEngine {
-	pub file_map: bimap::BiHashMap<usize, PathBuf>,
+	file_map: bimap::BiHashMap<usize, PathBuf>,
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	list_syntax: Vec<ErrorRecovery<usize, tok::Token, Diagnostic>>,
@@ -49,17 +49,31 @@ impl DiagnosticEngine {
 	pub fn push_recov(&mut self, diag: ErrorRecovery<usize, tok::Token, Diagnostic>) {
 		self.list_syntax.push(diag)
 	}
-	fn get_source(&mut self, id: usize) -> Option<&str> {
-		if self.source_map.contains_key(&id) {
-			self.source_map.get(&id).map(|s| s.as_ref())
-		} else {
-			let file_path = self.file_map.get_by_left(&id).unwrap();
-			let mut file = fs::File::open(file_path).unwrap();
-			let mut source = String::new();
-			file.read_to_string(&mut source);
-			self.source_map.insert(id, source);
-			self.source_map.get(&id).map(|s| s.as_ref())
-		}
+	pub fn get_file_path(&self, id: usize) -> Option<&PathBuf> {
+		self.file_map.get_by_left(&id)
+	}
+	pub fn id(&self) -> usize {
+		self.file_map.len()
+	}
+	pub fn get_file_id<P>(&self, name: &P) -> Option<usize>
+	where
+		P: AsRef<Path>
+	{
+		self.file_map.get_by_right::<Path>(name.as_ref()).map(|p| *p)
+	}
+	pub fn get_file_data(&self, id: usize) -> Option<&String> {
+		self.source_map.get(&id)
+	}
+	pub fn insert_file_info<P>(&mut self, id: usize, full_path: P)
+	where
+		P: AsRef<Path>
+	{
+		self.file_map.insert(id, full_path.as_ref().to_path_buf());
+		let file = fs::File::open(&full_path).unwrap();
+		let mut reader = BufReader::new(file);
+		let mut buf = String::new();
+		reader.read_to_string(&mut buf).unwrap();
+		self.source_map.insert(id, buf);
 	}
 	pub fn contains_error(&self) -> bool {
 		for diag in self.list_other.iter() {
@@ -186,7 +200,8 @@ impl DiagnosticEngine {
 		S: AsRef<str>,
 	{
 		let mut result = String::new();
-		let file_path = self.file_map.get_by_left(&diag.span.file_id).unwrap();
+		let file_path = self.get_file_path(diag.span.file_id).unwrap();
+		let source = self.get_file_data(diag.span.file_id).unwrap();
 		let level_color = match diag.level {
 			DiagLevel::Error => {
 				result.push_str(&format!("{BOLD_RED}error:{DEFAULT} "));
@@ -197,10 +212,6 @@ impl DiagnosticEngine {
 				BOLD_YELLOW
 			}
 		};
-		let file_name = file_path.to_string_lossy();
-		let mut file = fs::File::open(file_path).unwrap();
-		let mut source = String::new();
-		file.read_to_string(&mut source);
 
 		result.push_str(&format!("{BOLD_WHITE}{}{DEFAULT}\n", msg0.as_ref()));
 		let (line, col) = diag.span.location(source.as_ref()).unwrap();
@@ -208,7 +219,7 @@ impl DiagnosticEngine {
 		result.push_str(&format!(
 			"{}{BLUE}-->{DEFAULT} {}:{line}:{col}\n",
 			" ".repeat(line_len),
-			file_name.as_ref()
+			file_path.display()
 		));
 		line_len += 1;
 		let line_space = " ".repeat(line_len);
