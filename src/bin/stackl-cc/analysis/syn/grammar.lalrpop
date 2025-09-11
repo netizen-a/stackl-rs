@@ -488,13 +488,15 @@ StructDeclarator: StructDeclarator = {
 };
 
 EnumSpecifier: EnumSpecifier = {
-	"enum" <id:Identifier?> "{" <list:EnumeratorList> ","? "}" => {
+	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier?> "{" <list:EnumeratorList> ","? "}" => {
 		EnumSpecifier {
+			tag_span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
 			identifier: id,
 			enumerator_list: list,
 		}
 	},
-	"enum" <id:Identifier> => EnumSpecifier{
+	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier> => EnumSpecifier{
+		tag_span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
 		identifier: Some(id),
 		enumerator_list: vec![],
 	},

@@ -28,6 +28,7 @@ impl super::SemanticParser<'_> {
 		const VOID_STR: &str = "void";
 		const SHORT_STR: &str = "void";
 		const BOOL_STR: &str = "_Bool";
+		const LONG_LONG_STR: &str = "long long";
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -119,6 +120,12 @@ impl super::SemanticParser<'_> {
 				},
 				TypeSpecifier::Long(span) => {
 					long_count += 1;
+					if long_count > 2 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::TooLong,
+							span.clone(),
+						));
+					}
 					match &data_type {
 						Some(data_type) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
@@ -129,7 +136,7 @@ impl super::SemanticParser<'_> {
 						)),
 						None | Some(DataType::Scalar(Scalar::I32)) => {
 							// do nothing
-						},
+						}
 					}
 				}
 				TypeSpecifier::Float(span) => {
@@ -153,6 +160,15 @@ impl super::SemanticParser<'_> {
 						}
 					}
 					is_double = Some(false);
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								FLOAT_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
 				}
 				TypeSpecifier::Double(span) => {
 					match is_signed {
@@ -175,6 +191,15 @@ impl super::SemanticParser<'_> {
 						}
 					}
 					is_double = Some(true);
+					if long_count > 1 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_LONG_STR.to_owned(),
+								DOUBLE_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
 				}
 				TypeSpecifier::Signed(span) => {
 					match is_signed {
@@ -279,9 +304,48 @@ impl super::SemanticParser<'_> {
 						}
 					}
 				}
-				TypeSpecifier::StructOrUnionSpecifier(_) => {}
-				TypeSpecifier::EnumSpecifier(_) => {}
-				TypeSpecifier::TypedefName { .. } => {}
+				TypeSpecifier::StructOrUnionSpecifier(StructOrUnionSpecifier {
+					struct_or_union,
+					..
+				}) => {
+					let span = struct_or_union.span.clone();
+					match data_type {
+						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						)),
+						None => data_type = Some(DataType::Scalar(Scalar::I8)),
+					}
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								CHAR_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
+				}
+				TypeSpecifier::EnumSpecifier(EnumSpecifier { tag_span, .. }) => {
+					let span = tag_span.clone();
+					match data_type {
+						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						)),
+						None => data_type = Some(DataType::Scalar(Scalar::I8)),
+					}
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								CHAR_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
+				}
+				TypeSpecifier::TypedefName { .. } => todo!("typedef"),
 			}
 		}
 	}

@@ -4,7 +4,9 @@ use crate::data_types::DataType;
 pub enum DiagKind {
 	UnexpectedEof,
 	UnexpectedEscape,
+	UnrecognizedToken,
 	InvalidToken,
+	ExtraToken,
 	HeaderNameError,
 	MultStorageClasses,
 	DuplicateSpecifier(String),
@@ -12,4 +14,5 @@ pub enum DiagKind {
 	InvalidRestrict,
 	TypeError { found: DataType, expected: DataType },
 	MultipleTypes,
+	TooLong,
 }

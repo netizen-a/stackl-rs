@@ -97,6 +97,7 @@ pub enum TypeSpecifier {
 /// (6.7.2.2) enum-specifier
 #[derive(Debug, Clone)]
 pub struct EnumSpecifier {
+	pub tag_span: diag::Span,
 	pub identifier: Option<tok::Ident>,
 	/// (6.7.2.2) enumerator-list
 	pub enumerator_list: Vec<Enumerator>,

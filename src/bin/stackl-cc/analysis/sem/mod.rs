@@ -60,7 +60,7 @@ impl<'a> SemanticParser<'a> {
 				FunctionDefinition(decl) => self.function_definition(decl),
 				Declaration(decl) => self.declaration(decl),
 				Asm(stmt) => (),
-				Error => eprintln!("ERROR: external decl error"),
+				Error => {}
 			}
 		}
 		Some(unit)

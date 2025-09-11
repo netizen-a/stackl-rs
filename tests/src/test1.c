@@ -2,9 +2,10 @@
 
 int main() {
     const char *s = "Hello world\n";
-    asm ("PUSHVAR %0\n"
-        "OUTS"
-        :
-        : "p" (s));
+    asm ("OUTS");
     return 0;
 }
+
+int foo() {
+
+

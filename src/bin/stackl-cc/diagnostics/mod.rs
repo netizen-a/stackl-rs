@@ -5,6 +5,7 @@ mod span;
 
 use crate::analysis::tok;
 use std::{
+	collections::HashMap,
 	fs,
 	io::Read,
 	path::{Path, PathBuf},
@@ -12,6 +13,7 @@ use std::{
 };
 
 use lalrpop_util::ErrorRecovery;
+use lalrpop_util::ParseError;
 
 pub use diag::*;
 pub use kind::*;
@@ -29,6 +31,7 @@ const BOLD_WHITE: &str = "\x1b[1;97m";
 #[derive(Default)]
 pub struct DiagnosticEngine {
 	pub file_map: bimap::BiHashMap<usize, PathBuf>,
+	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	list_syntax: Vec<ErrorRecovery<usize, tok::Token, Diagnostic>>,
 }
@@ -46,6 +49,18 @@ impl DiagnosticEngine {
 	pub fn push_recov(&mut self, diag: ErrorRecovery<usize, tok::Token, Diagnostic>) {
 		self.list_syntax.push(diag)
 	}
+	fn get_source(&mut self, id: usize) -> Option<&str> {
+		if self.source_map.contains_key(&id) {
+			self.source_map.get(&id).map(|s| s.as_ref())
+		} else {
+			let file_path = self.file_map.get_by_left(&id).unwrap();
+			let mut file = fs::File::open(file_path).unwrap();
+			let mut source = String::new();
+			file.read_to_string(&mut source);
+			self.source_map.insert(id, source);
+			self.source_map.get(&id).map(|s| s.as_ref())
+		}
+	}
 	pub fn contains_error(&self) -> bool {
 		for diag in self.list_other.iter() {
 			if let DiagLevel::Error = diag.level {
@@ -59,49 +74,126 @@ impl DiagnosticEngine {
 			self.print_recov(diag)
 		}
 		for diag in self.list_other.iter() {
-			match &diag.kind {
-				DiagKind::InvalidRestrict => {
-					let msg0 = "restrict requires a pointer or reference";
-					self.print_fmt_diag(&diag, msg0, "");
-				}
-				DiagKind::TypeError { found, expected } => {
-					let msg0 = "mismatched types";
-					let msg1 = format!("expected `{expected}`, found `{found}`");
-					self.print_fmt_diag(&diag, msg0, msg1.as_str());
-				}
-				DiagKind::MultStorageClasses => {
-					let msg0 = "multiple storage classes in declaration specifiers";
-					self.print_fmt_diag(&diag, msg0, "");
-				}
-				DiagKind::DuplicateSpecifier(name) => {
-					let msg0 = format!("duplicate '{name}' declaration specifier");
-					self.print_fmt_diag(&diag, msg0.as_str(), "");
-				}
-				DiagKind::BothSpecifiers(name0, name1) => {
-					let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
-					self.print_fmt_diag(&diag, msg0.as_str(), "");
-				}
-				DiagKind::MultipleTypes => {
-					let msg0 = "two or more data types in declaration specifiers";
-					self.print_fmt_diag(&diag, msg0, "");
-				}
-				_ => todo!(),
-			}
+			self.stderr_diagnostic(diag)
 		}
 	}
-	fn print_recov(&self, diag: &ErrorRecovery<usize, tok::Token, Diagnostic>) {}
-	fn print_fmt_diag<S>(&self, diag: &Diagnostic, msg0: S, msg1: S)
+	fn print_recov(&self, error_recov: &ErrorRecovery<usize, tok::Token, Diagnostic>) {
+		match &error_recov.error {
+			ParseError::ExtraToken { token } => {
+				let span = Span {
+					file_id: token.1.file_id,
+					loc: (token.0, token.2),
+				};
+				let diag = Diagnostic::error(DiagKind::ExtraToken, span);
+				self.stderr_diagnostic(&diag);
+			}
+			ParseError::InvalidToken { location } => unreachable!("invalid token"),
+			ParseError::UnrecognizedEof { location, expected } => {
+				let file_id = 0;
+				let file_path = self.file_map.get_by_left(&file_id).unwrap();
+				let mut file = fs::File::open(file_path).unwrap();
+				let mut source = String::new();
+				file.read_to_string(&mut source);
+				let span = Span {
+					file_id,
+					loc: (*location, *location),
+				};
+				let diag = Diagnostic::error(DiagKind::UnexpectedEof, span);
+				let msg0 = "unexpected EOF";
+				let mut msg1 = String::from("expected ");
+				let mut is_first = true;
+				for (i, elem) in expected.iter().enumerate() {
+					if is_first {
+						is_first = false;
+					} else {
+						msg1.push(',');
+					}
+					if i >= 4 {
+						msg1.push_str(" ...");
+						break;
+					} else {
+						msg1.push_str(&format!(" {elem}"));
+					}
+				}
+				let str_diag = self.format_diagnostic(&diag, msg0, &msg1);
+				eprint!("{str_diag}");
+			}
+			ParseError::UnrecognizedToken { token, expected } => {
+				let span = Span {
+					file_id: token.1.file_id,
+					loc: (token.0, token.2),
+				};
+				let diag = Diagnostic::error(DiagKind::UnrecognizedToken, span);
+				let msg0 = "unrecognized token";
+				let mut msg1 = String::from("expected ");
+				let mut is_first = true;
+				for (i, elem) in expected.iter().enumerate() {
+					if is_first {
+						is_first = false;
+					} else {
+						msg1.push(',');
+					}
+					if i >= 4 {
+						msg1.push_str(" ...");
+						break;
+					} else {
+						msg1.push_str(&format!(" {elem}"));
+					}
+				}
+				let str_diag = self.format_diagnostic(&diag, msg0, &msg1);
+				eprint!("{str_diag}");
+			}
+			ParseError::User { error } => self.stderr_diagnostic(error),
+		}
+	}
+	fn stderr_diagnostic(&self, diag: &Diagnostic) {
+		let str_diag = match &diag.kind {
+			DiagKind::InvalidRestrict => {
+				let msg0 = "restrict requires a pointer or reference";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::TypeError { found, expected } => {
+				let msg0 = "mismatched types";
+				let msg1 = format!("expected `{expected}`, found `{found}`");
+				self.format_diagnostic(&diag, msg0, msg1.as_str())
+			}
+			DiagKind::MultStorageClasses => {
+				let msg0 = "multiple storage classes in declaration specifiers";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::DuplicateSpecifier(name) => {
+				let msg0 = format!("duplicate '{name}' declaration specifier");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::BothSpecifiers(name0, name1) => {
+				let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::MultipleTypes => {
+				let msg0 = "two or more data types in declaration specifiers";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::TooLong => {
+				let msg0 = "'long long long' is too long for stackl-cc";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			_ => unimplemented!("diagnostic"),
+		};
+		eprint!("{str_diag}");
+	}
+	fn format_diagnostic<S>(&self, diag: &Diagnostic, msg0: S, msg1: S) -> String
 	where
 		S: AsRef<str>,
 	{
+		let mut result = String::new();
 		let file_path = self.file_map.get_by_left(&diag.span.file_id).unwrap();
 		let level_color = match diag.level {
 			DiagLevel::Error => {
-				eprint!("{BOLD_RED}error:{DEFAULT} ");
+				result.push_str(&format!("{BOLD_RED}error:{DEFAULT} "));
 				BOLD_RED
 			}
 			DiagLevel::Warning => {
-				eprint!("{BOLD_YELLOW}warning:{DEFAULT} ");
+				result.push_str(&format!("{BOLD_YELLOW}warning:{DEFAULT} "));
 				BOLD_YELLOW
 			}
 		};
@@ -110,25 +202,26 @@ impl DiagnosticEngine {
 		let mut source = String::new();
 		file.read_to_string(&mut source);
 
-		eprintln!("{BOLD_WHITE}{}{DEFAULT}", msg0.as_ref());
+		result.push_str(&format!("{BOLD_WHITE}{}{DEFAULT}\n", msg0.as_ref()));
 		let (line, col) = diag.span.location(source.as_ref()).unwrap();
 		let mut line_len = line.to_string().len();
-		eprintln!(
-			"{}{BLUE}-->{DEFAULT} {}:{line}:{col}",
+		result.push_str(&format!(
+			"{}{BLUE}-->{DEFAULT} {}:{line}:{col}\n",
 			" ".repeat(line_len),
 			file_name.as_ref()
-		);
+		));
 		line_len += 1;
 		let line_space = " ".repeat(line_len);
-		eprintln!("{line_space}{BLUE}|{DEFAULT}");
+		result.push_str(&format!("{line_space}{BLUE}|{DEFAULT}\n"));
 		for source_line in diag.span.to_string_vec(source.as_ref()) {
-			eprintln!("{BLUE}{} |{DEFAULT}{}", line, source_line);
-			eprintln!(
-				"{line_space}{BLUE}|{DEFAULT}{}{level_color}{}\x1b[0m {}",
+			result.push_str(&format!("{BLUE}{} |{DEFAULT}{}\n", line, source_line));
+			result.push_str(&format!(
+				"{line_space}{BLUE}|{DEFAULT}{}{level_color}{}\x1b[0m {}\n",
 				" ".repeat(col - 1),
 				"^".repeat(1 + diag.span.loc.1 - diag.span.loc.0),
 				msg1.as_ref()
-			);
+			));
 		}
+		result
 	}
 }
