@@ -43,7 +43,7 @@ pub struct FuncType {
 pub enum DataType {
 	Void,
 	Scalar(Scalar),
-	Struct(Vec<DataType>),
+	Struct(Vec<(DataType, Option<String>)>),
 	Union(Vec<DataType>),
 	Enum,
 	Function(FuncType),

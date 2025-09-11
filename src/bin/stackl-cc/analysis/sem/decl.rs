@@ -55,8 +55,8 @@ impl super::SemanticParser<'_> {
 		let mut is_signed: Option<bool> = None;
 		let mut data_type: Option<DataType> = None;
 		let mut long_count = 0;
-		for ty in specifiers.type_specifiers.iter() {
-			match ty {
+		for type_spec in specifiers.type_specifiers.iter() {
+			match type_spec {
 				TypeSpecifier::Void(span) => {
 					match data_type {
 						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
@@ -228,7 +228,7 @@ impl super::SemanticParser<'_> {
 						)),
 						None => is_signed = Some(true),
 					}
-					match data_type {
+					match &data_type {
 						Some(DataType::Scalar(Scalar::Double)) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								SIGNED_STR.to_owned(),
@@ -243,7 +243,14 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						Some(_) | None => {
+						Some(name) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								name.to_string(),
+							),
+							span.clone(),
+						)),
+						Some(DataType::Scalar(_)) | None => {
 							// do nothing
 						}
 					}
@@ -263,7 +270,7 @@ impl super::SemanticParser<'_> {
 						)),
 						None => is_signed = Some(false),
 					}
-					match data_type {
+					match &data_type {
 						Some(DataType::Scalar(Scalar::Double)) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								UNSIGNED_STR.to_owned(),
@@ -278,7 +285,14 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						Some(_) | None => {
+						Some(name) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								name.to_string(),
+							),
+							span.clone(),
+						)),
+						Some(DataType::Scalar(_)) | None => {
 							// do nothing
 						}
 					}
@@ -332,9 +346,9 @@ impl super::SemanticParser<'_> {
 							span.clone(),
 						));
 					} else if let tok::Keyword::Struct = struct_or_union.keyword {
-						//data_type = Some(DataType::Struct());
+						data_type = Some(DataType::Struct(vec![]));
 					} else if let tok::Keyword::Union = struct_or_union.keyword {
-						//data_type = Some(DataType::Union());
+						data_type = Some(DataType::Union(vec![]));
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
