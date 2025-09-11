@@ -11,4 +11,5 @@ pub enum DiagKind {
 	BothSpecifiers(String, String),
 	InvalidRestrict,
 	TypeError { found: DataType, expected: DataType },
+	MultipleTypes,
 }

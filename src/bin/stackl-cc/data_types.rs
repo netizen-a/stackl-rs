@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-enum Scalar {
+pub enum Scalar {
 	Bool,
 	I8,
 	U8,

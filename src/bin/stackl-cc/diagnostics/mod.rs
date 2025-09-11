@@ -61,8 +61,8 @@ impl DiagnosticEngine {
 		for diag in self.list_other.iter() {
 			match &diag.kind {
 				DiagKind::InvalidRestrict => {
-					let msg = "restrict requires a pointer or reference";
-					self.print_fmt_diag(&diag, msg, "");
+					let msg0 = "restrict requires a pointer or reference";
+					self.print_fmt_diag(&diag, msg0, "");
 				}
 				DiagKind::TypeError { found, expected } => {
 					let msg0 = "mismatched types";
@@ -70,8 +70,8 @@ impl DiagnosticEngine {
 					self.print_fmt_diag(&diag, msg0, msg1.as_str());
 				}
 				DiagKind::MultStorageClasses => {
-					let msg = "multiple storage classes in declaration specifiers";
-					self.print_fmt_diag(&diag, msg, "");
+					let msg0 = "multiple storage classes in declaration specifiers";
+					self.print_fmt_diag(&diag, msg0, "");
 				}
 				DiagKind::DuplicateSpecifier(name) => {
 					let msg0 = format!("duplicate '{name}' declaration specifier");
@@ -80,6 +80,10 @@ impl DiagnosticEngine {
 				DiagKind::BothSpecifiers(name0, name1) => {
 					let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
 					self.print_fmt_diag(&diag, msg0.as_str(), "");
+				}
+				DiagKind::MultipleTypes => {
+					let msg0 = "two or more data types in declaration specifiers";
+					self.print_fmt_diag(&diag, msg0, "");
 				}
 				_ => todo!(),
 			}
@@ -117,9 +121,6 @@ impl DiagnosticEngine {
 		line_len += 1;
 		let line_space = " ".repeat(line_len);
 		eprintln!("{line_space}{BLUE}|{DEFAULT}");
-		if (line_len % 2) == 1 {
-			print!(" ");
-		}
 		for source_line in diag.span.to_string_vec(source.as_ref()) {
 			eprintln!("{BLUE}{} |{DEFAULT}{}", line, source_line);
 			eprintln!(

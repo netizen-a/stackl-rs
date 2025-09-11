@@ -1,5 +1,7 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok;
+use crate::data_types::DataType;
+use crate::data_types::Scalar;
 use crate::diagnostics as diag;
 
 impl super::SemanticParser<'_> {
@@ -21,6 +23,10 @@ impl super::SemanticParser<'_> {
 		const UNSIGNED_STR: &str = "unsigned";
 		const FLOAT_STR: &str = "float";
 		const DOUBLE_STR: &str = "double";
+		const LONG_STR: &str = "long";
+		const CHAR_STR: &str = "char";
+		const VOID_STR: &str = "void";
+		const SHORT_STR: &str = "void";
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -45,13 +51,86 @@ impl super::SemanticParser<'_> {
 
 		let mut is_signed: Option<bool> = None;
 		let mut is_double: Option<bool> = None;
+		let mut data_type: Option<DataType> = None;
+		let mut long_count = 0;
 		for ty in specifiers.type_specifiers.iter() {
 			match ty {
-				TypeSpecifier::Void(_) => {}
-				TypeSpecifier::Char(_) => {}
-				TypeSpecifier::Short(_) => {}
-				TypeSpecifier::Int(_) => {}
-				TypeSpecifier::Long(_) => {}
+				TypeSpecifier::Void(span) => {
+					match data_type {
+						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						)),
+						None => data_type = Some(DataType::Void),
+					}
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								VOID_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
+				}
+				TypeSpecifier::Char(span) => {
+					match data_type {
+						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						)),
+						None => data_type = Some(DataType::Scalar(Scalar::I8)),
+					}
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								CHAR_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
+				}
+				TypeSpecifier::Short(span) => {
+					match data_type {
+						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						)),
+						None => data_type = Some(DataType::Scalar(Scalar::I16)),
+					}
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								SHORT_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
+				}
+				TypeSpecifier::Int(span) => match data_type {
+					Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::MultipleTypes,
+						span.clone(),
+					)),
+					None => data_type = Some(DataType::Scalar(Scalar::I32)),
+				},
+				TypeSpecifier::Long(span) => {
+					long_count += 1;
+					match &data_type {
+						Some(data_type) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								data_type.to_string(),
+							),
+							span.clone(),
+						)),
+						None | Some(DataType::Scalar(Scalar::I32)) => {
+							// do nothing
+						},
+					}
+				}
 				TypeSpecifier::Float(span) => {
 					match is_signed {
 						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
@@ -126,7 +205,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						None => {},
+						None => {}
 					}
 				}
 				TypeSpecifier::Unsigned(span) => {
@@ -159,7 +238,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						None => {},
+						None => {}
 					}
 				}
 				TypeSpecifier::Bool(_) => {}
