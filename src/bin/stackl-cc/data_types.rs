@@ -55,7 +55,7 @@ impl fmt::Display for DataType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			Self::Void => write!(f, "()"),
-			Self::Scalar(Scalar::Bool) => write!(f, "bool"),
+			Self::Scalar(Scalar::Bool) => write!(f, "_Bool"),
 			Self::Scalar(Scalar::U8) => write!(f, "unsigned char"),
 			Self::Scalar(Scalar::I8) => write!(f, "char"),
 			Self::Scalar(Scalar::U16) => write!(f, "unsigned short"),

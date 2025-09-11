@@ -35,3 +35,9 @@ char long long j;
 
 unsigned long long int p;
 signed long long int p1;
+
+unsigned _Bool k;
+_Bool i;
+_Bool signed kk;
+long _Bool ttt;
+_Bool long long rrr;

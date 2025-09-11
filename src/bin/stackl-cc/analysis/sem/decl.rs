@@ -27,6 +27,7 @@ impl super::SemanticParser<'_> {
 		const CHAR_STR: &str = "char";
 		const VOID_STR: &str = "void";
 		const SHORT_STR: &str = "void";
+		const BOOL_STR: &str = "_Bool";
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -241,7 +242,43 @@ impl super::SemanticParser<'_> {
 						None => {}
 					}
 				}
-				TypeSpecifier::Bool(_) => {}
+				TypeSpecifier::Bool(span) => {
+					match data_type {
+						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						)),
+						None => data_type = Some(DataType::Scalar(Scalar::Bool)),
+					}
+					if long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								LONG_STR.to_owned(),
+								BOOL_STR.to_owned(),
+							),
+							span.clone(),
+						));
+					}
+					match is_signed {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								BOOL_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								BOOL_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => {
+							// do nothing
+						}
+					}
+				}
 				TypeSpecifier::StructOrUnionSpecifier(_) => {}
 				TypeSpecifier::EnumSpecifier(_) => {}
 				TypeSpecifier::TypedefName { .. } => {}
