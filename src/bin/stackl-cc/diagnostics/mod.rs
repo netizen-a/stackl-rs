@@ -57,16 +57,18 @@ impl DiagnosticEngine {
 	}
 	pub fn get_file_id<P>(&self, name: &P) -> Option<usize>
 	where
-		P: AsRef<Path>
+		P: AsRef<Path>,
 	{
-		self.file_map.get_by_right::<Path>(name.as_ref()).map(|p| *p)
+		self.file_map
+			.get_by_right::<Path>(name.as_ref())
+			.map(|p| *p)
 	}
 	pub fn get_file_data(&self, id: usize) -> Option<&String> {
 		self.source_map.get(&id)
 	}
 	pub fn insert_file_info<P>(&mut self, id: usize, full_path: P)
 	where
-		P: AsRef<Path>
+		P: AsRef<Path>,
 	{
 		self.file_map.insert(id, full_path.as_ref().to_path_buf());
 		let file = fs::File::open(&full_path).unwrap();

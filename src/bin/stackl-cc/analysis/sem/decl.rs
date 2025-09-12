@@ -26,12 +26,13 @@ impl super::SemanticParser<'_> {
 		self.compound_stmt(&mut decl.compound_stmt);
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
-		self.specifiers(&mut decl.specifiers);
+		let dtype = self.specifiers(&mut decl.specifiers);
+		eprintln!("datatype: {}", dtype.unwrap());
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
 		}
 	}
-	fn specifiers(&mut self, specifiers: &mut Specifiers) {
+	fn specifiers(&mut self, specifiers: &mut Specifiers) -> Option<DataType> {
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -231,25 +232,26 @@ impl super::SemanticParser<'_> {
 						None => is_signed = Some(true),
 					}
 					match &data_type {
-						Some(DataType::Scalar(ScalarType::Double)) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								DOUBLE_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(DataType::Scalar(ScalarType::Float)) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								FLOAT_STR.to_owned(),
-							),
-							span.clone(),
-						)),
+						Some(DataType::Scalar(ScalarType::Double)) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									DOUBLE_STR.to_owned(),
+								),
+								span.clone(),
+							))
+						}
+						Some(DataType::Scalar(ScalarType::Float)) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									FLOAT_STR.to_owned(),
+								),
+								span.clone(),
+							))
+						}
 						Some(name) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								name.to_string(),
-							),
+							diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), name.to_string()),
 							span.clone(),
 						)),
 						Some(DataType::Scalar(_)) | None => {
@@ -273,20 +275,24 @@ impl super::SemanticParser<'_> {
 						None => is_signed = Some(false),
 					}
 					match &data_type {
-						Some(DataType::Scalar(ScalarType::Double)) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								DOUBLE_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(DataType::Scalar(ScalarType::Float)) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								FLOAT_STR.to_owned(),
-							),
-							span.clone(),
-						)),
+						Some(DataType::Scalar(ScalarType::Double)) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									UNSIGNED_STR.to_owned(),
+									DOUBLE_STR.to_owned(),
+								),
+								span.clone(),
+							))
+						}
+						Some(DataType::Scalar(ScalarType::Float)) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									UNSIGNED_STR.to_owned(),
+									FLOAT_STR.to_owned(),
+								),
+								span.clone(),
+							))
+						}
 						Some(name) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								UNSIGNED_STR.to_owned(),
@@ -408,6 +414,20 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::TypedefName { .. } => todo!("typedef"),
 			}
 		}
+		if let Some(DataType::Scalar(ref mut scalar)) = &mut data_type
+		{
+			if let ScalarType::I32 = scalar {
+				match long_count {
+					1 => *scalar = ScalarType::I64,
+					2 => *scalar = ScalarType::I128,
+					_ => {}
+				}
+			}
+			if let Some(is_signed) = is_signed {
+				scalar.set_signedness(is_signed);
+			}
+		}
+		data_type
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
 		if let Some(ref mut init) = decl.initializer {

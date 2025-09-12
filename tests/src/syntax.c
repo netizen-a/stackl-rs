@@ -33,8 +33,8 @@
 
 // char long long j;
 
-// unsigned long long int p;
-// signed long long int p1;
+unsigned long long int p;
+signed long long int p1;
 
 // unsigned _Bool k;
 // _Bool i;
@@ -45,10 +45,10 @@
 // long float v;
 // long long long double;
 
-struct Foo signed k;
+// struct Foo signed k;
 
-unsigned struct Foo { int x; } kk;
-unsigned struct Foo { int y; } ll;
+// unsigned struct Foo { int x; } kk;
+// unsigned struct Foo { int y; } ll;
 
-struct Foo { unsigned char x; } signed k;
+// struct Foo { unsigned char x; } signed k;
 

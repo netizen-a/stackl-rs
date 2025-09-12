@@ -18,6 +18,34 @@ pub enum ScalarType {
 	LongDouble,
 }
 
+impl ScalarType {
+	pub fn set_signedness(&mut self, is_signed: bool) {
+		if is_signed {
+			match self {
+				ScalarType::U8 => *self = ScalarType::I8,
+				ScalarType::U16 => *self = ScalarType::I16,
+				ScalarType::U32 => *self = ScalarType::I32,
+				ScalarType::U64 => *self = ScalarType::I64,
+				ScalarType::U128 => *self = ScalarType::I128,
+				_ => {
+					// do nothing
+				}
+			}
+		} else {
+			match self {
+				ScalarType::I8 => *self = ScalarType::U8,
+				ScalarType::I16 => *self = ScalarType::U16,
+				ScalarType::I32 => *self = ScalarType::U32,
+				ScalarType::I64 => *self = ScalarType::U64,
+				ScalarType::I128 => *self = ScalarType::U128,
+				_ => {
+					// do nothing
+				}
+			}
+		}
+	}
+}
+
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Array {
 	pub component: Box<DataType>,
