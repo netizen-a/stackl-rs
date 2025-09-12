@@ -1,3 +1,4 @@
+use crate::analysis::sem::StorageClass;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::data_types::DataType;
@@ -26,20 +27,28 @@ impl super::SemanticParser<'_> {
 		self.compound_stmt(&mut decl.compound_stmt);
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
-		let dtype = self.specifiers(&mut decl.specifiers);
-		eprintln!("datatype: {}", dtype.unwrap());
+		self.specifiers(&mut decl.specifiers);
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
 		}
 	}
-	fn specifiers(&mut self, specifiers: &mut Specifiers) -> Option<DataType> {
-		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
+	fn specifiers(&mut self, specifiers: &mut Specifiers) -> (Option<StorageClass>, Option<DataType>) {
+		let mut storage_class = None;
+		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
 					diag::DiagKind::MultStorageClasses,
-					storage_class.span.clone(),
+					storage_class_specifier.span.clone(),
 				);
 				self.diagnostics.push(diag);
+				storage_class = None;
+			} else {
+				match storage_class_specifier.keyword {
+					tok::Keyword::Auto => storage_class = Some(StorageClass::Auto),
+					tok::Keyword::Static => storage_class = Some(StorageClass::Static),
+					tok::Keyword::Typedef => storage_class = Some(StorageClass::Typedef),
+					_ => unreachable!(),
+				}
 			}
 		}
 
@@ -427,7 +436,7 @@ impl super::SemanticParser<'_> {
 				scalar.set_signedness(is_signed);
 			}
 		}
-		data_type
+		(storage_class, data_type)
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
 		if let Some(ref mut init) = decl.initializer {

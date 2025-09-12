@@ -19,7 +19,6 @@ impl InnerIter {
 		}
 	}
 	pub fn push_type(&mut self, ident: Ident) {
-		eprintln!("TYPEDEF: {}", ident.name);
 		self.typename_table
 			.insert(ident.name.clone(), ident)
 			.expect("failed to insert into token symbol table");

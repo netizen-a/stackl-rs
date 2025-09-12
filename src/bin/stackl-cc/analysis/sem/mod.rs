@@ -15,9 +15,10 @@ enum Namespace {
 	Ordinary(String),
 }
 
-pub enum StorageDuration {
+pub enum StorageClass {
 	Static,
 	Auto,
+	Typedef,
 }
 
 pub enum Linkage {
@@ -28,7 +29,7 @@ pub enum Linkage {
 
 pub struct SymbolTableEntry {
 	pub data_type: DataType,
-	pub storage_duration: StorageDuration,
+	pub storage: StorageClass,
 	pub linkage: Linkage,
 	pub is_incomplete: bool,
 }
