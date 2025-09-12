@@ -65,11 +65,20 @@ pub struct InitDeclarator {
 	pub initializer: Option<Initializer>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum StorageClass {
+	Static,
+	Auto,
+	Typedef,
+	Register,
+	Extern,
+}
+
 /// (6.7.1) storage-class-specifier
 #[derive(Debug, Clone)]
 pub struct StorageClassSpecifier {
 	pub span: diag::Span,
-	pub keyword: tok::Keyword,
+	pub storage_class: StorageClass,
 }
 
 /// (6.7.2) type-specifier

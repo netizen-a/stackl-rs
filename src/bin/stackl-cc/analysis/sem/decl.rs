@@ -43,10 +43,10 @@ impl super::SemanticParser<'_> {
 				self.diagnostics.push(diag);
 				storage_class = None;
 			} else {
-				match storage_class_specifier.keyword {
-					tok::Keyword::Auto => storage_class = Some(StorageClass::Auto),
-					tok::Keyword::Static => storage_class = Some(StorageClass::Static),
-					tok::Keyword::Typedef => storage_class = Some(StorageClass::Typedef),
+				match storage_class_specifier.storage_class {
+					StorageClass::Auto => storage_class = Some(StorageClass::Auto),
+					StorageClass::Static => storage_class = Some(StorageClass::Static),
+					StorageClass::Typedef => storage_class = Some(StorageClass::Typedef),
 					_ => unreachable!(),
 				}
 			}

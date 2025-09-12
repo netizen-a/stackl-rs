@@ -15,12 +15,6 @@ enum Namespace {
 	Ordinary(String),
 }
 
-pub enum StorageClass {
-	Static,
-	Auto,
-	Typedef,
-}
-
 pub enum Linkage {
 	None,
 	External,
