@@ -205,6 +205,14 @@ impl DiagnosticEngine {
 		let file_path = self.get_file_path(diag.span.file_id).unwrap();
 		let source = self.get_file_data(diag.span.file_id).unwrap();
 		let level_color = match diag.level {
+			DiagLevel::Internal => {
+				result.push_str(&format!("{BOLD_RED}internal error:{DEFAULT} "));
+				BOLD_RED
+			}
+			DiagLevel::Fatal => {
+				result.push_str(&format!("{BOLD_RED}fatal error:{DEFAULT} "));
+				BOLD_RED
+			}
 			DiagLevel::Error => {
 				result.push_str(&format!("{BOLD_RED}error:{DEFAULT} "));
 				BOLD_RED

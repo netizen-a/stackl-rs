@@ -6,6 +6,8 @@ use super::*;
 pub enum DiagLevel {
 	Warning,
 	Error,
+	Fatal,
+	Internal,
 }
 
 #[derive(Debug)]
