@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub enum Scalar {
+pub enum ScalarType {
 	Bool,
 	I8,
 	U8,
@@ -34,17 +34,29 @@ pub struct Pointer {
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct FuncType {
-	params: Vec<DataType>,
-	ret: Box<DataType>,
-	is_variadic: bool,
+	pub params: Vec<DataType>,
+	pub ret: Box<DataType>,
+	pub is_variadic: bool,
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct MemberType {
+	pub ident: String,
+	pub dtype: Box<DataType>,
+}
+
+impl fmt::Display for MemberType {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{} {};", self.dtype, self.ident)
+	}
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub enum DataType {
 	Void,
-	Scalar(Scalar),
-	Struct(Vec<(DataType, Option<String>)>),
-	Union(Vec<DataType>),
+	Scalar(ScalarType),
+	Struct(Vec<MemberType>),
+	Union(Vec<MemberType>),
 	Enum,
 	Function(FuncType),
 	Pointer(Pointer),
@@ -55,20 +67,20 @@ impl fmt::Display for DataType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			Self::Void => write!(f, "()"),
-			Self::Scalar(Scalar::Bool) => write!(f, "_Bool"),
-			Self::Scalar(Scalar::U8) => write!(f, "unsigned char"),
-			Self::Scalar(Scalar::I8) => write!(f, "char"),
-			Self::Scalar(Scalar::U16) => write!(f, "unsigned short"),
-			Self::Scalar(Scalar::I16) => write!(f, "short"),
-			Self::Scalar(Scalar::U32) => write!(f, "unsigned int"),
-			Self::Scalar(Scalar::I32) => write!(f, "int"),
-			Self::Scalar(Scalar::U64) => write!(f, "unsigned long int"),
-			Self::Scalar(Scalar::I64) => write!(f, "long int"),
-			Self::Scalar(Scalar::U128) => write!(f, "unsigned long long int"),
-			Self::Scalar(Scalar::I128) => write!(f, "long long int"),
-			Self::Scalar(Scalar::Float) => write!(f, "float"),
-			Self::Scalar(Scalar::Double) => write!(f, "double"),
-			Self::Scalar(Scalar::LongDouble) => write!(f, "long double"),
+			Self::Scalar(ScalarType::Bool) => write!(f, "_Bool"),
+			Self::Scalar(ScalarType::U8) => write!(f, "unsigned char"),
+			Self::Scalar(ScalarType::I8) => write!(f, "char"),
+			Self::Scalar(ScalarType::U16) => write!(f, "unsigned short"),
+			Self::Scalar(ScalarType::I16) => write!(f, "short"),
+			Self::Scalar(ScalarType::U32) => write!(f, "unsigned int"),
+			Self::Scalar(ScalarType::I32) => write!(f, "int"),
+			Self::Scalar(ScalarType::U64) => write!(f, "unsigned long int"),
+			Self::Scalar(ScalarType::I64) => write!(f, "long int"),
+			Self::Scalar(ScalarType::U128) => write!(f, "unsigned long long int"),
+			Self::Scalar(ScalarType::I128) => write!(f, "long long int"),
+			Self::Scalar(ScalarType::Float) => write!(f, "float"),
+			Self::Scalar(ScalarType::Double) => write!(f, "double"),
+			Self::Scalar(ScalarType::LongDouble) => write!(f, "long double"),
 			Self::Struct(fields) => {
 				write!(f, "struct {{")?;
 				for field in fields.iter() {

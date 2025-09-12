@@ -292,17 +292,17 @@ Declaration: Declaration = {
 	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
 		tk_ref.borrow_mut().is_typedef = false;
 		Declaration {
-			specifiers: DeclarationSpecifiers::from(kind_list),
+			specifiers: Specifiers::from(kind_list),
 			init_declarator_list: init_list.unwrap_or_default(),
 		}
 	},
 };
 
-DeclarationSpecifier: DeclSpecKind = {
-	StorageClassSpecifier => DeclSpecKind::StorageClassSpecifier(<>),
-	TypeSpecifier => DeclSpecKind::TypeSpecifier(<>),
-	TypeQualifier => DeclSpecKind::TypeQualifier(<>),
-	<lo:@L> <kw:"inline"> <hi:@R> => DeclSpecKind::Inline(diag::Span{
+DeclarationSpecifier: SpecifierKind = {
+	StorageClassSpecifier => SpecifierKind::StorageClassSpecifier(<>),
+	TypeSpecifier => SpecifierKind::TypeSpecifier(<>),
+	TypeQualifier => SpecifierKind::TypeQualifier(<>),
+	<lo:@L> <kw:"inline"> <hi:@R> => SpecifierKind::Inline(diag::Span{
 		file_id: kw.file_id,
 		loc: (lo, hi),
 	}),
@@ -454,16 +454,16 @@ StructOrUnion: StructOrUnion = {
 
 StructDeclaration: StructDeclaration = {
 	<list0:SpecifierQualifierList> <list1:StructDeclaratorList> ";" => StructDeclaration {
-		specifier_qualifier_list: list0,
+		specifiers: Specifiers::from(list0),
 		struct_declaration_list: list1,
 	}
 };
 
-SpecifierQualifierList: Vec<SpecifierQualifier> = SpecifierQualifier+;
+SpecifierQualifierList: Vec<SpecifierKind> = SpecifierQualifier+;
 
-SpecifierQualifier: SpecifierQualifier = {
-	TypeSpecifier => SpecifierQualifier::TypeSpecifier(<>),
-	TypeQualifier => SpecifierQualifier::TypeQualifier(<>),
+SpecifierQualifier: SpecifierKind = {
+	TypeSpecifier => SpecifierKind::TypeSpecifier(<>),
+	TypeQualifier => SpecifierKind::TypeQualifier(<>),
 };
 
 StructDeclaratorList: Vec<StructDeclarator> = {
@@ -637,7 +637,7 @@ ParameterDeclaration: ParameterDeclaration = {
 	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
 		ParameterDeclaration {
 			name: decl.0,
-			specifiers: DeclarationSpecifiers::from(kind_list),
+			specifiers: Specifiers::from(kind_list),
 			parameter_declarator: decl.1,
 		}
 	},
@@ -815,7 +815,7 @@ ExternalDeclaration: ExternalDeclaration = {
 FunctionDefinition: FunctionDefinition = {
 	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
-			specifiers: DeclarationSpecifiers::from(kind_list),
+			specifiers: Specifiers::from(kind_list),
 			declarator: decl.1,
 			declaration_list: list,
 			compound_stmt: compound,

@@ -15,11 +15,6 @@ enum Namespace {
 	Ordinary(String),
 }
 
-struct MemberType {
-	name: String,
-	data: DataType,
-}
-
 pub enum StorageDuration {
 	Static,
 	Auto,

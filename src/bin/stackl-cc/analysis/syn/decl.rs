@@ -10,13 +10,13 @@ pub struct DeclarationList(Vec<Declaration>);
 #[derive(Debug, Default)]
 pub struct Declaration {
 	/// (6.7) declaration-specifiers
-	pub specifiers: DeclarationSpecifiers,
+	pub specifiers: Specifiers,
 	/// (6.7) init-declarator-list
 	pub init_declarator_list: Vec<InitDeclarator>,
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct DeclarationSpecifiers {
+pub struct Specifiers {
 	pub storage_classes: Vec<StorageClassSpecifier>,
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
@@ -25,21 +25,21 @@ pub struct DeclarationSpecifiers {
 	pub inline_list: Vec<diag::Span>,
 }
 
-impl From<Vec<DeclSpecKind>> for DeclarationSpecifiers {
-	fn from(value: Vec<DeclSpecKind>) -> Self {
-		let mut specifiers = DeclarationSpecifiers::default();
+impl From<Vec<SpecifierKind>> for Specifiers {
+	fn from(value: Vec<SpecifierKind>) -> Self {
+		let mut specifiers = Specifiers::default();
 		for kind in value {
 			match kind {
-				DeclSpecKind::StorageClassSpecifier(inner) => {
+				SpecifierKind::StorageClassSpecifier(inner) => {
 					specifiers.storage_classes.push(inner)
 				}
-				DeclSpecKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
-				DeclSpecKind::TypeQualifier(inner) => match inner.kind {
+				SpecifierKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
+				SpecifierKind::TypeQualifier(inner) => match inner.kind {
 					TypeQualifierKind::Const => specifiers.is_const = true,
 					TypeQualifierKind::Volatile => specifiers.is_volatile = true,
 					TypeQualifierKind::Restrict(span) => specifiers.restrict_list.push(span),
 				},
-				DeclSpecKind::Inline(span) => specifiers.inline_list.push(span),
+				SpecifierKind::Inline(span) => specifiers.inline_list.push(span),
 			}
 		}
 		specifiers
@@ -48,7 +48,7 @@ impl From<Vec<DeclSpecKind>> for DeclarationSpecifiers {
 
 /// (6.7) declaration-specifiers
 #[derive(Debug)]
-pub enum DeclSpecKind {
+pub enum SpecifierKind {
 	StorageClassSpecifier(StorageClassSpecifier),
 	TypeSpecifier(TypeSpecifier),
 	/// (6.7.3) type-qualifier
@@ -131,7 +131,7 @@ pub struct StructOrUnion {
 /// (6.7.2.1) struct-declaration
 #[derive(Debug, Clone)]
 pub struct StructDeclaration {
-	pub specifier_qualifier_list: Vec<SpecifierQualifier>,
+	pub specifiers: Specifiers,
 	pub struct_declaration_list: Vec<StructDeclarator>,
 }
 
@@ -206,7 +206,7 @@ impl From<&[TypeQualifier]> for Pointer {
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
 	pub name: Option<tok::Ident>,
-	pub specifiers: DeclarationSpecifiers,
+	pub specifiers: Specifiers,
 	pub parameter_declarator: ParameterDeclarator,
 }
 
@@ -259,15 +259,9 @@ pub struct TypeQualifier {
 #[derive(Debug, Clone)]
 pub struct TypeName {
 	/// specifier-qualifier-list
-	pub specifier_qualifier_list: Vec<SpecifierQualifier>,
+	pub specifiers: Specifiers,
 	/// abstract-declarator_opt
 	pub abstract_declarator: Option<AbstractDeclarator>,
-}
-
-#[derive(Debug, Clone)]
-pub enum SpecifierQualifier {
-	TypeSpecifier(TypeSpecifier),
-	TypeQualifier(TypeQualifier),
 }
 
 /// (6.7.8) initializer-list

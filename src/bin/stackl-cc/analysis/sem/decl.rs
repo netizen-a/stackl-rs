@@ -1,7 +1,8 @@
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::data_types::DataType;
-use crate::data_types::Scalar;
+use crate::data_types::MemberType;
+use crate::data_types::ScalarType;
 use crate::diagnostics as diag;
 
 const SIGNED_STR: &str = "signed";
@@ -14,22 +15,23 @@ const VOID_STR: &str = "void";
 const SHORT_STR: &str = "void";
 const BOOL_STR: &str = "_Bool";
 const LONG_LONG_STR: &str = "long long";
+const STRUCT_STR: &str = "struct";
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		self.declaration_specifiers(&decl.specifiers);
+		self.specifiers(&mut decl.specifiers);
 		for declaration in decl.declaration_list.iter_mut() {
 			self.declaration(declaration);
 		}
 		self.compound_stmt(&mut decl.compound_stmt);
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
-		self.declaration_specifiers(&decl.specifiers);
+		self.specifiers(&mut decl.specifiers);
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
 			self.init_declarator(init_decl);
 		}
 	}
-	fn declaration_specifiers(&mut self, specifiers: &DeclarationSpecifiers) {
+	fn specifiers(&mut self, specifiers: &mut Specifiers) {
 		for (i, storage_class) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -55,7 +57,7 @@ impl super::SemanticParser<'_> {
 		let mut is_signed: Option<bool> = None;
 		let mut data_type: Option<DataType> = None;
 		let mut long_count = 0;
-		for type_spec in specifiers.type_specifiers.iter() {
+		for type_spec in specifiers.type_specifiers.iter_mut() {
 			match type_spec {
 				TypeSpecifier::Void(span) => {
 					match data_type {
@@ -81,7 +83,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(Scalar::I8)),
+						None => data_type = Some(DataType::Scalar(ScalarType::I8)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -99,7 +101,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(Scalar::I16)),
+						None => data_type = Some(DataType::Scalar(ScalarType::I16)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -116,7 +118,7 @@ impl super::SemanticParser<'_> {
 						diag::DiagKind::MultipleTypes,
 						span.clone(),
 					)),
-					None => data_type = Some(DataType::Scalar(Scalar::I32)),
+					None => data_type = Some(DataType::Scalar(ScalarType::I32)),
 				},
 				TypeSpecifier::Long(span) => {
 					long_count += 1;
@@ -134,7 +136,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						None | Some(DataType::Scalar(Scalar::I32)) => {
+						None | Some(DataType::Scalar(ScalarType::I32)) => {
 							// do nothing
 						}
 					}
@@ -164,7 +166,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(Scalar::Float)),
+						None => data_type = Some(DataType::Scalar(ScalarType::Float)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -201,7 +203,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(Scalar::Double)),
+						None => data_type = Some(DataType::Scalar(ScalarType::Double)),
 					}
 					if long_count > 1 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -229,14 +231,14 @@ impl super::SemanticParser<'_> {
 						None => is_signed = Some(true),
 					}
 					match &data_type {
-						Some(DataType::Scalar(Scalar::Double)) => self.diagnostics.push(diag::Diagnostic::error(
+						Some(DataType::Scalar(ScalarType::Double)) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								SIGNED_STR.to_owned(),
 								DOUBLE_STR.to_owned(),
 							),
 							span.clone(),
 						)),
-						Some(DataType::Scalar(Scalar::Float)) => self.diagnostics.push(diag::Diagnostic::error(
+						Some(DataType::Scalar(ScalarType::Float)) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								SIGNED_STR.to_owned(),
 								FLOAT_STR.to_owned(),
@@ -271,14 +273,14 @@ impl super::SemanticParser<'_> {
 						None => is_signed = Some(false),
 					}
 					match &data_type {
-						Some(DataType::Scalar(Scalar::Double)) => self.diagnostics.push(diag::Diagnostic::error(
+						Some(DataType::Scalar(ScalarType::Double)) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								UNSIGNED_STR.to_owned(),
 								DOUBLE_STR.to_owned(),
 							),
 							span.clone(),
 						)),
-						Some(DataType::Scalar(Scalar::Float)) => self.diagnostics.push(diag::Diagnostic::error(
+						Some(DataType::Scalar(ScalarType::Float)) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								UNSIGNED_STR.to_owned(),
 								FLOAT_STR.to_owned(),
@@ -303,7 +305,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(Scalar::Bool)),
+						None => data_type = Some(DataType::Scalar(ScalarType::Bool)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -340,6 +342,11 @@ impl super::SemanticParser<'_> {
 					..
 				}) => {
 					let span = struct_or_union.span.clone();
+					let mut members = vec![];
+					for decl in struct_declaration_list.iter_mut() {
+						let k = self.struct_declaration(decl);
+						members.push(k);
+					}
 					if data_type.is_some() {
 						self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::MultipleTypes,
@@ -359,6 +366,25 @@ impl super::SemanticParser<'_> {
 							span.clone(),
 						));
 					}
+					match is_signed {
+						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								SIGNED_STR.to_owned(),
+								STRUCT_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::BothSpecifiers(
+								UNSIGNED_STR.to_owned(),
+								STRUCT_STR.to_owned(),
+							),
+							span.clone(),
+						)),
+						None => {
+							// do nothing
+						}
+					}
 				}
 				TypeSpecifier::EnumSpecifier(EnumSpecifier { tag_span, .. }) => {
 					let span = tag_span.clone();
@@ -367,7 +393,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(Scalar::I8)),
+						None => data_type = Some(DataType::Scalar(ScalarType::I8)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -397,12 +423,10 @@ impl super::SemanticParser<'_> {
 		}
 	}
 
-	fn struct_declaration(&mut self, decl: &mut StructDeclaration) {
-		for ref mut spec in decl.specifier_qualifier_list.iter_mut() {
-			self.specifier_qualifier(spec);
-		}
-		for ref mut struct_decl in decl.struct_declaration_list.iter_mut() {
-			self.struct_declarator(struct_decl);
+	fn struct_declaration(&mut self, struct_decl: &mut StructDeclaration) {
+		self.specifiers(&mut struct_decl.specifiers);
+		for decl in struct_decl.struct_declaration_list.iter_mut() {
+			self.struct_declarator(decl);
 		}
 	}
 
@@ -456,7 +480,7 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn parameter_declaration(&mut self, param: &mut ParameterDeclaration) {
-		self.declaration_specifiers(&param.specifiers);
+		self.specifiers(&mut param.specifiers);
 		self.parameter_declarator(&mut param.parameter_declarator);
 	}
 	fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
@@ -505,13 +529,6 @@ impl super::SemanticParser<'_> {
 			}
 			ArrayPointer => todo!("direct-abstract-declarator [ * ]"),
 			ParameterTypeList(_) => todo!("parameter-type-list"),
-		}
-	}
-	fn specifier_qualifier(&mut self, spec: &mut SpecifierQualifier) {
-		use SpecifierQualifier::*;
-		match spec {
-			TypeSpecifier(ty) => todo!(),
-			TypeQualifier(ty) => self.type_qualifier(ty),
 		}
 	}
 	fn initializer_list(&mut self, list: &mut InitializerList) {

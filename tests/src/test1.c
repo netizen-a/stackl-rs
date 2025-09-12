@@ -5,7 +5,3 @@ int main() {
     asm ("OUTS");
     return 0;
 }
-
-int foo() {
-
-
