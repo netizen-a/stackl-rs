@@ -504,7 +504,7 @@ impl super::SemanticParser<'_> {
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
 		match qual.kind {
 			TypeQualifierKind::Const => (),
-			TypeQualifierKind::Restrict(_) => (),
+			TypeQualifierKind::Restrict => (),
 			TypeQualifierKind::Volatile => (),
 		}
 	}

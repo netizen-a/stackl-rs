@@ -37,7 +37,7 @@ impl From<Vec<SpecifierKind>> for Specifiers {
 				SpecifierKind::TypeQualifier(inner) => match inner.kind {
 					TypeQualifierKind::Const => specifiers.is_const = true,
 					TypeQualifierKind::Volatile => specifiers.is_volatile = true,
-					TypeQualifierKind::Restrict(span) => specifiers.restrict_list.push(span),
+					TypeQualifierKind::Restrict => specifiers.restrict_list.push(inner.span),
 				},
 				SpecifierKind::Inline(span) => specifiers.inline_list.push(span),
 			}
@@ -196,7 +196,7 @@ impl From<&[TypeQualifier]> for Pointer {
 				.is_some(),
 			is_restrict: value
 				.iter()
-				.find(|q| matches!(q.kind, TypeQualifierKind::Restrict(_)))
+				.find(|q| matches!(q.kind, TypeQualifierKind::Restrict))
 				.is_some(),
 		}
 	}
@@ -246,7 +246,7 @@ pub enum DirectAbstractDeclarator {
 #[derive(Debug, Clone)]
 pub enum TypeQualifierKind {
 	Const,
-	Restrict(diag::Span),
+	Restrict,
 	Volatile,
 }
 #[derive(Debug, Clone)]

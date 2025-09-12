@@ -528,10 +528,7 @@ TypeQualifier: TypeQualifier = {
 	},
 	<lo:@L> <kw:"restrict"> <hi:@R> => TypeQualifier{
 		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
-		kind: TypeQualifierKind::Restrict(diag::Span{
-			file_id: kw.file_id,
-			loc: (lo, hi),
-		}),
+		kind: TypeQualifierKind::Restrict,
 	},
 	<lo:@L> <kw:"volatile"> <hi:@R> => TypeQualifier{
 		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
