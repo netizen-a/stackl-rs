@@ -107,11 +107,15 @@ impl Lexer {
 		} else {
 			self.include_state = 0;
 		}
+		let (lo, hi) = self.pop_location();
 		let ident = tok::Ident {
+			span: diag::Span {
+				file_id: self.file_id,
+				loc: (lo, hi),
+			},
 			name,
 			is_type: false,
 		};
-		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
 			tok::PPToken {

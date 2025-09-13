@@ -79,7 +79,10 @@ impl DiagnosticEngine {
 	}
 	pub fn contains_error(&self) -> bool {
 		for diag in self.list_other.iter() {
-			if let DiagLevel::Error = diag.level {
+			if matches!(
+				diag.level,
+				DiagLevel::Error | DiagLevel::Fatal | DiagLevel::Internal
+			) {
 				return true;
 			}
 		}
@@ -192,6 +195,13 @@ impl DiagnosticEngine {
 			DiagKind::TooLong => {
 				let msg0 = "'long long long' is too long for stackl-cc";
 				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::ImplicitInt(ident) => {
+				let msg0 = format!("type defaults to 'int' in declaration of {ident}");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::Internal(msg) => {
+				format!("{BOLD_RED}internal error: {BOLD_WHITE}{msg}{DEFAULT}")
 			}
 			_ => unimplemented!("diagnostic"),
 		};

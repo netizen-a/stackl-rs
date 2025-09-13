@@ -11,7 +11,7 @@ impl super::SemanticParser<'_> {
 	pub(super) fn block_item(&mut self, item: &mut BlockItem) {
 		use BlockItem::*;
 		match item {
-			Declaration(decl) => self.declaration(decl),
+			Declaration(decl) => self.declaration(decl, StorageClass::Auto),
 			Statement(stmt) => self.statement(stmt),
 			Error => {}
 		}

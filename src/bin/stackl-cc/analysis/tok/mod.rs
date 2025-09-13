@@ -11,6 +11,7 @@ use std::str::Chars;
 
 #[derive(Debug, Clone)]
 pub struct Ident {
+	pub span: diag::Span,
 	pub name: String,
 	/// is the identifier previously declared in a typedef?
 	pub is_type: bool,

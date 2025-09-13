@@ -1,4 +1,6 @@
+use crate::analysis::sem::Namespace;
 use crate::analysis::sem::StorageClass;
+use crate::analysis::sem::SymbolTableEntry;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::data_types::DataType;
@@ -21,18 +23,41 @@ const STRUCT_STR: &str = "struct";
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
 		self.specifiers(&mut decl.specifiers);
+		let _ = decl.declarator;
+		self.symtab.increase_scope();
 		for declaration in decl.declaration_list.iter_mut() {
-			self.declaration(declaration);
+			self.declaration(declaration, StorageClass::Auto);
 		}
 		self.compound_stmt(&mut decl.compound_stmt);
+		self.symtab.decrease_scope();
 	}
-	pub(super) fn declaration(&mut self, decl: &mut Declaration) {
-		self.specifiers(&mut decl.specifiers);
+	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) {
+		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
+		let storage_class = maybe_sc.unwrap_or(default_sc);
+
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
-			self.init_declarator(init_decl);
+			if let Some(data_type) = &maybe_ty {
+			} else {
+				let diag = diag::Diagnostic::error(
+					diag::DiagKind::ImplicitInt(init_decl.identifier.name.clone()),
+					init_decl.identifier.span.clone(),
+				);
+				self.diagnostics.push(diag);
+			}
+			//self.init_declarator(init_decl);
+			//let ident = init_decl.identifier;
+			let _ = init_decl.declarator;
+			if let Some(ref mut init) = init_decl.initializer {
+				self.initializer(init);
+			}
 		}
+		// let entry = SymbolTableEntry { data_type, is_incomplete: false, linkage:  };
+		// self.symtab.insert(Namespace::Ordinary(ident.name), entry);
 	}
-	fn specifiers(&mut self, specifiers: &mut Specifiers) -> (Option<StorageClass>, Option<DataType>) {
+	fn specifiers(
+		&mut self,
+		specifiers: &mut Specifiers,
+	) -> (Option<StorageClass>, Option<DataType>) {
 		let mut storage_class = None;
 		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
@@ -43,12 +68,7 @@ impl super::SemanticParser<'_> {
 				self.diagnostics.push(diag);
 				storage_class = None;
 			} else {
-				match storage_class_specifier.storage_class {
-					StorageClass::Auto => storage_class = Some(StorageClass::Auto),
-					StorageClass::Static => storage_class = Some(StorageClass::Static),
-					StorageClass::Typedef => storage_class = Some(StorageClass::Typedef),
-					_ => unreachable!(),
-				}
+				storage_class = Some(storage_class_specifier.storage_class);
 			}
 		}
 
@@ -423,8 +443,7 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::TypedefName { .. } => todo!("typedef"),
 			}
 		}
-		if let Some(DataType::Scalar(ref mut scalar)) = &mut data_type
-		{
+		if let Some(DataType::Scalar(ref mut scalar)) = &mut data_type {
 			if let ScalarType::I32 = scalar {
 				match long_count {
 					1 => *scalar = ScalarType::I64,
@@ -439,6 +458,8 @@ impl super::SemanticParser<'_> {
 		(storage_class, data_type)
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
+		let _ = decl.identifier;
+		let _ = decl.declarator;
 		if let Some(ref mut init) = decl.initializer {
 			self.initializer(init);
 		}

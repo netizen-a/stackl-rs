@@ -48,7 +48,7 @@ impl<'a> SemanticParser<'a> {
 		for external_decl in unit.iter_mut() {
 			match external_decl {
 				FunctionDefinition(decl) => self.function_definition(decl),
-				Declaration(decl) => self.declaration(decl),
+				Declaration(decl) => self.declaration(decl, StorageClass::Static),
 				Asm(stmt) => (),
 				Error => {}
 			}

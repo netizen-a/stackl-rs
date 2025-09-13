@@ -52,3 +52,5 @@ signed long long int p1;
 
 // struct Foo { unsigned char x; } signed k;
 
+auto x;
+

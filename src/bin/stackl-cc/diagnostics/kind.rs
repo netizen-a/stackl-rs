@@ -15,4 +15,6 @@ pub enum DiagKind {
 	TypeError { found: DataType, expected: DataType },
 	MultipleTypes,
 	TooLong,
+	ImplicitInt(String),
+	Internal(String),
 }
