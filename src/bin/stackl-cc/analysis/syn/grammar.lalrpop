@@ -478,12 +478,12 @@ StructDeclarator: StructDeclarator = {
 	<decl:Declarator> => StructDeclarator {
 		identifier: Some(decl.0),
 		declarator: decl.1,
-		constant_expr: None,
+		const_expr: None,
 	},
 	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
 		identifier: decl.clone().map(|inner| inner.0),
 		declarator: decl.map(|inner| inner.1).unwrap_or_default(),
-		constant_expr: Some(expr),
+		const_expr: Some(expr),
 	},
 };
 

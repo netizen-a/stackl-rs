@@ -67,15 +67,20 @@ pub struct FuncType {
 	pub is_variadic: bool,
 }
 
+// TODO: add optional bitfields
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct MemberType {
-	pub ident: String,
+	pub ident: Option<String>,
 	pub dtype: Box<DataType>,
 }
 
 impl fmt::Display for MemberType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{} {};", self.dtype, self.ident)
+		if let Some(ident) = &self.ident {
+			write!(f, "{} {};", self.dtype, ident)
+		} else {
+			write!(f, "{};", self.dtype)
+		}
 	}
 }
 

@@ -149,7 +149,7 @@ pub struct StructDeclaration {
 pub struct StructDeclarator {
 	pub identifier: Option<tok::Ident>,
 	pub declarator: Vec<DirectDeclarator>,
-	pub constant_expr: Option<expr::Expr>,
+	pub const_expr: Option<expr::Expr>,
 }
 
 /// (6.7.8) initializer

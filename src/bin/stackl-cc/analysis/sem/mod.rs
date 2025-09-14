@@ -15,6 +15,7 @@ enum Namespace {
 	Ordinary(String),
 }
 
+#[derive(Clone, Copy)]
 pub enum Linkage {
 	None,
 	External,

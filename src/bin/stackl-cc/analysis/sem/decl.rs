@@ -1,3 +1,4 @@
+use crate::analysis::sem::Linkage;
 use crate::analysis::sem::Namespace;
 use crate::analysis::sem::StorageClass;
 use crate::analysis::sem::SymbolTableEntry;
@@ -33,26 +34,31 @@ impl super::SemanticParser<'_> {
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) {
 		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
-		let storage_class = maybe_sc.unwrap_or(default_sc);
+		let storage = maybe_sc.unwrap_or(default_sc);
+		let linkage = match default_sc {
+			StorageClass::Auto | StorageClass::Register | StorageClass::Typedef => Linkage::None,
+			StorageClass::Extern => Linkage::External,
+			StorageClass::Static => Linkage::Internal,
+		};
 
 		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
-			if let Some(data_type) = &maybe_ty {
-			} else {
+			let ident = &init_decl.identifier;
+			let Some(data_type) = &maybe_ty else {
 				let diag = diag::Diagnostic::error(
-					diag::DiagKind::ImplicitInt(init_decl.identifier.name.clone()),
-					init_decl.identifier.span.clone(),
+					diag::DiagKind::ImplicitInt(ident.name.clone()),
+					ident.span.clone(),
 				);
 				self.diagnostics.push(diag);
-			}
+				continue;
+			};
 			//self.init_declarator(init_decl);
-			//let ident = init_decl.identifier;
 			let _ = init_decl.declarator;
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
+			let entry = SymbolTableEntry { data_type: data_type.clone(), is_incomplete: false, linkage, storage };
+			self.symtab.insert(Namespace::Ordinary(ident.name.clone()), entry);
 		}
-		// let entry = SymbolTableEntry { data_type, is_incomplete: false, linkage:  };
-		// self.symtab.insert(Namespace::Ordinary(ident.name), entry);
 	}
 	fn specifiers(
 		&mut self,
@@ -379,8 +385,8 @@ impl super::SemanticParser<'_> {
 					let span = struct_or_union.span.clone();
 					let mut members = vec![];
 					for decl in struct_declaration_list.iter_mut() {
-						let k = self.struct_declaration(decl);
-						members.push(k);
+						let mut member_vec = self.struct_declaration(decl);
+						members.append(&mut member_vec);
 					}
 					if data_type.is_some() {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -388,9 +394,9 @@ impl super::SemanticParser<'_> {
 							span.clone(),
 						));
 					} else if let tok::Keyword::Struct = struct_or_union.keyword {
-						data_type = Some(DataType::Struct(vec![]));
+						data_type = Some(DataType::Struct(members));
 					} else if let tok::Keyword::Union = struct_or_union.keyword {
-						data_type = Some(DataType::Union(vec![]));
+						data_type = Some(DataType::Union(members));
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -473,18 +479,26 @@ impl super::SemanticParser<'_> {
 		}
 	}
 
-	fn struct_declaration(&mut self, struct_decl: &mut StructDeclaration) {
-		self.specifiers(&mut struct_decl.specifiers);
-		for decl in struct_decl.struct_declaration_list.iter_mut() {
-			self.struct_declarator(decl);
-		}
+	// FIXME: symbol table infrastructure required to parse this AST.
+	fn struct_declaration(&mut self, struct_decl: &mut StructDeclaration) -> Vec<MemberType> {
+		// let mut result = vec![];
+		// only type-specifier and type-qualifier is syntactically allowed here.
+		// let (_, ty_opt) = self.specifiers(&mut struct_decl.specifiers);
+		// for decl in struct_decl.struct_declaration_list.iter_mut() {
+		// 	//self.struct_declarator(decl);
+		// 	let ident = decl.identifier.and_then(|v| Some(v.name));
+		// 	result.push(MemberType { ident, dtype: () });
+		// }
+		// result
+
+		todo!("struct-declarator")
 	}
 
 	fn struct_declarator(&mut self, struct_decl: &mut StructDeclarator) {
 		// if let Some(ref mut decl) = struct_decl.declarator {
 		// 	self.declarator(decl)
 		// }
-		if let Some(ref mut expr) = struct_decl.constant_expr {
+		if let Some(ref mut expr) = struct_decl.const_expr {
 			self.expr(expr);
 		}
 	}
