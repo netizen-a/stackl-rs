@@ -238,6 +238,7 @@ NonHashPunct: PPToken = {
 	"?",
 	"~",
 	"...",
+	"+"
 };
 
 
@@ -269,5 +270,6 @@ extern {
 		"?" => PPToken{kind: PPTokenKind::Punct(Punct::QMark), ..},
 		"~" => PPToken{kind: PPTokenKind::Punct(Punct::Tilde), ..},
 		"..." => PPToken{kind: PPTokenKind::Punct(Punct::Ellipsis), ..},
+		"+" => PPToken{kind: PPTokenKind::Punct(Punct::Plus), ..},
 	}
 }
