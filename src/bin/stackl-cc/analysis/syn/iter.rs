@@ -42,7 +42,7 @@ impl Iterator for InnerIter {
 			let pos = self.pos;
 			self.pos += 1;
 			if let TokenKind::Ident(ident) = &mut self.data[pos].1.kind {
-				ident.is_type = self.typename_table.lookup(&ident.name).is_some();
+				ident.is_type = self.typename_table.global_lookup(&ident.name).is_some();
 			}
 			Some(self.data[pos].clone())
 		}

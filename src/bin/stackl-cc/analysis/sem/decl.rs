@@ -24,12 +24,17 @@ const STRUCT_STR: &str = "struct";
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
 		self.specifiers(&mut decl.specifiers);
-		let _ = decl.declarator;
+
 		self.symtab.increase_scope();
-		for declaration in decl.declaration_list.iter_mut() {
-			self.declaration(declaration, StorageClass::Auto);
+		{
+			let _ = decl.declarator;
+			for declaration in decl.declaration_list.iter_mut() {
+				self.declaration(declaration, StorageClass::Auto);
+			}
+			for item in decl.compound_stmt.0.iter_mut() {
+				self.block_item(item)
+			}
 		}
-		self.compound_stmt(&mut decl.compound_stmt);
 		self.symtab.decrease_scope();
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) {
@@ -56,8 +61,14 @@ impl super::SemanticParser<'_> {
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
-			let entry = SymbolTableEntry { data_type: data_type.clone(), is_incomplete: false, linkage, storage };
-			self.symtab.insert(Namespace::Ordinary(ident.name.clone()), entry);
+			let entry = SymbolTableEntry {
+				data_type: data_type.clone(),
+				is_incomplete: false,
+				linkage,
+				storage,
+			};
+			self.symtab
+				.insert(Namespace::Ordinary(ident.name.clone()), entry);
 		}
 	}
 	fn specifiers(

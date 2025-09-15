@@ -24,13 +24,16 @@ impl<K: Eq + Hash, V> SymbolTable<K, V> {
 			table: vec![HashMap::new()],
 		}
 	}
-	pub fn lookup(&self, name: &K) -> Option<&V> {
+	pub fn global_lookup(&self, name: &K) -> Option<&V> {
 		for current_scope in self.table.iter().rev() {
 			if let Some(val) = current_scope.get(name) {
 				return Some(val);
 			}
 		}
 		None
+	}
+	pub fn local_lookup(&self, name: &K) -> Option<&V> {
+		self.table.last().and_then(|v| v.get(name))
 	}
 	pub fn increase_scope(&mut self) {
 		self.table.push(HashMap::new())
