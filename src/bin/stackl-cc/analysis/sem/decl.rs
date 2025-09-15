@@ -31,6 +31,11 @@ impl super::SemanticParser<'_> {
 			match decl.declarator.first() {
 				Some(DirectDeclarator::IdentifierList(ident_list)) => println!("ident-list: {ident_list:?}"),
 				Some(DirectDeclarator::ParameterTypeList(param_list)) => println!("param-list: {param_list:?}"),
+				Some(DirectDeclarator::Array(array)) => {
+					let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
+					let diag = diag::Diagnostic::error(kind, array.span.clone());
+					self.diagnostics.push(diag);
+				}
 				_ => todo!()
 			}
 			for declaration in decl.declaration_list.iter_mut() {
@@ -533,12 +538,7 @@ impl super::SemanticParser<'_> {
 		match direct_decl {
 			//Declarator(_decl) => {},
 			Pointer(_ptr) => {}
-			Array {
-				type_qualifier_list,
-				assignment_expr,
-				has_static,
-				has_ptr,
-			} => (),
+			Array (_array) => (),
 			ParameterTypeList(type_list) => {
 				for param in type_list.parameter_list.iter_mut() {
 					self.parameter_declaration(param);

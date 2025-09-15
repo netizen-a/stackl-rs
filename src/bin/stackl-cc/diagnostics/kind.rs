@@ -17,4 +17,5 @@ pub enum DiagKind {
 	TooLong,
 	ImplicitInt(String),
 	Internal(String),
+	ArrayOfFunctions(String),
 }

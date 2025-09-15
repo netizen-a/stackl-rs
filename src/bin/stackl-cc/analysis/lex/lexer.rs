@@ -3,6 +3,7 @@ use std::iter::{Enumerate, Peekable};
 use std::vec::IntoIter;
 
 use crate::analysis::tok;
+use crate::analysis::tok::file_id::FileId;
 use crate::diagnostics::{self as diag, lex};
 
 #[derive(Debug)]
@@ -12,6 +13,12 @@ pub struct Lexer {
 	leading_space: bool,
 	location: (usize, usize),
 	include_state: u8,
+}
+
+impl FileId for Lexer {
+	fn file_id(&self) -> usize {
+		self.file_id
+	}
 }
 
 impl Lexer {
@@ -54,7 +61,7 @@ impl Lexer {
 						kind: diag::DiagKind::InvalidToken,
 						span: diag::Span {
 							loc: self.pop_location(),
-							file_id: self.file_id,
+							file_id: self.file_id(),
 						},
 					});
 				}
@@ -69,7 +76,7 @@ impl Lexer {
 						kind: diag::DiagKind::InvalidToken,
 						span: diag::Span {
 							loc: self.pop_location(),
-							file_id: self.file_id,
+							file_id: self.file_id(),
 						},
 					});
 				}
@@ -85,7 +92,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::HeaderName(head_name),
-				file_id: self.file_id,
+				file_id: self.file_id(),
 				leading_space: self.leading_space,
 			},
 			hi,
@@ -110,7 +117,7 @@ impl Lexer {
 		let (lo, hi) = self.pop_location();
 		let ident = tok::Ident {
 			span: diag::Span {
-				file_id: self.file_id,
+				file_id: self.file_id(),
 				loc: (lo, hi),
 			},
 			name,
@@ -120,7 +127,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::Ident(ident),
-				file_id: self.file_id,
+				file_id: self.file_id(),
 				leading_space: self.leading_space,
 			},
 			hi,
@@ -147,7 +154,7 @@ impl Lexer {
 					kind: diag::DiagKind::UnexpectedEof,
 					span: diag::Span {
 						loc: self.pop_location(),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 					},
 				});
 			}
@@ -162,7 +169,7 @@ impl Lexer {
 				kind: diag::DiagKind::InvalidToken,
 				span: diag::Span {
 					loc: self.pop_location(),
-					file_id: self.file_id,
+					file_id: self.file_id(),
 				},
 			});
 		}
@@ -173,7 +180,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::CharConst(str_lit),
-				file_id: self.file_id,
+				file_id: self.file_id(),
 				leading_space: self.leading_space,
 			},
 			hi,
@@ -191,7 +198,7 @@ impl Lexer {
 					kind: diag::DiagKind::UnexpectedEof,
 					span: diag::Span {
 						loc: self.pop_location(),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 					},
 				});
 			}
@@ -205,7 +212,7 @@ impl Lexer {
 				kind: diag::DiagKind::InvalidToken,
 				span: diag::Span {
 					loc: self.pop_location(),
-					file_id: self.file_id,
+					file_id: self.file_id(),
 				},
 			});
 		}
@@ -216,7 +223,7 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::StrLit(str_lit),
-				file_id: self.file_id,
+				file_id: self.file_id(),
 				leading_space: self.leading_space,
 			},
 			hi,
@@ -234,7 +241,7 @@ impl Lexer {
 				kind: diag::DiagKind::UnexpectedEscape,
 				span: diag::Span {
 					loc: self.pop_location(),
-					file_id: self.file_id,
+					file_id: self.file_id(),
 				},
 			});
 		};
@@ -266,7 +273,7 @@ impl Lexer {
 				kind: diag::DiagKind::UnexpectedEscape,
 				span: diag::Span {
 					loc: self.pop_location(),
-					file_id: self.file_id,
+					file_id: self.file_id(),
 				},
 			}),
 		}
@@ -369,7 +376,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::NewLine(new_line),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -384,7 +391,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -411,7 +418,7 @@ impl Iterator for Lexer {
 									kind: diag::DiagKind::UnexpectedEof,
 									span: diag::Span {
 										loc: self.pop_location(),
-										file_id: self.file_id,
+										file_id: self.file_id(),
 									},
 								}));
 							};
@@ -430,7 +437,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::PPNumber(num),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -452,7 +459,7 @@ impl Iterator for Lexer {
 							lo,
 							tok::PPToken {
 								kind: tok::PPTokenKind::Punct(punct),
-								file_id: self.file_id,
+								file_id: self.file_id(),
 								leading_space: self.leading_space,
 							},
 							hi,
@@ -463,7 +470,7 @@ impl Iterator for Lexer {
 							kind: diag::DiagKind::InvalidToken,
 							span: diag::Span {
 								loc: self.pop_location(),
-								file_id: self.file_id,
+								file_id: self.file_id(),
 							},
 						}))
 					}
@@ -486,7 +493,7 @@ impl Iterator for Lexer {
 										kind: diag::DiagKind::UnexpectedEof,
 										span: diag::Span {
 											loc: self.pop_location(),
-											file_id: self.file_id,
+											file_id: self.file_id(),
 										},
 									}));
 								};
@@ -505,7 +512,7 @@ impl Iterator for Lexer {
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::PPNumber(num),
-							file_id: self.file_id,
+							file_id: self.file_id(),
 							leading_space: self.leading_space,
 						},
 						hi,
@@ -516,7 +523,7 @@ impl Iterator for Lexer {
 						kind: diag::DiagKind::InvalidToken,
 						span: diag::Span {
 							loc: self.pop_location(),
-							file_id: self.file_id,
+							file_id: self.file_id(),
 						},
 					}))
 				}
@@ -536,7 +543,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -565,7 +572,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -592,7 +599,7 @@ impl Iterator for Lexer {
 							kind: diag::DiagKind::UnexpectedEof,
 							span: diag::Span {
 								loc: self.pop_location(),
-								file_id: self.file_id,
+								file_id: self.file_id(),
 							},
 						}));
 					};
@@ -615,7 +622,7 @@ impl Iterator for Lexer {
 							kind: diag::DiagKind::UnexpectedEof,
 							span: diag::Span {
 								loc: self.pop_location(),
-								file_id: self.file_id,
+								file_id: self.file_id(),
 							},
 						}));
 					}
@@ -627,7 +634,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -647,7 +654,7 @@ impl Iterator for Lexer {
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::NewLine(new_line),
-							file_id: self.file_id,
+							file_id: self.file_id(),
 							leading_space: self.leading_space,
 						},
 						hi,
@@ -658,7 +665,7 @@ impl Iterator for Lexer {
 					kind: diag::DiagKind::InvalidToken,
 					span: diag::Span {
 						loc: self.pop_location(),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 					},
 				})),
 				Some(Err(error)) => Some(Err(error)),
@@ -667,7 +674,7 @@ impl Iterator for Lexer {
 					kind: diag::DiagKind::UnexpectedEof,
 					span: diag::Span {
 						loc: self.pop_location(),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 					},
 				})),
 			},
@@ -690,7 +697,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -715,7 +722,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -736,7 +743,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -757,7 +764,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -778,7 +785,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,
@@ -799,7 +806,7 @@ impl Iterator for Lexer {
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id,
+						file_id: self.file_id(),
 						leading_space: self.leading_space,
 					},
 					hi,

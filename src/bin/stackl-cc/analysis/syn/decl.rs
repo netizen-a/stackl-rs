@@ -159,17 +159,21 @@ pub enum Initializer {
 	InitializerList(InitializerList),
 }
 
+#[derive(Debug, Clone)]
+pub struct Array {
+	pub span: diag::Span,
+	/// (6.7.5) type-qualifier-list
+	pub type_qualifier_list: Vec<TypeQualifier>,
+	pub assignment_expr: Option<expr::Expr>,
+	pub has_static: bool,
+	pub has_ptr: bool,
+}
+
 /// (6.7.5) direct-declarator
 #[derive(Debug, Clone)]
 pub enum DirectDeclarator {
 	Pointer(Pointer),
-	Array {
-		/// (6.7.5) type-qualifier-list
-		type_qualifier_list: Vec<TypeQualifier>,
-		assignment_expr: Option<expr::Expr>,
-		has_static: bool,
-		has_ptr: bool,
-	},
+	Array(Array),
 	/// ( parameter-type-list )
 	ParameterTypeList(ParameterTypeList),
 	/// ( identifier-list_opt )

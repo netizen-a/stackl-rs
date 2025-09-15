@@ -214,7 +214,11 @@ impl DiagnosticEngine {
 			DiagKind::Internal(msg) => {
 				format!("{BOLD_RED}internal error: {BOLD_WHITE}{msg}{DEFAULT}")
 			}
-			_ => unimplemented!("diagnostic"),
+			DiagKind::ArrayOfFunctions(ident) => {
+				let msg0 = format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			_ => unimplemented!(),
 		};
 		eprint!("{str_diag}");
 	}
@@ -223,8 +227,8 @@ impl DiagnosticEngine {
 		S: AsRef<str>,
 	{
 		let mut result = String::new();
-		let file_path = self.get_file_path(diag.span.file_id).unwrap();
-		let source = self.get_file_data(diag.span.file_id).unwrap();
+		let file_path = self.get_file_path(diag.span.file_id()).unwrap();
+		let source = self.get_file_data(diag.span.file_id()).unwrap();
 		let level_color = match diag.level {
 			DiagLevel::Internal => {
 				result.push_str(&format!("{BOLD_RED}internal error:{DEFAULT} "));

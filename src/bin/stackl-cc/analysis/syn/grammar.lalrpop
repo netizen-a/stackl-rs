@@ -4,6 +4,7 @@ use crate::analysis::syn::*;
 use crate::analysis::tok::*;
 use crate::diagnostics as diag;
 use lalrpop_util as lalr;
+use crate::analysis::tok::file_id::FileId;
 
 
 grammar<'a>(
@@ -303,7 +304,7 @@ DeclarationSpecifier: SpecifierKind = {
 	TypeSpecifier => SpecifierKind::TypeSpecifier(<>),
 	TypeQualifier => SpecifierKind::TypeQualifier(<>),
 	<lo:@L> <kw:"inline"> <hi:@R> => SpecifierKind::Inline(diag::Span{
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 		loc: (lo, hi),
 	}),
 };
@@ -335,7 +336,7 @@ StorageClassSpecifier: StorageClassSpecifier = {
 		StorageClassSpecifier {
 			span: diag::Span{
 				loc: (lo,hi),
-				file_id: kw.file_id,
+				file_id: kw.file_id(),
 			},
 			storage_class: StorageClass::Typedef,
 		}
@@ -343,28 +344,28 @@ StorageClassSpecifier: StorageClassSpecifier = {
 	<lo:@L> <kw:"extern"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: kw.file_id,
+			file_id: kw.file_id(),
 		},
 		storage_class: StorageClass::Extern,
 	},
 	<lo:@L> <kw:"static"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: kw.file_id,
+			file_id: kw.file_id(),
 		},
 		storage_class: StorageClass::Static,
 	},
 	<lo:@L> <kw:"auto"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: kw.file_id,
+			file_id: kw.file_id(),
 		},
 		storage_class: StorageClass::Auto,
 	},
 	<lo:@L> <kw:"register"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: kw.file_id,
+			file_id: kw.file_id(),
 		},
 		storage_class: StorageClass::Register,
 	},
@@ -373,50 +374,50 @@ StorageClassSpecifier: StorageClassSpecifier = {
 TypeSpecifier: TypeSpecifier = {
 	<lo:@L> <kw:"void"> <hi:@R> => TypeSpecifier::Void(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"char"> <hi:@R> => TypeSpecifier::Char(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"short"> <hi:@R> => TypeSpecifier::Short(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"int"> <hi:@R> => TypeSpecifier::Int(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"long"> <hi:@R> => TypeSpecifier::Long(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"float"> <hi:@R> => TypeSpecifier::Float(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"double"> <hi:@R> => TypeSpecifier::Double(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"signed"> <hi:@R> => TypeSpecifier::Signed(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"unsigned"> <hi:@R> => TypeSpecifier::Unsigned(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	<lo:@L> <kw:"_Bool"> <hi:@R> => TypeSpecifier::Bool(diag::Span{
 		loc: (lo,hi),
-		file_id: kw.file_id,
+		file_id: kw.file_id(),
 	}),
 	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
 	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
 	<lo:@L> <name:TYPE_NAME> <hi:@R> => TypeSpecifier::TypedefName{
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: name.file_id,
+			file_id: name.file_id(),
 		},
 		name: name.kind.unwrap_ident()
 	},
@@ -439,14 +440,14 @@ StructOrUnion: StructOrUnion = {
 	<lo:@L> <kw:"struct"> <hi:@R> => StructOrUnion{
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: kw.file_id,
+			file_id: kw.file_id(),
 		},
 		keyword: Keyword::Struct,
 	},
 	<lo:@L> <kw:"union"> <hi:@R> => StructOrUnion{
 		span: diag::Span{
 			loc: (lo,hi),
-			file_id: kw.file_id,
+			file_id: kw.file_id(),
 		},
 		keyword: Keyword::Union,
 	},
@@ -490,13 +491,13 @@ StructDeclarator: StructDeclarator = {
 EnumSpecifier: EnumSpecifier = {
 	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier?> "{" <list:EnumeratorList> ","? "}" => {
 		EnumSpecifier {
-			tag_span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+			tag_span: diag::Span {loc: (lo, hi), file_id: kw.file_id()},
 			identifier: id,
 			enumerator_list: list,
 		}
 	},
 	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier> => EnumSpecifier{
-		tag_span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		tag_span: diag::Span {loc: (lo, hi), file_id: kw.file_id()},
 		identifier: Some(id),
 		enumerator_list: vec![],
 	},
@@ -523,15 +524,15 @@ Enumerator: Enumerator = {
 
 TypeQualifier: TypeQualifier = {
 	<lo:@L> <kw:"const"> <hi:@R>    => TypeQualifier{
-		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		span: diag::Span {loc: (lo, hi), file_id: kw.file_id()},
 		kind: TypeQualifierKind::Const,
 	},
 	<lo:@L> <kw:"restrict"> <hi:@R> => TypeQualifier{
-		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		span: diag::Span {loc: (lo, hi), file_id: kw.file_id()},
 		kind: TypeQualifierKind::Restrict,
 	},
 	<lo:@L> <kw:"volatile"> <hi:@R> => TypeQualifier{
-		span: diag::Span {loc: (lo, hi), file_id: kw.file_id},
+		span: diag::Span {loc: (lo, hi), file_id: kw.file_id()},
 		kind: TypeQualifierKind::Volatile,
 	},
 };
@@ -558,40 +559,60 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 		(ident, vec![])
 	},
 	"(" <decl:Declarator> ")" => decl,
-	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
-		dd_list.1.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
+		let array = Array{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifier_list: qual,
 			assignment_expr: expr,
 			has_static: false,
 			has_ptr: false,
-		});
+		};
+		dd_list.1.push(DirectDeclarator::Array(array));
 		dd_list
 	},
-	<mut dd_list:DirectDeclaratorList> "[" "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
-		dd_list.1.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		let array = Array{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifier_list: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
 			has_ptr: false,
-		});
+		};
+		dd_list.1.push(DirectDeclarator::Array(array));
 		dd_list
 	},
-	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
-		dd_list.1.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		let array = Array{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifier_list: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
 			has_ptr: false,
-		});
+		};
+		dd_list.1.push(DirectDeclarator::Array(array));
 		dd_list
 	},
-	<mut dd_list:DirectDeclaratorList> "[" <qual:TypeQualifier*> "*" "]" => {
-		dd_list.1.push(DirectDeclarator::Array{
+	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> "*" "]" => {
+		let array = Array {
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifier_list: qual,
 			assignment_expr: None,
 			has_static: false,
 			has_ptr: true,
-		});
+		};
+		dd_list.1.push(DirectDeclarator::Array(array));
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> "(" <list: ParameterTypeList> ")" => {
@@ -813,6 +834,7 @@ FunctionDefinition: FunctionDefinition = {
 	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
 			specifiers: Specifiers::from(kind_list),
+			identifier: decl.0,
 			declarator: decl.1,
 			declaration_list: list,
 			compound_stmt: compound,

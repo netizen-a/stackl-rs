@@ -1,7 +1,15 @@
+use crate::analysis::tok::file_id::FileId;
+
 #[derive(Debug, Clone, Default)]
 pub struct Span {
 	pub loc: (usize, usize),
 	pub file_id: usize,
+}
+
+impl FileId for Span {
+	fn file_id(&self) -> usize {
+		self.file_id
+	}
 }
 
 impl Span {
