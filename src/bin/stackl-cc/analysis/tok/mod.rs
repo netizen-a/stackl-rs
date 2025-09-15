@@ -2,6 +2,7 @@
 
 pub mod keyword;
 pub mod punct;
+pub mod file_id;
 
 use crate::diagnostics::{self as diag, lex};
 pub use keyword::*;
@@ -327,6 +328,12 @@ pub struct Token {
 	pub file_id: usize,
 }
 
+impl file_id::FileId for Token {
+	fn file_id(&self) -> usize {
+		self.file_id
+	}
+}
+
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum PPTokenKind {
@@ -370,6 +377,12 @@ pub struct PPToken {
 	pub kind: PPTokenKind,
 	pub file_id: usize,
 	pub leading_space: bool,
+}
+
+impl file_id::FileId for PPToken {
+	fn file_id(&self) -> usize {
+		self.file_id
+	}
 }
 
 pub type TokenTriple = (usize, Token, usize);

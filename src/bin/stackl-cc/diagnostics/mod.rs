@@ -3,7 +3,7 @@ mod kind;
 pub mod lex;
 mod span;
 
-use crate::analysis::tok;
+use crate::analysis::tok::{self, file_id::FileId};
 use std::{
 	collections::HashMap,
 	fs,
@@ -33,7 +33,8 @@ pub struct DiagnosticEngine {
 	file_map: bimap::BiHashMap<usize, PathBuf>,
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
-	list_syntax: Vec<ErrorRecovery<usize, tok::Token, Diagnostic>>,
+	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
+	token_errors: Vec<ParseError<usize, tok::PPToken, Diagnostic>>,
 }
 
 impl DiagnosticEngine {
@@ -46,8 +47,12 @@ impl DiagnosticEngine {
 		self.list_other.push(diag)
 	}
 	#[inline]
-	pub fn push_recov(&mut self, diag: ErrorRecovery<usize, tok::Token, Diagnostic>) {
-		self.list_syntax.push(diag)
+	pub fn push_syntax_error(&mut self, diag: ParseError<usize, tok::Token, Diagnostic>) {
+		self.syntax_errors.push(diag)
+	}
+	#[inline]
+	pub fn push_token_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
+		self.token_errors.push(diag)
 	}
 	pub fn get_file_path(&self, id: usize) -> Option<&PathBuf> {
 		self.file_map.get_by_left(&id)
@@ -86,21 +91,27 @@ impl DiagnosticEngine {
 				return true;
 			}
 		}
-		!self.list_syntax.is_empty()
+		!self.token_errors.is_empty() || !self.syntax_errors.is_empty()
 	}
 	pub fn print_diagnostics(&self) {
-		for diag in self.list_syntax.iter() {
-			self.print_recov(diag)
+		for diag in self.token_errors.iter() {
+			self.print_parse_errors(diag)
+		}
+		for diag in self.syntax_errors.iter() {
+			self.print_parse_errors(diag)
 		}
 		for diag in self.list_other.iter() {
 			self.stderr_diagnostic(diag)
 		}
 	}
-	fn print_recov(&self, error_recov: &ErrorRecovery<usize, tok::Token, Diagnostic>) {
-		match &error_recov.error {
+	fn print_parse_errors<T>(&self, error: &ParseError<usize, T, Diagnostic>)
+	where
+		T: FileId
+	{
+		match &error {
 			ParseError::ExtraToken { token } => {
 				let span = Span {
-					file_id: token.1.file_id,
+					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
 				};
 				let diag = Diagnostic::error(DiagKind::ExtraToken, span);
@@ -139,7 +150,7 @@ impl DiagnosticEngine {
 			}
 			ParseError::UnrecognizedToken { token, expected } => {
 				let span = Span {
-					file_id: token.1.file_id,
+					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
 				};
 				let diag = Diagnostic::error(DiagKind::UnrecognizedToken, span);

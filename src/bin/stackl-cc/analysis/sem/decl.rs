@@ -27,7 +27,12 @@ impl super::SemanticParser<'_> {
 
 		self.symtab.increase_scope();
 		{
-			let _ = decl.declarator;
+			// let _ = decl.declarator;
+			match decl.declarator.first() {
+				Some(DirectDeclarator::IdentifierList(ident_list)) => println!("ident-list: {ident_list:?}"),
+				Some(DirectDeclarator::ParameterTypeList(param_list)) => println!("param-list: {param_list:?}"),
+				_ => todo!()
+			}
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, StorageClass::Auto);
 			}

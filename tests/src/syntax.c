@@ -52,5 +52,16 @@ signed long long int p1;
 
 // struct Foo { unsigned char x; } signed k;
 
-auto x;
+//auto x;
+
+int foo(a, b)
+    int a, b;
+{
+    return a + b;
+}
+
+int bar(int a, int b)
+{
+    return a + b;
+}
 
