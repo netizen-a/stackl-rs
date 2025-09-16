@@ -106,7 +106,7 @@ impl DiagnosticEngine {
 	}
 	fn print_parse_errors<T>(&self, error: &ParseError<usize, T, Diagnostic>)
 	where
-		T: FileId
+		T: FileId,
 	{
 		match &error {
 			ParseError::ExtraToken { token } => {
@@ -215,7 +215,26 @@ impl DiagnosticEngine {
 				format!("{BOLD_RED}internal error: {BOLD_WHITE}{msg}{DEFAULT}")
 			}
 			DiagKind::ArrayOfFunctions(ident) => {
-				let msg0 = format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
+				let msg0 =
+					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::ExpectedBeforeToken {
+				token,
+				expected_list,
+			} => {
+				let mut expected_str = String::from("expected ");
+				for (index, expected) in expected_list.iter().enumerate() {
+					expected_str.push('\'');
+					expected_str.push_str(expected);
+					expected_str.push('\'');
+					if index != 0 && index == expected_list.len() - 2 {
+						expected_str.push_str(" or ");
+					} else if index != expected_list.len() - 1 {
+						expected_str.push_str(", ");
+					}
+				}
+				let msg0 = format!("{expected_str} before '{token}' token");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			_ => unimplemented!(),

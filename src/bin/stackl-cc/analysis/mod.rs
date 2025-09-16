@@ -29,15 +29,13 @@ where
 	let lexer = lex::lexer::Lexer::new(text, 0);
 	let pp_iter = lex::PPTokenIter::from(lexer);
 	let pp_ref = Rc::clone(&pp_iter.stack_ref);
-	let tokens: Vec<TokenTriple> = match TokensParser::new()
-		.parse(diagnostics, &pp_ref, pp_iter)
-		{
-			Ok(tokens) => tokens,
-			Err(error) => {
-				diagnostics.push_token_error(error);
-				return None;
-			}
-		};
+	let tokens: Vec<TokenTriple> = match TokensParser::new().parse(diagnostics, &pp_ref, pp_iter) {
+		Ok(tokens) => tokens,
+		Err(error) => {
+			diagnostics.push_token_error(error);
+			return None;
+		}
+	};
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let tk_ref = Rc::clone(&tk_iter.inner);

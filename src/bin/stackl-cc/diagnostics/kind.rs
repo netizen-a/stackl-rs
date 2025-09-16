@@ -12,10 +12,17 @@ pub enum DiagKind {
 	DuplicateSpecifier(String),
 	BothSpecifiers(String, String),
 	InvalidRestrict,
-	TypeError { found: DataType, expected: DataType },
+	TypeError {
+		found: DataType,
+		expected: DataType,
+	},
 	MultipleTypes,
 	TooLong,
 	ImplicitInt(String),
 	Internal(String),
 	ArrayOfFunctions(String),
+	ExpectedBeforeToken {
+		token: String,
+		expected_list: Box<[&'static str]>,
+	},
 }

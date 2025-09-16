@@ -757,19 +757,35 @@ ClosedLabeledStatement: LabeledStmt = {
 
 
 OpenedCompoundStatement: CompoundStmt = {
-	IncScope <blocks:OpenedBlockItem*> DecScope => CompoundStmt(blocks),
+	<lcurly:LeftCurly> <blocks:OpenedBlockItem*> <rcurly:RightCurly> => CompoundStmt{
+		lcurly,
+		blocks,
+		rcurly,
+	},
 };
 
 ClosedCompoundStatement: CompoundStmt = {
-	IncScope <blocks:ClosedBlockItem*> DecScope => CompoundStmt(blocks),
+	<lcurly:LeftCurly> <blocks:ClosedBlockItem*> <rcurly:RightCurly> => CompoundStmt{
+		lcurly,
+		blocks,
+		rcurly,
+	},
 };
 
-IncScope: () = "{" => {
+LeftCurly: diag::Span = <lo:@L> <lcurly:"{"> <hi:@R> => {
 	tk_ref.borrow_mut().increase_scope();
+	diag::Span {
+		file_id: lcurly.file_id(),
+		loc: (lo, hi),
+	}
 };
 
-DecScope: () = "}" => {
+RightCurly: diag::Span = <lo:@L> <rcurly:"}"> <hi:@R> => {
 	tk_ref.borrow_mut().decrease_scope();
+	diag::Span {
+		file_id: rcurly.file_id(),
+		loc: (lo, hi),
+	}
 };
 
 

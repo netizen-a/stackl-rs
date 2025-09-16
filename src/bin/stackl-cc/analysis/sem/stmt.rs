@@ -3,7 +3,7 @@ use crate::analysis::syn::*;
 impl super::SemanticParser<'_> {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
 		self.symtab.increase_scope();
-		for item in stmt.0.iter_mut() {
+		for item in stmt.blocks.iter_mut() {
 			self.block_item(item)
 		}
 		self.symtab.decrease_scope();

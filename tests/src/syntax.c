@@ -65,7 +65,7 @@ int bar(int a, int b)
     return a + b;
 }
 
-int foobar[](int a, int b) {
+int (*foobar)(int a, int b) {
     return a * b;
 }
 

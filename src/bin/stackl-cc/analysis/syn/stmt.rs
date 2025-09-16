@@ -1,9 +1,14 @@
 use super::{decl, expr};
 use crate::analysis::tok;
+use crate::diagnostics as diag;
 
 /// (6.8.2) compound-statement
 #[derive(Debug)]
-pub struct CompoundStmt(pub Vec<BlockItem>);
+pub struct CompoundStmt {
+	pub lcurly: diag::Span,
+	pub blocks: Vec<BlockItem>,
+	pub rcurly: diag::Span,
+}
 
 /// (6.8.2) block-item
 #[derive(Debug)]

@@ -1,8 +1,8 @@
 //! Lexical Elements
 
+pub mod file_id;
 pub mod keyword;
 pub mod punct;
-pub mod file_id;
 
 use crate::diagnostics::{self as diag, lex};
 pub use keyword::*;

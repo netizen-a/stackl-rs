@@ -29,19 +29,33 @@ impl super::SemanticParser<'_> {
 		{
 			// let _ = decl.declarator;
 			match decl.declarator.first() {
-				Some(DirectDeclarator::IdentifierList(ident_list)) => println!("ident-list: {ident_list:?}"),
-				Some(DirectDeclarator::ParameterTypeList(param_list)) => println!("param-list: {param_list:?}"),
+				Some(DirectDeclarator::IdentifierList(ident_list)) => {
+					println!("ident-list: {ident_list:?}")
+				}
+				Some(DirectDeclarator::ParameterTypeList(param_list)) => {
+					println!("param-list: {param_list:?}")
+				}
 				Some(DirectDeclarator::Array(array)) => {
 					let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
 					let diag = diag::Diagnostic::error(kind, array.span.clone());
 					self.diagnostics.push(diag);
+					return;
 				}
-				_ => todo!()
+				Some(DirectDeclarator::Pointer(_)) => {
+					let kind = diag::DiagKind::ExpectedBeforeToken {
+						token: "{".to_string(),
+						expected_list: Box::new(["=", ",", ";", "asm"]),
+					};
+					let diag = diag::Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
+					self.diagnostics.push(diag);
+					return;
+				}
+				_ => todo!(),
 			}
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, StorageClass::Auto);
 			}
-			for item in decl.compound_stmt.0.iter_mut() {
+			for item in decl.compound_stmt.blocks.iter_mut() {
 				self.block_item(item)
 			}
 		}
@@ -538,7 +552,7 @@ impl super::SemanticParser<'_> {
 		match direct_decl {
 			//Declarator(_decl) => {},
 			Pointer(_ptr) => {}
-			Array (_array) => (),
+			Array(_array) => (),
 			ParameterTypeList(type_list) => {
 				for param in type_list.parameter_list.iter_mut() {
 					self.parameter_declaration(param);
