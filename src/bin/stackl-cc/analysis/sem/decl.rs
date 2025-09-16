@@ -27,7 +27,6 @@ impl super::SemanticParser<'_> {
 
 		self.symtab.increase_scope();
 		{
-			// let _ = decl.declarator;
 			match decl.declarator.first() {
 				Some(DirectDeclarator::IdentifierList(ident_list)) => {
 					println!("ident-list: {ident_list:?}")
@@ -41,7 +40,7 @@ impl super::SemanticParser<'_> {
 					self.diagnostics.push(diag);
 					return;
 				}
-				Some(DirectDeclarator::Pointer(_)) => {
+				None | Some(DirectDeclarator::Pointer(_)) => {
 					let kind = diag::DiagKind::ExpectedBeforeToken {
 						token: "{".to_string(),
 						expected_list: Box::new(["=", ",", ";", "asm"]),
@@ -50,7 +49,6 @@ impl super::SemanticParser<'_> {
 					self.diagnostics.push(diag);
 					return;
 				}
-				_ => todo!(),
 			}
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, StorageClass::Auto);
