@@ -34,7 +34,7 @@ pub struct DiagnosticEngine {
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
-	token_errors: Vec<ParseError<usize, tok::PPToken, Diagnostic>>,
+	fatal_errors: Vec<ParseError<usize, tok::PPToken, Diagnostic>>,
 }
 
 impl DiagnosticEngine {
@@ -51,8 +51,8 @@ impl DiagnosticEngine {
 		self.syntax_errors.push(diag)
 	}
 	#[inline]
-	pub fn push_token_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
-		self.token_errors.push(diag)
+	pub fn push_fatal_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
+		self.fatal_errors.push(diag)
 	}
 	pub fn get_file_path(&self, id: usize) -> Option<&PathBuf> {
 		self.file_map.get_by_left(&id)
@@ -91,20 +91,20 @@ impl DiagnosticEngine {
 				return true;
 			}
 		}
-		!self.token_errors.is_empty() || !self.syntax_errors.is_empty()
+		!self.fatal_errors.is_empty() || !self.syntax_errors.is_empty()
 	}
 	pub fn print_diagnostics(&self) {
-		for diag in self.token_errors.iter() {
-			self.print_parse_errors(diag)
+		for diag in self.fatal_errors.iter() {
+			self.print_parse_errors(DiagLevel::Fatal, diag)
 		}
 		for diag in self.syntax_errors.iter() {
-			self.print_parse_errors(diag)
+			self.print_parse_errors(DiagLevel::Error, diag)
 		}
 		for diag in self.list_other.iter() {
 			self.stderr_diagnostic(diag)
 		}
 	}
-	fn print_parse_errors<T>(&self, error: &ParseError<usize, T, Diagnostic>)
+	fn print_parse_errors<T>(&self, level: DiagLevel, error: &ParseError<usize, T, Diagnostic>)
 	where
 		T: FileId,
 	{
@@ -114,7 +114,11 @@ impl DiagnosticEngine {
 					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
 				};
-				let diag = Diagnostic::error(DiagKind::ExtraToken, span);
+				let diag = Diagnostic{
+					level,
+					kind: DiagKind::ExtraToken,
+					span,
+				};
 				self.stderr_diagnostic(&diag);
 			}
 			ParseError::InvalidToken { location } => unreachable!("invalid token"),
@@ -128,7 +132,11 @@ impl DiagnosticEngine {
 					file_id,
 					loc: (*location, *location),
 				};
-				let diag = Diagnostic::error(DiagKind::UnexpectedEof, span);
+				let diag = Diagnostic{
+					level,
+					kind: DiagKind::UnexpectedEof,
+					span,
+				};
 				let msg0 = "unexpected EOF";
 				let mut msg1 = String::from("expected ");
 				let mut is_first = true;
@@ -153,7 +161,11 @@ impl DiagnosticEngine {
 					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
 				};
-				let diag = Diagnostic::error(DiagKind::UnrecognizedToken, span);
+				let diag = Diagnostic{
+					level,
+					kind: DiagKind::UnrecognizedToken,
+					span,
+				};
 				let msg0 = "unrecognized token";
 				let mut msg1 = String::from("expected ");
 				let mut is_first = true;

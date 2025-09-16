@@ -32,7 +32,7 @@ where
 	let tokens: Vec<TokenTriple> = match TokensParser::new().parse(diagnostics, &pp_ref, pp_iter) {
 		Ok(tokens) => tokens,
 		Err(error) => {
-			diagnostics.push_token_error(error);
+			diagnostics.push_fatal_error(error);
 			return None;
 		}
 	};
