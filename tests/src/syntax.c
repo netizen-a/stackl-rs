@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-// int a;
+int a = 1 + 1;
 // int *b, *p;
 // int *c[3];
 // int (*d)[3];
@@ -33,8 +33,8 @@
 
 // char long long j;
 
-unsigned long long int p;
-signed long long int p1;
+unsigned long long int *const p;
+signed long long int p1, *const *restrict k;
 
 // unsigned _Bool k;
 // _Bool i;
@@ -65,11 +65,11 @@ signed long long int p1;
 //     return a + b;
 // }
 
-int (*foobar)(int a, int b) {
-    return a * b;
-}
+// int (*foobar)(int a, int b) {
+//     return a * b;
+// }
 
-int foo {
-    return 0;
-}
+// int foo {
+//     return 0;
+// }
 

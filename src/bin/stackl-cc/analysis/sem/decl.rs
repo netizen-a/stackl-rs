@@ -93,8 +93,7 @@ impl super::SemanticParser<'_> {
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
 			eprintln!("DEBUG: [symbol table]: {key:?} => {entry:?}");
-			self.symtab
-				.insert(key, entry);
+			self.symtab.insert(key, entry);
 		}
 	}
 	fn specifiers(

@@ -116,49 +116,21 @@ CastExpr: Expr = {
 
 MultiplicativeExpr: Expr = {
 	CastExpr,
-	<lhs:MultiplicativeExpr> "*" <rhs:CastExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Mul,
-		right: Box::new(rhs),
-	}),
-	<lhs:MultiplicativeExpr> "/" <rhs:CastExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Div,
-		right: Box::new(rhs),
-	}),
-	<lhs:MultiplicativeExpr> "%" <rhs:CastExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Mod,
-		right: Box::new(rhs),
-	}),
+	<lhs:MultiplicativeExpr> "*" <rhs:CastExpr> => Expr::with_binary(BinOp::Mul, lhs, rhs),
+	<lhs:MultiplicativeExpr> "/" <rhs:CastExpr> => Expr::with_binary(BinOp::Div, lhs, rhs),
+	<lhs:MultiplicativeExpr> "%" <rhs:CastExpr> => Expr::with_binary(BinOp::Mod, lhs, rhs),
 };
 
 AdditiveExpr: Expr = {
 	MultiplicativeExpr,
-	<lhs:AdditiveExpr> "+" <rhs:MultiplicativeExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Add,
-		right: Box::new(rhs)
-	}),
-	<lhs:AdditiveExpr> "-" <rhs:MultiplicativeExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Sub,
-		right: Box::new(rhs),
-	}),
+	<lhs:AdditiveExpr> "+" <rhs:MultiplicativeExpr> => Expr::with_binary(BinOp::Add, lhs, rhs),
+	<lhs:AdditiveExpr> "-" <rhs:MultiplicativeExpr> => Expr::with_binary(BinOp::Sub, lhs, rhs),
 };
 
 ShiftExpr: Expr = {
 	AdditiveExpr,
-	<lhs:ShiftExpr> "<<" <rhs:AdditiveExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::LShift,
-		right: Box::new(rhs),
-	}),
-	<lhs:ShiftExpr> ">>" <rhs:AdditiveExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::RShift,
-		right: Box::new(rhs),
-	}),
+	<lhs:ShiftExpr> "<<" <rhs:AdditiveExpr> => Expr::with_binary(BinOp::Shl, lhs, rhs),
+	<lhs:ShiftExpr> ">>" <rhs:AdditiveExpr> => Expr::with_binary(BinOp::Shr, lhs, rhs),
 };
 
 RelationalExpr: Expr = {
@@ -201,29 +173,17 @@ EqualityExpr: Expr = {
 
 AndExpr: Expr = {
 	EqualityExpr,
-	<lhs:AndExpr> "&" <rhs:EqualityExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::And,
-		right: Box::new(rhs),
-	}),
+	<lhs:AndExpr> "&" <rhs:EqualityExpr> => Expr::with_binary(BinOp::And, lhs, rhs),
 };
 
 ExclusiveOrExpr: Expr = {
 	AndExpr,
-	<lhs:ExclusiveOrExpr> "^" <rhs:AndExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::XOr,
-		right: Box::new(rhs),
-	}),
+	<lhs:ExclusiveOrExpr> "^" <rhs:AndExpr> => Expr::with_binary(BinOp::XOr, lhs, rhs),
 };
 
 InclusiveOrExpr: Expr = {
 	ExclusiveOrExpr,
-	<lhs:InclusiveOrExpr> "|" <rhs:ExclusiveOrExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Or,
-		right: Box::new(rhs),
-	}),
+	<lhs:InclusiveOrExpr> "|" <rhs:ExclusiveOrExpr> => Expr::with_binary(BinOp::Or, lhs, rhs),
 };
 
 LogicalAndExpr: Expr = {
