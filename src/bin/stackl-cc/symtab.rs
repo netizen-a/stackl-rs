@@ -54,14 +54,4 @@ impl<K: Eq + Hash, V> SymbolTable<K, V> {
 			None => Ok(()),
 		}
 	}
-	// TODO: replace with insert_or_update
-	// pub fn remove(&mut self, name: &K) -> Result<(), SymbolTableError> {
-	//     let Some(table) = self.table.last_mut() else {
-	//         return Err(SymbolTableError::InvalidScope);
-	//     };
-	//     match table.remove(name) {
-	//         Some(_) => Ok(()),
-	//         None => Err(SymbolTableError::DoesNotExist),
-	//     }
-	// }
 }

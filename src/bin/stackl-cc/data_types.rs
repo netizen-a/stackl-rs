@@ -47,17 +47,17 @@ impl ScalarType {
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Array {
+pub struct ArrayType {
 	pub component: Box<DataType>,
 	pub length: u32,
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Pointer {
+pub struct PtrType {
 	pub is_const: bool,
 	pub is_volatile: bool,
 	pub is_restrict: bool,
-	inner: Box<DataType>,
+	pub inner: Box<DataType>,
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -92,8 +92,8 @@ pub enum DataType {
 	Union(Vec<MemberType>),
 	Enum,
 	Function(FuncType),
-	Pointer(Pointer),
-	Array(Array),
+	Pointer(PtrType),
+	Array(ArrayType),
 }
 
 impl fmt::Display for DataType {

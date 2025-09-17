@@ -114,7 +114,7 @@ impl DiagnosticEngine {
 					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
 				};
-				let diag = Diagnostic{
+				let diag = Diagnostic {
 					level,
 					kind: DiagKind::ExtraToken,
 					span,
@@ -132,7 +132,7 @@ impl DiagnosticEngine {
 					file_id,
 					loc: (*location, *location),
 				};
-				let diag = Diagnostic{
+				let diag = Diagnostic {
 					level,
 					kind: DiagKind::UnexpectedEof,
 					span,
@@ -161,7 +161,7 @@ impl DiagnosticEngine {
 					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
 				};
-				let diag = Diagnostic{
+				let diag = Diagnostic {
 					level,
 					kind: DiagKind::UnrecognizedToken,
 					span,

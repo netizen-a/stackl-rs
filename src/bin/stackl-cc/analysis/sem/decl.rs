@@ -4,9 +4,7 @@ use crate::analysis::sem::StorageClass;
 use crate::analysis::sem::SymbolTableEntry;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
-use crate::data_types::DataType;
-use crate::data_types::MemberType;
-use crate::data_types::ScalarType;
+use crate::data_types as dtype;
 use crate::diagnostics as diag;
 
 const SIGNED_STR: &str = "signed";
@@ -25,31 +23,31 @@ impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
 		self.specifiers(&mut decl.specifiers);
 
+		match decl.declarator.first() {
+			Some(DirectDeclarator::IdentifierList(ident_list)) => {
+				println!("ident-list: {ident_list:?}")
+			}
+			Some(DirectDeclarator::ParameterTypeList(param_list)) => {
+				println!("param-list: {param_list:?}")
+			}
+			Some(DirectDeclarator::Array(array)) => {
+				let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
+				let diag = diag::Diagnostic::error(kind, array.span.clone());
+				self.diagnostics.push(diag);
+				return;
+			}
+			None | Some(DirectDeclarator::Pointer(_)) => {
+				let kind = diag::DiagKind::ExpectedBeforeToken {
+					token: "{".to_string(),
+					expected_list: Box::new(["=", ",", ";", "asm"]),
+				};
+				let diag = diag::Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
+				self.diagnostics.push(diag);
+				return;
+			}
+		}
 		self.symtab.increase_scope();
 		{
-			match decl.declarator.first() {
-				Some(DirectDeclarator::IdentifierList(ident_list)) => {
-					println!("ident-list: {ident_list:?}")
-				}
-				Some(DirectDeclarator::ParameterTypeList(param_list)) => {
-					println!("param-list: {param_list:?}")
-				}
-				Some(DirectDeclarator::Array(array)) => {
-					let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
-					let diag = diag::Diagnostic::error(kind, array.span.clone());
-					self.diagnostics.push(diag);
-					return;
-				}
-				None | Some(DirectDeclarator::Pointer(_)) => {
-					let kind = diag::DiagKind::ExpectedBeforeToken {
-						token: "{".to_string(),
-						expected_list: Box::new(["=", ",", ";", "asm"]),
-					};
-					let diag = diag::Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
-					self.diagnostics.push(diag);
-					return;
-				}
-			}
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, StorageClass::Auto);
 			}
@@ -79,24 +77,30 @@ impl super::SemanticParser<'_> {
 				continue;
 			};
 			//self.init_declarator(init_decl);
-			let _ = init_decl.declarator;
+			//let _ = init_decl.declarator;
+			let mut var_dtype = data_type.clone();
+			for direct_decl in init_decl.declarator.iter_mut() {
+				var_dtype = self.direct_declarator(direct_decl, var_dtype.clone());
+			}
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
 			let entry = SymbolTableEntry {
-				data_type: data_type.clone(),
+				data_type: var_dtype,
 				is_incomplete: false,
 				linkage,
 				storage,
 			};
+			let key = Namespace::Ordinary(ident.name.clone());
+			eprintln!("DEBUG: [symbol table]: {key:?} => {entry:?}");
 			self.symtab
-				.insert(Namespace::Ordinary(ident.name.clone()), entry);
+				.insert(key, entry);
 		}
 	}
 	fn specifiers(
 		&mut self,
 		specifiers: &mut Specifiers,
-	) -> (Option<StorageClass>, Option<DataType>) {
+	) -> (Option<StorageClass>, Option<dtype::DataType>) {
 		let mut storage_class = None;
 		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
@@ -124,7 +128,7 @@ impl super::SemanticParser<'_> {
 		}
 
 		let mut is_signed: Option<bool> = None;
-		let mut data_type: Option<DataType> = None;
+		let mut data_type: Option<dtype::DataType> = None;
 		let mut long_count = 0;
 		for type_spec in specifiers.type_specifiers.iter_mut() {
 			match type_spec {
@@ -134,7 +138,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Void),
+						None => data_type = Some(dtype::DataType::Void),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -152,7 +156,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(ScalarType::I8)),
+						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I8)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -170,7 +174,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(ScalarType::I16)),
+						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I16)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -187,7 +191,7 @@ impl super::SemanticParser<'_> {
 						diag::DiagKind::MultipleTypes,
 						span.clone(),
 					)),
-					None => data_type = Some(DataType::Scalar(ScalarType::I32)),
+					None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I32)),
 				},
 				TypeSpecifier::Long(span) => {
 					long_count += 1;
@@ -205,7 +209,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						None | Some(DataType::Scalar(ScalarType::I32)) => {
+						None | Some(dtype::DataType::Scalar(dtype::ScalarType::I32)) => {
 							// do nothing
 						}
 					}
@@ -235,7 +239,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(ScalarType::Float)),
+						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::Float)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -272,7 +276,9 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(ScalarType::Double)),
+						None => {
+							data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::Double))
+						}
 					}
 					if long_count > 1 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -300,7 +306,7 @@ impl super::SemanticParser<'_> {
 						None => is_signed = Some(true),
 					}
 					match &data_type {
-						Some(DataType::Scalar(ScalarType::Double)) => {
+						Some(dtype::DataType::Scalar(dtype::ScalarType::Double)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
 									SIGNED_STR.to_owned(),
@@ -309,7 +315,7 @@ impl super::SemanticParser<'_> {
 								span.clone(),
 							))
 						}
-						Some(DataType::Scalar(ScalarType::Float)) => {
+						Some(dtype::DataType::Scalar(dtype::ScalarType::Float)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
 									SIGNED_STR.to_owned(),
@@ -322,7 +328,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), name.to_string()),
 							span.clone(),
 						)),
-						Some(DataType::Scalar(_)) | None => {
+						Some(dtype::DataType::Scalar(_)) | None => {
 							// do nothing
 						}
 					}
@@ -343,7 +349,7 @@ impl super::SemanticParser<'_> {
 						None => is_signed = Some(false),
 					}
 					match &data_type {
-						Some(DataType::Scalar(ScalarType::Double)) => {
+						Some(dtype::DataType::Scalar(dtype::ScalarType::Double)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
 									UNSIGNED_STR.to_owned(),
@@ -352,7 +358,7 @@ impl super::SemanticParser<'_> {
 								span.clone(),
 							))
 						}
-						Some(DataType::Scalar(ScalarType::Float)) => {
+						Some(dtype::DataType::Scalar(dtype::ScalarType::Float)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
 									UNSIGNED_STR.to_owned(),
@@ -368,7 +374,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						)),
-						Some(DataType::Scalar(_)) | None => {
+						Some(dtype::DataType::Scalar(_)) | None => {
 							// do nothing
 						}
 					}
@@ -379,7 +385,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(ScalarType::Bool)),
+						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::Bool)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -427,9 +433,9 @@ impl super::SemanticParser<'_> {
 							span.clone(),
 						));
 					} else if let tok::Keyword::Struct = struct_or_union.keyword {
-						data_type = Some(DataType::Struct(members));
+						data_type = Some(dtype::DataType::Struct(members));
 					} else if let tok::Keyword::Union = struct_or_union.keyword {
-						data_type = Some(DataType::Union(members));
+						data_type = Some(dtype::DataType::Union(members));
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -467,7 +473,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						)),
-						None => data_type = Some(DataType::Scalar(ScalarType::I8)),
+						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I8)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -482,11 +488,11 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::TypedefName { .. } => todo!("typedef"),
 			}
 		}
-		if let Some(DataType::Scalar(ref mut scalar)) = &mut data_type {
-			if let ScalarType::I32 = scalar {
+		if let Some(dtype::DataType::Scalar(ref mut scalar)) = &mut data_type {
+			if let dtype::ScalarType::I32 = scalar {
 				match long_count {
-					1 => *scalar = ScalarType::I64,
-					2 => *scalar = ScalarType::I128,
+					1 => *scalar = dtype::ScalarType::I64,
+					2 => *scalar = dtype::ScalarType::I128,
 					_ => {}
 				}
 			}
@@ -513,14 +519,17 @@ impl super::SemanticParser<'_> {
 	}
 
 	// FIXME: symbol table infrastructure required to parse this AST.
-	fn struct_declaration(&mut self, struct_decl: &mut StructDeclaration) -> Vec<MemberType> {
+	fn struct_declaration(
+		&mut self,
+		struct_decl: &mut StructDeclaration,
+	) -> Vec<dtype::MemberType> {
 		// let mut result = vec![];
 		// only type-specifier and type-qualifier is syntactically allowed here.
 		// let (_, ty_opt) = self.specifiers(&mut struct_decl.specifiers);
 		// for decl in struct_decl.struct_declaration_list.iter_mut() {
 		// 	//self.struct_declarator(decl);
 		// 	let ident = decl.identifier.and_then(|v| Some(v.name));
-		// 	result.push(MemberType { ident, dtype: () });
+		// 	result.push(dtype::MemberType { ident, dtype: () });
 		// }
 		// result
 
@@ -545,18 +554,39 @@ impl super::SemanticParser<'_> {
 			InitializerList(list) => self.initializer_list(list),
 		}
 	}
-	fn direct_declarator(&mut self, direct_decl: &mut DirectDeclarator) {
+	fn direct_declarator(
+		&mut self,
+		direct_decl: &mut DirectDeclarator,
+		inner_type: dtype::DataType,
+	) -> dtype::DataType {
 		use DirectDeclarator::*;
 		match direct_decl {
-			//Declarator(_decl) => {},
-			Pointer(_ptr) => {}
-			Array(_array) => (),
+			Pointer(ptr) => {
+				let ptr_type = dtype::PtrType {
+					is_const: ptr.is_const,
+					is_restrict: ptr.is_restrict,
+					is_volatile: ptr.is_volatile,
+					inner: Box::new(inner_type),
+				};
+				dtype::DataType::Pointer(ptr_type)
+			}
+			Array(_array) => {
+				todo!()
+			}
 			ParameterTypeList(type_list) => {
 				for param in type_list.parameter_list.iter_mut() {
 					self.parameter_declaration(param);
 				}
+				todo!()
 			}
-			IdentifierList(_ident_list) => (),
+			IdentifierList(_ident_list) => {
+				let func_type = dtype::FuncType {
+					params: vec![],
+					ret: Box::new(inner_type),
+					is_variadic: false,
+				};
+				dtype::DataType::Function(func_type)
+			}
 		}
 	}
 	fn parameter_type_list(&mut self, list: &mut ParameterTypeList) {

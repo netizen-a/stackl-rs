@@ -7,7 +7,7 @@ use crate::data_types::DataType;
 use crate::diagnostics::DiagnosticEngine;
 use crate::symtab::SymbolTable;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 enum Namespace {
 	Label(String),
 	Tag(String),
@@ -15,13 +15,14 @@ enum Namespace {
 	Ordinary(String),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Linkage {
 	None,
 	External,
 	Internal,
 }
 
+#[derive(Debug)]
 pub struct SymbolTableEntry {
 	pub data_type: DataType,
 	pub storage: StorageClass,
