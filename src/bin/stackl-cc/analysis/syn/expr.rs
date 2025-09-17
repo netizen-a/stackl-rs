@@ -7,7 +7,6 @@ pub enum Expr {
 	Ident(tok::Ident),
 	Const(tok::Const),
 	StrLit(tok::StrLit),
-	Paren(Box<Expr>),
 	Unary(ExprUnary),
 	Binary(ExprBinary),
 	Ternary(ExprTernary),
@@ -35,6 +34,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int),
 					BinOp::Mul => left_int.wrapping_mul(*right_int),
 					BinOp::Mod => left_int.wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						u32::MAX
+					} else {
+						left_int.wrapping_div(*right_int)
+					},
 					BinOp::Shl => left_int.wrapping_shl(*right_int),
 					BinOp::Shr => left_int.wrapping_shr(*right_int),
 					BinOp::And => *left_int & *right_int,
@@ -56,6 +60,11 @@ impl Expr {
 					BinOp::Sub => (*left_int as u64).wrapping_sub(*right_int),
 					BinOp::Mul => (*left_int as u64).wrapping_mul(*right_int),
 					BinOp::Mod => (*left_int as u64).wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						u64::MAX
+					} else {
+						(*left_int as u64).wrapping_div(*right_int)
+					},
 					BinOp::And => (*left_int as u64) & *right_int,
 					BinOp::Or => (*left_int as u64) | *right_int,
 					_ => {
@@ -74,6 +83,11 @@ impl Expr {
 					BinOp::Sub => (*left_int as u128).wrapping_sub(*right_int),
 					BinOp::Mul => (*left_int as u128).wrapping_mul(*right_int),
 					BinOp::Mod => (*left_int as u128).wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						u128::MAX
+					} else {
+						(*left_int as u128).wrapping_div(*right_int)
+					},
 					_ => {
 						return Self::Binary(ExprBinary {
 							op,
@@ -90,6 +104,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int),
 					BinOp::Mul => left_int.wrapping_mul(*right_int),
 					BinOp::Mod => left_int.wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						i32::MAX
+					} else {
+						left_int.wrapping_div(*right_int)
+					},
 					BinOp::And => *left_int & *right_int,
 					BinOp::Or => *left_int | *right_int,
 					BinOp::XOr => *left_int ^ *right_int,
@@ -109,6 +128,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int as u64),
 					BinOp::Mul => left_int.wrapping_mul(*right_int as u64),
 					BinOp::Mod => left_int.wrapping_rem(*right_int as u64),
+					BinOp::Div => if *right_int == 0 {
+						u64::MAX
+					} else {
+						left_int.wrapping_div(*right_int as u64)
+					},
 					BinOp::Shl => left_int.wrapping_shl(*right_int),
 					BinOp::Shr => left_int.wrapping_shr(*right_int),
 					_ => {
@@ -127,6 +151,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int),
 					BinOp::Mul => left_int.wrapping_mul(*right_int),
 					BinOp::Mod => left_int.wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						u64::MAX
+					} else {
+						left_int.wrapping_div(*right_int)
+					},
 					BinOp::And => *left_int & *right_int,
 					BinOp::Or => *left_int | *right_int,
 					BinOp::XOr => *left_int ^ *right_int,
@@ -146,6 +175,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int),
 					BinOp::Mul => left_int.wrapping_mul(*right_int),
 					BinOp::Mod => left_int.wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						i64::MAX
+					} else {
+						left_int.wrapping_div(*right_int)
+					},
 					BinOp::And => *left_int & *right_int,
 					BinOp::Or => *left_int | *right_int,
 					BinOp::XOr => *left_int ^ *right_int,
@@ -168,6 +202,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int as u128),
 					BinOp::Mul => left_int.wrapping_mul(*right_int as u128),
 					BinOp::Mod => left_int.wrapping_rem(*right_int as u128),
+					BinOp::Div => if *right_int == 0 {
+						u128::MAX
+					} else {
+						left_int.wrapping_div(*right_int as u128)
+					},
 					BinOp::Shl => left_int.wrapping_shl(*right_int),
 					BinOp::Shr => left_int.wrapping_shr(*right_int),
 					_ => {
@@ -189,6 +228,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int),
 					BinOp::Mul => left_int.wrapping_mul(*right_int),
 					BinOp::Mod => left_int.wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						u128::MAX
+					} else {
+						left_int.wrapping_div(*right_int)
+					},
 					BinOp::And => *left_int & *right_int,
 					BinOp::Or => *left_int | *right_int,
 					BinOp::XOr => *left_int ^ *right_int,
@@ -211,6 +255,11 @@ impl Expr {
 					BinOp::Sub => left_int.wrapping_sub(*right_int),
 					BinOp::Mul => left_int.wrapping_mul(*right_int),
 					BinOp::Mod => left_int.wrapping_rem(*right_int),
+					BinOp::Div => if *right_int == 0 {
+						i128::MAX
+					} else {
+						left_int.wrapping_div(*right_int)
+					},
 					BinOp::And => *left_int & *right_int,
 					BinOp::Or => *left_int | *right_int,
 					_ => {

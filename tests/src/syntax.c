@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-int a = 1 + 1;
+int a = (1 + 1) * 3;
 // int *b, *p;
 // int *c[3];
 // int (*d)[3];
