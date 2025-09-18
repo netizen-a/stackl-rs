@@ -241,7 +241,7 @@ pub enum AbstractDeclarator {
 	/// direct-abstract-declarator_opt [ * ]
 	ArrayPointer,
 	/// direct-abstract-declarator_opt ( parameter-type-list_opt )
-	ParameterTypeList(Option<ParameterTypeList>),
+	ParameterTypeList(ParameterTypeList),
 }
 
 /// (6.7.3) type-qualifier

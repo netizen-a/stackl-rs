@@ -707,7 +707,15 @@ DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
 		}
 	},
 	<mut decl:DirectAbstractDeclarator?> "(" <params:ParameterTypeList?> ")" => {
-		let value = AbstractDeclarator::ParameterTypeList(params);
+		let value = if let Some(params) = params {
+			AbstractDeclarator::ParameterTypeList(params)
+		} else {
+			let params = ParameterTypeList {
+				parameter_list: vec![],
+				is_variadic: false,
+			};
+			AbstractDeclarator::ParameterTypeList(params)
+		};
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);
 			decl_list
