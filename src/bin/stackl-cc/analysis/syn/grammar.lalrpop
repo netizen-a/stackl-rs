@@ -497,19 +497,19 @@ TypeQualifier: TypeQualifier = {
 	},
 };
 
-Declarator: (Ident, Vec<DirectDeclarator>) = {
+Declarator: (Ident, Vec<Declarator>) = {
 	<ptr:Pointer?> <mut dd_list:DirectDeclaratorList> => {
-		let mut ptr_list: Vec<DirectDeclarator> = ptr
+		let mut ptr_list: Vec<Declarator> = ptr
 			.unwrap_or_default()
 			.into_iter()
-			.map(DirectDeclarator::Pointer)
+			.map(Declarator::Pointer)
 			.collect();
 		dd_list.1.append(&mut ptr_list);
 		dd_list
 	},
 };
 
-DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
+DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 	<mut ident:Identifier> => {
 		let mut tk_mut = tk_ref.borrow_mut();
 		if tk_mut.is_typedef == true {
@@ -530,7 +530,7 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 			has_static: false,
 			has_ptr: false,
 		};
-		dd_list.1.push(DirectDeclarator::Array(array));
+		dd_list.1.push(Declarator::Array(array));
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
@@ -544,7 +544,7 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 			has_static: true,
 			has_ptr: false,
 		};
-		dd_list.1.push(DirectDeclarator::Array(array));
+		dd_list.1.push(Declarator::Array(array));
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
@@ -558,7 +558,7 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 			has_static: true,
 			has_ptr: false,
 		};
-		dd_list.1.push(DirectDeclarator::Array(array));
+		dd_list.1.push(Declarator::Array(array));
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> "*" "]" => {
@@ -572,15 +572,15 @@ DirectDeclaratorList: (Ident, Vec<DirectDeclarator>) = {
 			has_static: false,
 			has_ptr: true,
 		};
-		dd_list.1.push(DirectDeclarator::Array(array));
+		dd_list.1.push(Declarator::Array(array));
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> "(" <list: ParameterTypeList> ")" => {
-		dd_list.1.push(DirectDeclarator::ParameterTypeList(list));
+		dd_list.1.push(Declarator::ParameterTypeList(list));
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> "(" <ident_list:IdentifierList?> ")" => {
-		dd_list.1.push(DirectDeclarator::IdentifierList(ident_list.unwrap_or_default()));
+		dd_list.1.push(Declarator::IdentifierList(ident_list.unwrap_or_default()));
 		dd_list
 	},
 };
@@ -623,7 +623,7 @@ ParameterDeclaration: ParameterDeclaration = {
 
 ParameterDeclarator: (Option<Ident>,ParameterDeclarator) = {
 	Declarator => (Some(<>.0), ParameterDeclarator::Declarator(<>.1)),
-	<decl:AbstractDeclarator?> => (None, ParameterDeclarator::AbstractDeclarator(decl)),
+	<decl:AbstractDeclarator?> => (None, ParameterDeclarator::AbstractDeclarator(decl.unwrap_or_default())),
 }
 
 IdentifierList: Vec<Ident> = {
@@ -638,17 +638,83 @@ TypeName: TypeName = {
 	SpecifierQualifierList AbstractDeclarator? => todo!("specifier-qualifier-list abstract-declarator"),
 };
 
-AbstractDeclarator: AbstractDeclarator = {
-	Pointer => todo!("ptr"),
-	Pointer? DirectAbstractDeclarator => todo!("ptr direct"),
+AbstractDeclarator: Vec<AbstractDeclarator> = {
+	<ptr:Pointer> => {
+		ptr.into_iter()
+			.map(AbstractDeclarator::Pointer)
+			.collect()
+	},
+	<ptr:Pointer?> <mut direct_abstract_list:DirectAbstractDeclarator> => {
+		let mut ptr_list: Vec<AbstractDeclarator> = ptr
+			.unwrap_or_default()
+			.into_iter()
+			.map(AbstractDeclarator::Pointer)
+			.collect();
+		direct_abstract_list.append(&mut ptr_list);
+		direct_abstract_list
+	},
 };
 
 
-DirectAbstractDeclarator: DirectAbstractDeclarator = {
-	"(" AbstractDeclarator ")" => todo!("abstract-decl"),
-	DirectAbstractDeclarator? "[" AssignmentExpr? "]" => todo!("direct assign"),
-	DirectAbstractDeclarator? "[" "*" "]" => todo!("direct *"),
-	DirectAbstractDeclarator? "(" ParameterTypeList? ")" => todo!("direct param"),
+DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
+	"(" <abstract_decl:AbstractDeclarator> ")" => abstract_decl,
+	<mut decl:DirectAbstractDeclarator?> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
+		let value = AbstractDeclarator::Array{
+			type_qualifiers: qual,
+			assignment_expr: expr,
+			has_static: false,
+		};
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> "[" "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		let value = AbstractDeclarator::Array{
+			type_qualifiers: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+		};
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> "[" <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		let value = AbstractDeclarator::Array{
+			type_qualifiers: qual,
+			assignment_expr: Some(expr),
+			has_static: true,
+		};
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> "[" "*" "]" => {
+		let value = AbstractDeclarator::ArrayPointer;
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
+	<mut decl:DirectAbstractDeclarator?> "(" <params:ParameterTypeList?> ")" => {
+		let value = AbstractDeclarator::ParameterTypeList(params);
+		if let Some(mut decl_list) = decl {
+			decl_list.push(value);
+			decl_list
+		} else {
+			vec![value]
+		}
+	},
 };
 
 Initializer: Initializer = {

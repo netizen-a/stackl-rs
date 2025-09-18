@@ -61,7 +61,7 @@ pub enum SpecifierKind {
 #[derive(Debug)]
 pub struct InitDeclarator {
 	pub identifier: tok::Ident,
-	pub declarator: Vec<DirectDeclarator>,
+	pub declarator: Vec<Declarator>,
 	pub initializer: Option<Initializer>,
 }
 
@@ -148,7 +148,7 @@ pub struct StructDeclaration {
 #[derive(Debug, Clone)]
 pub struct StructDeclarator {
 	pub identifier: Option<tok::Ident>,
-	pub declarator: Vec<DirectDeclarator>,
+	pub declarator: Vec<Declarator>,
 	pub const_expr: Option<expr::Expr>,
 }
 
@@ -171,7 +171,7 @@ pub struct Array {
 
 /// (6.7.5) direct-declarator
 #[derive(Debug, Clone)]
-pub enum DirectDeclarator {
+pub enum Declarator {
 	Pointer(Pointer),
 	Array(Array),
 	/// ( parameter-type-list )
@@ -225,31 +225,20 @@ pub struct ParameterDeclaration {
 
 #[derive(Debug, Clone)]
 pub enum ParameterDeclarator {
-	Declarator(Vec<DirectDeclarator>),
-	AbstractDeclarator(Option<AbstractDeclarator>),
-}
-
-/// (6.7.6) abstract-declarator
-#[derive(Debug, Clone)]
-pub enum AbstractDeclarator {
-	Pointer(Pointer),
-	DirectAbstractDeclarator {
-		pointer: Pointer,
-		direct_abstract_declarator: Vec<DirectAbstractDeclarator>,
-	},
+	Declarator(Vec<Declarator>),
+	AbstractDeclarator(Vec<AbstractDeclarator>),
 }
 
 /// (6.7.6) direct-abstract-declarator
 #[derive(Debug, Clone)]
-pub enum DirectAbstractDeclarator {
-	/// ( abstract-declarator )
-	AbstractDeclarator(AbstractDeclarator),
+pub enum AbstractDeclarator {
+	Pointer(Pointer),
 	Array {
-		direct_abstract_declarator: Vec<TypeQualifier>,
+		type_qualifiers: Vec<TypeQualifier>,
 		assignment_expr: Option<expr::Expr>,
 		has_static: bool,
 	},
-	/// direct-abstract-declarator_opt [ * }
+	/// direct-abstract-declarator_opt [ * ]
 	ArrayPointer,
 	/// direct-abstract-declarator_opt ( parameter-type-list_opt )
 	ParameterTypeList(Option<ParameterTypeList>),
@@ -274,7 +263,7 @@ pub struct TypeName {
 	/// specifier-qualifier-list
 	pub specifiers: Specifiers,
 	/// abstract-declarator_opt
-	pub abstract_declarator: Option<AbstractDeclarator>,
+	pub abstract_declarator: Vec<AbstractDeclarator>,
 }
 
 /// (6.7.8) initializer-list

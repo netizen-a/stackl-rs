@@ -24,19 +24,19 @@ impl super::SemanticParser<'_> {
 		self.specifiers(&mut decl.specifiers);
 
 		match decl.declarator.first() {
-			Some(DirectDeclarator::IdentifierList(ident_list)) => {
+			Some(Declarator::IdentifierList(ident_list)) => {
 				println!("ident-list: {ident_list:?}")
 			}
-			Some(DirectDeclarator::ParameterTypeList(param_list)) => {
+			Some(Declarator::ParameterTypeList(param_list)) => {
 				println!("param-list: {param_list:?}")
 			}
-			Some(DirectDeclarator::Array(array)) => {
+			Some(Declarator::Array(array)) => {
 				let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
 				let diag = diag::Diagnostic::error(kind, array.span.clone());
 				self.diagnostics.push(diag);
 				return;
 			}
-			None | Some(DirectDeclarator::Pointer(_)) => {
+			None | Some(Declarator::Pointer(_)) => {
 				let kind = diag::DiagKind::ExpectedBeforeToken {
 					token: "{".to_string(),
 					expected_list: Box::new(["=", ",", ";", "asm"]),
@@ -76,8 +76,6 @@ impl super::SemanticParser<'_> {
 				self.diagnostics.push(diag);
 				continue;
 			};
-			//self.init_declarator(init_decl);
-			//let _ = init_decl.declarator;
 			let mut var_dtype = data_type.clone();
 			for direct_decl in init_decl.declarator.iter_mut() {
 				var_dtype = self.direct_declarator(direct_decl, var_dtype.clone());
@@ -555,10 +553,10 @@ impl super::SemanticParser<'_> {
 	}
 	fn direct_declarator(
 		&mut self,
-		direct_decl: &mut DirectDeclarator,
+		direct_decl: &mut Declarator,
 		inner_type: dtype::DataType,
 	) -> dtype::DataType {
-		use DirectDeclarator::*;
+		use Declarator::*;
 		match direct_decl {
 			Pointer(ptr) => {
 				let ptr_type = dtype::PtrType {
@@ -609,39 +607,39 @@ impl super::SemanticParser<'_> {
 		match param_decl {
 			Declarator(decl) => {}
 			AbstractDeclarator(decl) => {
-				if let Some(decl) = decl {
-					self.abstract_declarator(decl)
-				}
+				// if let Some(decl) = decl {
+				// 	//self.abstract_declarator(decl)
+				// }
 			}
 		}
 	}
-	fn abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
+	// fn abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
+	// 	use AbstractDeclarator::*;
+	// 	match decl {
+	// 		Pointer(ptr) => {
+	// 			// pointer
+	// 		}
+	// 		Direct {
+	// 			pointer,
+	// 			direct_abstract_declarator,
+	// 		} => {
+	// 			// pointer
+	// 			for declarator in direct_abstract_declarator {
+	// 				self.direct_abstract_declarator(declarator);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	fn direct_abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
 		use AbstractDeclarator::*;
 		match decl {
-			Pointer(ptr) => {
-				// pointer
-			}
-			DirectAbstractDeclarator {
-				pointer,
-				direct_abstract_declarator,
-			} => {
-				// pointer
-				for declarator in direct_abstract_declarator {
-					self.direct_abstract_declarator(declarator);
-				}
-			}
-		}
-	}
-	fn direct_abstract_declarator(&mut self, decl: &mut DirectAbstractDeclarator) {
-		use DirectAbstractDeclarator::*;
-		match decl {
-			AbstractDeclarator(abstract_decl) => self.abstract_declarator(abstract_decl),
+			Pointer(_) => {}
 			Array {
-				direct_abstract_declarator,
+				type_qualifiers,
 				assignment_expr,
 				has_static: _,
 			} => {
-				for qual in direct_abstract_declarator {
+				for qual in type_qualifiers {
 					self.type_qualifier(qual);
 				}
 				if let Some(expr) = assignment_expr {
