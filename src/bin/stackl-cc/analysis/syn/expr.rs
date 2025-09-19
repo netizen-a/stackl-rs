@@ -33,6 +33,17 @@ impl Expr {
 			}),
 		}
 	}
+	pub fn with_unary(op: UnOp, expr: Expr) -> Self {
+		use tok::Const::{Floating, Integer};
+		match &expr {
+			Expr::Const(Integer(int_const)) => op.reduce_int(int_const),
+			Expr::Const(Floating(float_const)) => op.reduce_float(float_const),
+			_ => Self::Unary(ExprUnary {
+				op,
+				expr: Box::new(expr),
+			}),
+		}
+	}
 }
 
 /// (6.5.3) unary-expression
@@ -246,6 +257,28 @@ pub enum UnOp {
 	/// sizeof
 	Sizeof,
 	Postfix(Postfix),
+}
+
+impl UnOp {
+	fn reduce_int(&self, rhs: &IntegerConstant) -> Expr {
+		let int_const = match (self, rhs) {
+			(UnOp::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
+			_ => {
+				return Expr::Unary(ExprUnary {
+					op: self.clone(),
+					expr: Box::new(Expr::Const(tok::Const::Integer(rhs.clone()))),
+				})
+			}
+		};
+		Expr::Const(tok::Const::Integer(int_const))
+	}
+	fn reduce_float(&self, rhs: &FloatingConstant) -> Expr {
+		// TODO
+		return Expr::Unary(ExprUnary {
+			op: self.clone(),
+			expr: Box::new(Expr::Const(tok::Const::Floating(rhs.clone()))),
+		});
+	}
 }
 
 /// (6.5.2) postfix-expression

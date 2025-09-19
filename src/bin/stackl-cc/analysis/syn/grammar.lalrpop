@@ -86,10 +86,7 @@ UnaryExpr: Expr = {
 		op: UnOp::Dec,
 		expr: Box::new(expr),
 	}),
-	<prefix:UnaryOperator> <expr:CastExpr> => Expr::Unary(ExprUnary{
-		op: prefix,
-		expr: Box::new(expr),
-	}),
+	<prefix:UnaryOperator> <expr:CastExpr> => Expr::with_unary(prefix,expr),
 	"sizeof" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
 		op: UnOp::Sizeof,
 		expr: Box::new(expr),
