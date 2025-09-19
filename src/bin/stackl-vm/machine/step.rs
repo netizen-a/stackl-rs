@@ -247,11 +247,13 @@ pub fn next_opcode(
 			cpu.push_i32(lhs ^ rhs)?;
 		}
 		op::SHIFT_LEFT => {
+			// TODO: fix incorrect shift when right operand is negative
 			let rhs = cpu.pop_i32()?;
 			let lhs = cpu.pop_i32()?;
 			cpu.push_i32(lhs.wrapping_shl(rhs as u32))?;
 		}
 		op::SHIFT_RIGHT => {
+			// TODO: fix incorrect shift when right operand is negative
 			let rhs = cpu.pop_i32()?;
 			let lhs = cpu.pop_i32()?;
 			cpu.push_i32(lhs.wrapping_shr(rhs as u32))?;

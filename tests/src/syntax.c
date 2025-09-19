@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-int a = (1 + 1) * 3;
+int a = 3 << -1;
 // int *b, *p;
 // int *c[3];
 // int (*d)[3];
@@ -33,8 +33,8 @@ int a = (1 + 1) * 3;
 
 // char long long j;
 
-unsigned long long int *const p;
-signed long long int p1, *const *restrict k;
+// unsigned long long int *const p;
+// signed long long int p1, *const *restrict k;
 
 // unsigned _Bool k;
 // _Bool i;

@@ -554,7 +554,8 @@ impl Iterator for Lexer {
 					return Some(self.header_name(c));
 				} else if self.chars.next_if(|&(_, c)| c == '<').is_some() {
 					// case: `<<`
-					todo!("<<")
+					self.set_end(pos);
+					tok::Punct::LessLess
 				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == ':') {
 					// case: `<:` => `[`
 					self.set_end(pos);
@@ -565,6 +566,7 @@ impl Iterator for Lexer {
 					tok::Punct::LCurly
 				} else {
 					// case: `<`
+					self.set_end(pos);
 					tok::Punct::Less
 				};
 				let (lo, hi) = self.pop_location();
@@ -710,11 +712,11 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 					tok::Punct::MinusMinus
 				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
-					// case: `+=`
+					// case: `-=`
 					self.set_end(pos);
 					tok::Punct::MinusEqual
 				} else {
-					// case: `+`
+					// case: `-`
 					tok::Punct::Minus
 				};
 				let (lo, hi) = self.pop_location();

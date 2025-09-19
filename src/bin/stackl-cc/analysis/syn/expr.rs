@@ -178,6 +178,12 @@ impl BinOp {
 			(BinOp::Shl, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_shl(*rval))
 			}
+			(BinOp::Shl, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				match (*rval).try_into() {
+					Ok(rval) => IntegerConstant::I32(lval.wrapping_shl(rval)),
+					Err(_) => IntegerConstant::I32(lval.wrapping_shr((-rval) as u32)),
+				}
+			}
 			(BinOp::Shl, IntegerConstant::I32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32(lval.wrapping_shl(*rval))
 			}
