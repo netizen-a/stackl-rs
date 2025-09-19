@@ -1,5 +1,7 @@
+use std::f32;
+
 use super::decl;
-use crate::analysis::tok;
+use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
 
 /// (6.5.17) expression
 #[derive(Debug, Clone)]
@@ -16,261 +18,13 @@ pub enum Expr {
 
 impl Expr {
 	pub fn with_binary(op: BinOp, left: Expr, right: Expr) -> Self {
-		use tok::Const::Integer;
-		use tok::IntegerConstant;
-
-		let (Expr::Const(left_const), Expr::Const(right_const)) = (&left, &right) else {
-			return Self::Binary(ExprBinary {
-				op,
-				left: Box::new(left),
-				right: Box::new(right),
-			});
-		};
-
-		match (&left_const, &right_const) {
-			(Integer(IntegerConstant::U32(left_int)), Integer(IntegerConstant::U32(right_int))) => {
-				let result: u32 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int),
-					BinOp::Sub => left_int.wrapping_sub(*right_int),
-					BinOp::Mul => left_int.wrapping_mul(*right_int),
-					BinOp::Mod => left_int.wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						u32::MAX
-					} else {
-						left_int.wrapping_div(*right_int)
-					},
-					BinOp::Shl => left_int.wrapping_shl(*right_int),
-					BinOp::Shr => left_int.wrapping_shr(*right_int),
-					BinOp::And => *left_int & *right_int,
-					BinOp::Or => *left_int | *right_int,
-					BinOp::XOr => *left_int ^ *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U32(result)))
+		use tok::Const::{Floating, Integer};
+		match (&left, &right) {
+			(Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
+				op.reduce_int(lhs_int, rhs_int)
 			}
-			(Integer(IntegerConstant::U32(left_int)), Integer(IntegerConstant::U64(right_int))) => {
-				let result: u64 = match op {
-					BinOp::Add => (*left_int as u64).wrapping_add(*right_int),
-					BinOp::Sub => (*left_int as u64).wrapping_sub(*right_int),
-					BinOp::Mul => (*left_int as u64).wrapping_mul(*right_int),
-					BinOp::Mod => (*left_int as u64).wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						u64::MAX
-					} else {
-						(*left_int as u64).wrapping_div(*right_int)
-					},
-					BinOp::And => (*left_int as u64) & *right_int,
-					BinOp::Or => (*left_int as u64) | *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U64(result)))
-			}
-			(Integer(IntegerConstant::U32(left_int)), Integer(IntegerConstant::U128(right_int))) => {
-				let result: u128 = match op {
-					BinOp::Add => (*left_int as u128).wrapping_add(*right_int),
-					BinOp::Sub => (*left_int as u128).wrapping_sub(*right_int),
-					BinOp::Mul => (*left_int as u128).wrapping_mul(*right_int),
-					BinOp::Mod => (*left_int as u128).wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						u128::MAX
-					} else {
-						(*left_int as u128).wrapping_div(*right_int)
-					},
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U128(result)))
-			}
-			(Integer(IntegerConstant::I32(left_int)), Integer(IntegerConstant::I32(right_int))) => {
-				let result: i32 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int),
-					BinOp::Sub => left_int.wrapping_sub(*right_int),
-					BinOp::Mul => left_int.wrapping_mul(*right_int),
-					BinOp::Mod => left_int.wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						i32::MAX
-					} else {
-						left_int.wrapping_div(*right_int)
-					},
-					BinOp::And => *left_int & *right_int,
-					BinOp::Or => *left_int | *right_int,
-					BinOp::XOr => *left_int ^ *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::I32(result)))
-			}
-			(Integer(IntegerConstant::U64(left_int)), Integer(IntegerConstant::U32(right_int))) => {
-				let result: u64 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int as u64),
-					BinOp::Sub => left_int.wrapping_sub(*right_int as u64),
-					BinOp::Mul => left_int.wrapping_mul(*right_int as u64),
-					BinOp::Mod => left_int.wrapping_rem(*right_int as u64),
-					BinOp::Div => if *right_int == 0 {
-						u64::MAX
-					} else {
-						left_int.wrapping_div(*right_int as u64)
-					},
-					BinOp::Shl => left_int.wrapping_shl(*right_int),
-					BinOp::Shr => left_int.wrapping_shr(*right_int),
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U64(result)))
-			}
-			(Integer(IntegerConstant::U64(left_int)), Integer(IntegerConstant::U64(right_int))) => {
-				let result: u64 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int),
-					BinOp::Sub => left_int.wrapping_sub(*right_int),
-					BinOp::Mul => left_int.wrapping_mul(*right_int),
-					BinOp::Mod => left_int.wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						u64::MAX
-					} else {
-						left_int.wrapping_div(*right_int)
-					},
-					BinOp::And => *left_int & *right_int,
-					BinOp::Or => *left_int | *right_int,
-					BinOp::XOr => *left_int ^ *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U64(result)))
-			}
-			(Integer(IntegerConstant::I64(left_int)), Integer(IntegerConstant::I64(right_int))) => {
-				let result: i64 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int),
-					BinOp::Sub => left_int.wrapping_sub(*right_int),
-					BinOp::Mul => left_int.wrapping_mul(*right_int),
-					BinOp::Mod => left_int.wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						i64::MAX
-					} else {
-						left_int.wrapping_div(*right_int)
-					},
-					BinOp::And => *left_int & *right_int,
-					BinOp::Or => *left_int | *right_int,
-					BinOp::XOr => *left_int ^ *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::I64(result)))
-			}
-			(
-				Integer(IntegerConstant::U128(left_int)),
-				Integer(IntegerConstant::U32(right_int)),
-			) => {
-				let result: u128 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int as u128),
-					BinOp::Sub => left_int.wrapping_sub(*right_int as u128),
-					BinOp::Mul => left_int.wrapping_mul(*right_int as u128),
-					BinOp::Mod => left_int.wrapping_rem(*right_int as u128),
-					BinOp::Div => if *right_int == 0 {
-						u128::MAX
-					} else {
-						left_int.wrapping_div(*right_int as u128)
-					},
-					BinOp::Shl => left_int.wrapping_shl(*right_int),
-					BinOp::Shr => left_int.wrapping_shr(*right_int),
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U128(result)))
-			}
-			(
-				Integer(IntegerConstant::U128(left_int)),
-				Integer(IntegerConstant::U128(right_int)),
-			) => {
-				let result: u128 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int),
-					BinOp::Sub => left_int.wrapping_sub(*right_int),
-					BinOp::Mul => left_int.wrapping_mul(*right_int),
-					BinOp::Mod => left_int.wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						u128::MAX
-					} else {
-						left_int.wrapping_div(*right_int)
-					},
-					BinOp::And => *left_int & *right_int,
-					BinOp::Or => *left_int | *right_int,
-					BinOp::XOr => *left_int ^ *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::U128(result)))
-			}
-			(
-				Integer(IntegerConstant::I128(left_int)),
-				Integer(IntegerConstant::I128(right_int)),
-			) => {
-				let result: i128 = match op {
-					BinOp::Add => left_int.wrapping_add(*right_int),
-					BinOp::Sub => left_int.wrapping_sub(*right_int),
-					BinOp::Mul => left_int.wrapping_mul(*right_int),
-					BinOp::Mod => left_int.wrapping_rem(*right_int),
-					BinOp::Div => if *right_int == 0 {
-						i128::MAX
-					} else {
-						left_int.wrapping_div(*right_int)
-					},
-					BinOp::And => *left_int & *right_int,
-					BinOp::Or => *left_int | *right_int,
-					_ => {
-						return Self::Binary(ExprBinary {
-							op,
-							left: Box::new(left),
-							right: Box::new(right),
-						})
-					}
-				};
-				Expr::Const(Integer(IntegerConstant::I128(result)))
+			(Expr::Const(Floating(lhs_int)), Expr::Const(Floating(rhs_int))) => {
+				op.reduce_float(lhs_int, rhs_int)
 			}
 			_ => Self::Binary(ExprBinary {
 				op,
@@ -312,8 +66,8 @@ pub enum BinOp {
 	NotEqual,
 	Equal,
 	And,
-	ExclusiveOr,
-	InclusiveOr,
+	XOr,
+	Or,
 	LogicalAnd,
 	LogicalOr,
 	Assign,
@@ -334,8 +88,132 @@ pub enum BinOp {
 	GreatEqual,
 	Less,
 	Great,
-	XOr,
-	Or,
+}
+
+impl BinOp {
+	fn reduce_int(&self, lhs: &IntegerConstant, rhs: &IntegerConstant) -> Expr {
+		let int_const = match (self, lhs, rhs) {
+			(BinOp::Mul, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(lval.wrapping_mul(*rval))
+			}
+			(BinOp::Mul, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(lval.wrapping_mul(*rval))
+			}
+			(BinOp::Div, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				if *rval != 0 {
+					IntegerConstant::U32(lval.wrapping_sub(*rval))
+				} else {
+					// Undefined Behavior
+					IntegerConstant::U32(u32::MAX)
+				}
+			}
+			(BinOp::Div, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				if *rval != 0 {
+					IntegerConstant::I32(lval.wrapping_sub(*rval))
+				} else {
+					// Undefined Behavior
+					IntegerConstant::I32(i32::MAX)
+				}
+			}
+			(BinOp::Mod, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(lval.wrapping_rem(*rval))
+			}
+			(BinOp::Mod, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(lval.wrapping_rem(*rval))
+			}
+			(BinOp::Sub, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(lval.wrapping_sub(*rval))
+			}
+			(BinOp::Sub, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(lval.wrapping_sub(*rval))
+			}
+			(BinOp::Add, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(lval.wrapping_add(*rval))
+			}
+			(BinOp::Add, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(lval.wrapping_add(*rval))
+			}
+			(BinOp::NotEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32((*lval != *rval) as i32)
+			}
+			(BinOp::NotEqual, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32((*lval != *rval) as i32)
+			}
+			(BinOp::Equal, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32((*lval == *rval) as i32)
+			}
+			(BinOp::Equal, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32((*lval == *rval) as i32)
+			}
+			(BinOp::And, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(*lval & *rval)
+			}
+			(BinOp::And, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(*lval & *rval)
+			}
+			(BinOp::XOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(*lval ^ *rval)
+			}
+			(BinOp::XOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(*lval ^ *rval)
+			}
+			(BinOp::Or, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(*lval | *rval)
+			}
+			(BinOp::Or, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(*lval | *rval)
+			}
+			(BinOp::LogicalAnd, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32(((*lval != 0) && (*rval != 0)) as i32)
+			}
+			(BinOp::LogicalAnd, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(((*lval != 0) && (*rval != 0)) as i32)
+			}
+			(BinOp::LogicalOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32(((*lval != 0) || (*rval != 0)) as i32)
+			}
+			(BinOp::LogicalOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+				IntegerConstant::I32(((*lval != 0) || (*rval != 0)) as i32)
+			}
+			(BinOp::Shl, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(lval.wrapping_shl(*rval))
+			}
+			(BinOp::Shl, IntegerConstant::I32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32(lval.wrapping_shl(*rval))
+			}
+			(BinOp::Shr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::U32(lval.wrapping_shr(*rval))
+			}
+			(BinOp::LessEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32((*lval <= *rval) as i32)
+			}
+			(BinOp::GreatEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32((*lval >= *rval) as i32)
+			}
+			(BinOp::Less, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32((*lval < *rval) as i32)
+			}
+			(BinOp::Great, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+				IntegerConstant::I32((*lval > *rval) as i32)
+			}
+			_ => {
+				return Expr::Binary(ExprBinary {
+					op: *self,
+					left: Box::new(Expr::Const(tok::Const::Integer(lhs.clone()))),
+					right: Box::new(Expr::Const(tok::Const::Integer(rhs.clone()))),
+				})
+			}
+		};
+		Expr::Const(tok::Const::Integer(int_const))
+	}
+	fn reduce_float(&self, lhs: &FloatingConstant, rhs: &FloatingConstant) -> Expr {
+		// TODO
+		return Expr::Binary(ExprBinary {
+			op: *self,
+			left: Box::new(Expr::Const(tok::Const::Floating(lhs.clone()))),
+			right: Box::new(Expr::Const(tok::Const::Floating(rhs.clone()))),
+		});
+	}
 }
 
 /// (6.5.3) unary-operator
