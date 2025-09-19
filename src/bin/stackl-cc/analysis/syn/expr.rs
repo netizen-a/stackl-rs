@@ -262,7 +262,10 @@ pub enum UnOp {
 impl UnOp {
 	fn reduce_int(&self, rhs: &IntegerConstant) -> Expr {
 		let int_const = match (self, rhs) {
+			(UnOp::Plus, rval) => rval.clone(),
 			(UnOp::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
+			(UnOp::Minus, IntegerConstant::I64(rval)) => IntegerConstant::I64(-(*rval)),
+			(UnOp::Minus, IntegerConstant::I128(rval)) => IntegerConstant::I128(-(*rval)),
 			_ => {
 				return Expr::Unary(ExprUnary {
 					op: self.clone(),
