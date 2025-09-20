@@ -222,26 +222,11 @@ PUNCT: PPToken = {
 };
 
 NonHashPunct: PPToken = {
-	"##",
-	"(",
-	" (",
-	")",
-	"{",
-	"}",
-	"*",
-	"=",
-	";",
-	":",
-	",",
-	"[",
-	"]",
-	"?",
-	"~",
-	"...",
-	"+",
-	"-",
-	"<<",
-	">>",
+	"##",  "(", " (", ")",  "{",
+	"}",   "*", "=",  ";",  ":",
+	",",   "[", "]",  "?",  "~",
+	"...", "+", "-",  "<<", ">>",
+	"!",
 };
 
 
@@ -277,5 +262,6 @@ extern {
 		"-" => PPToken{kind: PPTokenKind::Punct(Punct::Minus), ..},
 		"<<" => PPToken{kind: PPTokenKind::Punct(Punct::LessLess), ..},
 		">>" => PPToken{kind: PPTokenKind::Punct(Punct::GreatGreat), ..},
+		"!" => PPToken{kind: PPTokenKind::Punct(Punct::Bang), ..},
 	}
 }

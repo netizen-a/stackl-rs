@@ -517,12 +517,12 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 	},
 	"(" <decl:Declarator> ")" => decl,
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
-		let array = Array{
+		let array = ArrayDecl{
 			span: diag::Span {
 				file_id: lsqr.file_id(),
 				loc: (lo, hi),
 			},
-			type_qualifier_list: qual,
+			type_qualifiers: qual,
 			assignment_expr: expr,
 			has_static: false,
 			has_ptr: false,
@@ -531,12 +531,12 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
-		let array = Array{
+		let array = ArrayDecl{
 			span: diag::Span {
 				file_id: lsqr.file_id(),
 				loc: (lo, hi),
 			},
-			type_qualifier_list: qual,
+			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
 			has_ptr: false,
@@ -545,12 +545,12 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
-		let array = Array{
+		let array = ArrayDecl{
 			span: diag::Span {
 				file_id: lsqr.file_id(),
 				loc: (lo, hi),
 			},
-			type_qualifier_list: qual,
+			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
 			has_ptr: false,
@@ -559,12 +559,12 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 		dd_list
 	},
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> "*" "]" => {
-		let array = Array {
+		let array = ArrayDecl {
 			span: diag::Span {
 				file_id: lsqr.file_id(),
 				loc: (lo, hi),
 			},
-			type_qualifier_list: qual,
+			type_qualifiers: qual,
 			assignment_expr: None,
 			has_static: false,
 			has_ptr: true,
@@ -582,10 +582,10 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 	},
 };
 
-Pointer: Vec<Pointer> = {
-	"*" <type_qualifier_list:TypeQualifier*> => vec![Pointer::from(type_qualifier_list.as_slice())],
+Pointer: Vec<PtrDecl> = {
+	"*" <type_qualifier_list:TypeQualifier*> => vec![PtrDecl::from(type_qualifier_list.as_slice())],
 	"*" <type_qualifier_list:TypeQualifier*> <mut v:Pointer> => {
-		v.push(Pointer::from(type_qualifier_list.as_slice()));
+		v.push(PtrDecl::from(type_qualifier_list.as_slice()));
 		v
 	},
 };
@@ -613,14 +613,14 @@ ParameterDeclaration: ParameterDeclaration = {
 		ParameterDeclaration {
 			name: decl.0,
 			specifiers: Specifiers::from(kind_list),
-			parameter_declarator: decl.1,
+			declarators: decl.1,
 		}
 	},
 };
 
-ParameterDeclarator: (Option<Ident>,ParameterDeclarator) = {
-	Declarator => (Some(<>.0), ParameterDeclarator::Declarator(<>.1)),
-	<decl:AbstractDeclarator?> => (None, ParameterDeclarator::AbstractDeclarator(decl.unwrap_or_default())),
+ParameterDeclarator: (Option<Ident>,Vec<Declarator>) = {
+	Declarator => (Some(<>.0), <>.1),
+	<decl:AbstractDeclarator?> => (None, decl.unwrap_or_default()),
 }
 
 IdentifierList: Vec<Ident> = {
@@ -635,17 +635,17 @@ TypeName: TypeName = {
 	SpecifierQualifierList AbstractDeclarator? => todo!("specifier-qualifier-list abstract-declarator"),
 };
 
-AbstractDeclarator: Vec<AbstractDeclarator> = {
+AbstractDeclarator: Vec<Declarator> = {
 	<ptr:Pointer> => {
 		ptr.into_iter()
-			.map(AbstractDeclarator::Pointer)
+			.map(Declarator::Pointer)
 			.collect()
 	},
 	<ptr:Pointer?> <mut direct_abstract_list:DirectAbstractDeclarator> => {
-		let mut ptr_list: Vec<AbstractDeclarator> = ptr
+		let mut ptr_list: Vec<Declarator> = ptr
 			.unwrap_or_default()
 			.into_iter()
-			.map(AbstractDeclarator::Pointer)
+			.map(Declarator::Pointer)
 			.collect();
 		direct_abstract_list.append(&mut ptr_list);
 		direct_abstract_list
@@ -653,14 +653,20 @@ AbstractDeclarator: Vec<AbstractDeclarator> = {
 };
 
 
-DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
+DirectAbstractDeclarator: Vec<Declarator> = {
 	"(" <abstract_decl:AbstractDeclarator> ")" => abstract_decl,
-	<mut decl:DirectAbstractDeclarator?> "[" <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
-		let value = AbstractDeclarator::Array{
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
+		let array = ArrayDecl{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifiers: qual,
 			assignment_expr: expr,
 			has_static: false,
+			has_ptr: false,
 		};
+		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);
 			decl_list
@@ -668,12 +674,18 @@ DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
 			vec![value]
 		}
 	},
-	<mut decl:DirectAbstractDeclarator?> "[" "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
-		let value = AbstractDeclarator::Array{
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> "static" <qual:TypeQualifier*> <expr:AssignmentExpr> "]" => {
+		let array = ArrayDecl{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
+			has_ptr: false,
 		};
+		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);
 			decl_list
@@ -681,12 +693,18 @@ DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
 			vec![value]
 		}
 	},
-	<mut decl:DirectAbstractDeclarator?> "[" <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
-		let value = AbstractDeclarator::Array{
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier+> "static" <expr:AssignmentExpr> "]" => {
+		let array = ArrayDecl{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
 			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
+			has_ptr: false,
 		};
+		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);
 			decl_list
@@ -694,8 +712,18 @@ DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
 			vec![value]
 		}
 	},
-	<mut decl:DirectAbstractDeclarator?> "[" "*" "]" => {
-		let value = AbstractDeclarator::ArrayPointer;
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lsqr:"["> <hi:@R> "*" "]" => {
+		let array = ArrayDecl{
+			span: diag::Span {
+				file_id: lsqr.file_id(),
+				loc: (lo, hi),
+			},
+			type_qualifiers: vec![],
+			assignment_expr: None,
+			has_static: false,
+			has_ptr: true,
+		};
+		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);
 			decl_list
@@ -705,13 +733,13 @@ DirectAbstractDeclarator: Vec<AbstractDeclarator> = {
 	},
 	<mut decl:DirectAbstractDeclarator?> "(" <params:ParameterTypeList?> ")" => {
 		let value = if let Some(params) = params {
-			AbstractDeclarator::ParameterTypeList(params)
+			Declarator::ParameterTypeList(params)
 		} else {
 			let params = ParameterTypeList {
 				parameter_list: vec![],
 				is_variadic: false,
 			};
-			AbstractDeclarator::ParameterTypeList(params)
+			Declarator::ParameterTypeList(params)
 		};
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);

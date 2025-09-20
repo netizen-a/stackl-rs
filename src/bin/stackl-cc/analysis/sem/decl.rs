@@ -21,14 +21,83 @@ const STRUCT_STR: &str = "struct";
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
-		self.specifiers(&mut decl.specifiers);
+		let (storage, data_type) = self.specifiers(&mut decl.specifiers);
 
+		let storage = storage.unwrap_or(StorageClass::Extern);
 		match decl.declarator.first() {
 			Some(Declarator::IdentifierList(ident_list)) => {
-				println!("ident-list: {ident_list:?}")
+				let linkage = match storage {
+					StorageClass::Extern => Linkage::External,
+					StorageClass::Static => Linkage::Internal,
+					_ => todo!("invalid storage class"),
+				};
+				let mut ret_type = data_type.unwrap();
+				for declarator in decl.declarator[1..].iter() {
+					ret_type = match declarator {
+						Declarator::Array(_array) => todo!("error"),
+						Declarator::Pointer(pointer) => dtype::DataType::Pointer(dtype::PtrType{
+							inner: Box::new(ret_type.clone()),
+							is_const: pointer.is_const,
+							is_restrict: pointer.is_restrict,
+							is_volatile: pointer.is_volatile,
+						}),
+						Declarator::IdentifierList(_) => todo!("error"),
+						Declarator::ParameterTypeList(_) => todo!("function pointer maybe"),
+					};
+				}
+				let func_type = dtype::FuncType {
+					params: vec![],
+					ret: Box::new(ret_type),
+					is_variadic: false,
+				};
+				let entry = SymbolTableEntry {
+					data_type: dtype::DataType::Function(func_type),
+					linkage,
+					storage,
+					is_incomplete: false,
+				};
+				let key = Namespace::Ordinary(decl.identifier.name.clone());
+				eprintln!("DEBUG: [symbol table]: {key:?} => {entry:#?}");
+				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParameterTypeList(param_list)) => {
-				println!("param-list: {param_list:?}")
+				let linkage = match storage {
+					StorageClass::Extern => Linkage::External,
+					StorageClass::Static => Linkage::Internal,
+					_ => todo!("invalid storage class"),
+				};
+				let mut ret_type = data_type.unwrap();
+				for declarator in decl.declarator[1..].iter() {
+					ret_type = match declarator {
+						Declarator::Array(_array) => todo!("error"),
+						Declarator::Pointer(pointer) => dtype::DataType::Pointer(dtype::PtrType{
+							inner: Box::new(ret_type.clone()),
+							is_const: pointer.is_const,
+							is_restrict: pointer.is_restrict,
+							is_volatile: pointer.is_volatile,
+						}),
+						Declarator::IdentifierList(_) => todo!("error"),
+						Declarator::ParameterTypeList(_) => todo!("function pointer maybe"),
+					};
+				}
+				//let param_type_list = vec![];
+				// for param in param_list.parameter_list {
+				// 	param.
+				// }
+				let func_type = dtype::FuncType {
+					params: vec![],
+					ret: Box::new(ret_type),
+					is_variadic: false,
+				};
+				let entry = SymbolTableEntry {
+					data_type: dtype::DataType::Function(func_type),
+					linkage,
+					storage,
+					is_incomplete: false,
+				};
+				let key = Namespace::Ordinary(decl.identifier.name.clone());
+				eprintln!("DEBUG: [symbol table]: {key:?} => {entry:#?}");
+				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::Array(array)) => {
 				let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
@@ -600,19 +669,19 @@ impl super::SemanticParser<'_> {
 	}
 	fn parameter_declaration(&mut self, param: &mut ParameterDeclaration) {
 		self.specifiers(&mut param.specifiers);
-		self.parameter_declarator(&mut param.parameter_declarator);
+		//self.parameter_declarator(&mut param.parameter_declarator);
 	}
-	fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
-		use ParameterDeclarator::*;
-		match param_decl {
-			Declarator(decl) => {}
-			AbstractDeclarator(decl) => {
-				// if let Some(decl) = decl {
-				// 	//self.abstract_declarator(decl)
-				// }
-			}
-		}
-	}
+	// fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
+	// 	use ParameterDeclarator::*;
+	// 	match param_decl {
+	// 		Declarator(decl) => {}
+	// 		AbstractDeclarator(decl) => {
+	// 			// if let Some(decl) = decl {
+	// 			// 	//self.abstract_declarator(decl)
+	// 			// }
+	// 		}
+	// 	}
+	// }
 	// fn abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
 	// 	use AbstractDeclarator::*;
 	// 	match decl {
@@ -630,26 +699,26 @@ impl super::SemanticParser<'_> {
 	// 		}
 	// 	}
 	// }
-	fn direct_abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
-		use AbstractDeclarator::*;
-		match decl {
-			Pointer(_) => {}
-			Array {
-				type_qualifiers,
-				assignment_expr,
-				has_static: _,
-			} => {
-				for qual in type_qualifiers {
-					self.type_qualifier(qual);
-				}
-				if let Some(expr) = assignment_expr {
-					self.expr(expr);
-				}
-			}
-			ArrayPointer => todo!("direct-abstract-declarator [ * ]"),
-			ParameterTypeList(_) => todo!("parameter-type-list"),
-		}
-	}
+	// fn direct_abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
+	// 	use AbstractDeclarator::*;
+	// 	match decl {
+	// 		Pointer(_) => {}
+	// 		Array {
+	// 			type_qualifiers,
+	// 			assignment_expr,
+	// 			has_static: _,
+	// 		} => {
+	// 			for qual in type_qualifiers {
+	// 				self.type_qualifier(qual);
+	// 			}
+	// 			if let Some(expr) = assignment_expr {
+	// 				self.expr(expr);
+	// 			}
+	// 		}
+	// 		ArrayPointer => todo!("direct-abstract-declarator [ * ]"),
+	// 		ParameterTypeList(_) => todo!("parameter-type-list"),
+	// 	}
+	// }
 	fn initializer_list(&mut self, list: &mut InitializerList) {
 		for (desig, ref mut init) in list.0.iter_mut() {
 			if let Some(ref mut desig) = desig {

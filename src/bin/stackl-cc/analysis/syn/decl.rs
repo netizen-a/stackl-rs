@@ -160,10 +160,10 @@ pub enum Initializer {
 }
 
 #[derive(Debug, Clone)]
-pub struct Array {
+pub struct ArrayDecl {
 	pub span: diag::Span,
 	/// (6.7.5) type-qualifier-list
-	pub type_qualifier_list: Vec<TypeQualifier>,
+	pub type_qualifiers: Vec<TypeQualifier>,
 	pub assignment_expr: Option<expr::Expr>,
 	pub has_static: bool,
 	pub has_ptr: bool,
@@ -172,8 +172,8 @@ pub struct Array {
 /// (6.7.5) direct-declarator
 #[derive(Debug, Clone)]
 pub enum Declarator {
-	Pointer(Pointer),
-	Array(Array),
+	Pointer(PtrDecl),
+	Array(ArrayDecl),
 	/// ( parameter-type-list )
 	ParameterTypeList(ParameterTypeList),
 	/// ( identifier-list_opt )
@@ -190,13 +190,13 @@ pub struct ParameterTypeList {
 
 /// (6.7.5) pointer
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Pointer {
+pub struct PtrDecl {
 	pub is_const: bool,
 	pub is_volatile: bool,
 	pub is_restrict: bool,
 }
 
-impl From<&[TypeQualifier]> for Pointer {
+impl From<&[TypeQualifier]> for PtrDecl {
 	fn from(value: &[TypeQualifier]) -> Self {
 		Self {
 			is_const: value
@@ -220,28 +220,7 @@ impl From<&[TypeQualifier]> for Pointer {
 pub struct ParameterDeclaration {
 	pub name: Option<tok::Ident>,
 	pub specifiers: Specifiers,
-	pub parameter_declarator: ParameterDeclarator,
-}
-
-#[derive(Debug, Clone)]
-pub enum ParameterDeclarator {
-	Declarator(Vec<Declarator>),
-	AbstractDeclarator(Vec<AbstractDeclarator>),
-}
-
-/// (6.7.6) direct-abstract-declarator
-#[derive(Debug, Clone)]
-pub enum AbstractDeclarator {
-	Pointer(Pointer),
-	Array {
-		type_qualifiers: Vec<TypeQualifier>,
-		assignment_expr: Option<expr::Expr>,
-		has_static: bool,
-	},
-	/// direct-abstract-declarator_opt [ * ]
-	ArrayPointer,
-	/// direct-abstract-declarator_opt ( parameter-type-list_opt )
-	ParameterTypeList(ParameterTypeList),
+	pub declarators: Vec<Declarator>,
 }
 
 /// (6.7.3) type-qualifier
@@ -263,7 +242,7 @@ pub struct TypeName {
 	/// specifier-qualifier-list
 	pub specifiers: Specifiers,
 	/// abstract-declarator_opt
-	pub abstract_declarator: Vec<AbstractDeclarator>,
+	pub declarators: Vec<Declarator>,
 }
 
 /// (6.7.8) initializer-list

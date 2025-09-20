@@ -266,6 +266,30 @@ impl UnOp {
 			(UnOp::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
 			(UnOp::Minus, IntegerConstant::I64(rval)) => IntegerConstant::I64(-(*rval)),
 			(UnOp::Minus, IntegerConstant::I128(rval)) => IntegerConstant::I128(-(*rval)),
+			(UnOp::Neg, IntegerConstant::I32(rval)) => match *rval {
+				0 => IntegerConstant::I32(1),
+				_ => IntegerConstant::I32(0),
+			},
+			(UnOp::Neg, IntegerConstant::U32(rval)) => match *rval {
+				0 => IntegerConstant::I32(1),
+				_ => IntegerConstant::I32(0),
+			},
+			(UnOp::Neg, IntegerConstant::I64(rval)) => match *rval {
+				0 => IntegerConstant::I32(1),
+				_ => IntegerConstant::I32(0),
+			},
+			(UnOp::Neg, IntegerConstant::U64(rval)) => match *rval {
+				0 => IntegerConstant::I32(1),
+				_ => IntegerConstant::I32(0),
+			},
+			(UnOp::Neg, IntegerConstant::I128(rval)) => match *rval {
+				0 => IntegerConstant::I32(1),
+				_ => IntegerConstant::I32(0),
+			},
+			(UnOp::Neg, IntegerConstant::U128(rval)) => match *rval {
+				0 => IntegerConstant::I32(1),
+				_ => IntegerConstant::I32(0),
+			},
 			_ => {
 				return Expr::Unary(ExprUnary {
 					op: self.clone(),
