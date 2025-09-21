@@ -626,14 +626,12 @@ impl super::SemanticParser<'_> {
 				Declarator::Array(_array) => {
 					todo!("function array declarator")
 				}
-				Declarator::Pointer(pointer) => {
-					dtype::DataType::Pointer(dtype::PtrType {
-						inner: Box::new(data_type.clone()),
-						is_const: pointer.is_const,
-						is_restrict: pointer.is_restrict,
-						is_volatile: pointer.is_volatile,
-					})
-				}
+				Declarator::Pointer(pointer) => dtype::DataType::Pointer(dtype::PtrType {
+					inner: Box::new(data_type.clone()),
+					is_const: pointer.is_const,
+					is_restrict: pointer.is_restrict,
+					is_volatile: pointer.is_volatile,
+				}),
 				Declarator::IdentifierList(_) => {
 					todo!("function identifier list")
 				}

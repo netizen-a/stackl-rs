@@ -17,7 +17,11 @@ use crate::analysis::tok::TokenTriple;
 use crate::diagnostics::DiagnosticEngine;
 use lalrpop_util as lalr;
 
-pub fn parse<P>(in_file: P, diagnostics: &mut DiagnosticEngine) -> Option<Vec<ExternalDeclaration>>
+pub fn parse<P>(
+	in_file: P,
+	diagnostics: &mut DiagnosticEngine,
+	is_traced: bool,
+) -> Option<Vec<ExternalDeclaration>>
 where
 	P: AsRef<Path>,
 {
@@ -45,5 +49,5 @@ where
 	for error_recov in syntax_errors {
 		diagnostics.push_syntax_error(error_recov.error)
 	}
-	sem::SemanticParser::new(diagnostics).parse(unit)
+	sem::SemanticParser::new(diagnostics, is_traced).parse(unit)
 }

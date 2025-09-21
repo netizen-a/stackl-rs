@@ -19,6 +19,7 @@ fn syntax() -> ExitCode {
 	println!("path: {}", test1_path.display());
 	let out = process::Command::new(compiler_path)
 		.arg(test1_path)
+		.arg("--trace")
 		.output()
 		.unwrap();
 	println!("stdout:\n{}", String::from_utf8(out.stdout).unwrap());

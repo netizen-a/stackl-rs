@@ -33,13 +33,15 @@ pub struct SymbolTableEntry {
 pub struct SemanticParser<'a> {
 	symtab: SymbolTable<Namespace, SymbolTableEntry>,
 	diagnostics: &'a mut DiagnosticEngine,
+	is_traced: bool,
 }
 
 impl<'a> SemanticParser<'a> {
-	pub fn new(diagnostics: &'a mut DiagnosticEngine) -> Self {
+	pub fn new(diagnostics: &'a mut DiagnosticEngine, is_traced: bool) -> Self {
 		Self {
 			symtab: SymbolTable::new(),
 			diagnostics,
+			is_traced,
 		}
 	}
 	pub fn parse(
@@ -56,5 +58,8 @@ impl<'a> SemanticParser<'a> {
 			}
 		}
 		Some(unit)
+	}
+	pub(self) fn decrease_scope(&mut self) {
+		self.symtab.decrease_scope();
 	}
 }
