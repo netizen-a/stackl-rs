@@ -32,19 +32,7 @@ impl super::SemanticParser<'_> {
 					_ => todo!("invalid storage class"),
 				};
 				let mut ret_type = data_type.unwrap();
-				for declarator in decl.declarator[1..].iter() {
-					ret_type = match declarator {
-						Declarator::Array(_array) => todo!("error"),
-						Declarator::Pointer(pointer) => dtype::DataType::Pointer(dtype::PtrType{
-							inner: Box::new(ret_type.clone()),
-							is_const: pointer.is_const,
-							is_restrict: pointer.is_restrict,
-							is_volatile: pointer.is_volatile,
-						}),
-						Declarator::IdentifierList(_) => todo!("error"),
-						Declarator::ParameterTypeList(_) => todo!("function pointer maybe"),
-					};
-				}
+				self.declarator_list(&mut decl.declarator[1..], &mut ret_type, false);
 				let func_type = dtype::FuncType {
 					params: vec![],
 					ret: Box::new(ret_type),
@@ -67,23 +55,7 @@ impl super::SemanticParser<'_> {
 					_ => todo!("invalid storage class"),
 				};
 				let mut ret_type = data_type.unwrap();
-				for declarator in decl.declarator[1..].iter() {
-					ret_type = match declarator {
-						Declarator::Array(_array) => todo!("error"),
-						Declarator::Pointer(pointer) => dtype::DataType::Pointer(dtype::PtrType{
-							inner: Box::new(ret_type.clone()),
-							is_const: pointer.is_const,
-							is_restrict: pointer.is_restrict,
-							is_volatile: pointer.is_volatile,
-						}),
-						Declarator::IdentifierList(_) => todo!("error"),
-						Declarator::ParameterTypeList(_) => todo!("function pointer maybe"),
-					};
-				}
-				//let param_type_list = vec![];
-				// for param in param_list.parameter_list {
-				// 	param.
-				// }
+				self.declarator_list(&mut decl.declarator[1..], &mut ret_type, false);
 				let func_type = dtype::FuncType {
 					params: vec![],
 					ret: Box::new(ret_type),
@@ -146,9 +118,7 @@ impl super::SemanticParser<'_> {
 				continue;
 			};
 			let mut var_dtype = data_type.clone();
-			for direct_decl in init_decl.declarator.iter_mut() {
-				var_dtype = self.direct_declarator(direct_decl, var_dtype.clone());
-			}
+			self.declarator_list(&mut init_decl.declarator, &mut var_dtype, true);
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
@@ -620,44 +590,70 @@ impl super::SemanticParser<'_> {
 			InitializerList(list) => self.initializer_list(list),
 		}
 	}
-	fn direct_declarator(
+	/// is_declaration is false if this is for a function definition, otherwise true.
+	fn declarator_list(
 		&mut self,
-		direct_decl: &mut Declarator,
-		inner_type: dtype::DataType,
-	) -> dtype::DataType {
-		use Declarator::*;
-		match direct_decl {
-			Pointer(ptr) => {
-				let ptr_type = dtype::PtrType {
-					is_const: ptr.is_const,
-					is_restrict: ptr.is_restrict,
-					is_volatile: ptr.is_volatile,
-					inner: Box::new(inner_type),
-				};
-				dtype::DataType::Pointer(ptr_type)
-			}
-			Array(_array) => {
-				todo!()
-			}
-			ParameterTypeList(type_list) => {
-				for param in type_list.parameter_list.iter_mut() {
-					self.parameter_declaration(param);
+		decl_list: &mut [Declarator],
+		data_type: &mut dtype::DataType,
+		is_declaration: bool,
+	) {
+		let mut last_is_ptr = false;
+		// first iteration is for type checking
+		for declarator in decl_list.iter() {
+			match declarator {
+				Declarator::Array(_array) => {
+					last_is_ptr = false;
+					todo!("function array declarator")
 				}
-				todo!()
-			}
-			IdentifierList(_ident_list) => {
-				let func_type = dtype::FuncType {
-					params: vec![],
-					ret: Box::new(inner_type),
-					is_variadic: false,
-				};
-				dtype::DataType::Function(func_type)
-			}
+				Declarator::Pointer(pointer) => {
+					last_is_ptr = true;
+				}
+				Declarator::IdentifierList(_) => {
+					last_is_ptr = false;
+					todo!("function identifier list")
+				}
+				Declarator::ParameterTypeList(type_list) => {
+					assert!(last_is_ptr);
+					last_is_ptr = false;
+					// TODO: add error to diagnostic engine
+				}
+			};
 		}
-	}
-	fn parameter_type_list(&mut self, list: &mut ParameterTypeList) {
-		for param in list.parameter_list.iter_mut() {
-			self.parameter_declaration(param);
+		// reversed iterator because recursive type construction has
+		// data type at the end
+		for declarator in decl_list.iter_mut().rev() {
+			*data_type = match declarator {
+				Declarator::Array(_array) => {
+					todo!("function array declarator")
+				}
+				Declarator::Pointer(pointer) => {
+					dtype::DataType::Pointer(dtype::PtrType {
+						inner: Box::new(data_type.clone()),
+						is_const: pointer.is_const,
+						is_restrict: pointer.is_restrict,
+						is_volatile: pointer.is_volatile,
+					})
+				}
+				Declarator::IdentifierList(_) => {
+					todo!("function identifier list")
+				}
+				Declarator::ParameterTypeList(type_list) => {
+					let mut params = vec![];
+					for param in type_list.parameter_list.iter_mut() {
+						let (_, maybe_type) = self.specifiers(&mut param.specifiers);
+						let mut param_type = maybe_type.unwrap();
+						self.declarator_list(&mut param.declarators, &mut param_type, true);
+						params.push(param_type);
+					}
+
+					let func_type = dtype::FuncType {
+						params,
+						ret: Box::new(data_type.clone()),
+						is_variadic: type_list.is_variadic,
+					};
+					dtype::DataType::Function(func_type)
+				}
+			};
 		}
 	}
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
@@ -667,58 +663,6 @@ impl super::SemanticParser<'_> {
 			TypeQualifierKind::Volatile => (),
 		}
 	}
-	fn parameter_declaration(&mut self, param: &mut ParameterDeclaration) {
-		self.specifiers(&mut param.specifiers);
-		//self.parameter_declarator(&mut param.parameter_declarator);
-	}
-	// fn parameter_declarator(&mut self, param_decl: &mut ParameterDeclarator) {
-	// 	use ParameterDeclarator::*;
-	// 	match param_decl {
-	// 		Declarator(decl) => {}
-	// 		AbstractDeclarator(decl) => {
-	// 			// if let Some(decl) = decl {
-	// 			// 	//self.abstract_declarator(decl)
-	// 			// }
-	// 		}
-	// 	}
-	// }
-	// fn abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
-	// 	use AbstractDeclarator::*;
-	// 	match decl {
-	// 		Pointer(ptr) => {
-	// 			// pointer
-	// 		}
-	// 		Direct {
-	// 			pointer,
-	// 			direct_abstract_declarator,
-	// 		} => {
-	// 			// pointer
-	// 			for declarator in direct_abstract_declarator {
-	// 				self.direct_abstract_declarator(declarator);
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// fn direct_abstract_declarator(&mut self, decl: &mut AbstractDeclarator) {
-	// 	use AbstractDeclarator::*;
-	// 	match decl {
-	// 		Pointer(_) => {}
-	// 		Array {
-	// 			type_qualifiers,
-	// 			assignment_expr,
-	// 			has_static: _,
-	// 		} => {
-	// 			for qual in type_qualifiers {
-	// 				self.type_qualifier(qual);
-	// 			}
-	// 			if let Some(expr) = assignment_expr {
-	// 				self.expr(expr);
-	// 			}
-	// 		}
-	// 		ArrayPointer => todo!("direct-abstract-declarator [ * ]"),
-	// 		ParameterTypeList(_) => todo!("parameter-type-list"),
-	// 	}
-	// }
 	fn initializer_list(&mut self, list: &mut InitializerList) {
 		for (desig, ref mut init) in list.0.iter_mut() {
 			if let Some(ref mut desig) = desig {
