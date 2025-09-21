@@ -45,7 +45,6 @@ impl super::SemanticParser<'_> {
 					is_incomplete: false,
 				};
 				let key = Namespace::Ordinary(decl.identifier.name.clone());
-				eprintln!("DEBUG: [symbol table]: {key:?} => {entry:#?}");
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParameterTypeList(param_list)) => {
@@ -68,7 +67,6 @@ impl super::SemanticParser<'_> {
 					is_incomplete: false,
 				};
 				let key = Namespace::Ordinary(decl.identifier.name.clone());
-				eprintln!("DEBUG: [symbol table]: {key:?} => {entry:#?}");
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::Array(array)) => {
@@ -96,7 +94,7 @@ impl super::SemanticParser<'_> {
 				self.block_item(item)
 			}
 		}
-		self.symtab.decrease_scope();
+		self.decrease_scope();
 	}
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) {
 		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
@@ -129,7 +127,6 @@ impl super::SemanticParser<'_> {
 				storage,
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
-			eprintln!("DEBUG: [symbol table]: {key:?} => {entry:?}");
 			self.symtab.insert(key, entry);
 		}
 	}

@@ -6,7 +6,7 @@ impl super::SemanticParser<'_> {
 		for item in stmt.blocks.iter_mut() {
 			self.block_item(item)
 		}
-		self.symtab.decrease_scope();
+		self.decrease_scope();
 	}
 	pub(super) fn block_item(&mut self, item: &mut BlockItem) {
 		use BlockItem::*;

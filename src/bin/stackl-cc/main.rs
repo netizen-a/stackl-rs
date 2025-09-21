@@ -13,7 +13,7 @@ use std::{path::PathBuf, process::ExitCode};
 #[derive(Parser, Debug)]
 #[command(version, about = "Stackl C compiler", long_about = None)]
 pub struct Args {
-	#[arg(name="FILE", required = true)]
+	#[arg(name = "FILE", required = true)]
 	pub in_file: PathBuf,
 	#[arg(long = "output", short = 'o')]
 	pub out_file: Option<PathBuf>,
@@ -37,9 +37,9 @@ fn main() -> ExitCode {
 	}
 
 	//synthesis::parse(&analysis_result.unwrap());
-	if args.is_traced {
-		println!("{:#?}", _analysis_result);
-	}
+	// if args.is_traced {
+	// 	println!("{:#?}", _analysis_result);
+	// }
 
 	ExitCode::SUCCESS
 }

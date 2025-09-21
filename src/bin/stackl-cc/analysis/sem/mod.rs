@@ -60,6 +60,19 @@ impl<'a> SemanticParser<'a> {
 		Some(unit)
 	}
 	pub(self) fn decrease_scope(&mut self) {
+		if self.is_traced {
+			let iter = self.symtab.iter_current_scope().unwrap();
+			let layer = self.symtab.scope_count();
+			for (name, symbol) in iter {
+				eprintln!("[TRACE] symbol table({layer}): {name:?} => {symbol:#?}");
+			}
+		}
 		self.symtab.decrease_scope();
+	}
+}
+
+impl Drop for SemanticParser<'_> {
+	fn drop(&mut self) {
+		self.decrease_scope();
 	}
 }

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{
+	collections::{hash_map, HashMap},
+	hash::Hash,
+};
 
 #[derive(Debug)]
 pub enum SymbolTableError {
@@ -53,5 +56,11 @@ impl<K: Eq + Hash, V> SymbolTable<K, V> {
 			Some(_) => Err(SymbolTableError::AlreadyExists),
 			None => Ok(()),
 		}
+	}
+	pub fn iter_current_scope(&self) -> Option<hash_map::Iter<K, V>> {
+		self.table.last().and_then(|map| Some(map.iter()))
+	}
+	pub fn scope_count(&self) -> usize {
+		self.table.len()
 	}
 }
