@@ -231,23 +231,23 @@ impl DiagnosticEngine {
 					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::ExpectedBeforeToken {
+			DiagKind::UnexpectedToken {
 				token,
 				expected_list,
 			} => {
-				let mut expected_str = String::from("expected ");
+				let msg0 = format!("unexpected token '{token}'");
+				let mut msg1 = String::from("expected ");
 				for (index, expected) in expected_list.iter().enumerate() {
-					expected_str.push('\'');
-					expected_str.push_str(expected);
-					expected_str.push('\'');
+					msg1.push('\'');
+					msg1.push_str(expected);
+					msg1.push('\'');
 					if index != 0 && index == expected_list.len() - 2 {
-						expected_str.push_str(" or ");
+						msg1.push_str(" or ");
 					} else if index != expected_list.len() - 1 {
-						expected_str.push_str(", ");
+						msg1.push_str(", ");
 					}
 				}
-				let msg0 = format!("{expected_str} before '{token}' token");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0, msg1)
 			}
 			_ => unimplemented!(),
 		};
@@ -291,9 +291,9 @@ impl DiagnosticEngine {
 		let line_space = " ".repeat(line_len);
 		result.push_str(&format!("{line_space}{BLUE}|{DEFAULT}\n"));
 		for source_line in diag.span.to_string_vec(source.as_ref()) {
-			result.push_str(&format!("{BLUE}{} |{DEFAULT}{}\n", line, source_line));
+			result.push_str(&format!("{BLUE}{line} |{DEFAULT} {source_line}\n"));
 			result.push_str(&format!(
-				"{line_space}{BLUE}|{DEFAULT}{}{level_color}{}\x1b[0m {}\n",
+				"{line_space}{BLUE}|{DEFAULT} {}{level_color}{}\x1b[0m {}\n",
 				" ".repeat(col - 1),
 				"^".repeat(1 + diag.span.loc.1 - diag.span.loc.0),
 				msg1.as_ref()

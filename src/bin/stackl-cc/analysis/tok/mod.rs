@@ -39,6 +39,16 @@ pub enum IntegerConstant {
 	I128(i128),
 }
 
+// impl TryFrom<IntegerConstant> for u32 {
+// 	type Error = ();
+// 	fn try_from(value: IntegerConstant) -> Result<Self, Self::Error> {
+// 		match value {
+// 			IntegerConstant::U32(data) => Ok(data),
+			
+// 		}
+// 	}
+// }
+
 #[derive(Debug, Clone)]
 pub enum FloatingConstant {
 	Float(f32),

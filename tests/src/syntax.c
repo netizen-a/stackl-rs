@@ -1,7 +1,7 @@
 // Test for declarator syntax
 
-int a = !56;
-// int *b, *p;
+// int a;
+// int *b;
 // int *c[3];
 // int (*d)[3];
 // int *f();
@@ -55,24 +55,24 @@ int a = !56;
 //auto x;
 
 
-int bar(int a, int b)
-{
-    return a + b;
-}
-
-int (*foo(a, b))(int, int)
-    int a, b;
-{
-    return bar;
-}
-
-
-
-// int (*foobar)(int a, int b) {
-//     return a * b;
+// int bar(int a, int b)
+// {
+//     return a + b;
 // }
 
-// int foo {
-//     return 0;
+// int (*foo(a, b))(int, int)
+//     int a, b;
+// {
+//     return bar;
 // }
+
+
+
+int (*foobar)(int a, int b) {
+    return a * b;
+}
+
+int foo {
+    return 0;
+}
 

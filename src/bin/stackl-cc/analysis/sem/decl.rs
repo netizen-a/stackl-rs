@@ -76,7 +76,7 @@ impl super::SemanticParser<'_> {
 				return;
 			}
 			None | Some(Declarator::Pointer(_)) => {
-				let kind = diag::DiagKind::ExpectedBeforeToken {
+				let kind = diag::DiagKind::UnexpectedToken {
 					token: "{".to_string(),
 					expected_list: Box::new(["=", ",", ";", "asm"]),
 				};
@@ -116,7 +116,7 @@ impl super::SemanticParser<'_> {
 				continue;
 			};
 			let mut var_dtype = data_type.clone();
-			self.declarator_list(&mut init_decl.declarator, &mut var_dtype, true);
+			self.declarator_list(&mut init_decl.declarator, &mut var_dtype, false);
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
@@ -587,12 +587,12 @@ impl super::SemanticParser<'_> {
 			InitializerList(list) => self.initializer_list(list),
 		}
 	}
-	/// is_declaration is false if this is for a function definition, otherwise true.
+
 	fn declarator_list(
 		&mut self,
 		decl_list: &mut [Declarator],
 		data_type: &mut dtype::DataType,
-		is_declaration: bool,
+		is_param: bool,
 	) {
 		let mut last_is_ptr = false;
 		// first iteration is for type checking
@@ -600,14 +600,12 @@ impl super::SemanticParser<'_> {
 			match declarator {
 				Declarator::Array(_array) => {
 					last_is_ptr = false;
-					todo!("function array declarator")
 				}
 				Declarator::Pointer(pointer) => {
 					last_is_ptr = true;
 				}
 				Declarator::IdentifierList(_) => {
 					last_is_ptr = false;
-					todo!("function identifier list")
 				}
 				Declarator::ParameterTypeList(type_list) => {
 					assert!(last_is_ptr);
@@ -620,15 +618,29 @@ impl super::SemanticParser<'_> {
 		// data type at the end
 		for declarator in decl_list.iter_mut().rev() {
 			*data_type = match declarator {
-				Declarator::Array(_array) => {
-					todo!("function array declarator")
+				Declarator::Array(array) => {
+					// let array_type = if !is_param {
+					// 	let length = if let
+					// 	dtype::ArrayType {
+					// 		component: Box::new(data_type.clone()),
+					// 		length,
+					// 	}
+					// } else {
+					// 	todo!()
+					// };
+
+					// dtype::DataType::Array(array_type)
+					todo!()
 				}
-				Declarator::Pointer(pointer) => dtype::DataType::Pointer(dtype::PtrType {
-					inner: Box::new(data_type.clone()),
-					is_const: pointer.is_const,
-					is_restrict: pointer.is_restrict,
-					is_volatile: pointer.is_volatile,
-				}),
+				Declarator::Pointer(pointer) => {
+					let ptr_type = dtype::PtrType {
+						inner: Box::new(data_type.clone()),
+						is_const: pointer.is_const,
+						is_restrict: pointer.is_restrict,
+						is_volatile: pointer.is_volatile,
+					};
+					dtype::DataType::Pointer(ptr_type)
+				},
 				Declarator::IdentifierList(_) => {
 					todo!("function identifier list")
 				}

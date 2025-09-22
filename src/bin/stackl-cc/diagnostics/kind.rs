@@ -21,7 +21,7 @@ pub enum DiagKind {
 	ImplicitInt(String),
 	Internal(String),
 	ArrayOfFunctions(String),
-	ExpectedBeforeToken {
+	UnexpectedToken {
 		token: String,
 		expected_list: Box<[&'static str]>,
 	},

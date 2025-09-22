@@ -46,13 +46,20 @@ impl ScalarType {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct ArrayType {
-	pub component: Box<DataType>,
-	pub length: u32,
+
+#[derive(Debug, Hash, Clone)]
+pub enum ArrayLength {
+	Fixed(u32),
+	Variable,
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone)]
+pub struct ArrayType {
+	pub component: Box<DataType>,
+	pub length: ArrayLength,
+}
+
+#[derive(Debug, Hash, Clone)]
 pub struct PtrType {
 	pub is_const: bool,
 	pub is_volatile: bool,
@@ -60,7 +67,7 @@ pub struct PtrType {
 	pub inner: Box<DataType>,
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone)]
 pub struct FuncType {
 	pub params: Vec<DataType>,
 	pub ret: Box<DataType>,
@@ -68,7 +75,7 @@ pub struct FuncType {
 }
 
 // TODO: add optional bitfields
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone)]
 pub struct MemberType {
 	pub ident: Option<String>,
 	pub dtype: Box<DataType>,
@@ -84,7 +91,7 @@ impl fmt::Display for MemberType {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone)]
 pub enum DataType {
 	Void,
 	Scalar(ScalarType),
