@@ -41,30 +41,12 @@ PrimaryExpr: Expr = {
 
 PostfixExpr: Expr = {
 	PrimaryExpr,
-	<expr:PostfixExpr> "[" <arr:Expr> "]" => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(Postfix::Array(Box::new(arr))),
-		expr: Box::new(expr),
-	}),
-	<expr:PostfixExpr> "(" <args:ArgumentExprList?> ")" => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(Postfix::ArgExprList(args.unwrap_or_default())),
-		expr: Box::new(expr),
-	}),
-	<expr:PostfixExpr> "." <ident:Identifier> => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(Postfix::Dot(ident)),
-		expr: Box::new(expr),
-	}),
-	<expr:PostfixExpr> "->" <ident:Identifier> => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(Postfix::Arrow(ident)),
-		expr: Box::new(expr),
-	}),
-	<expr:PostfixExpr> "++" => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(Postfix::Inc),
-		expr: Box::new(expr),
-	}),
-	<expr:PostfixExpr> "--" => Expr::Unary(ExprUnary{
-		op: UnOp::Postfix(Postfix::Dec),
-		expr: Box::new(expr),
-	}),
+	<expr:PostfixExpr> "[" <arr:Expr> "]" => Expr::with_postfix(Postfix::Array(Box::new(arr)), expr),
+	<expr:PostfixExpr> "(" <args:ArgumentExprList?> ")" => Expr::with_postfix(Postfix::ArgExprList(args.unwrap_or_default()), expr),
+	<expr:PostfixExpr> "." <ident:Identifier> => Expr::with_postfix(Postfix::Dot(ident), expr),
+	<expr:PostfixExpr> "->" <ident:Identifier> => Expr::with_postfix(Postfix::Arrow(ident), expr),
+	<expr:PostfixExpr> "++" => Expr::with_postfix(Postfix::Inc, expr),
+	<expr:PostfixExpr> "--" => Expr::with_postfix(Postfix::Dec, expr),
 	"(" <ty:TypeName> ")" "{" <list:InitializerList> ","? "}" => Expr::CompoundLiteral(ty, list),
 };
 
@@ -78,37 +60,25 @@ ArgumentExprList: Vec<Expr> = {
 
 UnaryExpr: Expr = {
 	PostfixExpr,
-	"++" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
-		op: UnOp::Inc,
-		expr: Box::new(expr),
-	}),
-	"--" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
-		op: UnOp::Dec,
-		expr: Box::new(expr),
-	}),
-	<prefix:UnaryOperator> <expr:CastExpr> => Expr::with_unary(prefix,expr),
-	"sizeof" <expr:UnaryExpr> => Expr::Unary(ExprUnary{
-		op: UnOp::Sizeof,
-		expr: Box::new(expr),
-	}),
+	"++" <expr:UnaryExpr> => Expr::with_prefix(Prefix::Inc,expr),
+	"--" <expr:UnaryExpr> => Expr::with_prefix(Prefix::Dec,expr),
+	<prefix:UnaryOperator> <expr:CastExpr> => Expr::with_prefix(prefix,expr),
+	"sizeof" <expr:UnaryExpr> => Expr::with_prefix(Prefix::Sizeof,expr),
 	"sizeof" "(" <ty:TypeName> ")" => Expr::Sizeof(ty),
 };
 
-UnaryOperator: UnOp = {
-	"&" => UnOp::Amp,
-	"*" => UnOp::Star,
-	"+" => UnOp::Plus,
-	"-" => UnOp::Minus,
-	"~" => UnOp::Comp,
-	"!" => UnOp::Neg,
+UnaryOperator: Prefix = {
+	"&" => Prefix::Amp,
+	"*" => Prefix::Star,
+	"+" => Prefix::Plus,
+	"-" => Prefix::Minus,
+	"~" => Prefix::Comp,
+	"!" => Prefix::Neg,
 };
 
 CastExpr: Expr = {
 	UnaryExpr,
-	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::Unary(ExprUnary{
-		op: UnOp::Cast(ty),
-		expr: Box::new(expr),
-	}),
+	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::with_prefix(Prefix::Cast(ty),expr),
 };
 
 MultiplicativeExpr: Expr = {
@@ -132,40 +102,16 @@ ShiftExpr: Expr = {
 
 RelationalExpr: Expr = {
 	ShiftExpr,
-	<lhs:RelationalExpr> "<" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Less,
-		right: Box::new(rhs),
-	}),
-	<lhs:RelationalExpr> ">" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Great,
-		right: Box::new(rhs),
-	}),
-	<lhs:RelationalExpr> "<=" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::LessEqual,
-		right: Box::new(rhs),
-	}),
-	<lhs:RelationalExpr> ">=" <rhs:ShiftExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::GreatEqual,
-		right: Box::new(rhs),
-	}),
+	<lhs:RelationalExpr> "<" <rhs:ShiftExpr> => Expr::with_binary(BinOp::Less, lhs, rhs),
+	<lhs:RelationalExpr> ">" <rhs:ShiftExpr> => Expr::with_binary(BinOp::Great, lhs, rhs),
+	<lhs:RelationalExpr> "<=" <rhs:ShiftExpr> => Expr::with_binary(BinOp::LessEqual, lhs, rhs),
+	<lhs:RelationalExpr> ">=" <rhs:ShiftExpr> => Expr::with_binary(BinOp::GreatEqual, lhs, rhs),
 };
 
 EqualityExpr: Expr = {
 	RelationalExpr,
-	<lhs:EqualityExpr> "==" <rhs:RelationalExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::Equal,
-		right: Box::new(rhs),
-	}),
-	<lhs:EqualityExpr> "!=" <rhs:RelationalExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::NotEqual,
-		right: Box::new(rhs),
-	}),
+	<lhs:EqualityExpr> "==" <rhs:RelationalExpr> => Expr::with_binary(BinOp::Equal, lhs, rhs),
+	<lhs:EqualityExpr> "!=" <rhs:RelationalExpr> => Expr::with_binary(BinOp::NotEqual, lhs, rhs),
 };
 
 AndExpr: Expr = {
@@ -185,25 +131,19 @@ InclusiveOrExpr: Expr = {
 
 LogicalAndExpr: Expr = {
 	InclusiveOrExpr,
-	<lhs:LogicalAndExpr> "&&" <rhs:InclusiveOrExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::LogicalAnd,
-		right: Box::new(rhs),
-	}),
+	<lhs:LogicalAndExpr> "&&" <rhs:InclusiveOrExpr> => Expr::with_binary(BinOp::LogicalAnd, lhs, rhs),
 };
 
 LogicalOrExpr: Expr = {
 	LogicalAndExpr,
-	<lhs:LogicalOrExpr> "||" <rhs:LogicalAndExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp::XOr,
-		right: Box::new(rhs),
-	}),
+	<lhs:LogicalOrExpr> "||" <rhs:LogicalAndExpr> => Expr::with_binary(BinOp::XOr, lhs, rhs),
 };
 
 ConditionalExpr: Expr = {
 	LogicalOrExpr,
-	LogicalOrExpr "?" Expr ":" ConditionalExpr => todo!(),
+	<cond_expr:LogicalOrExpr> "?" <then_expr:Expr> ":" <else_expr:ConditionalExpr> => {
+		Expr::with_ternary(cond_expr, then_expr, else_expr)
+	},
 };
 
 AssignmentExpr: Expr = {

@@ -1,6 +1,8 @@
 // Test for declarator syntax
 
-// int a;
+// #include "example_header.h"
+
+int a = 1 + 1;
 // int *b;
 // int *c[3];
 // int (*d)[3];
@@ -68,11 +70,9 @@
 
 
 
-int (*foobar)(int a, int b) {
-    return a * b;
-}
 
-int foo {
-    return 0;
-}
+
+// int foo {
+//     return 0;
+// }
 

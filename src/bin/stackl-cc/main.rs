@@ -37,9 +37,9 @@ fn main() -> ExitCode {
 	}
 
 	//synthesis::parse(&analysis_result.unwrap());
-	// if args.is_traced {
-	// 	println!("{:#?}", _analysis_result);
-	// }
+	if args.is_traced {
+		println!("{:#?}", _analysis_result);
+	}
 
 	ExitCode::SUCCESS
 }

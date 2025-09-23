@@ -9,7 +9,8 @@ pub enum Expr {
 	Ident(tok::Ident),
 	Const(tok::Const),
 	StrLit(tok::StrLit),
-	Unary(ExprUnary),
+	UnaryPrefix(UnaryPrefix),
+	UnaryPostfix(UnaryPostfix),
 	Binary(ExprBinary),
 	Ternary(ExprTernary),
 	CompoundLiteral(decl::TypeName, decl::InitializerList),
@@ -17,7 +18,37 @@ pub enum Expr {
 }
 
 impl Expr {
-	pub fn with_binary(op: BinOp, left: Expr, right: Expr) -> Self {
+	#[inline]
+	pub fn with_prefix(op: Prefix, expr: Self) -> Self {
+		Self::UnaryPrefix(UnaryPrefix{
+			op,
+			expr: Box::new(expr),
+		})
+	}
+	#[inline]
+	pub fn with_postfix(op: Postfix, expr: Self) -> Self {
+		Self::UnaryPostfix(UnaryPostfix{
+			op,
+			expr: Box::new(expr),
+		})
+	}
+	#[inline]
+	pub fn with_binary(op: BinOp, left: Self, right: Self) -> Self {
+		Self::Binary(ExprBinary{
+			op,
+			left: Box::new(left),
+			right: Box::new(right),
+		})
+	}
+	#[inline]
+	pub fn with_ternary(cond_expr: Self, then_expr: Self, else_expr: Self) -> Self {
+		Self::Ternary(ExprTernary{
+			cond_expr: Box::new(cond_expr),
+			then_expr: Box::new(then_expr),
+			else_expr: Box::new(else_expr),
+		})
+	}
+	pub fn reduce_binary(op: BinOp, left: Self, right: Self) -> Self {
 		use tok::Const::{Floating, Integer};
 		match (&left, &right) {
 			(Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
@@ -33,12 +64,12 @@ impl Expr {
 			}),
 		}
 	}
-	pub fn with_unary(op: UnOp, expr: Expr) -> Self {
+	pub fn reduce_unary(op: Prefix, expr: Expr) -> Self {
 		use tok::Const::{Floating, Integer};
 		match &expr {
 			Expr::Const(Integer(int_const)) => op.reduce_int(int_const),
-			Expr::Const(Floating(float_const)) => op.reduce_float(float_const),
-			_ => Self::Unary(ExprUnary {
+			Expr::Const(Floating(float_const)) => todo!(),
+			_ => Self::UnaryPrefix(UnaryPrefix {
 				op,
 				expr: Box::new(expr),
 			}),
@@ -48,8 +79,15 @@ impl Expr {
 
 /// (6.5.3) unary-expression
 #[derive(Debug, Clone)]
-pub struct ExprUnary {
-	pub op: UnOp,
+pub struct UnaryPrefix {
+	pub op: Prefix,
+	pub expr: Box<Expr>,
+}
+
+/// (6.5.3) unary-expression
+#[derive(Debug, Clone)]
+pub struct UnaryPostfix {
+	pub op: Postfix,
 	pub expr: Box<Expr>,
 }
 
@@ -62,9 +100,9 @@ pub struct ExprBinary {
 
 #[derive(Debug, Clone)]
 pub struct ExprTernary {
-	pub cond: Box<Expr>,
-	pub then_branch: Box<Expr>,
-	pub else_branch: Box<Expr>,
+	pub cond_expr: Box<Expr>,
+	pub then_expr: Box<Expr>,
+	pub else_expr: Box<Expr>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -235,7 +273,7 @@ impl BinOp {
 
 /// (6.5.3) unary-operator
 #[derive(Debug, Clone)]
-pub enum UnOp {
+pub enum Prefix {
 	/// `&`
 	Amp,
 	/// `*`
@@ -256,55 +294,47 @@ pub enum UnOp {
 	Dec,
 	/// sizeof
 	Sizeof,
-	Postfix(Postfix),
 }
 
-impl UnOp {
+impl Prefix {
 	fn reduce_int(&self, rhs: &IntegerConstant) -> Expr {
 		let int_const = match (self, rhs) {
-			(UnOp::Plus, rval) => rval.clone(),
-			(UnOp::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
-			(UnOp::Minus, IntegerConstant::I64(rval)) => IntegerConstant::I64(-(*rval)),
-			(UnOp::Minus, IntegerConstant::I128(rval)) => IntegerConstant::I128(-(*rval)),
-			(UnOp::Neg, IntegerConstant::I32(rval)) => match *rval {
+			(Prefix::Plus, rval) => rval.clone(),
+			(Prefix::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
+			(Prefix::Minus, IntegerConstant::I64(rval)) => IntegerConstant::I64(-(*rval)),
+			(Prefix::Minus, IntegerConstant::I128(rval)) => IntegerConstant::I128(-(*rval)),
+			(Prefix::Neg, IntegerConstant::I32(rval)) => match *rval {
 				0 => IntegerConstant::I32(1),
 				_ => IntegerConstant::I32(0),
 			},
-			(UnOp::Neg, IntegerConstant::U32(rval)) => match *rval {
+			(Prefix::Neg, IntegerConstant::U32(rval)) => match *rval {
 				0 => IntegerConstant::I32(1),
 				_ => IntegerConstant::I32(0),
 			},
-			(UnOp::Neg, IntegerConstant::I64(rval)) => match *rval {
+			(Prefix::Neg, IntegerConstant::I64(rval)) => match *rval {
 				0 => IntegerConstant::I32(1),
 				_ => IntegerConstant::I32(0),
 			},
-			(UnOp::Neg, IntegerConstant::U64(rval)) => match *rval {
+			(Prefix::Neg, IntegerConstant::U64(rval)) => match *rval {
 				0 => IntegerConstant::I32(1),
 				_ => IntegerConstant::I32(0),
 			},
-			(UnOp::Neg, IntegerConstant::I128(rval)) => match *rval {
+			(Prefix::Neg, IntegerConstant::I128(rval)) => match *rval {
 				0 => IntegerConstant::I32(1),
 				_ => IntegerConstant::I32(0),
 			},
-			(UnOp::Neg, IntegerConstant::U128(rval)) => match *rval {
+			(Prefix::Neg, IntegerConstant::U128(rval)) => match *rval {
 				0 => IntegerConstant::I32(1),
 				_ => IntegerConstant::I32(0),
 			},
 			_ => {
-				return Expr::Unary(ExprUnary {
+				return Expr::UnaryPrefix(UnaryPrefix {
 					op: self.clone(),
 					expr: Box::new(Expr::Const(tok::Const::Integer(rhs.clone()))),
 				})
 			}
 		};
 		Expr::Const(tok::Const::Integer(int_const))
-	}
-	fn reduce_float(&self, rhs: &FloatingConstant) -> Expr {
-		// TODO
-		return Expr::Unary(ExprUnary {
-			op: self.clone(),
-			expr: Box::new(Expr::Const(tok::Const::Floating(rhs.clone()))),
-		});
 	}
 }
 

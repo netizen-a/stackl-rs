@@ -7,14 +7,18 @@ impl super::SemanticParser<'_> {
 			Ident(_inner) => {}
 			Const(_inner) => {}
 			StrLit(_inner) => {}
-			Unary(unary) => self.expr_unary(unary),
+			UnaryPrefix(unary) => self.expr_prefix(unary),
+			UnaryPostfix(unary) => self.expr_postfix(unary),
 			Binary(binary) => self.expr_binary(binary),
 			Ternary(ternary) => self.expr_ternary(ternary),
 			CompoundLiteral(_, _) => todo!("compound-literal"),
 			Sizeof(_) => todo!("sizeof"),
 		}
 	}
-	pub(super) fn expr_unary(&mut self, unary: &mut ExprUnary) {
+	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) {
+		self.expr(&mut *unary.expr);
+	}
+	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix) {
 		self.expr(&mut *unary.expr);
 	}
 	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary) {
@@ -22,8 +26,8 @@ impl super::SemanticParser<'_> {
 		let _rhs_id = self.expr(&mut *binary.right);
 	}
 	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) {
-		self.expr(&mut *ternary.cond);
-		self.expr(&mut *ternary.then_branch);
-		self.expr(&mut *ternary.else_branch);
+		self.expr(&mut *ternary.cond_expr);
+		self.expr(&mut *ternary.then_expr);
+		self.expr(&mut *ternary.else_expr);
 	}
 }
