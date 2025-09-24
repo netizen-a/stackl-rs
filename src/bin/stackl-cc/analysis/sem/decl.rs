@@ -76,9 +76,13 @@ impl super::SemanticParser<'_> {
 				return;
 			}
 			None | Some(Declarator::Pointer(_)) => {
-				let kind = diag::DiagKind::UnexpectedToken {
-					token: "{".to_string(),
-					expected_list: Box::new(["=", ",", ";", "asm"]),
+				let kind = diag::DiagKind::UnrecognizedToken {
+					expected: vec![
+						"\"=\"".to_string(),
+						"\",\"".to_string(),
+						"\";\"".to_string(),
+						"\"asm\"".to_string(),
+					],
 				};
 				let diag = diag::Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
 				self.diagnostics.push(diag);
@@ -619,18 +623,23 @@ impl super::SemanticParser<'_> {
 		for declarator in decl_list.iter_mut().rev() {
 			*data_type = match declarator {
 				Declarator::Array(array) => {
-					// let array_type = if !is_param {
-					// 	let length = if let
-					// 	dtype::ArrayType {
-					// 		component: Box::new(data_type.clone()),
-					// 		length,
-					// 	}
-					// } else {
-					// 	todo!()
-					// };
+					let array_type: dtype::ArrayType = if !is_param {
+						let length = match &mut array.assignment_expr {
+							Some(assign_expr) => {
+								assign_expr.resolve();
+								todo!()
+							}
+							None => todo!(),
+						};
+						dtype::ArrayType {
+							component: Box::new(data_type.clone()),
+							length,
+						}
+					} else {
+						todo!()
+					};
 
-					// dtype::DataType::Array(array_type)
-					todo!()
+					dtype::DataType::Array(array_type)
 				}
 				Declarator::Pointer(pointer) => {
 					let ptr_type = dtype::PtrType {
@@ -640,7 +649,7 @@ impl super::SemanticParser<'_> {
 						is_volatile: pointer.is_volatile,
 					};
 					dtype::DataType::Pointer(ptr_type)
-				},
+				}
 				Declarator::IdentifierList(_) => {
 					todo!("function identifier list")
 				}

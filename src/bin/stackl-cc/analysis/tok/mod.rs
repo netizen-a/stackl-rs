@@ -44,7 +44,7 @@ pub enum IntegerConstant {
 // 	fn try_from(value: IntegerConstant) -> Result<Self, Self::Error> {
 // 		match value {
 // 			IntegerConstant::U32(data) => Ok(data),
-			
+
 // 		}
 // 	}
 // }

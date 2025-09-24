@@ -4,7 +4,7 @@ use crate::data_types::DataType;
 pub enum DiagKind {
 	UnexpectedEof,
 	UnexpectedEscape,
-	UnrecognizedToken,
+	UnrecognizedToken { expected: Vec<String> },
 	InvalidToken,
 	ExtraToken,
 	HeaderNameError,
@@ -12,17 +12,10 @@ pub enum DiagKind {
 	DuplicateSpecifier(String),
 	BothSpecifiers(String, String),
 	InvalidRestrict,
-	TypeError {
-		found: DataType,
-		expected: DataType,
-	},
+	TypeError { found: DataType, expected: DataType },
 	MultipleTypes,
 	TooLong,
 	ImplicitInt(String),
 	Internal(String),
 	ArrayOfFunctions(String),
-	UnexpectedToken {
-		token: String,
-		expected_list: Box<[&'static str]>,
-	},
 }

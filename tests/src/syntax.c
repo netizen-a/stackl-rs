@@ -1,8 +1,8 @@
 // Test for declarator syntax
 
-// #include "example_header.h"
+#include "example_header.h"
 
-int a = 1 + 1;
+// int a = 1 + 1;
 // int *b;
 // int *c[3];
 // int (*d)[3];
@@ -68,11 +68,10 @@ int a = 1 + 1;
 //     return bar;
 // }
 
+int foo {
+    return 0;
+}
 
-
-
-
-// int foo {
-//     return 0;
-// }
+typedef invalid_type invalid_t;
+typedef float int;
 

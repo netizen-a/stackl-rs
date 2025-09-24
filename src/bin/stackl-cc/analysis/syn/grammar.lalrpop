@@ -15,19 +15,19 @@ grammar<'a>(
 
 // A.1.3 Identifiers
 
-Identifier: Ident = IDENT => <>.kind.unwrap_ident();
+Identifier: Ident = IDENTIFIER => <>.kind.unwrap_ident();
 
 
 // A.1.5 Constants
 
-Constant: Const = CONST => <>.kind.unwrap_const();
+Constant: Const = CONSTANT => <>.kind.unwrap_const();
 
 EnumerationConstant: Ident = Identifier;
 
 
 // A.1.6 String literals
 
-StringLiteral: StrLit = <v:STR_LIT+> => string_concat(v.into_boxed_slice());
+StringLiteral: StrLit = <v:STRING_LITERAL+> => string_concat(v.into_boxed_slice());
 
 
 // A.2.1 Expressions
@@ -862,10 +862,10 @@ extern {
 	type Error = diag::Diagnostic;
 
 	enum Token {
-		IDENT => Token{kind: TokenKind::Ident(Ident{is_type:false, ..}), ..},
+		IDENTIFIER => Token{kind: TokenKind::Ident(Ident{is_type:false, ..}), ..},
 		TYPE_NAME => Token{kind: TokenKind::Ident(Ident{is_type:true, ..}), ..},
-		CONST => Token{kind: TokenKind::Const(_), ..},
-		STR_LIT => Token{kind: TokenKind::StrLit(_), ..},
+		CONSTANT => Token{kind: TokenKind::Const(_), ..},
+		STRING_LITERAL => Token{kind: TokenKind::StrLit(_), ..},
 
 		"typedef" => Token{kind: TokenKind::Keyword(Keyword::Typedef), ..},
 		"extern" => Token{kind: TokenKind::Keyword(Keyword::Extern), ..},

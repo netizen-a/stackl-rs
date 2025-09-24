@@ -20,21 +20,21 @@ pub enum Expr {
 impl Expr {
 	#[inline]
 	pub fn with_prefix(op: Prefix, expr: Self) -> Self {
-		Self::UnaryPrefix(UnaryPrefix{
+		Self::UnaryPrefix(UnaryPrefix {
 			op,
 			expr: Box::new(expr),
 		})
 	}
 	#[inline]
 	pub fn with_postfix(op: Postfix, expr: Self) -> Self {
-		Self::UnaryPostfix(UnaryPostfix{
+		Self::UnaryPostfix(UnaryPostfix {
 			op,
 			expr: Box::new(expr),
 		})
 	}
 	#[inline]
 	pub fn with_binary(op: BinOp, left: Self, right: Self) -> Self {
-		Self::Binary(ExprBinary{
+		Self::Binary(ExprBinary {
 			op,
 			left: Box::new(left),
 			right: Box::new(right),
@@ -42,37 +42,25 @@ impl Expr {
 	}
 	#[inline]
 	pub fn with_ternary(cond_expr: Self, then_expr: Self, else_expr: Self) -> Self {
-		Self::Ternary(ExprTernary{
+		Self::Ternary(ExprTernary {
 			cond_expr: Box::new(cond_expr),
 			then_expr: Box::new(then_expr),
 			else_expr: Box::new(else_expr),
 		})
 	}
-	pub fn reduce_binary(op: BinOp, left: Self, right: Self) -> Self {
-		use tok::Const::{Floating, Integer};
-		match (&left, &right) {
-			(Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
-				op.reduce_int(lhs_int, rhs_int)
-			}
-			(Expr::Const(Floating(lhs_int)), Expr::Const(Floating(rhs_int))) => {
-				op.reduce_float(lhs_int, rhs_int)
-			}
-			_ => Self::Binary(ExprBinary {
-				op,
-				left: Box::new(left),
-				right: Box::new(right),
-			}),
-		}
-	}
-	pub fn reduce_unary(op: Prefix, expr: Expr) -> Self {
-		use tok::Const::{Floating, Integer};
-		match &expr {
-			Expr::Const(Integer(int_const)) => op.reduce_int(int_const),
-			Expr::Const(Floating(float_const)) => todo!(),
-			_ => Self::UnaryPrefix(UnaryPrefix {
-				op,
-				expr: Box::new(expr),
-			}),
+
+	pub fn resolve(&mut self) {
+		use Expr::*;
+		match self {
+			Ident(_inner) => {}
+			Const(_inner) => {}
+			StrLit(_inner) => {}
+			// UnaryPrefix(unary) => self.expr_prefix(unary),
+			// UnaryPostfix(unary) => self.expr_postfix(unary),
+			// Binary(binary) => self.expr_binary(binary),
+			// Ternary(ternary) => self.expr_ternary(ternary),
+			Sizeof(_) => todo!("sizeof"),
+			_ => {}
 		}
 	}
 }

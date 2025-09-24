@@ -163,27 +163,12 @@ impl DiagnosticEngine {
 				};
 				let diag = Diagnostic {
 					level,
-					kind: DiagKind::UnrecognizedToken,
+					kind: DiagKind::UnrecognizedToken {
+						expected: expected.clone(),
+					},
 					span,
 				};
-				let msg0 = "unrecognized token";
-				let mut msg1 = String::from("expected ");
-				let mut is_first = true;
-				for (i, elem) in expected.iter().enumerate() {
-					if is_first {
-						is_first = false;
-					} else {
-						msg1.push(',');
-					}
-					if i >= 4 {
-						msg1.push_str(" ...");
-						break;
-					} else {
-						msg1.push_str(&format!(" {elem}"));
-					}
-				}
-				let str_diag = self.format_diagnostic(&diag, msg0, &msg1);
-				eprint!("{str_diag}");
+				self.stderr_diagnostic(&diag);
 			}
 			ParseError::User { error } => self.stderr_diagnostic(error),
 		}
@@ -231,23 +216,32 @@ impl DiagnosticEngine {
 					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::UnexpectedToken {
-				token,
-				expected_list,
-			} => {
-				let msg0 = format!("unexpected token '{token}'");
+			DiagKind::UnrecognizedToken { expected } => {
+				let msg0 = "unrecognized token";
 				let mut msg1 = String::from("expected ");
-				for (index, expected) in expected_list.iter().enumerate() {
-					msg1.push('\'');
-					msg1.push_str(expected);
-					msg1.push('\'');
-					if index != 0 && index == expected_list.len() - 2 {
-						msg1.push_str(" or ");
-					} else if index != expected_list.len() - 1 {
+				let mut is_first = true;
+				for (i, elem) in expected.iter().enumerate() {
+					if is_first {
+						is_first = false;
+					} else {
 						msg1.push_str(", ");
+						if i > 3 {
+							msg1.push_str("...");
+							break;
+						} else if i == expected.len() - 1 {
+							msg1.push_str("or ");
+						}
+					}
+
+					match elem.as_str() {
+						"IDENTIFIER" => msg1.push_str("identifier"),
+						"TYPE_NAME" => msg1.push_str("type-name"),
+						"CONSTANT" => msg1.push_str("constant"),
+						"STRING_LITERAL" => msg1.push_str("string-literal"),
+						elem_str => msg1.push_str(elem_str),
 					}
 				}
-				self.format_diagnostic(&diag, msg0, msg1)
+				self.format_diagnostic(&diag, msg0, &msg1)
 			}
 			_ => unimplemented!(),
 		};
