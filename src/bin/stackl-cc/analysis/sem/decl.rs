@@ -24,15 +24,15 @@ impl super::SemanticParser<'_> {
 		let (storage, data_type) = self.specifiers(&mut decl.specifiers);
 
 		let storage = storage.unwrap_or(StorageClass::Extern);
-		match decl.declarator.first() {
+		let linkage = match storage {
+			StorageClass::Extern => Linkage::External,
+			StorageClass::Static => Linkage::Internal,
+			_ => todo!("invalid storage class"),
+		};
+		let mut ret_type = data_type.unwrap();
+		self.declarator_list(&mut decl.declarators[1..], &mut ret_type, false);
+		match decl.declarators.first_mut() {
 			Some(Declarator::IdentifierList(ident_list)) => {
-				let linkage = match storage {
-					StorageClass::Extern => Linkage::External,
-					StorageClass::Static => Linkage::Internal,
-					_ => todo!("invalid storage class"),
-				};
-				let mut ret_type = data_type.unwrap();
-				self.declarator_list(&mut decl.declarator[1..], &mut ret_type, false);
 				let func_type = dtype::FuncType {
 					params: vec![],
 					ret: Box::new(ret_type),
@@ -48,17 +48,18 @@ impl super::SemanticParser<'_> {
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParameterTypeList(param_list)) => {
-				let linkage = match storage {
-					StorageClass::Extern => Linkage::External,
-					StorageClass::Static => Linkage::Internal,
-					_ => todo!("invalid storage class"),
-				};
-				let mut ret_type = data_type.unwrap();
-				self.declarator_list(&mut decl.declarator[1..], &mut ret_type, false);
+				let mut params = vec![];
+				for param in param_list.parameter_list.iter_mut() {
+					let (_, param_type) = self.specifiers(&mut param.specifiers);
+					let mut param_type = param_type.unwrap();
+					self.declarator_list(&mut param.declarators, &mut param_type, true);
+					params.push(param_type)
+				}
+				let is_variadic = param_list.is_variadic;
 				let func_type = dtype::FuncType {
-					params: vec![],
+					params,
 					ret: Box::new(ret_type),
-					is_variadic: false,
+					is_variadic,
 				};
 				let entry = SymbolTableEntry {
 					data_type: dtype::DataType::Function(func_type),

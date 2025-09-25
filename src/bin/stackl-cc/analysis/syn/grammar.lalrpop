@@ -850,7 +850,7 @@ FunctionDefinition: FunctionDefinition = {
 		FunctionDefinition {
 			specifiers: Specifiers::from(kind_list),
 			identifier: decl.0,
-			declarator: decl.1,
+			declarators: decl.1,
 			declaration_list: list,
 			compound_stmt: compound,
 		}

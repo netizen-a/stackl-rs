@@ -4,8 +4,8 @@
 
 // int a = 1 + 1;
 // int *b;
-int *c[3+3];
-// int (*d)[3];
+int *c[3];
+int (*d)[3];
 // int *f();
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
@@ -57,10 +57,10 @@ int *c[3+3];
 //auto x;
 
 
-// int bar(int a, int b)
-// {
-//     return a + b;
-// }
+int bar(int a, int b[3])
+{
+    return a + b[0];
+}
 
 // int (*foo(a, b))(int, int)
 //     int a, b;
