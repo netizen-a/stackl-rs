@@ -30,7 +30,18 @@ impl super::SemanticParser<'_> {
 			_ => todo!("invalid storage class"),
 		};
 		let mut ret_type = data_type.unwrap();
-		self.declarator_list(&mut decl.declarators[1..], &mut ret_type, false);
+		if matches!(
+			decl.declarators.first_mut(),
+			None | Some(Declarator::Pointer(_))
+		) {
+			self.declarator_list(
+				decl.ident.span.clone(),
+				&mut decl.declarators[1..],
+				&mut ret_type,
+				false,
+				Some(decl.ident.name.clone()),
+			);
+		}
 		match decl.declarators.first_mut() {
 			Some(Declarator::IdentList(ident_list)) => {
 				let func_type = dtype::FuncType {
@@ -44,15 +55,22 @@ impl super::SemanticParser<'_> {
 					storage,
 					is_incomplete: false,
 				};
-				let key = Namespace::Ordinary(decl.identifier.name.clone());
+				let key = Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParamList(param_list)) => {
 				let mut params = vec![];
 				for param in param_list.param_list.iter_mut() {
+					let param_name = param.name.as_ref().expect("param name");
 					let (_, param_type) = self.specifiers(&mut param.specifiers);
 					let mut param_type = param_type.unwrap();
-					self.declarator_list(&mut param.declarators, &mut param_type, true);
+					self.declarator_list(
+						param_name.span.clone(),
+						&mut param.declarators,
+						&mut param_type,
+						true,
+						None,
+					);
 					params.push(param_type)
 				}
 				let is_variadic = param_list.is_variadic;
@@ -67,11 +85,11 @@ impl super::SemanticParser<'_> {
 					storage,
 					is_incomplete: false,
 				};
-				let key = Namespace::Ordinary(decl.identifier.name.clone());
+				let key = Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::Array(array)) => {
-				let kind = diag::DiagKind::ArrayOfFunctions(decl.identifier.name.clone());
+				let kind = diag::DiagKind::ArrayOfFunctions(decl.ident.name.clone());
 				let diag = diag::Diagnostic::error(kind, array.span.clone());
 				self.diagnostics.push(diag);
 				return;
@@ -121,7 +139,13 @@ impl super::SemanticParser<'_> {
 				continue;
 			};
 			let mut var_dtype = data_type.clone();
-			self.declarator_list(&mut init_decl.declarator, &mut var_dtype, false);
+			self.declarator_list(
+				ident.span.clone(),
+				&mut init_decl.declarator,
+				&mut var_dtype,
+				false,
+				None,
+			);
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
@@ -595,10 +619,36 @@ impl super::SemanticParser<'_> {
 
 	fn declarator_list(
 		&mut self,
+		span: diag::Span,
 		decl_list: &mut [Declarator],
 		data_type: &mut dtype::DataType,
 		is_param: bool,
+		func_name: Option<String>,
 	) {
+		let mut last_is_ptr = func_name.is_none();
+		// first iteration is for type checking
+		for declarator in decl_list.iter() {
+			match declarator {
+				Declarator::Array(_array) => {
+					last_is_ptr = false;
+				}
+				Declarator::Pointer(pointer) => {
+					eprintln!("DEBUG pointer: {declarator:?}");
+					last_is_ptr = true;
+				}
+				Declarator::IdentList(_) => {
+					last_is_ptr = false;
+				}
+				Declarator::ParamList(type_list) => {
+					if !last_is_ptr {
+						let kind = diag::DiagKind::FnRetFn(func_name.as_ref().unwrap().to_string());
+						let diag = diag::Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+					}
+					last_is_ptr = false;
+				}
+			};
+		}
 		// reversed iterator because recursive type construction has
 		// data type at the end
 		for declarator in decl_list.iter_mut().rev() {
@@ -641,8 +691,15 @@ impl super::SemanticParser<'_> {
 					let mut params = vec![];
 					for param in type_list.param_list.iter_mut() {
 						let (_, maybe_type) = self.specifiers(&mut param.specifiers);
+						let span = param.specifiers.first_span.as_ref().unwrap();
 						let mut param_type = maybe_type.unwrap();
-						self.declarator_list(&mut param.declarators, &mut param_type, true);
+						self.declarator_list(
+							span.clone(),
+							&mut param.declarators,
+							&mut param_type,
+							true,
+							None,
+						);
 						params.push(param_type);
 					}
 

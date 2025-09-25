@@ -18,4 +18,5 @@ pub enum DiagKind {
 	ImplicitInt(String),
 	Internal(String),
 	ArrayOfFunctions(String),
+	FnRetFn(String),
 }

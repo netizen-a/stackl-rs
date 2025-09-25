@@ -866,7 +866,7 @@ FunctionDefinition: FunctionDefinition = {
 	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
 		FunctionDefinition {
 			specifiers: Specifiers::from(kind_list),
-			identifier: decl.0,
+			ident: decl.0,
 			declarators: decl.1,
 			declaration_list: list,
 			compound_stmt: compound,

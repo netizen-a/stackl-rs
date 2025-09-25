@@ -28,7 +28,7 @@ pub enum ExternalDeclaration {
 #[derive(Debug)]
 pub struct FunctionDefinition {
 	pub specifiers: Specifiers,
-	pub identifier: tok::Ident,
+	pub ident: tok::Ident,
 	pub declarators: Vec<Declarator>,
 	pub declaration_list: Vec<Declaration>,
 	pub compound_stmt: CompoundStmt,

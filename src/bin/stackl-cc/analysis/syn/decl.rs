@@ -17,6 +17,7 @@ pub struct Declaration {
 
 #[derive(Debug, Default, Clone)]
 pub struct Specifiers {
+	pub first_span: Option<diag::Span>,
 	pub storage_classes: Vec<StorageClassSpecifier>,
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
@@ -28,18 +29,41 @@ pub struct Specifiers {
 impl From<Vec<SpecifierKind>> for Specifiers {
 	fn from(value: Vec<SpecifierKind>) -> Self {
 		let mut specifiers = Specifiers::default();
+		let mut is_first = true;
 		for kind in value {
 			match kind {
 				SpecifierKind::StorageClassSpecifier(inner) => {
+					if is_first {
+						is_first = false;
+						specifiers.first_span = Some(inner.span.clone());
+					}
 					specifiers.storage_classes.push(inner)
 				}
-				SpecifierKind::TypeSpecifier(inner) => specifiers.type_specifiers.push(inner),
-				SpecifierKind::TypeQualifier(inner) => match inner.kind {
-					TypeQualifierKind::Const => specifiers.is_const = true,
-					TypeQualifierKind::Volatile => specifiers.is_volatile = true,
-					TypeQualifierKind::Restrict => specifiers.restrict_list.push(inner.span),
-				},
-				SpecifierKind::Inline(span) => specifiers.inline_list.push(span),
+				SpecifierKind::TypeSpecifier(inner) => {
+					if is_first {
+						is_first = false;
+						specifiers.first_span = Some(inner.span());
+					}
+					specifiers.type_specifiers.push(inner)
+				}
+				SpecifierKind::TypeQualifier(inner) => {
+					if is_first {
+						is_first = false;
+						specifiers.first_span = Some(inner.span.clone());
+					}
+					match inner.kind {
+						TypeQualifierKind::Const => specifiers.is_const = true,
+						TypeQualifierKind::Volatile => specifiers.is_volatile = true,
+						TypeQualifierKind::Restrict => specifiers.restrict_list.push(inner.span),
+					}
+				}
+				SpecifierKind::Inline(span) => {
+					if is_first {
+						is_first = false;
+						specifiers.first_span = Some(span.clone());
+					}
+					specifiers.inline_list.push(span)
+				}
 			}
 		}
 		specifiers
@@ -101,6 +125,32 @@ pub enum TypeSpecifier {
 		span: diag::Span,
 		name: tok::Ident,
 	},
+}
+
+impl TypeSpecifier {
+	fn span(&self) -> diag::Span {
+		match self {
+			Self::Void(span) => span.clone(),
+			Self::Char(span) => span.clone(),
+			Self::Short(span) => span.clone(),
+			Self::Int(span) => span.clone(),
+			Self::Long(span) => span.clone(),
+			Self::Float(span) => span.clone(),
+			Self::Double(span) => span.clone(),
+			Self::Signed(span) => span.clone(),
+			Self::Unsigned(span) => span.clone(),
+			Self::Bool(span) => span.clone(),
+			Self::StructOrUnionSpecifier(spec) => match spec.ident.as_ref() {
+				Some(ident) => ident.span.clone(),
+				None => spec.struct_or_union.span.clone(),
+			},
+			Self::EnumSpecifier(spec) => match spec.identifier.as_ref() {
+				Some(ident) => ident.span.clone(),
+				None => spec.tag_span.clone(),
+			},
+			Self::TypedefName { span, .. } => span.clone(),
+		}
+	}
 }
 
 /// (6.7.2.2) enum-specifier

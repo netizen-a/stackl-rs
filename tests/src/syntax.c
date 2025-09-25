@@ -10,7 +10,7 @@
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
-static static int foo(void);
+// static static int foo(void);
 
 // unsigned signed unsigned bar;
 
@@ -57,16 +57,16 @@ static static int foo(void);
 // auto x;
 
 
-int bar(int a, int b)
-{
-    return a + b;
-}
+// int bar(int a, int b)
+// {
+//     return a + b;
+// }
 
-int (*foo(a, b))(int, int)
-    int a, b;
-{
-    return bar;
-}
+// int (*foo(a, b))(int, int)
+//     int a, b;
+// {
+//     return bar;
+// }
 
 // int foo {
 //     return 0;

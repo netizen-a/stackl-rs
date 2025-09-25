@@ -243,6 +243,10 @@ impl DiagnosticEngine {
 				}
 				self.format_diagnostic(&diag, msg0, &msg1)
 			}
+			DiagKind::FnRetFn(name) => {
+				let msg0 = format!("'{name}' declared as function returning function");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
 			_ => unimplemented!(),
 		};
 		eprint!("{str_diag}");
