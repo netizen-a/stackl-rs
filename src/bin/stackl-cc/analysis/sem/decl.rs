@@ -624,13 +624,16 @@ impl super::SemanticParser<'_> {
 			*data_type = match declarator {
 				Declarator::Array(array) => {
 					let array_type: dtype::ArrayType = if !is_param {
-						let length = match &mut array.assignment_expr {
-							Some(assign_expr) => {
-								let _ = assign_expr.to_u32();
-								todo!("to u32")
+						let length = if let Some(assign_expr) = &mut array.assignment_expr {
+							match assign_expr.to_u32() {
+								Ok(val) => dtype::ArrayLength::Fixed(val),
+								Err(ConversionError::OutOfRange) => todo!("error"),
+								Err(ConversionError::Expr(_expr)) => dtype::ArrayLength::Variable,
 							}
-							None => todo!(),
+						} else {
+							todo!()
 						};
+
 						dtype::ArrayType {
 							component: Box::new(data_type.clone()),
 							length,

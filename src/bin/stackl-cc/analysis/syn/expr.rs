@@ -108,36 +108,37 @@ impl Expr {
 			}
 		}
 	}
-	pub fn to_u32(&self) -> Result<u32, ConversionError> {
+	pub fn to_u32(&mut self) -> Result<u32, ConversionError> {
 		const U64_CAP: u64 = u32::MAX as u64;
 		const I64_CAP: i64 = u32::MAX as i64;
 		const U128_CAP: u128 = u32::MAX as u128;
 		const I128_CAP: i128 = u32::MAX as i128;
-		match self.reduce() {
+		*self = self.reduce();
+		match self {
 			Self::Const(tok::Const::Integer(int_const)) => match int_const {
-				IntegerConstant::U32(val) => Ok(val),
+				IntegerConstant::U32(val) => Ok(*val),
 				IntegerConstant::I32(val) => match val {
-					0.. => Ok(val as u32),
+					0.. => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::U64(val) => match val {
-					0..U64_CAP => Ok(val as u32),
+					0..U64_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I64(val) => match val {
-					0..I64_CAP => Ok(val as u32),
+					0..I64_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::U128(val) => match val {
-					0..U128_CAP => Ok(val as u32),
+					0..U128_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I128(val) => match val {
-					0..I128_CAP => Ok(val as u32),
+					0..I128_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 			},
-			expr => Err(ConversionError::Expr(expr)),
+			expr => Err(ConversionError::Expr(expr.clone())),
 		}
 	}
 }
