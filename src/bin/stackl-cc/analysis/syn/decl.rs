@@ -175,16 +175,23 @@ pub enum Declarator {
 	Pointer(PtrDecl),
 	Array(ArrayDecl),
 	/// ( parameter-type-list )
-	ParameterTypeList(ParameterTypeList),
+	ParamList(ParamList),
 	/// ( identifier-list_opt )
-	IdentifierList(Vec<tok::Ident>),
+	IdentList(IdentList),
+}
+
+#[derive(Debug, Clone)]
+pub struct IdentList {
+	pub span: diag::Span,
+	pub ident_list: Vec<tok::Ident>,
 }
 
 /// (6.7.5) parameter-type-list
 #[derive(Debug, Clone)]
-pub struct ParameterTypeList {
+pub struct ParamList {
+	pub span: diag::Span,
 	/// (6.7.5) parameter-list
-	pub parameter_list: Vec<ParameterDeclaration>,
+	pub param_list: Vec<ParameterDeclaration>,
 	pub is_variadic: bool,
 }
 

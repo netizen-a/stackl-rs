@@ -32,7 +32,7 @@ impl super::SemanticParser<'_> {
 		let mut ret_type = data_type.unwrap();
 		self.declarator_list(&mut decl.declarators[1..], &mut ret_type, false);
 		match decl.declarators.first_mut() {
-			Some(Declarator::IdentifierList(ident_list)) => {
+			Some(Declarator::IdentList(ident_list)) => {
 				let func_type = dtype::FuncType {
 					params: vec![],
 					ret: Box::new(ret_type),
@@ -47,9 +47,9 @@ impl super::SemanticParser<'_> {
 				let key = Namespace::Ordinary(decl.identifier.name.clone());
 				self.symtab.insert(key, entry);
 			}
-			Some(Declarator::ParameterTypeList(param_list)) => {
+			Some(Declarator::ParamList(param_list)) => {
 				let mut params = vec![];
-				for param in param_list.parameter_list.iter_mut() {
+				for param in param_list.param_list.iter_mut() {
 					let (_, param_type) = self.specifiers(&mut param.specifiers);
 					let mut param_type = param_type.unwrap();
 					self.declarator_list(&mut param.declarators, &mut param_type, true);
@@ -599,26 +599,6 @@ impl super::SemanticParser<'_> {
 		data_type: &mut dtype::DataType,
 		is_param: bool,
 	) {
-		let mut last_is_ptr = false;
-		// first iteration is for type checking
-		for declarator in decl_list.iter() {
-			match declarator {
-				Declarator::Array(_array) => {
-					last_is_ptr = false;
-				}
-				Declarator::Pointer(pointer) => {
-					last_is_ptr = true;
-				}
-				Declarator::IdentifierList(_) => {
-					last_is_ptr = false;
-				}
-				Declarator::ParameterTypeList(type_list) => {
-					assert!(last_is_ptr);
-					last_is_ptr = false;
-					// TODO: add error to diagnostic engine
-				}
-			};
-		}
 		// reversed iterator because recursive type construction has
 		// data type at the end
 		for declarator in decl_list.iter_mut().rev() {
@@ -654,12 +634,12 @@ impl super::SemanticParser<'_> {
 					};
 					dtype::DataType::Pointer(ptr_type)
 				}
-				Declarator::IdentifierList(_) => {
+				Declarator::IdentList(_) => {
 					todo!("function identifier list")
 				}
-				Declarator::ParameterTypeList(type_list) => {
+				Declarator::ParamList(type_list) => {
 					let mut params = vec![];
-					for param in type_list.parameter_list.iter_mut() {
+					for param in type_list.param_list.iter_mut() {
 						let (_, maybe_type) = self.specifiers(&mut param.specifiers);
 						let mut param_type = maybe_type.unwrap();
 						self.declarator_list(&mut param.declarators, &mut param_type, true);

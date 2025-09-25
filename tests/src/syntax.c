@@ -1,16 +1,16 @@
 // Test for declarator syntax
 
-// #include "example_header.h"
+#include "example_header.h"
 
 // int a = 1 + 1;
 // int *b;
-int *c[3];
-int (*d)[3];
+// int *c[3];
+// int (*d)[3];
 // int *f();
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
-// static static int foo(void);
+static static int foo(void);
 
 // unsigned signed unsigned bar;
 
@@ -54,19 +54,19 @@ int (*d)[3];
 
 // struct Foo { unsigned char x; } signed k;
 
-//auto x;
+// auto x;
 
 
-int bar(int a, int b[3])
+int bar(int a, int b)
 {
-    return a + b[0];
+    return a + b;
 }
 
-// int (*foo(a, b))(int, int)
-//     int a, b;
-// {
-//     return bar;
-// }
+int (*foo(a, b))(int, int)
+    int a, b;
+{
+    return bar;
+}
 
 // int foo {
 //     return 0;

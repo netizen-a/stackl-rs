@@ -512,12 +512,23 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 		dd_list.1.push(Declarator::Array(array));
 		dd_list
 	},
-	<mut dd_list:DirectDeclaratorList> "(" <list: ParameterTypeList> ")" => {
-		dd_list.1.push(Declarator::ParameterTypeList(list));
+	<mut dd_list:DirectDeclaratorList> <lo: @L> <lparen:"("> <hi:@R> <mut param_list: ParameterTypeList> ")" => {
+		param_list.span = diag::Span {
+			file_id: lparen.file_id,
+			loc: (lo, hi),
+		};
+		dd_list.1.push(Declarator::ParamList(param_list));
 		dd_list
 	},
-	<mut dd_list:DirectDeclaratorList> "(" <ident_list:IdentifierList?> ")" => {
-		dd_list.1.push(Declarator::IdentifierList(ident_list.unwrap_or_default()));
+	<mut dd_list:DirectDeclaratorList> <lo: @L> <lparen:"("> <hi:@R> <ident_list:IdentifierList?> ")" => {
+		let mut ident_list = IdentList {
+			span: diag::Span {
+				file_id: lparen.file_id,
+				loc: (lo, hi),
+			},
+			ident_list: ident_list.unwrap_or_default(),
+		};
+		dd_list.1.push(Declarator::IdentList(ident_list));
 		dd_list
 	},
 };
@@ -529,13 +540,15 @@ Pointer: Vec<PtrDecl> = {
 		v
 	},
 };
-ParameterTypeList: ParameterTypeList = {
-	ParameterList => ParameterTypeList {
-		parameter_list: <>,
+ParameterTypeList: ParamList = {
+	<params:ParameterList> => ParamList {
+		span: diag::Span::default(),
+		param_list: params,
 		is_variadic: false,
 	},
-	<parameter_list:ParameterList> "," "..." => ParameterTypeList {
-		parameter_list,
+	<params:ParameterList> "," "..." => ParamList {
+		span: diag::Span::default(),
+		param_list: params,
 		is_variadic: true,
 	},
 };
@@ -671,15 +684,19 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 			vec![value]
 		}
 	},
-	<mut decl:DirectAbstractDeclarator?> "(" <params:ParameterTypeList?> ")" => {
+	<mut decl:DirectAbstractDeclarator?> <lo:@L> <lparen:"("> <hi:@R> <params:ParameterTypeList?> ")" => {
 		let value = if let Some(params) = params {
-			Declarator::ParameterTypeList(params)
+			Declarator::ParamList(params)
 		} else {
-			let params = ParameterTypeList {
-				parameter_list: vec![],
+			let params = ParamList {
+				span: diag::Span {
+					file_id: lparen.file_id,
+					loc: (lo, hi),
+				},
+				param_list: vec![],
 				is_variadic: false,
 			};
-			Declarator::ParameterTypeList(params)
+			Declarator::ParamList(params)
 		};
 		if let Some(mut decl_list) = decl {
 			decl_list.push(value);
