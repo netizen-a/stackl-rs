@@ -3,6 +3,11 @@ use std::f32;
 use super::decl;
 use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
 
+pub enum ConversionError {
+	OutOfRange,
+	Expr(Expr),
+}
+
 /// (6.5.17) expression
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -49,18 +54,90 @@ impl Expr {
 		})
 	}
 
-	pub fn resolve(&mut self) {
-		use Expr::*;
+	fn reduce(&self) -> Expr {
+		use tok::Const::{Floating, Integer};
 		match self {
-			Ident(_inner) => {}
-			Const(_inner) => {}
-			StrLit(_inner) => {}
-			// UnaryPrefix(unary) => self.expr_prefix(unary),
-			// UnaryPostfix(unary) => self.expr_postfix(unary),
-			// Binary(binary) => self.expr_binary(binary),
-			// Ternary(ternary) => self.expr_ternary(ternary),
-			Sizeof(_) => todo!("sizeof"),
-			_ => {}
+			Self::UnaryPrefix(unary) => {
+				let op = &unary.op;
+				let expr = unary.expr.reduce();
+				match &expr {
+					Expr::Const(Integer(rhs_int)) => op.reduce_int(rhs_int),
+					_ => Self::UnaryPrefix(UnaryPrefix {
+						op: op.clone(),
+						expr: Box::new(expr),
+					}),
+				}
+			}
+			Self::UnaryPostfix(unary) => {
+				let op = &unary.op;
+				let expr = unary.expr.reduce();
+				match &expr {
+					Expr::Const(Integer(rhs_int)) => {
+						//op.reduce_int(rhs_int)
+						todo!("postfix reduce_int")
+					}
+					_ => Self::UnaryPostfix(UnaryPostfix {
+						op: op.clone(),
+						expr: Box::new(expr),
+					}),
+				}
+			}
+			Self::Binary(binary) => {
+				let left = binary.left.reduce();
+				let right = binary.right.reduce();
+				let op = binary.op;
+				match (&left, &right) {
+					(Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
+						op.reduce_int(lhs_int, rhs_int)
+					}
+					(Expr::Const(Floating(lhs_float)), Expr::Const(Floating(rhs_float))) => {
+						op.reduce_float(lhs_float, rhs_float)
+					}
+					_ => Self::Binary(ExprBinary {
+						op,
+						left: Box::new(left),
+						right: Box::new(right),
+					}),
+				}
+			}
+			Self::Ternary(ternary) => todo!(),
+			Self::Sizeof(_) => todo!(),
+			_ => {
+				// cannot reduce
+				self.clone()
+			}
+		}
+	}
+	pub fn to_u32(&self) -> Result<u32, ConversionError> {
+		const U64_CAP: u64 = u32::MAX as u64;
+		const I64_CAP: i64 = u32::MAX as i64;
+		const U128_CAP: u128 = u32::MAX as u128;
+		const I128_CAP: i128 = u32::MAX as i128;
+		match self.reduce() {
+			Self::Const(tok::Const::Integer(int_const)) => match int_const {
+				IntegerConstant::U32(val) => Ok(val),
+				IntegerConstant::I32(val) => match val {
+					0.. => Ok(val as u32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::U64(val) => match val {
+					0..U64_CAP => Ok(val as u32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::I64(val) => match val {
+					0..I64_CAP => Ok(val as u32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::U128(val) => match val {
+					0..U128_CAP => Ok(val as u32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::I128(val) => match val {
+					0..I128_CAP => Ok(val as u32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+			},
+			expr => Err(ConversionError::Expr(expr)),
 		}
 	}
 }

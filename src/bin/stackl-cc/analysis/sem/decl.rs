@@ -626,8 +626,8 @@ impl super::SemanticParser<'_> {
 					let array_type: dtype::ArrayType = if !is_param {
 						let length = match &mut array.assignment_expr {
 							Some(assign_expr) => {
-								assign_expr.resolve();
-								todo!()
+								let _ = assign_expr.to_u32();
+								todo!("to u32")
 							}
 							None => todo!(),
 						};

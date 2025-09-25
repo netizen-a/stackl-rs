@@ -11,7 +11,7 @@ use clap::Parser;
 use std::{path::PathBuf, process::ExitCode};
 
 #[derive(Parser, Debug)]
-#[command(version, about = "Stackl C compiler", long_about = None)]
+#[command(version, about = "Stackl C99 compiler", long_about = None)]
 pub struct Args {
 	#[arg(name = "FILE", required = true)]
 	pub in_file: PathBuf,
