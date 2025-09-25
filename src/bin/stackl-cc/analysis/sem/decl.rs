@@ -61,7 +61,12 @@ impl super::SemanticParser<'_> {
 			Some(Declarator::ParamList(param_list)) => {
 				let mut params = vec![];
 				for param in param_list.param_list.iter_mut() {
-					let param_name = param.name.as_ref().expect("param name");
+					let Some(param_name) = param.name.as_ref() else {
+						let kind = diag::DiagKind::OmittedParamName;
+						let diag = diag::Diagnostic::error(kind, param.span.clone());
+						self.diagnostics.push(diag);
+						continue;
+					};
 					let (_, param_type) = self.specifiers(&mut param.specifiers);
 					let mut param_type = param_type.unwrap();
 					self.declarator_list(

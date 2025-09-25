@@ -247,6 +247,10 @@ impl DiagnosticEngine {
 				let msg0 = format!("'{name}' declared as function returning function");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
+			DiagKind::OmittedParamName => {
+				let msg0 = "ISO C does not support omitting parameter names in function definitions before C23";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			_ => unimplemented!(),
 		};
 		eprint!("{str_diag}");

@@ -562,10 +562,15 @@ ParameterList: Vec<ParameterDeclaration> = {
 };
 
 ParameterDeclaration: ParameterDeclaration = {
-	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
+	<lo:@L> <kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> <hi:@R> => {
+		let specifiers = Specifiers::from(kind_list);
 		ParameterDeclaration {
+			span: diag::Span {
+				file_id: specifiers.first_span.as_ref().unwrap().file_id,
+				loc: (lo, hi),
+			},
 			name: decl.0,
-			specifiers: Specifiers::from(kind_list),
+			specifiers,
 			declarators: decl.1,
 		}
 	},

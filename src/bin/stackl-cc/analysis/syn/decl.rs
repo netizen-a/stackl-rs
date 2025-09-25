@@ -275,6 +275,7 @@ impl From<&[TypeQualifier]> for PtrDecl {
 /// (6.7.5) parameter-declaration
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
+	pub span: diag::Span,
 	pub name: Option<tok::Ident>,
 	pub specifiers: Specifiers,
 	pub declarators: Vec<Declarator>,
