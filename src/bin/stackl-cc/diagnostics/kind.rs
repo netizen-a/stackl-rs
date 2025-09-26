@@ -16,7 +16,6 @@ pub enum DiagKind {
 	MultipleTypes,
 	TooLong,
 	ImplicitInt(String),
-	Internal(String),
 	ArrayOfFunctions(String),
 	FnRetFn(String),
 	OmittedParamName,

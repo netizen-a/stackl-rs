@@ -19,14 +19,6 @@ pub struct Diagnostic {
 
 impl Diagnostic {
 	#[inline]
-	pub fn internal(msg: &str) -> Self {
-		Self {
-			level: DiagLevel::Internal,
-			kind: DiagKind::Internal(msg.to_string()),
-			span: Span::default(),
-		}
-	}
-	#[inline]
 	pub const fn error(kind: DiagKind, span: Span) -> Self {
 		Self {
 			level: DiagLevel::Error,

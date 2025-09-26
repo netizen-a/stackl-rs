@@ -22,14 +22,9 @@ pub use span::*;
 pub type ResultTriple<Tok, Loc> = result::Result<(Loc, Tok, Loc), Diagnostic>;
 pub type Result<T> = result::Result<T, Diagnostic>;
 
-const BLUE: &str = "\x1b[1;34m";
-const DEFAULT: &str = "\x1b[0m";
-const BOLD_RED: &str = "\x1b[1;31m";
-const BOLD_YELLOW: &str = "\x1b[1;33m";
-const BOLD_WHITE: &str = "\x1b[1;97m";
-
 #[derive(Default)]
 pub struct DiagnosticEngine {
+	enable_color: bool,
 	file_map: bimap::BiHashMap<usize, PathBuf>,
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
@@ -39,8 +34,11 @@ pub struct DiagnosticEngine {
 
 impl DiagnosticEngine {
 	#[inline]
-	pub fn new() -> Self {
-		Self::default()
+	pub fn new(enable_color: bool) -> Self {
+		Self {
+			enable_color,
+			.. Self::default()
+		}
 	}
 	#[inline]
 	pub fn push(&mut self, diag: Diagnostic) {
@@ -208,9 +206,6 @@ impl DiagnosticEngine {
 				let msg0 = format!("type defaults to 'int' in declaration of {ident}");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::Internal(msg) => {
-				format!("{BOLD_RED}internal error: {BOLD_WHITE}{msg}{DEFAULT}")
-			}
 			DiagKind::ArrayOfFunctions(ident) => {
 				let msg0 =
 					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
@@ -260,43 +255,49 @@ impl DiagnosticEngine {
 	where
 		S: AsRef<str>,
 	{
+		let color_blue: &str        = if self.enable_color {"\x1b[1;34m"} else {""};
+		let color_default: &str     = if self.enable_color {"\x1b[0m"} else {""};
+		let color_bold_red: &str    = if self.enable_color {"\x1b[1;31m"} else {""};
+		let color_bold_yellow: &str = if self.enable_color {"\x1b[1;33m"} else {""};
+		let color_bold_white: &str  = if self.enable_color {"\x1b[1;97m"} else {""};
+
 		let mut result = String::new();
 		let file_path = self.get_file_path(diag.span.file_id()).unwrap();
 		let source = self.get_file_data(diag.span.file_id()).unwrap();
 		let level_color = match diag.level {
 			DiagLevel::Internal => {
-				result.push_str(&format!("{BOLD_RED}internal error:{DEFAULT} "));
-				BOLD_RED
+				result.push_str(&format!("{color_bold_red}internal error:{color_default} "));
+				color_bold_red
 			}
 			DiagLevel::Fatal => {
-				result.push_str(&format!("{BOLD_RED}fatal error:{DEFAULT} "));
-				BOLD_RED
+				result.push_str(&format!("{color_bold_red}fatal error:{color_default} "));
+				color_bold_red
 			}
 			DiagLevel::Error => {
-				result.push_str(&format!("{BOLD_RED}error:{DEFAULT} "));
-				BOLD_RED
+				result.push_str(&format!("{color_bold_red}error:{color_default} "));
+				color_bold_red
 			}
 			DiagLevel::Warning => {
-				result.push_str(&format!("{BOLD_YELLOW}warning:{DEFAULT} "));
-				BOLD_YELLOW
+				result.push_str(&format!("{color_bold_yellow}warning:{color_default} "));
+				color_bold_yellow
 			}
 		};
 
-		result.push_str(&format!("{BOLD_WHITE}{}{DEFAULT}\n", msg0.as_ref()));
+		result.push_str(&format!("{color_bold_white}{}{color_default}\n", msg0.as_ref()));
 		let (line, col) = diag.span.location(source.as_ref()).unwrap();
 		let mut line_len = line.to_string().len();
 		result.push_str(&format!(
-			"{}{BLUE}-->{DEFAULT} {}:{line}:{col}\n",
+			"{}{color_blue}-->{color_default} {}:{line}:{col}\n",
 			" ".repeat(line_len),
 			file_path.display()
 		));
 		line_len += 1;
 		let line_space = " ".repeat(line_len);
-		result.push_str(&format!("{line_space}{BLUE}|{DEFAULT}\n"));
+		result.push_str(&format!("{line_space}{color_blue}|{color_default}\n"));
 		for source_line in diag.span.to_string_vec(source.as_ref()) {
-			result.push_str(&format!("{BLUE}{line} |{DEFAULT} {source_line}\n"));
+			result.push_str(&format!("{color_blue}{line} |{color_default} {source_line}\n"));
 			result.push_str(&format!(
-				"{line_space}{BLUE}|{DEFAULT} {}{level_color}{}{BOLD_RED} {}{DEFAULT}\n",
+				"{line_space}{color_blue}|{color_default} {}{level_color}{}{color_bold_red} {}{color_default}\n",
 				" ".repeat(col - 1),
 				"^".repeat(1 + diag.span.loc.1 - diag.span.loc.0),
 				msg1.as_ref()
