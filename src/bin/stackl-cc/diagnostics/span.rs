@@ -13,6 +13,12 @@ impl FileId for Span {
 }
 
 impl Span {
+	pub fn combine(lhs: &Self, rhs: &Self) -> Self {
+		Self {
+			file_id: lhs.file_id,
+			loc: (lhs.loc.0, rhs.loc.1),
+		}
+	}
 	/// returns (line, column)
 	pub fn location(&self, source: &str) -> Option<(usize, usize)> {
 		let mut line = 1;
@@ -31,7 +37,7 @@ impl Span {
 		Some((line, column))
 	}
 	pub fn to_vec(&self, source: &str) -> Vec<(usize, String, usize)> {
-		let (_,column) = self.location(source).unwrap();
+		let (_, column) = self.location(source).unwrap();
 		let mut length = self.loc.1 - self.loc.0;
 		let line_min = source[..self.loc.0].chars().filter(|x| *x == '\n').count();
 		let line_max = source[..self.loc.1].chars().filter(|x| *x == '\n').count();

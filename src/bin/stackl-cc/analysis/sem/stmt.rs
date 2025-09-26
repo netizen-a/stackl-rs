@@ -18,13 +18,18 @@ impl super::SemanticParser<'_> {
 	}
 	pub(super) fn statement(&mut self, stmt: &mut Stmt) {
 		match stmt {
-			Stmt::Labeled(_labeled_stmt) => (),
+			Stmt::Label(_labeled_stmt) => (),
 			Stmt::Compound(inner) => self.compound_stmt(inner),
 			Stmt::Expr(_expr_stmt) => (),
-			Stmt::Selection(_selection_stmt) => (),
+			Stmt::Select(stmt) => {
+				self.selection_stmt(stmt);
+			}
 			Stmt::Iter(_iter_stmt) => (),
 			Stmt::Jump(_jmp_stmt) => (),
 			Stmt::Asm(_asm_stmt) => (),
 		}
+	}
+	fn selection_stmt(&mut self, stmt: &mut SelectStmt) {
+		// TODO
 	}
 }

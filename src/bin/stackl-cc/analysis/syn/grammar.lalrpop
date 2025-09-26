@@ -734,27 +734,27 @@ Designator: Designator = {
 
 // A.2.3 Statements
 
-Statement: Stmt = {
-	OpenedStatement,
-	ClosedStatement,
+Statement: Stmt = { Unmatched, Matched };
+
+Unmatched: Stmt = {
+	"if" "(" <cond:Expr> ")" <stmt:Statement> => Stmt::Select(SelectStmt::If{
+		stmt_cond: cond,
+		stmt_then: Box::new(stmt),
+		stmt_else: None,
+	}),
+	"if" "(" Expr ")" Matched "else" Unmatched => todo!("opened-if-else"),
+	"switch" "(" Expr ")" Unmatched => todo!("opened-switch"),
+	UnmatchedLabeledStatement => todo!("opened-label"),
+	UnmatchedIterationStatement => todo!("opened-iter"),
 };
 
-OpenedStatement: Stmt = {
-	"if" "(" Expr ")" OpenedStatement => todo!("opened-if"),
-	"if" "(" Expr ")" ClosedStatement "else" OpenedStatement => todo!("opened-if-else"),
-	"switch" "(" Expr ")" OpenedStatement => todo!("opened-switch"),
-	OpenedLabeledStatement => todo!("opened-label"),
-	OpenedCompoundStatement => todo!("opened-compound"),
-	OpenedIterationStatement => todo!("opened-iter"),
-};
-
-ClosedStatement: Stmt = {
+Matched: Stmt = {
 	SimpleStatement,
-	"if" "(" Expr ")" ClosedStatement "else" ClosedStatement => todo!("closed-if"),
-	"switch" "(" Expr ")" ClosedStatement => todo!("closed-switch"),
-	ClosedLabeledStatement => todo!("closed-label"),
-	ClosedCompoundStatement => Stmt::Compound(<>),
-	ClosedIterationStatement => todo!("closed-iter"),
+	"if" "(" Expr ")" Matched "else" Matched => todo!("closed-if"),
+	"switch" "(" Expr ")" Matched => todo!("closed-switch"),
+	MatchedLabeledStatement => todo!("closed-label"),
+	CompoundStatement => Stmt::Compound(<>),
+	MatchedIterationStatement => todo!("closed-iter"),
 };
 
 SimpleStatement: Stmt = {
@@ -764,29 +764,21 @@ SimpleStatement: Stmt = {
 };
 
 
-OpenedLabeledStatement: LabeledStmt = {
-	Identifier ":" OpenedStatement => todo!("label"),
-	"case" ConstantExpr ":" OpenedStatement => todo!("case"),
-	"default" ":" OpenedStatement => todo!("default"),
+UnmatchedLabeledStatement: LabeledStmt = {
+	Identifier ":" Unmatched => todo!("label"),
+	"case" ConstantExpr ":" Unmatched => todo!("case"),
+	"default" ":" Unmatched => todo!("default"),
 };
 
-ClosedLabeledStatement: LabeledStmt = {
-	Identifier ":" ClosedStatement => todo!("label"),
-	"case" ConstantExpr ":" ClosedStatement => todo!("case"),
-	"default" ":" ClosedStatement => todo!("default"),
+MatchedLabeledStatement: LabeledStmt = {
+	Identifier ":" Matched => todo!("label"),
+	"case" ConstantExpr ":" Matched => todo!("case"),
+	"default" ":" Matched => todo!("default"),
 };
 
 
-OpenedCompoundStatement: CompoundStmt = {
-	<lcurly:LeftCurly> <blocks:OpenedBlockItem*> <rcurly:RightCurly> => CompoundStmt{
-		lcurly,
-		blocks,
-		rcurly,
-	},
-};
-
-ClosedCompoundStatement: CompoundStmt = {
-	<lcurly:LeftCurly> <blocks:ClosedBlockItem*> <rcurly:RightCurly> => CompoundStmt{
+CompoundStatement: CompoundStmt = {
+	<lcurly:LeftCurly> <blocks:BlockItem*> <rcurly:RightCurly> => CompoundStmt{
 		lcurly,
 		blocks,
 		rcurly,
@@ -810,30 +802,25 @@ RightCurly: diag::Span = <lo:@L> <rcurly:"}"> <hi:@R> => {
 };
 
 
-OpenedBlockItem: BlockItem = {
+BlockItem: BlockItem = {
 	Declaration => BlockItem::Declaration(<>),
-	OpenedStatement => BlockItem::Statement(<>),
-	! => { errors.push(<>); BlockItem::Error },
-};
-ClosedBlockItem: BlockItem = {
-	Declaration => BlockItem::Declaration(<>),
-	ClosedStatement => BlockItem::Statement(<>),
+	Statement => BlockItem::Statement(<>),
 	! => { errors.push(<>); BlockItem::Error },
 };
 
 ExprStatement: ExprStmt = <expr:Expr?> ";" => ExprStmt(expr);
 
-ClosedIterationStatement: IterStmt = {
-	"while" "(" Expr ")" ClosedStatement => todo!(),
-	"do" ClosedStatement "while" "(" Expr ")" ";"
-	"for" "(" Expr? ";" Expr? ";" Expr? ")" ClosedStatement => todo!(),
-	"for" "(" Declaration Expr? ";" Expr? ")" ClosedStatement => todo!(),
+MatchedIterationStatement: IterStmt = {
+	"while" "(" Expr ")" Matched => todo!(),
+	"do" Matched "while" "(" Expr ")" ";"
+	"for" "(" Expr? ";" Expr? ";" Expr? ")" Matched => todo!(),
+	"for" "(" Declaration Expr? ";" Expr? ")" Matched => todo!(),
 };
-OpenedIterationStatement: IterStmt = {
-	"while" "(" Expr ")" OpenedStatement => todo!(),
-	"do" OpenedStatement "while" "(" Expr ")" ";"
-	"for" "(" Expr? ";" Expr? ";" Expr? ")" OpenedStatement => todo!(),
-	"for" "(" Declaration Expr? ";" Expr? ")" OpenedStatement => todo!(),
+UnmatchedIterationStatement: IterStmt = {
+	"while" "(" Expr ")" Unmatched => todo!(),
+	"do" Unmatched "while" "(" Expr ")" ";"
+	"for" "(" Expr? ";" Expr? ";" Expr? ")" Unmatched => todo!(),
+	"for" "(" Declaration Expr? ";" Expr? ")" Unmatched => todo!(),
 };
 
 JumpStatement: JumpStmt = {
@@ -843,9 +830,7 @@ JumpStatement: JumpStmt = {
 	"return" <expr:Expr?> ";" => JumpStmt::Return(expr),
 };
 
-AsmStatement: AsmStmt = {
-	"asm" "(" <template:StringLiteral> ")" ";" => AsmStmt(template),
-};
+AsmStatement: AsmStmt = "asm" "(" <template:StringLiteral> ")" ";" => AsmStmt(template);
 
 StringLiteralList: Vec<StrLit> = {
 	StringLiteral => vec![<>],
@@ -868,7 +853,7 @@ ExternalDeclaration: ExternalDeclaration = {
 };
 
 FunctionDefinition: FunctionDefinition = {
-	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:ClosedCompoundStatement> => {
+	<kind_list: DeclarationSpecifier+> <decl:Declarator> <list:Declaration*> <compound:CompoundStatement> => {
 		FunctionDefinition {
 			specifiers: Specifiers::from(kind_list),
 			ident: decl.0,

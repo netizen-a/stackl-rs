@@ -36,7 +36,12 @@ pub struct FunctionDefinition {
 
 pub fn string_concat(v: Box<[tok::Token]>) -> tok::StrLit {
 	let mut str_lit = tok::StrLit::default();
+	let mut is_first = true;
 	for literal in v {
+		if is_first {
+			str_lit.file_id = literal.file_id;
+			is_first = false;
+		}
 		let tmp = literal.kind.unwrap_str_lit();
 		str_lit.seq.push_str(&tmp.seq);
 		if !str_lit.is_wide {
@@ -45,3 +50,5 @@ pub fn string_concat(v: Box<[tok::Token]>) -> tok::StrLit {
 	}
 	str_lit
 }
+
+pub use grammar::SyntaxParser;

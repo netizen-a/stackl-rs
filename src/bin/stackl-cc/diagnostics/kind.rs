@@ -22,4 +22,5 @@ pub enum DiagKind {
 	DeclIdentList,
 	UnboundVLA,
 	InvalidStar,
+	IfAssign,
 }

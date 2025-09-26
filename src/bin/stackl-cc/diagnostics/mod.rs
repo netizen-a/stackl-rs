@@ -334,8 +334,9 @@ impl DiagnosticEngine {
 				" ".repeat(lo),
 				"^".repeat(1 + hi - lo),
 			));
-			if index == triple_len - 1{
-				result.push_str(&format!("{color_bold_red} {}{color_default}\n",
+			if index == triple_len - 1 {
+				result.push_str(&format!(
+					"{color_bold_red} {}{color_default}\n",
 					msg1.as_ref()
 				));
 			} else {

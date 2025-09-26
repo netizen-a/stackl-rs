@@ -21,10 +21,10 @@ pub enum BlockItem {
 /// (6.8) statement
 #[derive(Debug)]
 pub enum Stmt {
-	Labeled(LabeledStmt),
+	Label(LabeledStmt),
 	Compound(CompoundStmt),
 	Expr(ExprStmt),
-	Selection(SelectionStmt),
+	Select(SelectStmt),
 	Iter(IterStmt),
 	Jump(JumpStmt),
 	Asm(AsmStmt),
@@ -74,11 +74,11 @@ pub struct ExprStmt(pub Option<expr::Expr>);
 
 /// (6.8.4) selection-statement
 #[derive(Debug)]
-pub enum SelectionStmt {
+pub enum SelectStmt {
 	If {
-		condition: expr::Expr,
-		stmt_true: Box<Stmt>,
-		stmt_false: Option<Box<Stmt>>,
+		stmt_cond: expr::Expr,
+		stmt_then: Box<Stmt>,
+		stmt_else: Option<Box<Stmt>>,
 	},
 	Switch {
 		expr: expr::Expr,

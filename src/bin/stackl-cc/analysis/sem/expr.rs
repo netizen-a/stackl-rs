@@ -26,8 +26,8 @@ impl super::SemanticParser<'_> {
 		let _rhs_id = self.expr(&mut *binary.right);
 	}
 	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) {
-		self.expr(&mut *ternary.cond_expr);
-		self.expr(&mut *ternary.then_expr);
-		self.expr(&mut *ternary.else_expr);
+		self.expr(&mut *ternary.expr_cond);
+		self.expr(&mut *ternary.expr_then);
+		self.expr(&mut *ternary.expr_else);
 	}
 }

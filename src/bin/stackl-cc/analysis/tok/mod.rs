@@ -59,6 +59,7 @@ pub enum Const {
 pub struct StrLit {
 	pub seq: String,
 	pub is_wide: bool,
+	pub file_id: usize,
 }
 
 #[derive(Debug, Clone)]

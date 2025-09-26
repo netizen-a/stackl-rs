@@ -48,9 +48,9 @@ impl Expr {
 	#[inline]
 	pub fn with_ternary(cond_expr: Self, then_expr: Self, else_expr: Self) -> Self {
 		Self::Ternary(ExprTernary {
-			cond_expr: Box::new(cond_expr),
-			then_expr: Box::new(then_expr),
-			else_expr: Box::new(else_expr),
+			expr_cond: Box::new(cond_expr),
+			expr_then: Box::new(then_expr),
+			expr_else: Box::new(else_expr),
 		})
 	}
 
@@ -166,9 +166,9 @@ pub struct ExprBinary {
 
 #[derive(Debug, Clone)]
 pub struct ExprTernary {
-	pub cond_expr: Box<Expr>,
-	pub then_expr: Box<Expr>,
-	pub else_expr: Box<Expr>,
+	pub expr_cond: Box<Expr>,
+	pub expr_then: Box<Expr>,
+	pub expr_else: Box<Expr>,
 }
 
 #[derive(Debug, Clone, Copy)]

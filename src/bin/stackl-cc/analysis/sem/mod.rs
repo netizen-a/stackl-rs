@@ -34,14 +34,16 @@ pub struct SemanticParser<'a> {
 	symtab: SymbolTable<Namespace, SymbolTableEntry>,
 	diagnostics: &'a mut DiagnosticEngine,
 	is_traced: bool,
+	warn_lvl: crate::WarnLevel,
 }
 
 impl<'a> SemanticParser<'a> {
-	pub fn new(diagnostics: &'a mut DiagnosticEngine, is_traced: bool) -> Self {
+	pub fn new(diagnostics: &'a mut DiagnosticEngine, args: &crate::Args) -> Self {
 		Self {
 			symtab: SymbolTable::new(),
 			diagnostics,
-			is_traced,
+			is_traced: args.is_traced,
+			warn_lvl: args.warn_lvl,
 		}
 	}
 	pub fn parse(

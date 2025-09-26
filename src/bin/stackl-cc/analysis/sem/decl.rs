@@ -26,7 +26,6 @@ enum DeclType {
 	Decl,
 }
 
-
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
 		let (storage, data_type) = self.specifiers(&mut decl.specifiers);
@@ -48,7 +47,7 @@ impl super::SemanticParser<'_> {
 				&mut ret_type,
 				false,
 				DeclType::FnDef,
-				Some(decl.ident.name.clone())
+				Some(decl.ident.name.clone()),
 			);
 		}
 		match decl.declarators.first_mut() {
@@ -84,7 +83,7 @@ impl super::SemanticParser<'_> {
 						&mut param_type,
 						true,
 						DeclType::FnDef,
-						Some(param_name.name.clone())
+						Some(param_name.name.clone()),
 					);
 					params.push(param_type)
 				}
@@ -160,7 +159,7 @@ impl super::SemanticParser<'_> {
 				&mut var_dtype,
 				false,
 				DeclType::Decl,
-				Some(ident.name.clone())
+				Some(ident.name.clone()),
 			);
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
@@ -661,7 +660,6 @@ impl super::SemanticParser<'_> {
 					last_is_ptr = false;
 				}
 				Declarator::Pointer(pointer) => {
-					eprintln!("DEBUG pointer: {declarator:?}");
 					last_is_ptr = true;
 				}
 				Declarator::IdentList(_) => {
@@ -698,7 +696,7 @@ impl super::SemanticParser<'_> {
 							match assign_expr.to_u32() {
 								Ok(val) => dtype::ArrayLength::Fixed(val),
 								Err(ConversionError::OutOfRange) => todo!("error"),
-								Err(ConversionError::Expr(_expr)) => dtype::ArrayLength::Variable,
+								Err(ConversionError::Expr(_)) => dtype::ArrayLength::Variable,
 							}
 						} else {
 							//TODO
@@ -751,7 +749,7 @@ impl super::SemanticParser<'_> {
 							&mut param_type,
 							true,
 							decl_type,
-							None
+							None,
 						);
 						params.push(param_type);
 					}

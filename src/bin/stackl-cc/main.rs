@@ -9,7 +9,11 @@ mod synthesis;
 
 use clap::Parser;
 use std::io::IsTerminal;
+use std::io::Read;
+use std::{fs, rc};
 use std::{path::PathBuf, process::ExitCode};
+
+use analysis::{lex, sem, syn, tok};
 
 #[derive(Debug, Clone, clap::ValueEnum)]
 pub enum EnableColor {
@@ -24,6 +28,23 @@ impl ToString for EnableColor {
 			Self::Auto => String::from("auto"),
 			Self::Always => String::from("always"),
 			Self::Never => String::from("never"),
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum WarnLevel {
+	All,
+	Minimal,
+	None,
+}
+
+impl ToString for WarnLevel {
+	fn to_string(&self) -> String {
+		match self {
+			Self::All => String::from("all"),
+			Self::Minimal => String::from("minimal"),
+			Self::None => String::from("none"),
 		}
 	}
 }
@@ -43,6 +64,8 @@ pub struct Args {
 	pub is_traced: bool,
 	#[arg(long, default_value_t = EnableColor::Auto)]
 	pub enable_color: EnableColor,
+	#[arg(short = 'W', default_value_t = WarnLevel::Minimal)]
+	pub warn_lvl: WarnLevel,
 }
 
 fn main() -> ExitCode {
@@ -54,7 +77,33 @@ fn main() -> ExitCode {
 	};
 
 	let mut diag_engine = diagnostics::DiagnosticEngine::new(enable_color);
-	let _analysis_result = analysis::parse(args.in_file, &mut diag_engine, args.is_traced);
+
+	let mut syntax_errors = Vec::new();
+	diag_engine.insert_file_info(0, &args.in_file);
+	let mut file = fs::File::open(&args.in_file).unwrap();
+	let mut text = String::new();
+	file.read_to_string(&mut text).unwrap();
+	let lexer = lex::lexer::Lexer::new(text, 0);
+	let pp_iter = lex::PPTokenIter::from(lexer);
+	let pp_ref = rc::Rc::clone(&pp_iter.stack_ref);
+	let tokens: Vec<tok::TokenTriple> =
+		match lex::TokensParser::new().parse(&mut diag_engine, &pp_ref, pp_iter) {
+			Ok(tokens) => tokens,
+			Err(error) => {
+				diag_engine.push_fatal_error(error);
+				vec![]
+			}
+		};
+
+	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
+	let tk_ref = rc::Rc::clone(&tk_iter.inner);
+	let unit = syn::SyntaxParser::new()
+		.parse(&mut syntax_errors, &tk_ref, tk_iter)
+		.unwrap();
+	for error_recov in syntax_errors {
+		diag_engine.push_syntax_error(error_recov.error)
+	}
+	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
 
 	if diag_engine.contains_error() {
 		diag_engine.print_diagnostics();

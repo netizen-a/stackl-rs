@@ -217,7 +217,11 @@ impl Lexer {
 			});
 		}
 
-		let str_lit = tok::StrLit { seq, is_wide };
+		let str_lit = tok::StrLit {
+			seq,
+			is_wide,
+			file_id: self.file_id,
+		};
 		let (lo, hi) = self.pop_location();
 		Ok((
 			lo,
