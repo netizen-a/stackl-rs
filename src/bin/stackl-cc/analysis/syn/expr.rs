@@ -369,30 +369,12 @@ impl Prefix {
 			(Prefix::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
 			(Prefix::Minus, IntegerConstant::I64(rval)) => IntegerConstant::I64(-(*rval)),
 			(Prefix::Minus, IntegerConstant::I128(rval)) => IntegerConstant::I128(-(*rval)),
-			(Prefix::Neg, IntegerConstant::I32(rval)) => match *rval {
-				0 => IntegerConstant::I32(1),
-				_ => IntegerConstant::I32(0),
-			},
-			(Prefix::Neg, IntegerConstant::U32(rval)) => match *rval {
-				0 => IntegerConstant::I32(1),
-				_ => IntegerConstant::I32(0),
-			},
-			(Prefix::Neg, IntegerConstant::I64(rval)) => match *rval {
-				0 => IntegerConstant::I32(1),
-				_ => IntegerConstant::I32(0),
-			},
-			(Prefix::Neg, IntegerConstant::U64(rval)) => match *rval {
-				0 => IntegerConstant::I32(1),
-				_ => IntegerConstant::I32(0),
-			},
-			(Prefix::Neg, IntegerConstant::I128(rval)) => match *rval {
-				0 => IntegerConstant::I32(1),
-				_ => IntegerConstant::I32(0),
-			},
-			(Prefix::Neg, IntegerConstant::U128(rval)) => match *rval {
-				0 => IntegerConstant::I32(1),
-				_ => IntegerConstant::I32(0),
-			},
+			(Prefix::Neg, IntegerConstant::I32(rval)) => IntegerConstant::I32((*rval == 0) as i32),
+			(Prefix::Neg, IntegerConstant::U32(rval)) => IntegerConstant::I32((*rval == 0) as i32),
+			(Prefix::Neg, IntegerConstant::I64(rval)) => IntegerConstant::I32((*rval == 0) as i32),
+			(Prefix::Neg, IntegerConstant::U64(rval)) => IntegerConstant::I32((*rval == 0) as i32),
+			(Prefix::Neg, IntegerConstant::I128(rval)) => IntegerConstant::I32((*rval == 0) as i32),
+			(Prefix::Neg, IntegerConstant::U128(rval)) => IntegerConstant::I32((*rval == 0) as i32),
 			_ => {
 				return Expr::UnaryPrefix(UnaryPrefix {
 					op: self.clone(),

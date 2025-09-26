@@ -248,8 +248,9 @@ impl DiagnosticEngine {
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			DiagKind::OmittedParamName => {
-				let msg0 = "ISO C does not support omitting parameter names in function definitions before C23";
-				self.format_diagnostic(&diag, msg0, "")
+				let msg0 = "parameter name omitted";
+				let msg1 = "ISO C does not support omitting parameter names in function definitions before C23";
+				self.format_diagnostic(&diag, msg0, msg1)
 			}
 			_ => unimplemented!(),
 		};
@@ -295,7 +296,7 @@ impl DiagnosticEngine {
 		for source_line in diag.span.to_string_vec(source.as_ref()) {
 			result.push_str(&format!("{BLUE}{line} |{DEFAULT} {source_line}\n"));
 			result.push_str(&format!(
-				"{line_space}{BLUE}|{DEFAULT} {}{level_color}{}\x1b[0m {}\n",
+				"{line_space}{BLUE}|{DEFAULT} {}{level_color}{}{BOLD_RED} {}{DEFAULT}\n",
 				" ".repeat(col - 1),
 				"^".repeat(1 + diag.span.loc.1 - diag.span.loc.0),
 				msg1.as_ref()
