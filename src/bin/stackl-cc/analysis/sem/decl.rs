@@ -19,6 +19,14 @@ const BOOL_STR: &str = "_Bool";
 const LONG_LONG_STR: &str = "long long";
 const STRUCT_STR: &str = "struct";
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DeclType {
+	Proto,
+	FnDef,
+	Decl,
+}
+
+
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
 		let (storage, data_type) = self.specifiers(&mut decl.specifiers);
@@ -39,7 +47,7 @@ impl super::SemanticParser<'_> {
 				&mut decl.declarators[1..],
 				&mut ret_type,
 				false,
-				true,
+				DeclType::FnDef,
 				Some(decl.ident.name.clone())
 			);
 		}
@@ -75,7 +83,7 @@ impl super::SemanticParser<'_> {
 						&mut param.declarators,
 						&mut param_type,
 						true,
-						false,
+						DeclType::FnDef,
 						Some(param_name.name.clone())
 					);
 					params.push(param_type)
@@ -151,7 +159,7 @@ impl super::SemanticParser<'_> {
 				&mut init_decl.declarator,
 				&mut var_dtype,
 				false,
-				false,
+				DeclType::Decl,
 				Some(ident.name.clone())
 			);
 			if let Some(ref mut init) = init_decl.initializer {
@@ -630,15 +638,26 @@ impl super::SemanticParser<'_> {
 		span: diag::Span,
 		decl_list: &mut [Declarator],
 		data_type: &mut dtype::DataType,
-		is_param: bool,
-		is_func: bool,
+		mut is_param: bool,
+		mut decl_type: DeclType,
 		name: Option<String>,
 	) {
-		let mut last_is_ptr = !is_func;
+		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		// first iteration is for type checking
 		for declarator in decl_list.iter() {
 			match declarator {
-				Declarator::Array(_array) => {
+				Declarator::Array(array) => {
+					if array.has_star && decl_type != DeclType::Proto {
+						if is_param && decl_type == DeclType::FnDef {
+							let kind = diag::DiagKind::UnboundVLA;
+							let diag = diag::Diagnostic::error(kind, span.clone());
+							self.diagnostics.push(diag);
+						} else if !is_param {
+							let kind = diag::DiagKind::InvalidStar;
+							let diag = diag::Diagnostic::error(kind, array.span.clone());
+							self.diagnostics.push(diag);
+						}
+					}
 					last_is_ptr = false;
 				}
 				Declarator::Pointer(pointer) => {
@@ -682,7 +701,8 @@ impl super::SemanticParser<'_> {
 								Err(ConversionError::Expr(_expr)) => dtype::ArrayLength::Variable,
 							}
 						} else {
-							todo!()
+							//TODO
+							continue;
 						};
 
 						dtype::ArrayType {
@@ -690,7 +710,8 @@ impl super::SemanticParser<'_> {
 							length,
 						}
 					} else {
-						todo!()
+						//TODO
+						continue;
 					};
 
 					dtype::DataType::Array(array_type)
@@ -717,6 +738,9 @@ impl super::SemanticParser<'_> {
 				}
 				Declarator::ParamList(type_list) => {
 					let mut params = vec![];
+					if DeclType::FnDef == decl_type && is_param {
+						decl_type = DeclType::Proto;
+					}
 					for param in type_list.param_list.iter_mut() {
 						let (_, maybe_type) = self.specifiers(&mut param.specifiers);
 						let span = param.specifiers.first_span.as_ref().unwrap();
@@ -726,7 +750,7 @@ impl super::SemanticParser<'_> {
 							&mut param.declarators,
 							&mut param_type,
 							true,
-							false,
+							decl_type,
 							None
 						);
 						params.push(param_type);

@@ -255,6 +255,14 @@ impl DiagnosticEngine {
 				let msg0 = "parameter names (without types) in function declaration";
 				self.format_diagnostic(&diag, msg0, "")
 			}
+			DiagKind::InvalidStar => {
+				let msg0 = "star modifier used outside of function prototype";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::UnboundVLA => {
+				let msg0 = "variable length array must be bound in function definition";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

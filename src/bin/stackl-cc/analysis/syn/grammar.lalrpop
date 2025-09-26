@@ -465,7 +465,7 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 			type_qualifiers: qual,
 			assignment_expr: expr,
 			has_static: false,
-			has_ptr: false,
+			has_star: false,
 		};
 		dd_list.1.push(Declarator::Array(array));
 		dd_list
@@ -479,7 +479,7 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
-			has_ptr: false,
+			has_star: false,
 		};
 		dd_list.1.push(Declarator::Array(array));
 		dd_list
@@ -493,7 +493,7 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
-			has_ptr: false,
+			has_star: false,
 		};
 		dd_list.1.push(Declarator::Array(array));
 		dd_list
@@ -507,7 +507,7 @@ DirectDeclaratorList: (Ident, Vec<Declarator>) = {
 			type_qualifiers: qual,
 			assignment_expr: None,
 			has_static: false,
-			has_ptr: true,
+			has_star: true,
 		};
 		dd_list.1.push(Declarator::Array(array));
 		dd_list
@@ -622,7 +622,7 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 			type_qualifiers: qual,
 			assignment_expr: expr,
 			has_static: false,
-			has_ptr: false,
+			has_star: false,
 		};
 		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
@@ -641,7 +641,7 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
-			has_ptr: false,
+			has_star: false,
 		};
 		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
@@ -660,7 +660,7 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 			type_qualifiers: qual,
 			assignment_expr: Some(expr),
 			has_static: true,
-			has_ptr: false,
+			has_star: false,
 		};
 		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {
@@ -679,7 +679,7 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 			type_qualifiers: vec![],
 			assignment_expr: None,
 			has_static: false,
-			has_ptr: true,
+			has_star: true,
 		};
 		let value = Declarator::Array(array);
 		if let Some(mut decl_list) = decl {

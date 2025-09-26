@@ -20,4 +20,6 @@ pub enum DiagKind {
 	FnRetFn(String),
 	OmittedParamName,
 	DeclIdentList,
+	UnboundVLA,
+	InvalidStar,
 }

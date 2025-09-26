@@ -216,7 +216,7 @@ pub struct ArrayDecl {
 	pub type_qualifiers: Vec<TypeQualifier>,
 	pub assignment_expr: Option<expr::Expr>,
 	pub has_static: bool,
-	pub has_ptr: bool,
+	pub has_star: bool,
 }
 
 /// (6.7.5) direct-declarator

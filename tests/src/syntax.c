@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-#include "example_header.h"
+// #include "example_header.h"
 
 // int a = 1 + 1;
 // int *b;
@@ -59,16 +59,16 @@
 // auto x;
 
 
-int bar(int a, int b)
-{
-    return a + b;
-}
+// int bar(int a, int b)
+// {
+//     return a + b;
+// }
 
-int (*foo(a, b))(int, int)
-    int a, b;
-{
-    return bar;
-}
+// int (*foo(a, b))(int, int)
+//     int a, b;
+// {
+//     return bar;
+// }
 
 // int foo {
 //     return 0;
@@ -77,5 +77,14 @@ int (*foo(a, b))(int, int)
 // typedef invalid_type invalid_t;
 // typedef float int;
 
-int foo(x)(x, y);
+// int foo(x)(x, y);
+
+int x[*];
+
+int foo(int x[*]) {}
+
+int bar(int x[*]);
+
+int baz(int (*x)(int y[*])) {}
+
 
