@@ -96,7 +96,7 @@ impl PPNumber {
 		if c == '0' && chars.next_if(|&c| c == 'x' || c == 'X').is_some() {
 			todo!("hexadecimal-floating-constant")
 		} else {
-			let mut decimal = String::new();
+			let mut decimal = String::from(c);
 			while let Some(c) = chars.next_if(|&c| c.is_ascii_digit() || c == '.') {
 				decimal.push(c);
 			}
@@ -115,17 +115,17 @@ impl PPNumber {
 			let floating = match chars.next_if(|&c| c == 'f' || c == 'F' || c == 'l' || c == 'L') {
 				Some('f' | 'F') => {
 					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data.powi(exponent);
+					let data = data * 10f32.powi(exponent);
 					FloatingConstant::Float(data)
 				}
 				Some('l' | 'L') => {
 					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data.powi(exponent);
+					let data = data * 10f64.powi(exponent);
 					FloatingConstant::Long(data)
 				}
 				None => {
 					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data.powi(exponent);
+					let data = data * 10f64.powi(exponent);
 					FloatingConstant::Double(data)
 				}
 				_ => unreachable!(),

@@ -2,6 +2,7 @@
 
 // #include "example_header.h"
 
+float ff = 5e5;
 // int a = 1 + 1;
 // int *b;
 // int *c[3];
@@ -79,12 +80,12 @@
 
 // int foo(x)(x, y);
 
-int x[*];
+// int x[*];
 
-int foo(int x[*]) {}
+// int foo(int x[*]) {}
 
-int bar(int x[*]);
+// int bar(int x[*]);
 
-int baz(int (*x)(int y[*])) {}
+// int baz(int (*x)(int y[*])) {}
 
 
