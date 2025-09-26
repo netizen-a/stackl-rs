@@ -30,7 +30,7 @@ impl super::SemanticParser<'_> {
 			_ => todo!("invalid storage class"),
 		};
 		let mut ret_type = data_type.unwrap();
-		if matches!(
+		if !matches!(
 			decl.declarators.first_mut(),
 			None | Some(Declarator::Pointer(_))
 		) {
