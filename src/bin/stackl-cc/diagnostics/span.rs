@@ -30,14 +30,48 @@ impl Span {
 		}
 		Some((line, column))
 	}
-	pub fn to_string_vec(&self, source: &str) -> Vec<String> {
+	pub fn to_vec(&self, source: &str) -> Vec<(usize, String, usize)> {
+		let (_,column) = self.location(source).unwrap();
+		let mut length = self.loc.1 - self.loc.0;
 		let line_min = source[..self.loc.0].chars().filter(|x| *x == '\n').count();
 		let line_max = source[..self.loc.1].chars().filter(|x| *x == '\n').count();
 		let mut line_num = 0;
 		let mut result = vec![];
+
+		let mut min_column = column - 1;
+
+		let mut is_first = true;
 		for line in source.lines() {
 			if line_min <= line_num && line_num <= line_max {
-				result.push(line.to_string());
+				if is_first {
+					is_first = false;
+				} else {
+					min_column = 0;
+					for b in line.as_bytes() {
+						if !b.is_ascii_whitespace() {
+							break;
+						}
+						min_column += 1;
+						length -= 1;
+					}
+				}
+				let mut line_left = (line.len() - min_column);
+				let max_column = if length <= line_left {
+					min_column + length
+				} else {
+					length -= line_left;
+					for b in line.as_bytes().into_iter().rev() {
+						if !b.is_ascii_whitespace() {
+							break;
+						}
+						if line_left == 0 {
+							break;
+						}
+						line_left -= 1;
+					}
+					min_column + line_left - 1
+				};
+				result.push((min_column, line.to_string(), max_column));
 			}
 			line_num += 1;
 		}

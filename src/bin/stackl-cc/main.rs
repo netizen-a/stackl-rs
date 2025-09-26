@@ -8,8 +8,8 @@ mod symtab;
 mod synthesis;
 
 use clap::Parser;
-use std::{path::PathBuf, process::ExitCode};
 use std::io::IsTerminal;
+use std::{path::PathBuf, process::ExitCode};
 
 #[derive(Debug, Clone, clap::ValueEnum)]
 pub enum EnableColor {

@@ -10,6 +10,8 @@
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
+
+
 // static static int foo(void);
 
 // unsigned signed unsigned bar;

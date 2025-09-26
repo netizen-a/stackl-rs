@@ -37,7 +37,7 @@ impl DiagnosticEngine {
 	pub fn new(enable_color: bool) -> Self {
 		Self {
 			enable_color,
-			.. Self::default()
+			..Self::default()
 		}
 	}
 	#[inline]
@@ -173,6 +173,10 @@ impl DiagnosticEngine {
 	}
 	fn stderr_diagnostic(&self, diag: &Diagnostic) {
 		let str_diag = match &diag.kind {
+			DiagKind::InvalidToken => {
+				let msg0 = "invalid token";
+				self.format_diagnostic(&diag, msg0, "consider don't ...")
+			}
 			DiagKind::InvalidRestrict => {
 				let msg0 = "restrict requires a pointer or reference";
 				self.format_diagnostic(&diag, msg0, "")
@@ -247,7 +251,7 @@ impl DiagnosticEngine {
 				let msg1 = "ISO C does not support omitting parameter names in function definitions before C23";
 				self.format_diagnostic(&diag, msg0, msg1)
 			}
-			_ => unimplemented!(),
+			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
 	}
@@ -255,11 +259,11 @@ impl DiagnosticEngine {
 	where
 		S: AsRef<str>,
 	{
-		let color_blue: &str        = if self.enable_color {"\x1b[1;34m"} else {""};
-		let color_default: &str     = if self.enable_color {"\x1b[0m"} else {""};
-		let color_bold_red: &str    = if self.enable_color {"\x1b[1;31m"} else {""};
-		let color_bold_yellow: &str = if self.enable_color {"\x1b[1;33m"} else {""};
-		let color_bold_white: &str  = if self.enable_color {"\x1b[1;97m"} else {""};
+		let color_blue: &str = if self.enable_color { "\x1b[1;34m" } else { "" };
+		let color_default: &str = if self.enable_color { "\x1b[0m" } else { "" };
+		let color_bold_red: &str = if self.enable_color { "\x1b[1;31m" } else { "" };
+		let color_bold_yellow: &str = if self.enable_color { "\x1b[1;33m" } else { "" };
+		let color_bold_white: &str = if self.enable_color { "\x1b[1;97m" } else { "" };
 
 		let mut result = String::new();
 		let file_path = self.get_file_path(diag.span.file_id()).unwrap();
@@ -283,25 +287,48 @@ impl DiagnosticEngine {
 			}
 		};
 
-		result.push_str(&format!("{color_bold_white}{}{color_default}\n", msg0.as_ref()));
-		let (line, col) = diag.span.location(source.as_ref()).unwrap();
-		let mut line_len = line.to_string().len();
 		result.push_str(&format!(
-			"{}{color_blue}-->{color_default} {}:{line}:{col}\n",
-			" ".repeat(line_len),
+			"{color_bold_white}{}{color_default}\n",
+			msg0.as_ref()
+		));
+		let (mut line, col) = diag.span.location(source.as_ref()).unwrap();
+		let mut hi_line = line;
+		let source_triple = diag.span.to_vec(source.as_ref());
+		let triple_len = source_triple.len();
+		hi_line += source_triple.len();
+
+		let mut line_len = hi_line.to_string().len();
+		let mut line_space = " ".repeat(line_len);
+
+		result.push_str(&format!(
+			"{line_space}{color_blue}-->{color_default} {}:{line}:{col}\n",
 			file_path.display()
 		));
-		line_len += 1;
-		let line_space = " ".repeat(line_len);
+		line_space.push(' ');
 		result.push_str(&format!("{line_space}{color_blue}|{color_default}\n"));
-		for source_line in diag.span.to_string_vec(source.as_ref()) {
-			result.push_str(&format!("{color_blue}{line} |{color_default} {source_line}\n"));
+		for (index, (lo, source_line, hi)) in source_triple.into_iter().enumerate() {
+			for _ in 0..(line_len - line.to_string().len()) {
+				result.push(' ');
+			}
 			result.push_str(&format!(
-				"{line_space}{color_blue}|{color_default} {}{level_color}{}{color_bold_red} {}{color_default}\n",
-				" ".repeat(col - 1),
-				"^".repeat(1 + diag.span.loc.1 - diag.span.loc.0),
-				msg1.as_ref()
+				"{color_blue}{line} |{color_default} {source_line}\n"
 			));
+			line += 1;
+			if hi < lo {
+				continue;
+			}
+			result.push_str(&format!(
+				"{line_space}{color_blue}|{color_default} {}{level_color}{}{color_default}",
+				" ".repeat(lo),
+				"^".repeat(1 + hi - lo),
+			));
+			if index == triple_len - 1{
+				result.push_str(&format!("{color_bold_red} {}{color_default}\n",
+					msg1.as_ref()
+				));
+			} else {
+				result.push('\n');
+			}
 		}
 		result
 	}

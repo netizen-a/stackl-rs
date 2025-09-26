@@ -6,7 +6,11 @@ int foo(int k)(int) {
 
 }
 
-int foo(int (())()) {
+int foo(int        
+    (())
+    
+    ()
+) {
     //return f()();
     return 0;
 }
