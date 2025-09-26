@@ -19,4 +19,5 @@ pub enum DiagKind {
 	ArrayOfFunctions(String),
 	FnRetFn(String),
 	OmittedParamName,
+	DeclIdentList,
 }

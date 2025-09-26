@@ -5,7 +5,7 @@
 // int a = 1 + 1;
 // int *b;
 // int *c[3];
-// int (*d)[3];
+// int (*d)[*];
 // int *f();
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
@@ -59,16 +59,16 @@
 // auto x;
 
 
-// int bar(int a, int b)
-// {
-//     return a + b;
-// }
+int bar(int a, int b)
+{
+    return a + b;
+}
 
-// int (*foo(a, b))(int, int)
-//     int a, b;
-// {
-//     return bar;
-// }
+int (*foo(a, b))(int, int)
+    int a, b;
+{
+    return bar;
+}
 
 // int foo {
 //     return 0;
@@ -76,4 +76,6 @@
 
 // typedef invalid_type invalid_t;
 // typedef float int;
+
+int foo(x)(x, y);
 

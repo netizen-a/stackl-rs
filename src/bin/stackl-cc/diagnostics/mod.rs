@@ -251,6 +251,10 @@ impl DiagnosticEngine {
 				let msg1 = "ISO C does not support omitting parameter names in function definitions before C23";
 				self.format_diagnostic(&diag, msg0, msg1)
 			}
+			DiagKind::DeclIdentList => {
+				let msg0 = "parameter names (without types) in function declaration";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

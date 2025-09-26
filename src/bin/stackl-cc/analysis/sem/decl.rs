@@ -39,7 +39,8 @@ impl super::SemanticParser<'_> {
 				&mut decl.declarators[1..],
 				&mut ret_type,
 				false,
-				Some(decl.ident.name.clone()),
+				true,
+				Some(decl.ident.name.clone())
 			);
 		}
 		match decl.declarators.first_mut() {
@@ -74,7 +75,8 @@ impl super::SemanticParser<'_> {
 						&mut param.declarators,
 						&mut param_type,
 						true,
-						None,
+						false,
+						Some(param_name.name.clone())
 					);
 					params.push(param_type)
 				}
@@ -149,7 +151,8 @@ impl super::SemanticParser<'_> {
 				&mut init_decl.declarator,
 				&mut var_dtype,
 				false,
-				None,
+				false,
+				Some(ident.name.clone())
 			);
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
@@ -628,9 +631,10 @@ impl super::SemanticParser<'_> {
 		decl_list: &mut [Declarator],
 		data_type: &mut dtype::DataType,
 		is_param: bool,
-		func_name: Option<String>,
+		is_func: bool,
+		name: Option<String>,
 	) {
-		let mut last_is_ptr = func_name.is_none();
+		let mut last_is_ptr = !is_func;
 		// first iteration is for type checking
 		for declarator in decl_list.iter() {
 			match declarator {
@@ -642,11 +646,22 @@ impl super::SemanticParser<'_> {
 					last_is_ptr = true;
 				}
 				Declarator::IdentList(_) => {
+					if !last_is_ptr {
+						let Some(name) = name.as_ref() else {
+							panic!("unknown name")
+						};
+						let kind = diag::DiagKind::FnRetFn(name.clone());
+						let diag = diag::Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+					}
 					last_is_ptr = false;
 				}
 				Declarator::ParamList(type_list) => {
 					if !last_is_ptr {
-						let kind = diag::DiagKind::FnRetFn(func_name.as_ref().unwrap().to_string());
+						let Some(name) = name.as_ref() else {
+							panic!("unknown name")
+						};
+						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 					}
@@ -689,8 +704,16 @@ impl super::SemanticParser<'_> {
 					};
 					dtype::DataType::Pointer(ptr_type)
 				}
-				Declarator::IdentList(_) => {
-					todo!("function identifier list")
+				Declarator::IdentList(ident_list) => {
+					let kind = diag::DiagKind::DeclIdentList;
+					let diag = diag::Diagnostic::error(kind, ident_list.span.clone());
+					self.diagnostics.push(diag);
+					let func_type = dtype::FuncType {
+						params: vec![],
+						ret: Box::new(data_type.clone()),
+						is_variadic: false,
+					};
+					dtype::DataType::Function(func_type)
 				}
 				Declarator::ParamList(type_list) => {
 					let mut params = vec![];
@@ -703,7 +726,8 @@ impl super::SemanticParser<'_> {
 							&mut param.declarators,
 							&mut param_type,
 							true,
-							None,
+							false,
+							None
 						);
 						params.push(param_type);
 					}
