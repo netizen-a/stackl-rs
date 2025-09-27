@@ -1,4 +1,5 @@
 use crate::analysis::syn::*;
+use crate::diagnostics as diag;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
@@ -30,6 +31,21 @@ impl super::SemanticParser<'_> {
 		}
 	}
 	fn selection_stmt(&mut self, stmt: &mut SelectStmt) {
-		// TODO
+		match stmt {
+			SelectStmt::If {
+				stmt_cond, ..
+			} => {
+				self.stmt_if(&*stmt_cond);
+			}
+			_ => {}
+		}
+	}
+	fn stmt_if(&mut self, stmt_cond: &Expr) {
+		if let Expr::Binary(ExprBinary { op: BinOp { span, kind: BinOpKind::Assign }, ..}) = stmt_cond {
+			// I added this warning just to prove I'm no scrub.
+			let mut diag = diag::Diagnostic::warn(diag::DiagKind::IfAssign, span.clone());
+			diag.push_note("place parentheses around the assignment to silence this warning");
+			self.diagnostics.push(diag);
+		}
 	}
 }

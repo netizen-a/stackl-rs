@@ -105,8 +105,8 @@ fn main() -> ExitCode {
 	}
 	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
 
+	diag_engine.print_diagnostics();
 	if diag_engine.contains_error() {
-		diag_engine.print_diagnostics();
 		return ExitCode::FAILURE;
 	}
 

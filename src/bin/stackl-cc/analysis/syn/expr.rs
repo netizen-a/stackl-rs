@@ -12,6 +12,7 @@ pub enum ConversionError {
 /// (6.5.17) expression
 #[derive(Debug, Clone)]
 pub enum Expr {
+	Paren(Box<Expr>),
 	Ident(tok::Ident),
 	Const(tok::Const),
 	StrLit(tok::StrLit),

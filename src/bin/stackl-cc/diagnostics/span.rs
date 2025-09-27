@@ -13,12 +13,12 @@ impl FileId for Span {
 }
 
 impl Span {
-	pub fn combine(lhs: &Self, rhs: &Self) -> Self {
-		Self {
-			file_id: lhs.file_id,
-			loc: (lhs.loc.0, rhs.loc.1),
-		}
-	}
+	// pub fn combine(lhs: &Self, rhs: &Self) -> Self {
+	// 	Self {
+	// 		file_id: lhs.file_id,
+	// 		loc: (lhs.loc.0, rhs.loc.1),
+	// 	}
+	// }
 	/// returns (line, column)
 	pub fn location(&self, source: &str) -> Option<(usize, usize)> {
 		let mut line = 1;
@@ -61,7 +61,7 @@ impl Span {
 						length -= 1;
 					}
 				}
-				let mut line_left = (line.len() - min_column);
+				let mut line_left = line.len() - min_column;
 				let max_column = if length <= line_left {
 					min_column + length
 				} else {

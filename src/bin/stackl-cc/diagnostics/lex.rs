@@ -1,6 +1,4 @@
-use std::{error, fmt, result};
-
-use crate::diagnostics::{DiagKind, Diagnostic};
+use std::{error, fmt};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TryFromCharError;

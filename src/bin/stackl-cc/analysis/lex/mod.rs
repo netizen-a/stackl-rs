@@ -12,12 +12,10 @@ macro_rules! directive {
 		if matches!($kind, PPTokenKind::Ident(Ident{name, ..}) if name == $name) {
 			Ok(())
 		} else {
+			let kind = $crate::diagnostics::DiagKind::InvalidToken;
+			let span = $crate::diagnostics::Span{ loc: ($lo, $hi), file_id: usize::MAX };
 			Err(lalr::ParseError::User {
-				error: $crate::diagnostics::Diagnostic{
-					level: $crate::diagnostics::DiagLevel::Error,
-					kind: $crate::diagnostics::DiagKind::InvalidToken,
-					span: $crate::diagnostics::Span{ loc: ($lo, $hi), file_id: usize::MAX },
-				}
+				error: $crate::diagnostics::Diagnostic::error(kind, span)
 			})
 		}
 	}

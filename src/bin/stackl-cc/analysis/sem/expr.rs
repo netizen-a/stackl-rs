@@ -4,6 +4,7 @@ impl super::SemanticParser<'_> {
 	pub(super) fn expr(&mut self, expr: &mut Expr) {
 		use Expr::*;
 		match expr {
+			Paren(paren) => self.expr(paren),
 			Ident(_inner) => {}
 			Const(_inner) => {}
 			StrLit(_inner) => {}

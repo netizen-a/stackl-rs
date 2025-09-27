@@ -12,7 +12,6 @@ use std::{
 	result,
 };
 
-use lalrpop_util::ErrorRecovery;
 use lalrpop_util::ParseError;
 
 pub use diag::*;
@@ -84,7 +83,7 @@ impl DiagnosticEngine {
 		for diag in self.list_other.iter() {
 			if matches!(
 				diag.level,
-				DiagLevel::Error | DiagLevel::Fatal | DiagLevel::Internal
+				DiagLevel::Error | DiagLevel::Fatal
 			) {
 				return true;
 			}
@@ -116,16 +115,17 @@ impl DiagnosticEngine {
 					level,
 					kind: DiagKind::ExtraToken,
 					span,
+					notes: vec![],
 				};
 				self.stderr_diagnostic(&diag);
 			}
-			ParseError::InvalidToken { location } => unreachable!("invalid token"),
+			ParseError::InvalidToken { .. } => unreachable!("invalid token"),
 			ParseError::UnrecognizedEof { location, expected } => {
 				let file_id = 0;
 				let file_path = self.file_map.get_by_left(&file_id).unwrap();
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
-				file.read_to_string(&mut source);
+				let _ = file.read_to_string(&mut source);
 				let span = Span {
 					file_id,
 					loc: (*location, *location),
@@ -134,6 +134,7 @@ impl DiagnosticEngine {
 					level,
 					kind: DiagKind::UnexpectedEof,
 					span,
+					notes: vec![],
 				};
 				let msg0 = "unexpected EOF";
 				let mut msg1 = String::from("expected ");
@@ -165,6 +166,7 @@ impl DiagnosticEngine {
 						expected: expected.clone(),
 					},
 					span,
+					notes: vec![],
 				};
 				self.stderr_diagnostic(&diag);
 			}
@@ -181,11 +183,11 @@ impl DiagnosticEngine {
 				let msg0 = "restrict requires a pointer or reference";
 				self.format_diagnostic(&diag, msg0, "")
 			}
-			DiagKind::TypeError { found, expected } => {
-				let msg0 = "mismatched types";
-				let msg1 = format!("expected `{expected}`, found `{found}`");
-				self.format_diagnostic(&diag, msg0, msg1.as_str())
-			}
+			// DiagKind::TypeError { found, expected } => {
+			// 	let msg0 = "mismatched types";
+			// 	let msg1 = format!("expected `{expected}`, found `{found}`");
+			// 	self.format_diagnostic(&diag, msg0, msg1.as_str())
+			// }
 			DiagKind::MultStorageClasses => {
 				let msg0 = "multiple storage classes in declaration specifiers";
 				self.format_diagnostic(&diag, msg0, "")
@@ -263,6 +265,10 @@ impl DiagnosticEngine {
 				let msg0 = "variable length array must be bound in function definition";
 				self.format_diagnostic(&diag, msg0, "")
 			}
+			DiagKind::IfAssign => {
+				let msg0 = "using the result of an assignment as a condition without parenthesis";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
@@ -281,10 +287,6 @@ impl DiagnosticEngine {
 		let file_path = self.get_file_path(diag.span.file_id()).unwrap();
 		let source = self.get_file_data(diag.span.file_id()).unwrap();
 		let level_color = match diag.level {
-			DiagLevel::Internal => {
-				result.push_str(&format!("{color_bold_red}internal error:{color_default} "));
-				color_bold_red
-			}
 			DiagLevel::Fatal => {
 				result.push_str(&format!("{color_bold_red}fatal error:{color_default} "));
 				color_bold_red
@@ -309,7 +311,7 @@ impl DiagnosticEngine {
 		let triple_len = source_triple.len();
 		hi_line += source_triple.len();
 
-		let mut line_len = hi_line.to_string().len();
+		let line_len = hi_line.to_string().len();
 		let mut line_space = " ".repeat(line_len);
 
 		result.push_str(&format!(
@@ -342,6 +344,14 @@ impl DiagnosticEngine {
 			} else {
 				result.push('\n');
 			}
+		}
+		for note in diag.notes.iter() {
+			result.push_str(&format!(
+				"{color_blue}{line_space}|{color_default}\n"
+			));
+			result.push_str(&format!(
+				"{color_blue}{line_space}= {color_bold_white}note:{color_default} {note}\n"
+			));
 		}
 		result
 	}

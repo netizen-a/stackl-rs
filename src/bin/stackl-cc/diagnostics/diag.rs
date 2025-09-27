@@ -1,5 +1,3 @@
-use std::fmt;
-
 use super::*;
 
 #[derive(Debug)]
@@ -7,7 +5,6 @@ pub enum DiagLevel {
 	Warning,
 	Error,
 	Fatal,
-	Internal,
 }
 
 #[derive(Debug)]
@@ -15,6 +12,7 @@ pub struct Diagnostic {
 	pub level: DiagLevel,
 	pub kind: kind::DiagKind,
 	pub span: Span,
+	pub(super) notes: Vec<String>,
 }
 
 impl Diagnostic {
@@ -24,6 +22,7 @@ impl Diagnostic {
 			level: DiagLevel::Error,
 			kind,
 			span,
+			notes: vec![],
 		}
 	}
 	#[inline]
@@ -32,12 +31,10 @@ impl Diagnostic {
 			level: DiagLevel::Warning,
 			kind,
 			span,
+			notes: vec![],
 		}
 	}
-}
-
-impl fmt::Display for Diagnostic {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		todo!()
+	pub fn push_note(&mut self, hint: &str) {
+		self.notes.push(hint.to_string())
 	}
 }

@@ -1,4 +1,4 @@
-use crate::data_types::DataType;
+// use crate::data_types::DataType;
 
 #[derive(Debug)]
 pub enum DiagKind {
@@ -7,12 +7,12 @@ pub enum DiagKind {
 	UnrecognizedToken { expected: Vec<String> },
 	InvalidToken,
 	ExtraToken,
-	HeaderNameError,
+	//HeaderNameError,
 	MultStorageClasses,
 	DuplicateSpecifier(String),
 	BothSpecifiers(String, String),
 	InvalidRestrict,
-	TypeError { found: DataType, expected: DataType },
+	//TypeError { found: DataType, expected: DataType },
 	MultipleTypes,
 	TooLong,
 	ImplicitInt(String),
