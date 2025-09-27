@@ -12,6 +12,7 @@ pub enum ConversionError {
 /// (6.5.17) expression
 #[derive(Debug, Clone)]
 pub enum Expr {
+	// Paren variant is required for the AssignIf warning to work.
 	Paren(Box<Expr>),
 	Ident(tok::Ident),
 	Const(tok::Const),

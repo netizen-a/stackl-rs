@@ -45,6 +45,7 @@ impl super::SemanticParser<'_> {
 			// I added this warning just to prove I'm no scrub.
 			let mut diag = diag::Diagnostic::warn(diag::DiagKind::IfAssign, span.clone());
 			diag.push_note("place parentheses around the assignment to silence this warning");
+			diag.push_note("use '==' to turn this assignment into an equality comparison");
 			self.diagnostics.push(diag);
 		}
 	}
