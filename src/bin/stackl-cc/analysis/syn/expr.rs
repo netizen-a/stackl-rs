@@ -2,6 +2,7 @@ use std::f32;
 
 use super::decl;
 use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
+use crate::diagnostics as diag;
 
 pub enum ConversionError {
 	OutOfRange,
@@ -85,7 +86,7 @@ impl Expr {
 			Self::Binary(binary) => {
 				let left = binary.left.reduce();
 				let right = binary.right.reduce();
-				let op = binary.op;
+				let op = binary.op.clone();
 				match (&left, &right) {
 					(Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
 						op.reduce_int(lhs_int, rhs_int)
@@ -172,10 +173,10 @@ pub struct ExprTernary {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum BinOp {
+pub enum BinOpKind {
 	Mul,
 	Div,
-	Mod,
+	Rem,
 	Sub,
 	Add,
 	NotEqual,
@@ -205,16 +206,22 @@ pub enum BinOp {
 	Great,
 }
 
+#[derive(Debug, Clone)]
+pub struct BinOp {
+	pub span: diag::Span,
+	pub kind: BinOpKind,
+}
+
 impl BinOp {
 	fn reduce_int(&self, lhs: &IntegerConstant, rhs: &IntegerConstant) -> Expr {
-		let int_const = match (self, lhs, rhs) {
-			(BinOp::Mul, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+		let int_const = match (self.kind, lhs, rhs) {
+			(BinOpKind::Mul, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_mul(*rval))
 			}
-			(BinOp::Mul, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Mul, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(lval.wrapping_mul(*rval))
 			}
-			(BinOp::Div, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Div, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				if *rval != 0 {
 					IntegerConstant::U32(lval.wrapping_sub(*rval))
 				} else {
@@ -222,7 +229,7 @@ impl BinOp {
 					IntegerConstant::U32(u32::MAX)
 				}
 			}
-			(BinOp::Div, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Div, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				if *rval != 0 {
 					IntegerConstant::I32(lval.wrapping_sub(*rval))
 				} else {
@@ -230,96 +237,96 @@ impl BinOp {
 					IntegerConstant::I32(i32::MAX)
 				}
 			}
-			(BinOp::Mod, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Rem, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_rem(*rval))
 			}
-			(BinOp::Mod, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Rem, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(lval.wrapping_rem(*rval))
 			}
-			(BinOp::Sub, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Sub, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_sub(*rval))
 			}
-			(BinOp::Sub, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Sub, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(lval.wrapping_sub(*rval))
 			}
-			(BinOp::Add, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Add, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_add(*rval))
 			}
-			(BinOp::Add, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Add, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(lval.wrapping_add(*rval))
 			}
-			(BinOp::NotEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::NotEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32((*lval != *rval) as i32)
 			}
-			(BinOp::NotEqual, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::NotEqual, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32((*lval != *rval) as i32)
 			}
-			(BinOp::Equal, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Equal, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32((*lval == *rval) as i32)
 			}
-			(BinOp::Equal, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Equal, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32((*lval == *rval) as i32)
 			}
-			(BinOp::And, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::And, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(*lval & *rval)
 			}
-			(BinOp::And, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::And, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(*lval & *rval)
 			}
-			(BinOp::XOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::XOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(*lval ^ *rval)
 			}
-			(BinOp::XOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::XOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(*lval ^ *rval)
 			}
-			(BinOp::Or, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Or, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(*lval | *rval)
 			}
-			(BinOp::Or, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Or, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(*lval | *rval)
 			}
-			(BinOp::LogicalAnd, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::LogicalAnd, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32(((*lval != 0) && (*rval != 0)) as i32)
 			}
-			(BinOp::LogicalAnd, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::LogicalAnd, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(((*lval != 0) && (*rval != 0)) as i32)
 			}
-			(BinOp::LogicalOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::LogicalOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32(((*lval != 0) || (*rval != 0)) as i32)
 			}
-			(BinOp::LogicalOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::LogicalOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				IntegerConstant::I32(((*lval != 0) || (*rval != 0)) as i32)
 			}
-			(BinOp::Shl, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Shl, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_shl(*rval))
 			}
-			(BinOp::Shl, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Shl, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
 				match (*rval).try_into() {
 					Ok(rval) => IntegerConstant::I32(lval.wrapping_shl(rval)),
 					Err(_) => IntegerConstant::I32(lval.wrapping_shr((-rval) as u32)),
 				}
 			}
-			(BinOp::Shl, IntegerConstant::I32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Shl, IntegerConstant::I32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32(lval.wrapping_shl(*rval))
 			}
-			(BinOp::Shr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Shr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_shr(*rval))
 			}
-			(BinOp::LessEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::LessEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32((*lval <= *rval) as i32)
 			}
-			(BinOp::GreatEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::GreatEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32((*lval >= *rval) as i32)
 			}
-			(BinOp::Less, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Less, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32((*lval < *rval) as i32)
 			}
-			(BinOp::Great, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Great, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::I32((*lval > *rval) as i32)
 			}
 			_ => {
 				return Expr::Binary(ExprBinary {
-					op: *self,
+					op: self.clone(),
 					left: Box::new(Expr::Const(tok::Const::Integer(lhs.clone()))),
 					right: Box::new(Expr::Const(tok::Const::Integer(rhs.clone()))),
 				})
@@ -330,7 +337,7 @@ impl BinOp {
 	fn reduce_float(&self, lhs: &FloatingConstant, rhs: &FloatingConstant) -> Expr {
 		// TODO
 		return Expr::Binary(ExprBinary {
-			op: *self,
+			op: self.clone(),
 			left: Box::new(Expr::Const(tok::Const::Floating(lhs.clone()))),
 			right: Box::new(Expr::Const(tok::Const::Floating(rhs.clone()))),
 		});

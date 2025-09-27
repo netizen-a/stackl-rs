@@ -83,60 +83,222 @@ CastExpr: Expr = {
 
 MultiplicativeExpr: Expr = {
 	CastExpr,
-	<lhs:MultiplicativeExpr> "*" <rhs:CastExpr> => Expr::with_binary(BinOp::Mul, lhs, rhs),
-	<lhs:MultiplicativeExpr> "/" <rhs:CastExpr> => Expr::with_binary(BinOp::Div, lhs, rhs),
-	<lhs:MultiplicativeExpr> "%" <rhs:CastExpr> => Expr::with_binary(BinOp::Mod, lhs, rhs),
+	<lhs:MultiplicativeExpr> <lo:@L> <op:"*"> <hi:@R> <rhs:CastExpr> => {
+		let bin_op = BinOp{
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo, hi),
+			},
+			kind: BinOpKind::Mul,
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:MultiplicativeExpr> <lo:@L> <op:"/"> <hi:@R> <rhs:CastExpr> => {
+		let bin_op = BinOp{
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo, hi),
+			},
+			kind: BinOpKind::Div,
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:MultiplicativeExpr> <lo:@L> <op:"%"> <hi:@R> <rhs:CastExpr> => {
+		let bin_op = BinOp{
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo, hi),
+			},
+			kind: BinOpKind::Rem,
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 AdditiveExpr: Expr = {
 	MultiplicativeExpr,
-	<lhs:AdditiveExpr> "+" <rhs:MultiplicativeExpr> => Expr::with_binary(BinOp::Add, lhs, rhs),
-	<lhs:AdditiveExpr> "-" <rhs:MultiplicativeExpr> => Expr::with_binary(BinOp::Sub, lhs, rhs),
+	<lhs:AdditiveExpr> <lo:@L> <op:"+"> <hi:@R> <rhs:MultiplicativeExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Add
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:AdditiveExpr> <lo:@L> <op:"-"> <hi:@R> <rhs:MultiplicativeExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Sub
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 ShiftExpr: Expr = {
 	AdditiveExpr,
-	<lhs:ShiftExpr> "<<" <rhs:AdditiveExpr> => Expr::with_binary(BinOp::Shl, lhs, rhs),
-	<lhs:ShiftExpr> ">>" <rhs:AdditiveExpr> => Expr::with_binary(BinOp::Shr, lhs, rhs),
+	<lhs:ShiftExpr> <lo:@L> <op:"<<"> <hi:@R> <rhs:AdditiveExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Shl
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:ShiftExpr> <lo:@L> <op:">>"> <hi:@R> <rhs:AdditiveExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Shr
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 RelationalExpr: Expr = {
 	ShiftExpr,
-	<lhs:RelationalExpr> "<" <rhs:ShiftExpr> => Expr::with_binary(BinOp::Less, lhs, rhs),
-	<lhs:RelationalExpr> ">" <rhs:ShiftExpr> => Expr::with_binary(BinOp::Great, lhs, rhs),
-	<lhs:RelationalExpr> "<=" <rhs:ShiftExpr> => Expr::with_binary(BinOp::LessEqual, lhs, rhs),
-	<lhs:RelationalExpr> ">=" <rhs:ShiftExpr> => Expr::with_binary(BinOp::GreatEqual, lhs, rhs),
+	<lhs:RelationalExpr> <lo:@L> <op:"<"> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Less
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:RelationalExpr> <lo:@L> <op:">"> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Great
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:RelationalExpr> <lo:@L> <op:"<="> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::LessEqual
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:RelationalExpr> <lo:@L> <op:">="> <hi:@R> <rhs:ShiftExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::GreatEqual
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 EqualityExpr: Expr = {
 	RelationalExpr,
-	<lhs:EqualityExpr> "==" <rhs:RelationalExpr> => Expr::with_binary(BinOp::Equal, lhs, rhs),
-	<lhs:EqualityExpr> "!=" <rhs:RelationalExpr> => Expr::with_binary(BinOp::NotEqual, lhs, rhs),
+	<lhs:EqualityExpr> <lo:@L> <op:"=="> <hi:@R> <rhs:RelationalExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Equal
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
+	<lhs:EqualityExpr> <lo:@L> <op:"!="> <hi:@R> <rhs:RelationalExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::NotEqual
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 AndExpr: Expr = {
 	EqualityExpr,
-	<lhs:AndExpr> "&" <rhs:EqualityExpr> => Expr::with_binary(BinOp::And, lhs, rhs),
+	<lhs:AndExpr> <lo:@L> <op:"&"> <hi:@R> <rhs:EqualityExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::And
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 ExclusiveOrExpr: Expr = {
 	AndExpr,
-	<lhs:ExclusiveOrExpr> "^" <rhs:AndExpr> => Expr::with_binary(BinOp::XOr, lhs, rhs),
+	<lhs:ExclusiveOrExpr> <lo:@L> <op:"^"> <hi:@R> <rhs:AndExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::XOr
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 InclusiveOrExpr: Expr = {
 	ExclusiveOrExpr,
-	<lhs:InclusiveOrExpr> "|" <rhs:ExclusiveOrExpr> => Expr::with_binary(BinOp::Or, lhs, rhs),
+	<lhs:InclusiveOrExpr> <lo:@L> <op:"|"> <hi:@R> <rhs:ExclusiveOrExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::Or
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 LogicalAndExpr: Expr = {
 	InclusiveOrExpr,
-	<lhs:LogicalAndExpr> "&&" <rhs:InclusiveOrExpr> => Expr::with_binary(BinOp::LogicalAnd, lhs, rhs),
+	<lhs:LogicalAndExpr> <lo:@L> <op:"&&"> <hi:@R> <rhs:InclusiveOrExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::LogicalAnd
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 LogicalOrExpr: Expr = {
 	LogicalAndExpr,
-	<lhs:LogicalOrExpr> "||" <rhs:LogicalAndExpr> => Expr::with_binary(BinOp::XOr, lhs, rhs),
+	<lhs:LogicalOrExpr> <lo:@L> <op:"||"> <hi:@R> <rhs:LogicalAndExpr> => {
+		let bin_op = BinOp {
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo,hi),
+			},
+			kind: BinOpKind::XOr
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 ConditionalExpr: Expr = {
@@ -158,24 +320,96 @@ AssignmentExpr: Expr = {
 };
 
 AssignmentOperator: BinOp = {
-	"=" => BinOp::Assign,
-	"*=" => BinOp::MulAssign,
-	"/=" => BinOp::DivAssign,
-	"%=" => BinOp::ModAssign,
-	"+=" => BinOp::AddAssign,
-	"-=" => BinOp::SubAssign,
-	"<<=" => BinOp::LShiftAssign,
-	">>=" => BinOp::RShiftAssign,
-	"&=" => BinOp::AmpAssign,
-	"^=" => BinOp::XOrAssign,
-	"|=" => BinOp::OrAssign,
+	<lo:@L> <op:"="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::Assign
+	},
+	<lo:@L> <op:"*="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::MulAssign
+	},
+	<lo:@L> <op:"/="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::DivAssign
+	},
+	<lo:@L> <op:"%="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::ModAssign
+	},
+	<lo:@L> <op:"+="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::AddAssign
+	},
+	<lo:@L> <op:"-="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::SubAssign
+	},
+	<lo:@L> <op:"<<="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::LShiftAssign
+	},
+	<lo:@L> <op:">>="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::RShiftAssign
+	},
+	<lo:@L> <op:"&="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::AmpAssign
+	},
+	<lo:@L> <op:"^="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::XOrAssign
+	},
+	<lo:@L> <op:"|="> <hi:@R> => BinOp{
+		span: diag::Span {
+			file_id: op.file_id,
+			loc: (lo,hi),
+		},
+		kind: BinOpKind::OrAssign
+	},
 };
 
 Expr: Expr = {
 	AssignmentExpr,
-	<lhs:Expr> "," <rhs:AssignmentExpr> => Expr::Binary(ExprBinary{
+	<lhs:Expr> <lo:@L> <op:","> <hi:@R> <rhs:AssignmentExpr> => Expr::Binary(ExprBinary{
 		left: Box::new(lhs),
-		op: BinOp::Comma,
+		op: BinOp{
+			span: diag::Span {
+				file_id: op.file_id,
+				loc: (lo, hi),
+			},
+			kind: BinOpKind::Comma,
+		},
 		right: Box::new(rhs),
 	}),
 };
