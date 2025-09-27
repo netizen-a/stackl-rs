@@ -17,7 +17,7 @@ pub enum DiagKind {
 	TooLong,
 	ImplicitInt(String),
 	ArrayOfFunctions(String),
-	FnRetFn(String),
+	FnRetFn(Option<String>),
 	OmittedParamName,
 	DeclIdentList,
 	UnboundVLA,

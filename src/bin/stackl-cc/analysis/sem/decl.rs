@@ -127,13 +127,14 @@ impl super::SemanticParser<'_> {
 			let (param_name, param_span): (Option<String>, diag::Span) =
 				match (param.name.as_ref(), data_type.unwrap()) {
 					(None, dtype::DataType::Void) => {
-						match param.declarators.front() {
+						let span: diag::Span = match param.declarators.front() {
 							Some(Declarator::Array(ArrayDecl { span, .. })) => {
 								let kind = diag::DiagKind::ArrayOfVoid(None);
 								let diag = diag::Diagnostic::error(kind, span.clone());
 								self.diagnostics.push(diag);
+								span.clone()
 							}
-							Some(Declarator::Pointer(_)) | Some(Declarator::ParamList(_)) => {
+							Some(Declarator::Pointer(_)) => {
 								if decl_type == DeclType::FnDef {
 									let kind = diag::DiagKind::OmittedParamName;
 									let diag = diag::Diagnostic::error(
@@ -142,6 +143,24 @@ impl super::SemanticParser<'_> {
 									);
 									self.diagnostics.push(diag);
 								}
+								param.specifiers.first_span.clone()
+							}
+							Some(Declarator::ParamList(_)) => {
+								if decl_type == DeclType::FnDef {
+									let kind = diag::DiagKind::OmittedParamName;
+									let diag = diag::Diagnostic::error(
+										kind,
+										param.specifiers.first_span.clone(),
+									);
+									self.diagnostics.push(diag);
+								}
+								let implicit = Declarator::Pointer(PtrDecl {
+									is_const: false,
+									is_volatile: false,
+									is_restrict: false,
+								});
+								param.declarators.push_front(implicit);
+								param.specifiers.first_span.clone()
 							}
 							Some(Declarator::IdentList(_)) => {
 								let kind = diag::DiagKind::DeclIdentList;
@@ -150,6 +169,7 @@ impl super::SemanticParser<'_> {
 									param.specifiers.first_span.clone(),
 								);
 								self.diagnostics.push(diag);
+								param.specifiers.first_span.clone()
 							}
 							None => {
 								if param_count > 1 {
@@ -160,42 +180,40 @@ impl super::SemanticParser<'_> {
 									);
 									self.diagnostics.push(diag);
 								}
+								param.specifiers.first_span.clone()
+							}
+						};
+						(None, span)
+					}
+					(Some(ident), dtype::DataType::Void) => {
+						match param.declarators.front() {
+							Some(Declarator::Array(ArrayDecl { span, .. })) => {
+								let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
+								let diag = diag::Diagnostic::error(kind, ident.span.clone());
+								self.diagnostics.push(diag);
+							}
+							Some(Declarator::IdentList(_)) => {
+								let kind = diag::DiagKind::DeclIdentList;
+								let diag = diag::Diagnostic::error(kind, ident.span.clone());
+								self.diagnostics.push(diag);
+							}
+							Some(Declarator::ParamList(_)) => {
+								let implicit = Declarator::Pointer(PtrDecl {
+									is_const: false,
+									is_volatile: false,
+									is_restrict: false,
+								});
+								param.declarators.push_front(implicit);
+							}
+							Some(Declarator::Pointer(_)) => {}
+							None => {
+								let kind = diag::DiagKind::OnlyVoid;
+								let diag = diag::Diagnostic::error(kind, ident.span.clone());
+								self.diagnostics.push(diag);
 							}
 						}
-						continue;
+						(Some(ident.name.clone()), ident.span.clone())
 					}
-					(Some(ident), dtype::DataType::Void) => match param.declarators.front() {
-						Some(Declarator::Array(ArrayDecl { span, .. })) => {
-							let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
-							let diag = diag::Diagnostic::error(kind, ident.span.clone());
-							self.diagnostics.push(diag);
-							continue;
-						}
-						Some(Declarator::IdentList(_)) => {
-							let kind = diag::DiagKind::DeclIdentList;
-							let diag = diag::Diagnostic::error(kind, ident.span.clone());
-							self.diagnostics.push(diag);
-							continue;
-						}
-						Some(Declarator::ParamList(_)) => {
-							let implicit = Declarator::Pointer(PtrDecl {
-								is_const: false,
-								is_volatile: false,
-								is_restrict: false,
-							});
-							param.declarators.push_front(implicit);
-							(Some(ident.name.clone()), ident.span.clone())
-						}
-						Some(Declarator::Pointer(_)) => {
-							(Some(ident.name.clone()), ident.span.clone())
-						}
-						None => {
-							let kind = diag::DiagKind::OnlyVoid;
-							let diag = diag::Diagnostic::error(kind, ident.span.clone());
-							self.diagnostics.push(diag);
-							continue;
-						}
-					},
 					(None, _) => {
 						if decl_type == DeclType::FnDef {
 							let kind = diag::DiagKind::OmittedParamName;
@@ -203,10 +221,9 @@ impl super::SemanticParser<'_> {
 								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
 							self.diagnostics.push(diag);
 						}
-						continue;
+						(None, param.specifiers.first_span.clone())
 					}
 					(Some(ident), _) => (Some(ident.name.clone()), ident.span.clone()),
-					_ => todo!(),
 				};
 			let (_, param_type) = self.specifiers(&mut param.specifiers);
 			let mut param_type = param_type.unwrap();
@@ -754,9 +771,6 @@ impl super::SemanticParser<'_> {
 				}
 				Declarator::IdentList(_) => {
 					if !last_is_ptr {
-						let Some(name) = name.as_ref() else {
-							panic!("unknown name")
-						};
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
@@ -765,9 +779,6 @@ impl super::SemanticParser<'_> {
 				}
 				Declarator::ParamList(type_list) => {
 					if !last_is_ptr {
-						let Some(name) = name.as_ref() else {
-							panic!("unknown name")
-						};
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);

@@ -242,8 +242,12 @@ impl DiagnosticEngine {
 				}
 				self.format_diagnostic(&diag, msg0, &msg1)
 			}
-			DiagKind::FnRetFn(name) => {
+			DiagKind::FnRetFn(Some(name)) => {
 				let msg0 = format!("'{name}' declared as function returning function");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::FnRetFn(None) => {
+				let msg0 = format!("type name declared as function returning function");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			DiagKind::OmittedParamName => {
