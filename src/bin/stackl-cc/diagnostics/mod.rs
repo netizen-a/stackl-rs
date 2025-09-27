@@ -5,7 +5,7 @@ mod span;
 
 use crate::analysis::tok::{self, file_id::FileId};
 use std::{
-	collections::HashMap,
+	collections::{HashMap, HashSet},
 	fs,
 	io::{BufReader, Read},
 	path::{Path, PathBuf},
@@ -81,10 +81,7 @@ impl DiagnosticEngine {
 	}
 	pub fn contains_error(&self) -> bool {
 		for diag in self.list_other.iter() {
-			if matches!(
-				diag.level,
-				DiagLevel::Error | DiagLevel::Fatal
-			) {
+			if matches!(diag.level, DiagLevel::Error | DiagLevel::Fatal) {
 				return true;
 			}
 		}
@@ -138,11 +135,8 @@ impl DiagnosticEngine {
 				};
 				let msg0 = "unexpected EOF";
 				let mut msg1 = String::from("expected ");
-				let mut is_first = true;
 				for (i, elem) in expected.iter().enumerate() {
-					if is_first {
-						is_first = false;
-					} else {
+					if i != 0 {
 						msg1.push(',');
 					}
 					if i >= 4 {
@@ -156,6 +150,15 @@ impl DiagnosticEngine {
 				eprint!("{str_diag}");
 			}
 			ParseError::UnrecognizedToken { token, expected } => {
+				let mut seen = HashSet::<String>::new();
+				// in case duplicate ')' is found
+				let mut pruned = expected.clone();
+    			pruned.retain(|c| {
+    			    let is_first = !seen.contains(c);
+    			    seen.insert(c.to_string());
+    			    is_first
+    			});
+
 				let span = Span {
 					file_id: token.1.file_id(),
 					loc: (token.0, token.2),
@@ -163,7 +166,7 @@ impl DiagnosticEngine {
 				let diag = Diagnostic {
 					level,
 					kind: DiagKind::UnrecognizedToken {
-						expected: expected.clone(),
+						expected: pruned,
 					},
 					span,
 					notes: vec![],
@@ -220,11 +223,8 @@ impl DiagnosticEngine {
 			DiagKind::UnrecognizedToken { expected } => {
 				let msg0 = "unrecognized token";
 				let mut msg1 = String::from("expected ");
-				let mut is_first = true;
 				for (i, elem) in expected.iter().enumerate() {
-					if is_first {
-						is_first = false;
-					} else {
+					if i != 0 {
 						msg1.push_str(", ");
 						if i > 3 {
 							msg1.push_str("...");
@@ -268,6 +268,18 @@ impl DiagnosticEngine {
 			DiagKind::IfAssign => {
 				let msg0 = "using the result of an assignment as a condition without parenthesis";
 				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::OnlyVoid => {
+				let msg0 = "'void' must be the only parameter and unnamed";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::ArrayOfVoid(None) => {
+				let msg0 = "declaration of type name as array of voids";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::ArrayOfVoid(Some(name)) => {
+				let msg0 = format!("declaration of '{name}' as array of voids");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			kind => unimplemented!("{kind:?}"),
 		};
@@ -346,9 +358,7 @@ impl DiagnosticEngine {
 			}
 		}
 		for note in diag.notes.iter() {
-			result.push_str(&format!(
-				"{color_blue}{line_space}|{color_default}\n"
-			));
+			result.push_str(&format!("{color_blue}{line_space}|{color_default}\n"));
 			result.push_str(&format!(
 				"{color_blue}{line_space}= {color_bold_white}note:{color_default} {note}\n"
 			));

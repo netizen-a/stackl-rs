@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-// #include "example_header.h"
+#include "example_header.h"
 
 float ff = 5e5;
 // int a = 1 + 1;

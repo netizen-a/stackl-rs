@@ -1,5 +1,7 @@
 //! Declarations
 
+use std::collections::VecDeque;
+
 use super::expr;
 use crate::{analysis::tok, diagnostics as diag};
 
@@ -17,7 +19,7 @@ pub struct Declaration {
 
 #[derive(Debug, Default, Clone)]
 pub struct Specifiers {
-	pub first_span: Option<diag::Span>,
+	pub first_span: diag::Span,
 	pub storage_classes: Vec<StorageClassSpecifier>,
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
@@ -28,41 +30,40 @@ pub struct Specifiers {
 
 impl From<Vec<SpecifierKind>> for Specifiers {
 	fn from(value: Vec<SpecifierKind>) -> Self {
+		// grammar should gaurentee that vector is not empty
+		assert!(!value.is_empty());
 		let mut specifiers = Specifiers::default();
-		let mut is_first = true;
-		for kind in value {
+		for (i, kind) in value.iter().enumerate() {
 			match kind {
 				SpecifierKind::StorageClassSpecifier(inner) => {
-					if is_first {
-						is_first = false;
-						specifiers.first_span = Some(inner.span.clone());
+					if i == 0 {
+						specifiers.first_span = inner.span.clone();
 					}
-					specifiers.storage_classes.push(inner)
+					specifiers.storage_classes.push(inner.clone())
 				}
 				SpecifierKind::TypeSpecifier(inner) => {
-					if is_first {
-						is_first = false;
-						specifiers.first_span = Some(inner.span());
+					if i == 0 {
+						specifiers.first_span = inner.span();
 					}
-					specifiers.type_specifiers.push(inner)
+					specifiers.type_specifiers.push(inner.clone())
 				}
 				SpecifierKind::TypeQualifier(inner) => {
-					if is_first {
-						is_first = false;
-						specifiers.first_span = Some(inner.span.clone());
+					if i == 0 {
+						specifiers.first_span = inner.span.clone();
 					}
 					match inner.kind {
 						TypeQualifierKind::Const => specifiers.is_const = true,
 						TypeQualifierKind::Volatile => specifiers.is_volatile = true,
-						TypeQualifierKind::Restrict => specifiers.restrict_list.push(inner.span),
+						TypeQualifierKind::Restrict => {
+							specifiers.restrict_list.push(inner.span.clone())
+						}
 					}
 				}
 				SpecifierKind::Inline(span) => {
-					if is_first {
-						is_first = false;
-						specifiers.first_span = Some(span.clone());
+					if i == 0 {
+						specifiers.first_span = span.clone();
 					}
-					specifiers.inline_list.push(span)
+					specifiers.inline_list.push(span.clone())
 				}
 			}
 		}
@@ -275,10 +276,9 @@ impl From<&[TypeQualifier]> for PtrDecl {
 /// (6.7.5) parameter-declaration
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
-	pub span: diag::Span,
 	pub name: Option<tok::Ident>,
 	pub specifiers: Specifiers,
-	pub declarators: Vec<Declarator>,
+	pub declarators: VecDeque<Declarator>,
 }
 
 /// (6.7.3) type-qualifier

@@ -23,4 +23,6 @@ pub enum DiagKind {
 	UnboundVLA,
 	InvalidStar,
 	IfAssign,
+	OnlyVoid,
+	ArrayOfVoid(Option<String>),
 }

@@ -67,26 +67,7 @@ impl super::SemanticParser<'_> {
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParamList(param_list)) => {
-				let mut params = vec![];
-				for param in param_list.param_list.iter_mut() {
-					let Some(param_name) = param.name.as_ref() else {
-						let kind = diag::DiagKind::OmittedParamName;
-						let diag = diag::Diagnostic::error(kind, param.span.clone());
-						self.diagnostics.push(diag);
-						continue;
-					};
-					let (_, param_type) = self.specifiers(&mut param.specifiers);
-					let mut param_type = param_type.unwrap();
-					self.declarator_list(
-						param_name.span.clone(),
-						&mut param.declarators,
-						&mut param_type,
-						true,
-						DeclType::FnDef,
-						Some(param_name.name.clone()),
-					);
-					params.push(param_type)
-				}
+				let mut params = self.param_list(param_list);
 				let is_variadic = param_list.is_variadic;
 				let func_type = dtype::FuncType {
 					params,
@@ -133,6 +114,95 @@ impl super::SemanticParser<'_> {
 		}
 		self.decrease_scope();
 	}
+
+	fn param_list(&mut self, param_list: &mut ParamList) -> Vec<dtype::DataType> {
+		let param_count = param_list.param_list.len();
+		let mut result = vec![];
+		for (index, param) in param_list.param_list.iter_mut().enumerate() {
+			let (_, data_type) = self.specifiers(&mut param.specifiers);
+			let param_ident: &tok::Ident = match (param.name.as_ref(), data_type.unwrap()) {
+				(None, dtype::DataType::Void) => {
+					match param.declarators.front() {
+						Some(Declarator::Array(ArrayDecl { span, .. })) => {
+							let kind = diag::DiagKind::ArrayOfVoid(None);
+							let diag = diag::Diagnostic::error(kind, span.clone());
+							self.diagnostics.push(diag);
+						}
+						Some(Declarator::Pointer(_)) | Some(Declarator::ParamList(_)) => {
+							let kind = diag::DiagKind::OmittedParamName;
+							let diag = diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							self.diagnostics.push(diag);
+						}
+						Some(Declarator::IdentList(_)) => {
+							todo!("param_list: ident list")
+						}
+						None => {
+							if param_count > 1 {
+								let kind = diag::DiagKind::OnlyVoid;
+								let diag = diag::Diagnostic::error(
+									kind,
+									param.specifiers.first_span.clone(),
+								);
+								self.diagnostics.push(diag);
+							}
+						}
+					}
+					continue;
+				}
+				(Some(ident), dtype::DataType::Void) => {
+					match param.declarators.front() {
+						Some(Declarator::Array(ArrayDecl { span, .. })) => {
+							let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
+							let diag = diag::Diagnostic::error(kind, ident.span.clone());
+							self.diagnostics.push(diag);
+							continue;
+						}
+						Some(Declarator::IdentList(_)) => {
+							let kind = diag::DiagKind::DeclIdentList;
+							let diag = diag::Diagnostic::error(kind, ident.span.clone());
+							self.diagnostics.push(diag);
+							continue;
+						}
+						Some(Declarator::ParamList(_)) => {
+							let implicit = Declarator::Pointer(PtrDecl { is_const: false, is_volatile: false, is_restrict: false });
+							param.declarators.push_front(implicit);
+							ident
+						}
+						Some(Declarator::Pointer(_)) => {
+							ident
+						}
+						None => {
+							let kind = diag::DiagKind::OnlyVoid;
+							let diag = diag::Diagnostic::error(kind, ident.span.clone());
+							self.diagnostics.push(diag);
+							continue;
+						}
+					}
+				}
+				(None, _) => {
+					let kind = diag::DiagKind::OmittedParamName;
+					let diag = diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+					self.diagnostics.push(diag);
+					continue;
+				}
+				(Some(ident), _) => ident,
+				_ => todo!(),
+			};
+			let (_, param_type) = self.specifiers(&mut param.specifiers);
+			let mut param_type = param_type.unwrap();
+			self.declarator_list(
+				param_ident.span.clone(),
+				param.declarators.make_contiguous(),
+				&mut param_type,
+				true,
+				DeclType::FnDef,
+				Some(param_ident.name.clone()),
+			);
+			result.push(param_type)
+		}
+		result
+	}
+
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) {
 		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
 		let storage = maybe_sc.unwrap_or(default_sc);
@@ -741,11 +811,11 @@ impl super::SemanticParser<'_> {
 					}
 					for param in type_list.param_list.iter_mut() {
 						let (_, maybe_type) = self.specifiers(&mut param.specifiers);
-						let span = param.specifiers.first_span.as_ref().unwrap();
+						let span = param.specifiers.first_span.clone();
 						let mut param_type = maybe_type.unwrap();
 						self.declarator_list(
 							span.clone(),
-							&mut param.declarators,
+							param.declarators.make_contiguous(),
 							&mut param_type,
 							true,
 							decl_type,

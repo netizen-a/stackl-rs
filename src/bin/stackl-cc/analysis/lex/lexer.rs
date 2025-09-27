@@ -69,9 +69,9 @@ impl Lexer {
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
 					let span = diag::Span {
-							loc: self.pop_location(),
-							file_id: self.file_id(),
-						};
+						loc: self.pop_location(),
+						file_id: self.file_id(),
+					};
 					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, span));
 				}
 				seq
@@ -147,7 +147,7 @@ impl Lexer {
 					loc: self.pop_location(),
 					file_id: self.file_id(),
 				};
-				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof,span));
+				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, span));
 			}
 		}
 		let seq = self.c_char_sequence()?;
@@ -185,7 +185,7 @@ impl Lexer {
 					loc: self.pop_location(),
 					file_id: self.file_id(),
 				};
-				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof,span));
+				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, span));
 			}
 		}
 		let seq = self.s_char_sequence()?;
@@ -196,7 +196,7 @@ impl Lexer {
 				loc: self.pop_location(),
 				file_id: self.file_id(),
 			};
-			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken,span));
+			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, span));
 		}
 
 		let str_lit = tok::StrLit {
@@ -226,7 +226,10 @@ impl Lexer {
 				loc: self.pop_location(),
 				file_id: self.file_id(),
 			};
-			return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEscape,span));
+			return Err(diag::Diagnostic::error(
+				diag::DiagKind::UnexpectedEscape,
+				span,
+			));
 		};
 		match term {
 			// alert
@@ -256,8 +259,11 @@ impl Lexer {
 					loc: self.pop_location(),
 					file_id: self.file_id(),
 				};
-				Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEscape, span))
-			},
+				Err(diag::Diagnostic::error(
+					diag::DiagKind::UnexpectedEscape,
+					span,
+				))
+			}
 		}
 	}
 
@@ -396,10 +402,13 @@ impl Iterator for Lexer {
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some((_, sign)) = self.chars.peek() else {
 								let span = diag::Span {
-										loc: self.pop_location(),
-										file_id: self.file_id(),
-									};
-								return Some(Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof,span)));
+									loc: self.pop_location(),
+									file_id: self.file_id(),
+								};
+								return Some(Err(diag::Diagnostic::error(
+									diag::DiagKind::UnexpectedEof,
+									span,
+								)));
 							};
 							if matches!(sign, '-' | '+' | '0'..='9') {
 								name.push(self.chars.next()?.1);
@@ -445,10 +454,13 @@ impl Iterator for Lexer {
 						)))
 					} else {
 						let span = diag::Span {
-								loc: self.pop_location(),
-								file_id: self.file_id(),
-							};
-						Some(Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken,span)))
+							loc: self.pop_location(),
+							file_id: self.file_id(),
+						};
+						Some(Err(diag::Diagnostic::error(
+							diag::DiagKind::InvalidToken,
+							span,
+						)))
 					}
 				} else if let Some((_, digit)) = self.chars.next_if(|&(_, c)| c.is_ascii_digit()) {
 					// case: `.[0-9]`
@@ -468,7 +480,10 @@ impl Iterator for Lexer {
 										loc: self.pop_location(),
 										file_id: self.file_id(),
 									};
-									return Some(Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, span)));
+									return Some(Err(diag::Diagnostic::error(
+										diag::DiagKind::UnexpectedEof,
+										span,
+									)));
 								};
 								if matches!(sign, '-' | '+' | '0'..='9') {
 									name.push(self.chars.next()?.1);
@@ -495,7 +510,10 @@ impl Iterator for Lexer {
 						loc: self.pop_location(),
 						file_id: self.file_id(),
 					};
-					Some(Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken,span)))
+					Some(Err(diag::Diagnostic::error(
+						diag::DiagKind::InvalidToken,
+						span,
+					)))
 				}
 			}
 			'#' => {
@@ -570,7 +588,10 @@ impl Iterator for Lexer {
 							loc: self.pop_location(),
 							file_id: self.file_id(),
 						};
-						return Some(Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof,span)));
+						return Some(Err(diag::Diagnostic::error(
+							diag::DiagKind::UnexpectedEof,
+							span,
+						)));
 					};
 					self.set_end(pos);
 					name.push(last_c);
@@ -590,7 +611,10 @@ impl Iterator for Lexer {
 							loc: self.pop_location(),
 							file_id: self.file_id(),
 						};
-						return Some(Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof,span)));
+						return Some(Err(diag::Diagnostic::error(
+							diag::DiagKind::UnexpectedEof,
+							span,
+						)));
 					}
 				} else {
 					tok::Punct::FSlash
@@ -631,16 +655,22 @@ impl Iterator for Lexer {
 						loc: self.pop_location(),
 						file_id: self.file_id(),
 					};
-					Some(Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken,span)))
-				},
+					Some(Err(diag::Diagnostic::error(
+						diag::DiagKind::InvalidToken,
+						span,
+					)))
+				}
 				Some(Err(error)) => Some(Err(error)),
 				None => {
 					let span = diag::Span {
 						loc: self.pop_location(),
 						file_id: self.file_id(),
 					};
-					Some(Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof,span)))
-				},
+					Some(Err(diag::Diagnostic::error(
+						diag::DiagKind::UnexpectedEof,
+						span,
+					)))
+				}
 			},
 			'+' => {
 				self.include_state = 0;

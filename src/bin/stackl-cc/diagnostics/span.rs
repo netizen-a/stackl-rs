@@ -1,5 +1,9 @@
 use crate::analysis::tok::file_id::FileId;
 
+pub trait ToSpan {
+	fn to_span(&self) -> Span;
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Span {
 	pub loc: (usize, usize),
@@ -9,6 +13,12 @@ pub struct Span {
 impl FileId for Span {
 	fn file_id(&self) -> usize {
 		self.file_id
+	}
+}
+
+impl ToSpan for Span {
+	fn to_span(&self) -> Span {
+		self.clone()
 	}
 }
 
