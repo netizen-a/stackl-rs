@@ -67,7 +67,7 @@ impl super::SemanticParser<'_> {
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParamList(param_list)) => {
-				let mut params = self.param_list(param_list);
+				let mut params = self.param_list(param_list, DeclType::FnDef);
 				let is_variadic = param_list.is_variadic;
 				let func_type = dtype::FuncType {
 					params,
@@ -115,42 +115,56 @@ impl super::SemanticParser<'_> {
 		self.decrease_scope();
 	}
 
-	fn param_list(&mut self, param_list: &mut ParamList) -> Vec<dtype::DataType> {
+	fn param_list(
+		&mut self,
+		param_list: &mut ParamList,
+		decl_type: DeclType,
+	) -> Vec<dtype::DataType> {
 		let param_count = param_list.param_list.len();
 		let mut result = vec![];
 		for (index, param) in param_list.param_list.iter_mut().enumerate() {
 			let (_, data_type) = self.specifiers(&mut param.specifiers);
-			let param_ident: &tok::Ident = match (param.name.as_ref(), data_type.unwrap()) {
-				(None, dtype::DataType::Void) => {
-					match param.declarators.front() {
-						Some(Declarator::Array(ArrayDecl { span, .. })) => {
-							let kind = diag::DiagKind::ArrayOfVoid(None);
-							let diag = diag::Diagnostic::error(kind, span.clone());
-							self.diagnostics.push(diag);
-						}
-						Some(Declarator::Pointer(_)) | Some(Declarator::ParamList(_)) => {
-							let kind = diag::DiagKind::OmittedParamName;
-							let diag = diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
-							self.diagnostics.push(diag);
-						}
-						Some(Declarator::IdentList(_)) => {
-							todo!("param_list: ident list")
-						}
-						None => {
-							if param_count > 1 {
-								let kind = diag::DiagKind::OnlyVoid;
+			let (param_name, param_span): (Option<String>, diag::Span) =
+				match (param.name.as_ref(), data_type.unwrap()) {
+					(None, dtype::DataType::Void) => {
+						match param.declarators.front() {
+							Some(Declarator::Array(ArrayDecl { span, .. })) => {
+								let kind = diag::DiagKind::ArrayOfVoid(None);
+								let diag = diag::Diagnostic::error(kind, span.clone());
+								self.diagnostics.push(diag);
+							}
+							Some(Declarator::Pointer(_)) | Some(Declarator::ParamList(_)) => {
+								if decl_type == DeclType::FnDef {
+									let kind = diag::DiagKind::OmittedParamName;
+									let diag = diag::Diagnostic::error(
+										kind,
+										param.specifiers.first_span.clone(),
+									);
+									self.diagnostics.push(diag);
+								}
+							}
+							Some(Declarator::IdentList(_)) => {
+								let kind = diag::DiagKind::DeclIdentList;
 								let diag = diag::Diagnostic::error(
 									kind,
 									param.specifiers.first_span.clone(),
 								);
 								self.diagnostics.push(diag);
 							}
+							None => {
+								if param_count > 1 {
+									let kind = diag::DiagKind::OnlyVoid;
+									let diag = diag::Diagnostic::error(
+										kind,
+										param.specifiers.first_span.clone(),
+									);
+									self.diagnostics.push(diag);
+								}
+							}
 						}
+						continue;
 					}
-					continue;
-				}
-				(Some(ident), dtype::DataType::Void) => {
-					match param.declarators.front() {
+					(Some(ident), dtype::DataType::Void) => match param.declarators.front() {
 						Some(Declarator::Array(ArrayDecl { span, .. })) => {
 							let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
 							let diag = diag::Diagnostic::error(kind, ident.span.clone());
@@ -164,12 +178,16 @@ impl super::SemanticParser<'_> {
 							continue;
 						}
 						Some(Declarator::ParamList(_)) => {
-							let implicit = Declarator::Pointer(PtrDecl { is_const: false, is_volatile: false, is_restrict: false });
+							let implicit = Declarator::Pointer(PtrDecl {
+								is_const: false,
+								is_volatile: false,
+								is_restrict: false,
+							});
 							param.declarators.push_front(implicit);
-							ident
+							(Some(ident.name.clone()), ident.span.clone())
 						}
 						Some(Declarator::Pointer(_)) => {
-							ident
+							(Some(ident.name.clone()), ident.span.clone())
 						}
 						None => {
 							let kind = diag::DiagKind::OnlyVoid;
@@ -177,26 +195,28 @@ impl super::SemanticParser<'_> {
 							self.diagnostics.push(diag);
 							continue;
 						}
+					},
+					(None, _) => {
+						if decl_type == DeclType::FnDef {
+							let kind = diag::DiagKind::OmittedParamName;
+							let diag =
+								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							self.diagnostics.push(diag);
+						}
+						continue;
 					}
-				}
-				(None, _) => {
-					let kind = diag::DiagKind::OmittedParamName;
-					let diag = diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
-					self.diagnostics.push(diag);
-					continue;
-				}
-				(Some(ident), _) => ident,
-				_ => todo!(),
-			};
+					(Some(ident), _) => (Some(ident.name.clone()), ident.span.clone()),
+					_ => todo!(),
+				};
 			let (_, param_type) = self.specifiers(&mut param.specifiers);
 			let mut param_type = param_type.unwrap();
 			self.declarator_list(
-				param_ident.span.clone(),
+				param_span,
 				param.declarators.make_contiguous(),
 				&mut param_type,
 				true,
-				DeclType::FnDef,
-				Some(param_ident.name.clone()),
+				decl_type,
+				param_name,
 			);
 			result.push(param_type)
 		}
@@ -805,24 +825,10 @@ impl super::SemanticParser<'_> {
 					dtype::DataType::Function(func_type)
 				}
 				Declarator::ParamList(type_list) => {
-					let mut params = vec![];
 					if DeclType::FnDef == decl_type && is_param {
 						decl_type = DeclType::Proto;
 					}
-					for param in type_list.param_list.iter_mut() {
-						let (_, maybe_type) = self.specifiers(&mut param.specifiers);
-						let span = param.specifiers.first_span.clone();
-						let mut param_type = maybe_type.unwrap();
-						self.declarator_list(
-							span.clone(),
-							param.declarators.make_contiguous(),
-							&mut param_type,
-							true,
-							decl_type,
-							None,
-						);
-						params.push(param_type);
-					}
+					let mut params = self.param_list(type_list, decl_type);
 
 					let func_type = dtype::FuncType {
 						params,

@@ -153,11 +153,11 @@ impl DiagnosticEngine {
 				let mut seen = HashSet::<String>::new();
 				// in case duplicate ')' is found
 				let mut pruned = expected.clone();
-    			pruned.retain(|c| {
-    			    let is_first = !seen.contains(c);
-    			    seen.insert(c.to_string());
-    			    is_first
-    			});
+				pruned.retain(|c| {
+					let is_first = !seen.contains(c);
+					seen.insert(c.to_string());
+					is_first
+				});
 
 				let span = Span {
 					file_id: token.1.file_id(),
@@ -165,9 +165,7 @@ impl DiagnosticEngine {
 				};
 				let diag = Diagnostic {
 					level,
-					kind: DiagKind::UnrecognizedToken {
-						expected: pruned,
-					},
+					kind: DiagKind::UnrecognizedToken { expected: pruned },
 					span,
 					notes: vec![],
 				};
