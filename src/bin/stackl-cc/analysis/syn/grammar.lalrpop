@@ -608,13 +608,13 @@ StructDeclaratorList: Vec<StructDeclarator> = {
 
 StructDeclarator: StructDeclarator = {
 	<decl:Declarator> => StructDeclarator {
-		identifier: Some(decl.0),
-		declarator: decl.1,
+		ident: Some(decl.0),
+		declarators: decl.1,
 		const_expr: None,
 	},
 	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
-		identifier: decl.clone().map(|inner| inner.0),
-		declarator: decl.map(|inner| inner.1).unwrap_or_default(),
+		ident: decl.clone().map(|inner| inner.0),
+		declarators: decl.map(|inner| inner.1).unwrap_or_default(),
 		const_expr: Some(expr),
 	},
 };

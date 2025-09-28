@@ -50,19 +50,19 @@
 // long float v;
 // long long long double;
 
-// struct Bar {
-//     int x;
-//     int y;
-// };
+struct Bar {
+    int x;
+    int y;
+};
 
-// struct Bar s_bar;
+struct Bar s_bar;
 
-// struct Foo signed k;
+struct Foo signed k;
 
-// unsigned struct Foo { int x; } kk;
-// unsigned struct Foo { int y; } ll;
+unsigned struct Foo { int x; } kk;
+unsigned struct Foo { int y; } ll;
 
-// struct Foo { unsigned char x; } signed k;
+struct Foo { unsigned char x; } signed k;
 
 // auto x;
 
@@ -95,11 +95,11 @@
 
 // int baz(int (*x)(int y[*])) {}
 
-static void foo(void) {}
-extern void bar(void) {}
-auto void baz(void) {}
-typedef void bap(void) {}
-register void rap(void) {}
+// static void foo(void) {}
+// extern void bar(void) {}
+// auto void baz(void) {}
+// typedef void bap(void) {}
+// register void rap(void) {}
 
 
 

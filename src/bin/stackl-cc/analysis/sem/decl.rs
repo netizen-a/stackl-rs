@@ -637,6 +637,9 @@ impl super::SemanticParser<'_> {
 					let mut members = vec![];
 					for decl in struct_declaration_list.iter_mut() {
 						let mut member_vec = self.struct_declaration(decl);
+						let Some(mut member_vec) = member_vec else {
+							return (storage_class,None);
+						};
 						members.append(&mut member_vec);
 					}
 					if data_type.is_some() {
@@ -734,27 +737,38 @@ impl super::SemanticParser<'_> {
 	fn struct_declaration(
 		&mut self,
 		struct_decl: &mut StructDeclaration,
-	) -> Vec<dtype::MemberType> {
-		// let mut result = vec![];
-		// // only type-specifier and type-qualifier is syntactically allowed here.
-		// let (_, ty_opt) = self.specifiers(&mut struct_decl.specifiers);
-		// for decl in struct_decl.struct_declaration_list.iter_mut() {
-		// 	//self.struct_declarator(decl);
-		// 	let ident = decl.identifier.and_then(|v| Some(v.name));
-		// 	result.push(dtype::MemberType { ident, dtype: () });
-		// }
-		// result
-		todo!("struct-decl")
-	}
-
-	fn struct_declarator(&mut self, struct_decl: &mut StructDeclarator) {
-		// if let Some(ref mut decl) = struct_decl.declarator {
-		// 	self.declarator(decl)
-		// }
-		if let Some(ref mut expr) = struct_decl.const_expr {
-			self.expr(expr);
+	) -> Option<Vec<dtype::MemberType>> {
+		let mut result = vec![];
+		let mut is_valid = true;
+		// only type-specifier and type-qualifier is syntactically allowed here.
+		let (_, ty_opt) = self.specifiers(&mut struct_decl.specifiers);
+		for decl in struct_decl.struct_declaration_list.iter_mut() {
+			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
+			let span = match &decl.ident {
+				Some(ident) => ident.span.clone(),
+				None => struct_decl.specifiers.first_span.clone(),
+			};
+			let Some(mut data_type) = ty_opt.clone() else {
+				is_valid = false;
+				continue;
+			};
+			is_valid &= self.declarator_list(span, &mut decl.declarators, &mut data_type, false, DeclType::Decl, name_opt.clone());
+			result.push(dtype::MemberType { name: name_opt, dtype: Box::new(data_type) });
+		}
+		match is_valid {
+			true => Some(result),
+			false => None,
 		}
 	}
+
+	// fn struct_declarator(&mut self, struct_decl: &mut StructDeclarator) {
+	// 	// if let Some(ref mut decl) = struct_decl.declarator {
+	// 	// 	self.declarator(decl)
+	// 	// }
+	// 	if let Some(ref mut expr) = struct_decl.const_expr {
+	// 		self.expr(expr);
+	// 	}
+	// }
 	fn struct_or_union_specifier(&mut self, _spec: &mut StructOrUnionSpecifier) {
 		todo!("struct-or-union-specifier")
 	}

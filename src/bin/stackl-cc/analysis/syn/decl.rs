@@ -217,8 +217,8 @@ pub struct StructDeclaration {
 /// (6.7.2.1) struct-declarator
 #[derive(Debug, Clone)]
 pub struct StructDeclarator {
-	pub identifier: Option<tok::Ident>,
-	pub declarator: Vec<Declarator>,
+	pub ident: Option<tok::Ident>,
+	pub declarators: Vec<Declarator>,
 	pub const_expr: Option<expr::Expr>,
 }
 

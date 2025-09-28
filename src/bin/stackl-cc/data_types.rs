@@ -77,14 +77,14 @@ pub struct FuncType {
 // TODO: add optional bitfields
 #[derive(Debug, Hash, Clone)]
 pub struct MemberType {
-	pub ident: Option<String>,
+	pub name: Option<String>,
 	pub dtype: Box<DataType>,
 }
 
 impl fmt::Display for MemberType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		if let Some(ident) = &self.ident {
-			write!(f, "{} {};", self.dtype, ident)
+		if let Some(name) = &self.name {
+			write!(f, "{} {name};", self.dtype)
 		} else {
 			write!(f, "{};", self.dtype)
 		}
