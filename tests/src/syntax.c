@@ -52,7 +52,7 @@
 
 struct Bar {
     int x;
-    int y;
+    int y[*];
 };
 
 struct Bar s_bar;
@@ -63,6 +63,7 @@ unsigned struct Foo { int x; } kk;
 unsigned struct Foo { int y; } ll;
 
 struct Foo { unsigned char x; } signed k;
+struct Foo { unsigned char x; } unsigned k;
 
 // auto x;
 

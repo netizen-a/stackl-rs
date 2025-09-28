@@ -536,10 +536,13 @@ impl super::SemanticParser<'_> {
 								span.clone(),
 							))
 						}
-						Some(name) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), name.to_string()),
-							span.clone(),
-						)),
+						Some(_) => {
+							let expected = vec!["identifier".to_string(), "\";\"".to_string(), "\"(\"".to_string()];
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::UnrecognizedToken { expected },
+								span.clone(),
+							))
+						},
 						Some(dtype::DataType::Scalar(_)) | None => {
 							// do nothing
 						}
@@ -579,13 +582,13 @@ impl super::SemanticParser<'_> {
 								span.clone(),
 							))
 						}
-						Some(name) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								name.to_string(),
-							),
-							span.clone(),
-						)),
+						Some(_) => {
+							let expected = vec!["identifier".to_string(), "\";\"".to_string(), "\"(\"".to_string()];
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::UnrecognizedToken { expected },
+								span.clone(),
+							))
+						},
 						Some(dtype::DataType::Scalar(_)) | None => {
 							// do nothing
 						}
@@ -761,17 +764,6 @@ impl super::SemanticParser<'_> {
 		}
 	}
 
-	// fn struct_declarator(&mut self, struct_decl: &mut StructDeclarator) {
-	// 	// if let Some(ref mut decl) = struct_decl.declarator {
-	// 	// 	self.declarator(decl)
-	// 	// }
-	// 	if let Some(ref mut expr) = struct_decl.const_expr {
-	// 		self.expr(expr);
-	// 	}
-	// }
-	fn struct_or_union_specifier(&mut self, _spec: &mut StructOrUnionSpecifier) {
-		todo!("struct-or-union-specifier")
-	}
 	fn initializer(&mut self, init: &mut Initializer) {
 		use Initializer::*;
 		match init {
