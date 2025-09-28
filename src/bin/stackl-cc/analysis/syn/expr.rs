@@ -111,6 +111,7 @@ impl Expr {
 			}
 		}
 	}
+	// TODO: get sizeof working with this
 	pub fn to_u32(&mut self) -> Result<u32, ConversionError> {
 		const U64_CAP: u64 = u32::MAX as u64;
 		const I64_CAP: i64 = u32::MAX as i64;

@@ -290,6 +290,26 @@ impl DiagnosticEngine {
 				let msg0 = format!("function definition declared '{kind}'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
+			DiagKind::BitfieldExceedsWidth(Some(name)) => {
+				let msg0 = format!("width of bit-field '{name}' exceeds width of its type");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::BitfieldExceedsWidth(None) => {
+				let msg0 = format!("width of anonymous bit-field exceeds width of its type");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::BitfieldNonIntegral(Some(name)) => {
+				let msg0 = format!("bit-field '{name}' has non-integral type");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::BitfieldNonIntegral(None) => {
+				let msg0 = format!("anonymous bit-field has non-integral type");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::NonConstExpr => {
+				let msg0 = "expression is not an integer constant expression";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

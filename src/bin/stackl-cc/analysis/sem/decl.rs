@@ -881,16 +881,63 @@ impl super::SemanticParser<'_> {
 				continue;
 			};
 			is_valid &= self.declarator_list(
-				span,
+				span.clone(),
 				&mut decl.declarators,
 				&mut data_type,
 				false,
 				DeclType::Decl,
 				name_opt.clone(),
 			);
+
+			let bits = if let dtype::DataType::Scalar(scalar) = &data_type {
+				if !scalar.is_integral() && decl.const_expr.is_some() {
+					let kind = diag::DiagKind::BitfieldNonIntegral(name_opt);
+					let diag = diag::Diagnostic::error(kind, span.clone());
+					self.diagnostics.push(diag);
+					is_valid = false;
+					continue;
+				}
+				match decl.const_expr.as_mut().map(|val| val.to_u32()) {
+					Some(Ok(value)) => {
+						if value <= scalar.bits() {
+							Some(value)
+						} else {
+							let kind = diag::DiagKind::BitfieldExceedsWidth(name_opt);
+							let diag = diag::Diagnostic::error(kind, span.clone());
+							self.diagnostics.push(diag);
+							is_valid = false;
+							continue;
+						}
+					}
+					Some(Err(ConversionError::Expr(_))) => {
+						let kind = diag::DiagKind::NonConstExpr;
+						let diag = diag::Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+						is_valid = false;
+						continue;
+					},
+					Some(Err(ConversionError::OutOfRange)) => {
+						let kind = diag::DiagKind::BitfieldExceedsWidth(name_opt);
+						let diag = diag::Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+						is_valid = false;
+						continue;
+					}
+					None => None,
+				}
+			} else if decl.const_expr.is_some() {
+				let kind = diag::DiagKind::BitfieldNonIntegral(name_opt);
+				let diag = diag::Diagnostic::error(kind, span.clone());
+				self.diagnostics.push(diag);
+				is_valid = false;
+				continue;
+			} else {
+				None
+			};
 			result.push(dtype::MemberType {
 				name: name_opt,
 				dtype: Box::new(data_type),
+				bits,
 			});
 		}
 		match is_valid {

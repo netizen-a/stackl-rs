@@ -19,6 +19,35 @@ pub enum ScalarType {
 }
 
 impl ScalarType {
+	pub const fn is_integral(&self) -> bool {
+		matches!(
+			self,
+			Self::Bool
+				| Self::I8 | Self::U8
+				| Self::I16 | Self::U16
+				| Self::I32 | Self::U32
+				| Self::I64 | Self::U64
+				| Self::I128 | Self::U128
+		)
+	}
+	pub const fn bits(&self) -> u32 {
+		match self {
+			Self::Bool => 1,
+			Self::I8 => 8,
+			Self::U8 => 8,
+			Self::I16 => 16,
+			Self::U16 => 16,
+			Self::I32 => 32,
+			Self::U32 => 32,
+			Self::I64 => 64,
+			Self::U64 => 64,
+			Self::I128 => 128,
+			Self::U128 => 128,
+			Self::Float => 32,
+			Self::Double => 64,
+			Self::LongDouble => 64,
+		}
+	}
 	pub fn set_signedness(&mut self, is_signed: bool) {
 		if is_signed {
 			match self {
@@ -79,6 +108,7 @@ pub struct FuncType {
 pub struct MemberType {
 	pub name: Option<String>,
 	pub dtype: Box<DataType>,
+	pub bits: Option<u32>,
 }
 
 impl fmt::Display for MemberType {

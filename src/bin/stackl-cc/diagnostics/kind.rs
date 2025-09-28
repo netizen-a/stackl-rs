@@ -28,4 +28,7 @@ pub enum DiagKind {
 	OnlyVoid,
 	ArrayOfVoid(Option<String>),
 	IllegalStorage(StorageClass),
+	BitfieldExceedsWidth(Option<String>),
+	BitfieldNonIntegral(Option<String>),
+	NonConstExpr,
 }
