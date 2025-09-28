@@ -284,13 +284,20 @@ impl super::SemanticParser<'_> {
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
 			let ident = &init_decl.identifier;
-			let Some(data_type) = &maybe_ty else {
-				let diag = diag::Diagnostic::error(
-					diag::DiagKind::ImplicitInt(ident.name.clone()),
-					ident.span.clone(),
-				);
-				self.diagnostics.push(diag);
-				continue;
+			let data_type = match &maybe_ty {
+				Ok(ty) => ty,
+				Err(false) => {
+					let diag = diag::Diagnostic::error(
+						diag::DiagKind::ImplicitInt(ident.name.clone()),
+						ident.span.clone(),
+					);
+					self.diagnostics.push(diag);
+					continue;
+				}
+				Err(true) => {
+					// do nothing
+					continue;
+				}
 			};
 			let mut var_dtype = data_type.clone();
 			is_valid &= self.declarator_list(
@@ -353,7 +360,7 @@ impl super::SemanticParser<'_> {
 			None
 		}
 	}
-	fn specifiers_dtype(&mut self, specifiers: &mut Specifiers) -> Option<dtype::DataType> {
+	fn specifiers_dtype(&mut self, specifiers: &mut Specifiers) -> Result<dtype::DataType, bool> {
 		let mut is_valid = true;
 		let mut data_type: Option<dtype::DataType> = None;
 
@@ -734,7 +741,8 @@ impl super::SemanticParser<'_> {
 					for decl in struct_declaration_list.iter_mut() {
 						let mut member_vec = self.struct_declaration(decl);
 						let Some(mut member_vec) = member_vec else {
-							return None;
+							is_valid = false;
+							continue;
 						};
 						members.append(&mut member_vec);
 					}
@@ -831,10 +839,10 @@ impl super::SemanticParser<'_> {
 				scalar.set_signedness(is_signed);
 			}
 		}
-		if is_valid {
-			data_type
-		} else {
-			None
+		match (data_type, is_valid) {
+			(Some(data_type), true) => Ok(data_type),
+			(maybe, false) => Err(maybe.is_some()),
+			(None, true) => Err(false),
 		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
@@ -868,7 +876,7 @@ impl super::SemanticParser<'_> {
 				Some(ident) => ident.span.clone(),
 				None => struct_decl.specifiers.first_span.clone(),
 			};
-			let Some(mut data_type) = ty_opt.clone() else {
+			let Ok(mut data_type) = ty_opt.clone() else {
 				is_valid = false;
 				continue;
 			};
