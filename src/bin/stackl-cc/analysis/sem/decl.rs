@@ -726,6 +726,7 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::StructOrUnionSpecifier(StructOrUnionSpecifier {
 					struct_or_union,
 					struct_declaration_list,
+					is_incomplete,
 					..
 				}) => {
 					let span = struct_or_union.span.clone();
@@ -744,9 +745,17 @@ impl super::SemanticParser<'_> {
 						));
 						is_valid = false;
 					} else if let tok::Keyword::Struct = struct_or_union.keyword {
-						data_type = Some(dtype::DataType::Struct(members));
+						let struct_type = dtype::StructType {
+							members,
+							is_incomplete: *is_incomplete,
+						};
+						data_type = Some(dtype::DataType::Struct(struct_type));
 					} else if let tok::Keyword::Union = struct_or_union.keyword {
-						data_type = Some(dtype::DataType::Union(members));
+						let union_type = dtype::UnionType {
+							members,
+							is_incomplete: *is_incomplete,
+						};
+						data_type = Some(dtype::DataType::Union(union_type));
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(

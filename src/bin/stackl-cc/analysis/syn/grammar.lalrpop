@@ -559,11 +559,13 @@ StructOrUnionSpecifier: StructOrUnionSpecifier = {
 		struct_or_union: prefix,
 		ident,
 		struct_declaration_list: list,
+		is_incomplete: false,
 	},
 	<prefix:StructOrUnion> <ident:Identifier> => StructOrUnionSpecifier {
 		struct_or_union: prefix,
 		ident: Some(ident),
 		struct_declaration_list: vec![],
+		is_incomplete: true,
 	},
 };
 

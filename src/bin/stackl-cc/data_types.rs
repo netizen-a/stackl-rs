@@ -92,11 +92,23 @@ impl fmt::Display for MemberType {
 }
 
 #[derive(Debug, Hash, Clone)]
+pub struct StructType {
+	pub members: Vec<MemberType>,
+	pub is_incomplete: bool,
+}
+
+#[derive(Debug, Hash, Clone)]
+pub struct UnionType {
+	pub members: Vec<MemberType>,
+	pub is_incomplete: bool,
+}
+
+#[derive(Debug, Hash, Clone)]
 pub enum DataType {
 	Void,
 	Scalar(ScalarType),
-	Struct(Vec<MemberType>),
-	Union(Vec<MemberType>),
+	Struct(StructType),
+	Union(UnionType),
 	Enum,
 	Function(FuncType),
 	Pointer(PtrType),
@@ -121,13 +133,6 @@ impl fmt::Display for DataType {
 			Self::Scalar(ScalarType::Float) => write!(f, "float"),
 			Self::Scalar(ScalarType::Double) => write!(f, "double"),
 			Self::Scalar(ScalarType::LongDouble) => write!(f, "long double"),
-			Self::Struct(fields) => {
-				write!(f, "struct {{")?;
-				for field in fields.iter() {
-					write!(f, "{field}")?;
-				}
-				write!(f, "}}")
-			}
 			_ => todo!("{:?}", self),
 		}
 	}

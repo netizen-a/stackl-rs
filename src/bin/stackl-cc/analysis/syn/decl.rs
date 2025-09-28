@@ -198,6 +198,7 @@ pub struct StructOrUnionSpecifier {
 	pub ident: Option<tok::Ident>,
 	/// (6.7.2.1) struct-declaration-list
 	pub struct_declaration_list: Vec<StructDeclaration>,
+	pub is_incomplete: bool,
 }
 
 /// (6.7.2.1) struct-or-union
