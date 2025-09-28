@@ -3,7 +3,10 @@ mod kind;
 pub mod lex;
 mod span;
 
-use crate::analysis::{syn, tok::{self, file_id::FileId}};
+use crate::analysis::{
+	syn,
+	tok::{self, file_id::FileId},
+};
 use std::{
 	collections::{HashMap, HashSet},
 	fs,

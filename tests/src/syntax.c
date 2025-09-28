@@ -55,30 +55,30 @@ struct Bar {
     int y[*];
 };
 
-struct Bar s_bar;
+struct Barz z;
 
-struct Foo signed k;
+struct Fooz signed i;
 
-unsigned struct Foo { int x; } kk;
-unsigned struct Foo { int y; } ll;
+unsigned struct FooFoo { int x; } j;
+unsigned struct FooBar { int y; } k;
 
-struct Foo { unsigned char x; } signed k;
-struct Foo { unsigned char x; } unsigned k;
+struct Baz { unsigned char x; } signed xx;
+struct FooBaz { unsigned char x; } unsigned yy;
 
-union Bar {
-    int x;
-    int y[*];
+union Bark {
+    int zz;
+    int hh[*];
 };
 
-union Bar s_bar;
+union Blap s_bar;
 
-union Foo signed k;
+union Bloop signed bloop;
 
-unsigned union Foo { int x; } kk;
-unsigned union Foo { int y; } ll;
+unsigned union Car { int x; } car;
+unsigned union Cat { int y; } cat;
 
-union Foo { unsigned char x; } signed k;
-union Foo { unsigned char x; } unsigned k;
+union Food { unsigned char x; } signed food;
+union Farm { unsigned char x; } unsigned farm;
 
 // auto x;
 

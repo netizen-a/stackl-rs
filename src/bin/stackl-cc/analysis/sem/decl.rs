@@ -5,8 +5,8 @@ use crate::analysis::sem::SymbolTableEntry;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::data_types as dtype;
-use crate::diagnostics::ToSpan;
 use crate::diagnostics as diag;
+use crate::diagnostics::ToSpan;
 
 const SIGNED_STR: &str = "signed";
 const UNSIGNED_STR: &str = "unsigned";
@@ -29,17 +29,25 @@ enum DeclType {
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) -> bool {
-		let (maybe_sc, data_type) = self.specifiers(&mut decl.specifiers);
+		let data_type = self.specifiers_dtype(&mut decl.specifiers);
+		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 
 		let (storage, linkage) = match &maybe_sc {
-			None | Some(StorageClassSpecifier{kind:StorageClass::Extern,..}) => (StorageClass::Extern, Linkage::External),
-			Some(StorageClassSpecifier{kind:StorageClass::Static,..}) => (StorageClass::Static, Linkage::Internal),
+			None
+			| Some(StorageClassSpecifier {
+				kind: StorageClass::Extern,
+				..
+			}) => (StorageClass::Extern, Linkage::External),
+			Some(StorageClassSpecifier {
+				kind: StorageClass::Static,
+				..
+			}) => (StorageClass::Static, Linkage::Internal),
 			Some(storage) => {
 				let kind = diag::DiagKind::IllegalStorage(storage.kind);
 				let diag = diag::Diagnostic::error(kind, storage.to_span());
 				self.diagnostics.push(diag);
-				return false
-			},
+				return false;
+			}
 		};
 		let mut ret_type = data_type.unwrap();
 		if !matches!(
@@ -135,7 +143,7 @@ impl super::SemanticParser<'_> {
 		let mut result = vec![];
 		let mut is_valid = true;
 		for (index, param) in param_list.param_list.iter_mut().enumerate() {
-			let (_, data_type) = self.specifiers(&mut param.specifiers);
+			let data_type = self.specifiers_dtype(&mut param.specifiers);
 			let (param_name, param_span): (Option<String>, diag::Span) =
 				match (param.name.as_ref(), data_type.unwrap()) {
 					(None, dtype::DataType::Void) => {
@@ -246,7 +254,7 @@ impl super::SemanticParser<'_> {
 					}
 					(Some(ident), _) => (Some(ident.name.clone()), ident.span.clone()),
 				};
-			let (_, param_type) = self.specifiers(&mut param.specifiers);
+			let param_type = self.specifiers_dtype(&mut param.specifiers);
 			let mut param_type = param_type.unwrap();
 			is_valid &= self.declarator_list(
 				param_span,
@@ -260,13 +268,14 @@ impl super::SemanticParser<'_> {
 		}
 		match is_valid {
 			true => Some(result),
-			false => None
+			false => None,
 		}
 	}
 
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
 		let mut is_valid = true;
-		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
+		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
+		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let (storage, linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
 			StorageClass::Extern => (StorageClass::Extern, Linkage::External),
 			StorageClass::Static => (StorageClass::Static, Linkage::Internal),
@@ -309,11 +318,9 @@ impl super::SemanticParser<'_> {
 		}
 		is_valid
 	}
-	fn specifiers(
-		&mut self,
-		specifiers: &mut Specifiers,
-	) -> (Option<StorageClassSpecifier>, Option<dtype::DataType>) {
+	fn specifiers_storage(&mut self, specifiers: &mut Specifiers) -> Option<StorageClassSpecifier> {
 		let mut storage_class = None;
+		let mut is_valid = true;
 		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -322,6 +329,7 @@ impl super::SemanticParser<'_> {
 				);
 				self.diagnostics.push(diag);
 				storage_class = None;
+				is_valid = false;
 			} else {
 				storage_class = Some(storage_class_specifier.clone());
 			}
@@ -337,19 +345,31 @@ impl super::SemanticParser<'_> {
 				)
 			};
 			self.diagnostics.push(diag);
+			is_valid = false;
 		}
+		if is_valid {
+			storage_class
+		} else {
+			None
+		}
+	}
+	fn specifiers_dtype(&mut self, specifiers: &mut Specifiers) -> Option<dtype::DataType> {
+		let mut is_valid = true;
+		let mut data_type: Option<dtype::DataType> = None;
 
 		let mut is_signed: Option<bool> = None;
-		let mut data_type: Option<dtype::DataType> = None;
 		let mut long_count = 0;
 		for type_spec in specifiers.type_specifiers.iter_mut() {
 			match type_spec {
 				TypeSpecifier::Void(span) => {
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => data_type = Some(dtype::DataType::Void),
 					}
 					if long_count > 0 {
@@ -360,14 +380,18 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 				}
 				TypeSpecifier::Char(span) => {
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I8)),
 					}
 					if long_count > 0 {
@@ -378,14 +402,18 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 				}
 				TypeSpecifier::Short(span) => {
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I16)),
 					}
 					if long_count > 0 {
@@ -396,13 +424,17 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 				}
 				TypeSpecifier::Int(span) => match data_type {
-					Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-						diag::DiagKind::MultipleTypes,
-						span.clone(),
-					)),
+					Some(_) => {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						));
+						is_valid = false;
+					}
 					None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I32)),
 				},
 				TypeSpecifier::Long(span) => {
@@ -412,15 +444,19 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::TooLong,
 							span.clone(),
 						));
+						is_valid = false;
 					}
 					match &data_type {
-						Some(data_type) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								data_type.to_string(),
-							),
-							span.clone(),
-						)),
+						Some(data_type) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									LONG_STR.to_owned(),
+									data_type.to_string(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None | Some(dtype::DataType::Scalar(dtype::ScalarType::I32)) => {
 							// do nothing
 						}
@@ -428,29 +464,38 @@ impl super::SemanticParser<'_> {
 				}
 				TypeSpecifier::Float(span) => {
 					match is_signed {
-						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								FLOAT_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								FLOAT_STR.to_owned(),
-							),
-							span.clone(),
-						)),
+						Some(true) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									FLOAT_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
+						Some(false) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									UNSIGNED_STR.to_owned(),
+									FLOAT_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => {
 							// do nothing
 						}
 					}
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::Float)),
 					}
 					if long_count > 0 {
@@ -461,33 +506,43 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 				}
 				TypeSpecifier::Double(span) => {
 					match is_signed {
-						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								DOUBLE_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								DOUBLE_STR.to_owned(),
-							),
-							span.clone(),
-						)),
+						Some(true) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									DOUBLE_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
+						Some(false) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									UNSIGNED_STR.to_owned(),
+									DOUBLE_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => {
 							// do nothing
 						}
 					}
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => {
 							data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::Double))
 						}
@@ -500,21 +555,28 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 				}
 				TypeSpecifier::Signed(span) => {
 					match is_signed {
-						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
-							span.clone(),
-						)),
-						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								UNSIGNED_STR.to_owned(),
-							),
-							span.clone(),
-						)),
+						Some(true) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
+								span.clone(),
+							));
+							is_valid = false;
+						}
+						Some(false) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									UNSIGNED_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => is_signed = Some(true),
 					}
 					match &data_type {
@@ -525,7 +587,8 @@ impl super::SemanticParser<'_> {
 									DOUBLE_STR.to_owned(),
 								),
 								span.clone(),
-							))
+							));
+							is_valid = false;
 						}
 						Some(dtype::DataType::Scalar(dtype::ScalarType::Float)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -534,15 +597,21 @@ impl super::SemanticParser<'_> {
 									FLOAT_STR.to_owned(),
 								),
 								span.clone(),
-							))
+							));
+							is_valid = false;
 						}
 						Some(_) => {
-							let expected = vec!["identifier".to_string(), "\";\"".to_string(), "\"(\"".to_string()];
+							let expected = vec![
+								"identifier".to_string(),
+								"\";\"".to_string(),
+								"\"(\"".to_string(),
+							];
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::UnrecognizedToken { expected },
 								span.clone(),
-							))
-						},
+							));
+							is_valid = false;
+						}
 						Some(dtype::DataType::Scalar(_)) | None => {
 							// do nothing
 						}
@@ -550,17 +619,23 @@ impl super::SemanticParser<'_> {
 				}
 				TypeSpecifier::Unsigned(span) => {
 					match is_signed {
-						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								UNSIGNED_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
-							span.clone(),
-						)),
+						Some(true) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									UNSIGNED_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
+						Some(false) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => is_signed = Some(false),
 					}
 					match &data_type {
@@ -571,7 +646,8 @@ impl super::SemanticParser<'_> {
 									DOUBLE_STR.to_owned(),
 								),
 								span.clone(),
-							))
+							));
+							is_valid = false;
 						}
 						Some(dtype::DataType::Scalar(dtype::ScalarType::Float)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -580,15 +656,21 @@ impl super::SemanticParser<'_> {
 									FLOAT_STR.to_owned(),
 								),
 								span.clone(),
-							))
+							));
+							is_valid = false;
 						}
 						Some(_) => {
-							let expected = vec!["identifier".to_string(), "\";\"".to_string(), "\"(\"".to_string()];
+							let expected = vec![
+								"identifier".to_string(),
+								"\";\"".to_string(),
+								"\"(\"".to_string(),
+							];
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::UnrecognizedToken { expected },
 								span.clone(),
-							))
-						},
+							));
+							is_valid = false;
+						}
 						Some(dtype::DataType::Scalar(_)) | None => {
 							// do nothing
 						}
@@ -596,10 +678,13 @@ impl super::SemanticParser<'_> {
 				}
 				TypeSpecifier::Bool(span) => {
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::Bool)),
 					}
 					if long_count > 0 {
@@ -610,22 +695,29 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 					match is_signed {
-						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								BOOL_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								BOOL_STR.to_owned(),
-							),
-							span.clone(),
-						)),
+						Some(true) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									BOOL_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
+						Some(false) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									UNSIGNED_STR.to_owned(),
+									BOOL_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => {
 							// do nothing
 						}
@@ -641,7 +733,7 @@ impl super::SemanticParser<'_> {
 					for decl in struct_declaration_list.iter_mut() {
 						let mut member_vec = self.struct_declaration(decl);
 						let Some(mut member_vec) = member_vec else {
-							return (storage_class,None);
+							return None;
 						};
 						members.append(&mut member_vec);
 					}
@@ -650,6 +742,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						));
+						is_valid = false;
 					} else if let tok::Keyword::Struct = struct_or_union.keyword {
 						data_type = Some(dtype::DataType::Struct(members));
 					} else if let tok::Keyword::Union = struct_or_union.keyword {
@@ -663,22 +756,29 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 					match is_signed {
-						Some(true) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								SIGNED_STR.to_owned(),
-								STRUCT_STR.to_owned(),
-							),
-							span.clone(),
-						)),
-						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								UNSIGNED_STR.to_owned(),
-								struct_or_union.keyword.to_string()
-							),
-							span.clone(),
-						)),
+						Some(true) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									SIGNED_STR.to_owned(),
+									STRUCT_STR.to_owned(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
+						Some(false) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::BothSpecifiers(
+									UNSIGNED_STR.to_owned(),
+									struct_or_union.keyword.to_string(),
+								),
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => {
 							// do nothing
 						}
@@ -687,10 +787,13 @@ impl super::SemanticParser<'_> {
 				TypeSpecifier::EnumSpecifier(EnumSpecifier { tag_span, .. }) => {
 					let span = tag_span.clone();
 					match data_type {
-						Some(_) => self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						)),
+						Some(_) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I8)),
 					}
 					if long_count > 0 {
@@ -701,6 +804,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
+						is_valid = false;
 					}
 				}
 				TypeSpecifier::TypedefName { .. } => todo!("typedef"),
@@ -718,7 +822,11 @@ impl super::SemanticParser<'_> {
 				scalar.set_signedness(is_signed);
 			}
 		}
-		(storage_class, data_type)
+		if is_valid {
+			data_type
+		} else {
+			None
+		}
 	}
 	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
 		let _ = decl.identifier;
@@ -744,7 +852,7 @@ impl super::SemanticParser<'_> {
 		let mut result = vec![];
 		let mut is_valid = true;
 		// only type-specifier and type-qualifier is syntactically allowed here.
-		let (_, ty_opt) = self.specifiers(&mut struct_decl.specifiers);
+		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers);
 		for decl in struct_decl.struct_declaration_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
 			let span = match &decl.ident {
@@ -755,8 +863,18 @@ impl super::SemanticParser<'_> {
 				is_valid = false;
 				continue;
 			};
-			is_valid &= self.declarator_list(span, &mut decl.declarators, &mut data_type, false, DeclType::Decl, name_opt.clone());
-			result.push(dtype::MemberType { name: name_opt, dtype: Box::new(data_type) });
+			is_valid &= self.declarator_list(
+				span,
+				&mut decl.declarators,
+				&mut data_type,
+				false,
+				DeclType::Decl,
+				name_opt.clone(),
+			);
+			result.push(dtype::MemberType {
+				name: name_opt,
+				dtype: Box::new(data_type),
+			});
 		}
 		match is_valid {
 			true => Some(result),
