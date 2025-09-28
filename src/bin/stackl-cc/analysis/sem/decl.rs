@@ -909,11 +909,15 @@ impl super::SemanticParser<'_> {
 							continue;
 						}
 					}
-					Some(Err(ConversionError::Expr(_))) => {
-						let kind = diag::DiagKind::NonConstExpr;
-						let diag = diag::Diagnostic::error(kind, span.clone());
-						self.diagnostics.push(diag);
-						is_valid = false;
+					Some(Err(ConversionError::Expr(mut expr))) => {
+						// collect errors from expression first
+						is_valid &= self.expr(&mut expr);
+						if is_valid {
+							let kind = diag::DiagKind::NonConstExpr;
+							let diag = diag::Diagnostic::error(kind, span.clone());
+							self.diagnostics.push(diag);
+							is_valid = false;
+						}
 						continue;
 					},
 					Some(Err(ConversionError::OutOfRange)) => {
@@ -946,12 +950,14 @@ impl super::SemanticParser<'_> {
 		}
 	}
 
-	fn initializer(&mut self, init: &mut Initializer) {
+	fn initializer(&mut self, init: &mut Initializer) -> bool {
 		use Initializer::*;
+		let mut is_valid = true;
 		match init {
-			Expr(expr) => self.expr(expr),
-			InitializerList(list) => self.initializer_list(list),
+			Expr(expr) => is_valid &= self.expr(expr),
+			InitializerList(list) => is_valid &= self.initializer_list(list),
 		}
+		is_valid
 	}
 
 	fn declarator_list(
@@ -1078,24 +1084,30 @@ impl super::SemanticParser<'_> {
 			TypeQualifierKind::Volatile => (),
 		}
 	}
-	fn initializer_list(&mut self, list: &mut InitializerList) {
+	fn initializer_list(&mut self, list: &mut InitializerList) -> bool {
+		let mut is_valid = true;
 		for (desig, ref mut init) in list.0.iter_mut() {
 			if let Some(ref mut desig) = desig {
-				self.designation(desig);
+				is_valid &= self.designation(desig);
 			}
-			self.initializer(init);
+			is_valid &= self.initializer(init);
 		}
+		is_valid
 	}
-	fn designation(&mut self, desig: &mut Designation) {
+	fn designation(&mut self, desig: &mut Designation) -> bool {
+		let mut is_valid = true;
 		for ref mut desig in desig.0.iter_mut() {
-			self.designator(desig)
+			is_valid &= self.designator(desig)
 		}
+		is_valid
 	}
-	fn designator(&mut self, desig: &mut Designator) {
+	fn designator(&mut self, desig: &mut Designator) -> bool {
 		use Designator::*;
+		let mut is_valid = true;
 		match desig {
-			ConstantExpr(expr) => self.expr(expr),
+			ConstantExpr(expr) => is_valid &= self.expr(expr),
 			Dot(_) => (),
 		}
+		is_valid
 	}
 }
