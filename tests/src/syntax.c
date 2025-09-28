@@ -65,6 +65,21 @@ unsigned struct Foo { int y; } ll;
 struct Foo { unsigned char x; } signed k;
 struct Foo { unsigned char x; } unsigned k;
 
+union Bar {
+    int x;
+    int y[*];
+};
+
+union Bar s_bar;
+
+union Foo signed k;
+
+unsigned union Foo { int x; } kk;
+unsigned union Foo { int y; } ll;
+
+union Foo { unsigned char x; } signed k;
+union Foo { unsigned char x; } unsigned k;
+
 // auto x;
 
 

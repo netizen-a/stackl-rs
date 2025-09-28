@@ -675,7 +675,7 @@ impl super::SemanticParser<'_> {
 						Some(false) => self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::BothSpecifiers(
 								UNSIGNED_STR.to_owned(),
-								STRUCT_STR.to_owned(),
+								struct_or_union.keyword.to_string()
 							),
 							span.clone(),
 						)),
