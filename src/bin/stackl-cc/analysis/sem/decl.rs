@@ -27,14 +27,17 @@ enum DeclType {
 }
 
 impl super::SemanticParser<'_> {
-	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) {
+	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) -> bool {
 		let (storage, data_type) = self.specifiers(&mut decl.specifiers);
 
 		let storage = storage.unwrap_or(StorageClass::Extern);
 		let linkage = match storage {
 			StorageClass::Extern => Linkage::External,
 			StorageClass::Static => Linkage::Internal,
-			_ => todo!("invalid storage class"),
+			_ => {
+				// TODO: diagnostic
+				return false
+			},
 		};
 		let mut ret_type = data_type.unwrap();
 		if !matches!(
@@ -67,7 +70,10 @@ impl super::SemanticParser<'_> {
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParamList(param_list)) => {
-				let mut params = self.param_list(param_list, DeclType::FnDef);
+				let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
+					// failed to get param types
+					return false;
+				};
 				let is_variadic = param_list.is_variadic;
 				let func_type = dtype::FuncType {
 					params,
@@ -87,7 +93,7 @@ impl super::SemanticParser<'_> {
 				let kind = diag::DiagKind::ArrayOfFunctions(decl.ident.name.clone());
 				let diag = diag::Diagnostic::error(kind, array.span.clone());
 				self.diagnostics.push(diag);
-				return;
+				return false;
 			}
 			None | Some(Declarator::Pointer(_)) => {
 				let kind = diag::DiagKind::UnrecognizedToken {
@@ -100,7 +106,7 @@ impl super::SemanticParser<'_> {
 				};
 				let diag = diag::Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
 				self.diagnostics.push(diag);
-				return;
+				return false;
 			}
 		}
 		self.symtab.increase_scope();
@@ -109,19 +115,21 @@ impl super::SemanticParser<'_> {
 				self.declaration(declaration, StorageClass::Auto);
 			}
 			for item in decl.compound_stmt.blocks.iter_mut() {
-				self.block_item(item)
+				self.block_item(item);
 			}
 		}
 		self.decrease_scope();
+		return true;
 	}
 
 	fn param_list(
 		&mut self,
 		param_list: &mut ParamList,
 		decl_type: DeclType,
-	) -> Vec<dtype::DataType> {
+	) -> Option<Vec<dtype::DataType>> {
 		let param_count = param_list.param_list.len();
 		let mut result = vec![];
+		let mut is_valid = true;
 		for (index, param) in param_list.param_list.iter_mut().enumerate() {
 			let (_, data_type) = self.specifiers(&mut param.specifiers);
 			let (param_name, param_span): (Option<String>, diag::Span) =
@@ -132,6 +140,7 @@ impl super::SemanticParser<'_> {
 								let kind = diag::DiagKind::ArrayOfVoid(None);
 								let diag = diag::Diagnostic::error(kind, span.clone());
 								self.diagnostics.push(diag);
+								is_valid = false;
 								span.clone()
 							}
 							Some(Declarator::Pointer(_)) => {
@@ -142,6 +151,7 @@ impl super::SemanticParser<'_> {
 										param.specifiers.first_span.clone(),
 									);
 									self.diagnostics.push(diag);
+									is_valid = false;
 								}
 								param.specifiers.first_span.clone()
 							}
@@ -153,6 +163,7 @@ impl super::SemanticParser<'_> {
 										param.specifiers.first_span.clone(),
 									);
 									self.diagnostics.push(diag);
+									is_valid = false;
 								}
 								let implicit = Declarator::Pointer(PtrDecl {
 									is_const: false,
@@ -169,6 +180,7 @@ impl super::SemanticParser<'_> {
 									param.specifiers.first_span.clone(),
 								);
 								self.diagnostics.push(diag);
+								is_valid = false;
 								param.specifiers.first_span.clone()
 							}
 							None => {
@@ -179,6 +191,7 @@ impl super::SemanticParser<'_> {
 										param.specifiers.first_span.clone(),
 									);
 									self.diagnostics.push(diag);
+									is_valid = false;
 								}
 								param.specifiers.first_span.clone()
 							}
@@ -191,11 +204,13 @@ impl super::SemanticParser<'_> {
 								let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
 								let diag = diag::Diagnostic::error(kind, ident.span.clone());
 								self.diagnostics.push(diag);
+								is_valid = false;
 							}
 							Some(Declarator::IdentList(_)) => {
 								let kind = diag::DiagKind::DeclIdentList;
 								let diag = diag::Diagnostic::error(kind, ident.span.clone());
 								self.diagnostics.push(diag);
+								is_valid = false;
 							}
 							Some(Declarator::ParamList(_)) => {
 								let implicit = Declarator::Pointer(PtrDecl {
@@ -210,6 +225,7 @@ impl super::SemanticParser<'_> {
 								let kind = diag::DiagKind::OnlyVoid;
 								let diag = diag::Diagnostic::error(kind, ident.span.clone());
 								self.diagnostics.push(diag);
+								is_valid = false;
 							}
 						}
 						(Some(ident.name.clone()), ident.span.clone())
@@ -220,6 +236,7 @@ impl super::SemanticParser<'_> {
 							let diag =
 								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
 							self.diagnostics.push(diag);
+							is_valid = false;
 						}
 						(None, param.specifiers.first_span.clone())
 					}
@@ -227,7 +244,7 @@ impl super::SemanticParser<'_> {
 				};
 			let (_, param_type) = self.specifiers(&mut param.specifiers);
 			let mut param_type = param_type.unwrap();
-			self.declarator_list(
+			is_valid &= self.declarator_list(
 				param_span,
 				param.declarators.make_contiguous(),
 				&mut param_type,
@@ -237,10 +254,14 @@ impl super::SemanticParser<'_> {
 			);
 			result.push(param_type)
 		}
-		result
+		match is_valid {
+			true => Some(result),
+			false => None
+		}
 	}
 
-	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) {
+	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
+		let mut is_valid = true;
 		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
 		let storage = maybe_sc.unwrap_or(default_sc);
 		let linkage = match default_sc {
@@ -249,7 +270,7 @@ impl super::SemanticParser<'_> {
 			StorageClass::Static => Linkage::Internal,
 		};
 
-		for ref mut init_decl in decl.init_declarator_list.iter_mut() {
+		for init_decl in decl.init_declarator_list.iter_mut() {
 			let ident = &init_decl.identifier;
 			let Some(data_type) = &maybe_ty else {
 				let diag = diag::Diagnostic::error(
@@ -260,7 +281,7 @@ impl super::SemanticParser<'_> {
 				continue;
 			};
 			let mut var_dtype = data_type.clone();
-			self.declarator_list(
+			is_valid &= self.declarator_list(
 				ident.span.clone(),
 				&mut init_decl.declarator,
 				&mut var_dtype,
@@ -268,6 +289,9 @@ impl super::SemanticParser<'_> {
 				DeclType::Decl,
 				Some(ident.name.clone()),
 			);
+			if !is_valid {
+				return false;
+			}
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init);
 			}
@@ -280,6 +304,7 @@ impl super::SemanticParser<'_> {
 			let key = Namespace::Ordinary(ident.name.clone());
 			self.symtab.insert(key, entry);
 		}
+		is_valid
 	}
 	fn specifiers(
 		&mut self,
@@ -708,7 +733,7 @@ impl super::SemanticParser<'_> {
 		struct_decl: &mut StructDeclaration,
 	) -> Vec<dtype::MemberType> {
 		// let mut result = vec![];
-		// only type-specifier and type-qualifier is syntactically allowed here.
+		// // only type-specifier and type-qualifier is syntactically allowed here.
 		// let (_, ty_opt) = self.specifiers(&mut struct_decl.specifiers);
 		// for decl in struct_decl.struct_declaration_list.iter_mut() {
 		// 	//self.struct_declarator(decl);
@@ -747,7 +772,7 @@ impl super::SemanticParser<'_> {
 		mut is_param: bool,
 		mut decl_type: DeclType,
 		name: Option<String>,
-	) {
+	) -> bool {
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		// first iteration is for type checking
 		for declarator in decl_list.iter() {
@@ -839,7 +864,9 @@ impl super::SemanticParser<'_> {
 					if DeclType::FnDef == decl_type && is_param {
 						decl_type = DeclType::Proto;
 					}
-					let mut params = self.param_list(type_list, decl_type);
+					let Some(mut params) = self.param_list(type_list, decl_type) else {
+						return false;
+					};
 
 					let func_type = dtype::FuncType {
 						params,
@@ -850,6 +877,7 @@ impl super::SemanticParser<'_> {
 				}
 			};
 		}
+		return true;
 	}
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
 		match qual.kind {

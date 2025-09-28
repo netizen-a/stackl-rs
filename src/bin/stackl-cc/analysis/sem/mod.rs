@@ -51,15 +51,19 @@ impl<'a> SemanticParser<'a> {
 		mut unit: Vec<ExternalDeclaration>,
 	) -> Option<Vec<ExternalDeclaration>> {
 		use ExternalDeclaration::*;
+		let mut is_valid = true;
 		for external_decl in unit.iter_mut() {
 			match external_decl {
-				FunctionDefinition(decl) => self.function_definition(decl),
-				Declaration(decl) => self.declaration(decl, StorageClass::Static),
-				Asm(stmt) => (),
-				Error => {}
+				FunctionDefinition(decl) => is_valid &= self.function_definition(decl),
+				Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Static),
+				Asm(stmt) => is_valid &= true,
+				Error => is_valid &= false,
 			}
 		}
-		Some(unit)
+		match is_valid {
+			true => Some(unit),
+			false => None,
+		}
 	}
 	pub(self) fn decrease_scope(&mut self) {
 		if self.is_traced {

@@ -5,19 +5,22 @@ impl super::SemanticParser<'_> {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
 		self.symtab.increase_scope();
 		for item in stmt.blocks.iter_mut() {
-			self.block_item(item)
+			self.block_item(item);
 		}
 		self.decrease_scope();
 	}
-	pub(super) fn block_item(&mut self, item: &mut BlockItem) {
+	pub(super) fn block_item(&mut self, item: &mut BlockItem) -> bool {
 		use BlockItem::*;
+		let mut is_valid = true;
 		match item {
-			Declaration(decl) => self.declaration(decl, StorageClass::Auto),
-			Statement(stmt) => self.statement(stmt),
-			Error => {}
+			Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Auto),
+			Statement(stmt) => is_valid &= self.statement(stmt),
+			Error => is_valid &= false,
 		}
+		is_valid
 	}
-	pub(super) fn statement(&mut self, stmt: &mut Stmt) {
+	pub(super) fn statement(&mut self, stmt: &mut Stmt) -> bool {
+		let is_valid = true;
 		match stmt {
 			Stmt::Label(_labeled_stmt) => (),
 			Stmt::Compound(inner) => self.compound_stmt(inner),
@@ -29,6 +32,7 @@ impl super::SemanticParser<'_> {
 			Stmt::Jump(_jmp_stmt) => (),
 			Stmt::Asm(_asm_stmt) => (),
 		}
+		is_valid
 	}
 	fn selection_stmt(&mut self, stmt: &mut SelectStmt) {
 		match stmt {

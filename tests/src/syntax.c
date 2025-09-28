@@ -50,12 +50,19 @@ float ff = 5e5;
 // long float v;
 // long long long double;
 
-// struct Foo signed k;
+struct Bar {
+    int x;
+    int y;
+};
 
-// unsigned struct Foo { int x; } kk;
-// unsigned struct Foo { int y; } ll;
+struct Bar s_bar;
 
-// struct Foo { unsigned char x; } signed k;
+struct Foo signed k;
+
+unsigned struct Foo { int x; } kk;
+unsigned struct Foo { int y; } ll;
+
+struct Foo { unsigned char x; } signed k;
 
 // auto x;
 
