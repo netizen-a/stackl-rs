@@ -469,7 +469,7 @@ StorageClassSpecifier: StorageClassSpecifier = {
 				loc: (lo,hi),
 				file_id: kw.file_id(),
 			},
-			storage_class: StorageClass::Typedef,
+			kind: StorageClass::Typedef,
 		}
 	},
 	<lo:@L> <kw:"extern"> <hi:@R> => StorageClassSpecifier {
@@ -477,28 +477,28 @@ StorageClassSpecifier: StorageClassSpecifier = {
 			loc: (lo,hi),
 			file_id: kw.file_id(),
 		},
-		storage_class: StorageClass::Extern,
+		kind: StorageClass::Extern,
 	},
 	<lo:@L> <kw:"static"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
 			file_id: kw.file_id(),
 		},
-		storage_class: StorageClass::Static,
+		kind: StorageClass::Static,
 	},
 	<lo:@L> <kw:"auto"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
 			file_id: kw.file_id(),
 		},
-		storage_class: StorageClass::Auto,
+		kind: StorageClass::Auto,
 	},
 	<lo:@L> <kw:"register"> <hi:@R> => StorageClassSpecifier {
 		span: diag::Span{
 			loc: (lo,hi),
 			file_id: kw.file_id(),
 		},
-		storage_class: StorageClass::Register,
+		kind: StorageClass::Register,
 	},
 }
 

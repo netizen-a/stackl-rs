@@ -1,8 +1,8 @@
 // Test for declarator syntax
 
-#include "example_header.h"
+// #include "example_header.h"
 
-float ff = 5e5;
+// float ff = 5e5;
 // int a = 1 + 1;
 // int *b;
 // int *c[3];
@@ -50,19 +50,19 @@ float ff = 5e5;
 // long float v;
 // long long long double;
 
-struct Bar {
-    int x;
-    int y;
-};
+// struct Bar {
+//     int x;
+//     int y;
+// };
 
-struct Bar s_bar;
+// struct Bar s_bar;
 
-struct Foo signed k;
+// struct Foo signed k;
 
-unsigned struct Foo { int x; } kk;
-unsigned struct Foo { int y; } ll;
+// unsigned struct Foo { int x; } kk;
+// unsigned struct Foo { int y; } ll;
 
-struct Foo { unsigned char x; } signed k;
+// struct Foo { unsigned char x; } signed k;
 
 // auto x;
 
@@ -94,5 +94,12 @@ struct Foo { unsigned char x; } signed k;
 // int bar(int x[*]);
 
 // int baz(int (*x)(int y[*])) {}
+
+static void foo(void) {}
+extern void bar(void) {}
+auto void baz(void) {}
+typedef void bap(void) {}
+register void rap(void) {}
+
 
 

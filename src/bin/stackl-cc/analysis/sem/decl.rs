@@ -5,6 +5,7 @@ use crate::analysis::sem::SymbolTableEntry;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::data_types as dtype;
+use crate::diagnostics::ToSpan;
 use crate::diagnostics as diag;
 
 const SIGNED_STR: &str = "signed";
@@ -28,14 +29,15 @@ enum DeclType {
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut FunctionDefinition) -> bool {
-		let (storage, data_type) = self.specifiers(&mut decl.specifiers);
+		let (maybe_sc, data_type) = self.specifiers(&mut decl.specifiers);
 
-		let storage = storage.unwrap_or(StorageClass::Extern);
-		let linkage = match storage {
-			StorageClass::Extern => Linkage::External,
-			StorageClass::Static => Linkage::Internal,
-			_ => {
-				// TODO: diagnostic
+		let (storage, linkage) = match &maybe_sc {
+			None | Some(StorageClassSpecifier{kind:StorageClass::Extern,..}) => (StorageClass::Extern, Linkage::External),
+			Some(StorageClassSpecifier{kind:StorageClass::Static,..}) => (StorageClass::Static, Linkage::Internal),
+			Some(storage) => {
+				let kind = diag::DiagKind::IllegalStorage(storage.kind);
+				let diag = diag::Diagnostic::error(kind, storage.to_span());
+				self.diagnostics.push(diag);
 				return false
 			},
 		};
@@ -59,6 +61,7 @@ impl super::SemanticParser<'_> {
 					params: vec![],
 					ret: Box::new(ret_type),
 					is_variadic: false,
+					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
 				let entry = SymbolTableEntry {
 					data_type: dtype::DataType::Function(func_type),
@@ -79,6 +82,7 @@ impl super::SemanticParser<'_> {
 					params,
 					ret: Box::new(ret_type),
 					is_variadic,
+					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
 				let entry = SymbolTableEntry {
 					data_type: dtype::DataType::Function(func_type),
@@ -263,11 +267,10 @@ impl super::SemanticParser<'_> {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
 		let mut is_valid = true;
 		let (maybe_sc, maybe_ty) = self.specifiers(&mut decl.specifiers);
-		let storage = maybe_sc.unwrap_or(default_sc);
-		let linkage = match default_sc {
-			StorageClass::Auto | StorageClass::Register | StorageClass::Typedef => Linkage::None,
-			StorageClass::Extern => Linkage::External,
-			StorageClass::Static => Linkage::Internal,
+		let (storage, linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
+			StorageClass::Extern => (StorageClass::Extern, Linkage::External),
+			StorageClass::Static => (StorageClass::Static, Linkage::Internal),
+			storage => (storage, Linkage::None),
 		};
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
@@ -309,7 +312,7 @@ impl super::SemanticParser<'_> {
 	fn specifiers(
 		&mut self,
 		specifiers: &mut Specifiers,
-	) -> (Option<StorageClass>, Option<dtype::DataType>) {
+	) -> (Option<StorageClassSpecifier>, Option<dtype::DataType>) {
 		let mut storage_class = None;
 		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
@@ -320,7 +323,7 @@ impl super::SemanticParser<'_> {
 				self.diagnostics.push(diag);
 				storage_class = None;
 			} else {
-				storage_class = Some(storage_class_specifier.storage_class);
+				storage_class = Some(storage_class_specifier.clone());
 			}
 		}
 
@@ -741,8 +744,7 @@ impl super::SemanticParser<'_> {
 		// 	result.push(dtype::MemberType { ident, dtype: () });
 		// }
 		// result
-
-		todo!("struct-declarator")
+		todo!("struct-decl")
 	}
 
 	fn struct_declarator(&mut self, struct_decl: &mut StructDeclarator) {
@@ -857,6 +859,7 @@ impl super::SemanticParser<'_> {
 						params: vec![],
 						ret: Box::new(data_type.clone()),
 						is_variadic: false,
+						is_inline: false,
 					};
 					dtype::DataType::Function(func_type)
 				}
@@ -872,6 +875,7 @@ impl super::SemanticParser<'_> {
 						params,
 						ret: Box::new(data_type.clone()),
 						is_variadic: type_list.is_variadic,
+						is_inline: false,
 					};
 					dtype::DataType::Function(func_type)
 				}

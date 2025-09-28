@@ -3,7 +3,7 @@ mod kind;
 pub mod lex;
 mod span;
 
-use crate::analysis::tok::{self, file_id::FileId};
+use crate::analysis::{syn, tok::{self, file_id::FileId}};
 use std::{
 	collections::{HashMap, HashSet},
 	fs,
@@ -281,6 +281,10 @@ impl DiagnosticEngine {
 			}
 			DiagKind::ArrayOfVoid(Some(name)) => {
 				let msg0 = format!("declaration of '{name}' as array of voids");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::IllegalStorage(kind) => {
+				let msg0 = format!("function definition declared '{kind}'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			kind => unimplemented!("{kind:?}"),

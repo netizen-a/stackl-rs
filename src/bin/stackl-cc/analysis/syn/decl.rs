@@ -1,6 +1,6 @@
 //! Declarations
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt};
 
 use super::expr;
 use crate::{analysis::tok, diagnostics as diag};
@@ -99,11 +99,30 @@ pub enum StorageClass {
 	Extern,
 }
 
+impl fmt::Display for StorageClass {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let sc = match self {
+			Self::Static => "static",
+			Self::Auto => "auto",
+			Self::Typedef => "typedef",
+			Self::Register => "register",
+			Self::Extern => "extern",
+		};
+		write!(f, "{sc}")
+	}
+}
+
 /// (6.7.1) storage-class-specifier
 #[derive(Debug, Clone)]
 pub struct StorageClassSpecifier {
 	pub span: diag::Span,
-	pub storage_class: StorageClass,
+	pub kind: StorageClass,
+}
+
+impl diag::ToSpan for StorageClassSpecifier {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
 }
 
 /// (6.7.2) type-specifier

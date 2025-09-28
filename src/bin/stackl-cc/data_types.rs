@@ -71,6 +71,7 @@ pub struct FuncType {
 	pub params: Vec<DataType>,
 	pub ret: Box<DataType>,
 	pub is_variadic: bool,
+	pub is_inline: bool,
 }
 
 // TODO: add optional bitfields

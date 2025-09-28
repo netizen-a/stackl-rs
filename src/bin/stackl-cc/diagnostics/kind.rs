@@ -1,5 +1,7 @@
 // use crate::data_types::DataType;
 
+use crate::analysis::syn::StorageClass;
+
 #[derive(Debug)]
 pub enum DiagKind {
 	UnexpectedEof,
@@ -25,4 +27,5 @@ pub enum DiagKind {
 	IfAssign,
 	OnlyVoid,
 	ArrayOfVoid(Option<String>),
+	IllegalStorage(StorageClass),
 }
