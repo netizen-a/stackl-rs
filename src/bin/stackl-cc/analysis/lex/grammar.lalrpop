@@ -10,7 +10,6 @@ use lalrpop_util as lalr;
 use crate::analysis::lex::PPTokenStack;
 use crate::analysis::lex::lexer::Lexer;
 use crate::analysis::tok::*;
-use crate::directive;
 
 grammar<'a>(
 	diagnostics: &mut diag::DiagnosticEngine,
@@ -34,7 +33,7 @@ GroupPart: Vec<TokenTriple> = {
 
 ControlLine: Vec<TokenTriple> = {
 	// TODO: make this fallible
-	"#" DirectiveInclude <header:HEADER_NAME> "\n" => {
+	"#" DIRECTIVE_INCLUDE <header:HEADER_NAME> "\n" => {
 		let origin_path = diagnostics.get_file_path(header.file_id).unwrap();
 		let header_name = PathBuf::from(header.kind.to_name());
 		let full_path = origin_path.parent().unwrap().join(header_name);
@@ -55,12 +54,18 @@ ControlLine: Vec<TokenTriple> = {
 		stack.push_lexer(Lexer::new(buf, file_id));
 		vec![]
 	},
-	// "#" DirectiveDefine <ident:Identifier> <list:ReplacementList> "\n" => {
-	// 	let name = ident.1.kind.clone().unwrap_ident().name;
-	// 	let mut stack = stack_ref.borrow_mut();
-	// 	stack.define_obj_macro(name, list);
-	// 	vec![]
-	// }
+	"#" DIRECTIVE_DEFINE <ident:Identifier> <list:ReplacementList> "\n" => {
+		let name = ident.1.kind.clone().unwrap_ident().name;
+		let mut stack = stack_ref.borrow_mut();
+		stack.define_obj_macro(name, list);
+		vec![]
+	},
+	"#" DIRECTIVE_UNDEF <ident:Identifier> "\n" => {
+		let name = ident.1.kind.clone().unwrap_ident().name;
+		let mut stack = stack_ref.borrow_mut();
+		stack.undef_macro(name);
+		vec![]
+	},
 };
 
 TextLine: Vec<TokenTriple> = {
@@ -110,21 +115,6 @@ PreprocessingToken: TokenTriple = {
 		}
 	}
 };
-
-
-DirectiveInclude: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "include", lo, hi);
-DirectiveIf: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "if", lo, hi);
-DirectiveIfdef: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "ifdef", lo, hi);
-DirectiveIfndef: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "ifndef", lo, hi);
-DirectiveElif: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "elif", lo, hi);
-DirectiveElse: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "else", lo, hi);
-DirectiveEndif: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "endif", lo, hi);
-DirectiveDefine: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "define", lo, hi);
-DirectiveUndef: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "undef", lo, hi);
-DirectiveLine: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "line", lo, hi);
-DirectiveError: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "error", lo, hi);
-DirectivePragma: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "pragma", lo, hi);
-
 
 NonHash: TokenTriple = {
 	Identifier,
@@ -262,10 +252,22 @@ extern {
 
 	enum PPToken {
 		HEADER_NAME => PPToken{kind: PPTokenKind::HeaderName(_), ..},
-		IDENT => PPToken{kind: PPTokenKind::Ident{..}, ..},
+		IDENT => PPToken{kind: PPTokenKind::Ident(_), ..},
 		PP_NUMBER => PPToken{kind: PPTokenKind::PPNumber(_), ..},
 		CHAR_CONST => PPToken{kind: PPTokenKind::CharConst(_), ..},
 		STR_LIT => PPToken{kind: PPTokenKind::StrLit(_), ..},
+		DIRECTIVE_INCLUDE => PPToken{kind: PPTokenKind::Directive(Directive::Include), ..},
+		DIRECTIVE_IF => PPToken{kind: PPTokenKind::Directive(Directive::If), ..},
+		DIRECTIVE_IFDEF => PPToken{kind: PPTokenKind::Directive(Directive::Ifdef), ..},
+		DIRECTIVE_IfNDEF => PPToken{kind: PPTokenKind::Directive(Directive::Ifndef), ..},
+		DIRECTIVE_ELIF => PPToken{kind: PPTokenKind::Directive(Directive::Elif), ..},
+		DIRECTIVE_ELSE => PPToken{kind: PPTokenKind::Directive(Directive::Else), ..},
+		DIRECTIVE_ENDIF => PPToken{kind: PPTokenKind::Directive(Directive::Endif), ..},
+		DIRECTIVE_DEFINE => PPToken{kind: PPTokenKind::Directive(Directive::Define), ..},
+		DIRECTIVE_UNDEF => PPToken{kind: PPTokenKind::Directive(Directive::Undef), ..},
+		DIRECTIVE_LINE => PPToken{kind: PPTokenKind::Directive(Directive::Line), ..},
+		DIRECTIVE_ERROR => PPToken{kind: PPTokenKind::Directive(Directive::Error), ..},
+		DIRECTIVE_PRAGMA => PPToken{kind: PPTokenKind::Directive(Directive::Pragma), ..},
 		"\n" => PPToken{kind: PPTokenKind::NewLine(_), ..},
 		"#" => PPToken{kind: PPTokenKind::Punct(Punct::Hash), ..},
 		"##" => PPToken{kind: PPTokenKind::Punct(Punct::HashHash), ..},

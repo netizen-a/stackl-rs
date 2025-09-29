@@ -324,9 +324,7 @@ impl TryFrom<PPTokenKind> for TokenKind {
 			PPTokenKind::CharConst(inner) => Ok(Self::Const(Const::CharConst(inner))),
 			PPTokenKind::StrLit(inner) => Ok(Self::StrLit(inner)),
 			PPTokenKind::Punct(inner) => Ok(Self::Punct(inner)),
-			PPTokenKind::NewLine(_) | PPTokenKind::HeaderName(_) => {
-				Err(diag::DiagKind::InvalidToken)
-			}
+			_ => Err(diag::DiagKind::InvalidToken),
 		}
 	}
 }
@@ -343,6 +341,42 @@ impl file_id::FileId for Token {
 	}
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Directive {
+	Include,
+	If,
+	Ifdef,
+	Ifndef,
+	Elif,
+	Else,
+	Endif,
+	Define,
+	Undef,
+	Line,
+	Error,
+	Pragma,
+}
+
+impl fmt::Display for Directive {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let dir_str = match self {
+			Self::Include => "include",
+			Self::If => "if",
+			Self::Ifdef => "ifdef",
+			Self::Ifndef => "ifndef",
+			Self::Elif => "elif",
+			Self::Else => "else",
+			Self::Endif => "endif",
+			Self::Define => "define",
+			Self::Undef => "undef",
+			Self::Line => "line",
+			Self::Error => "error",
+			Self::Pragma => "pragma",
+		};
+		write!(f, "{dir_str}")
+	}
+}
+
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum PPTokenKind {
@@ -353,6 +387,7 @@ pub enum PPTokenKind {
 	StrLit(StrLit),
 	Punct(Punct),
 	NewLine(NewLine),
+	Directive(Directive),
 }
 
 impl PPTokenKind {
@@ -365,6 +400,7 @@ impl PPTokenKind {
 			Self::StrLit(value) => value.seq.clone(),
 			Self::Punct(value) => format!("{value}"),
 			Self::NewLine(_) => String::from("\\n"),
+			Self::Directive(dir) => dir.to_string(),
 		}
 	}
 	pub fn unwrap_str_lit(self) -> StrLit {
@@ -404,6 +440,7 @@ impl PPToken {
 			PPTokenKind::StrLit(literal) => print!("{}", literal.seq),
 			PPTokenKind::HeaderName(header) => print!("{}", header.name),
 			PPTokenKind::PPNumber(number) => print!("{}", number.name),
+			PPTokenKind::Directive(directive) => print!("{directive}"),
 		}
 		self
 	}
