@@ -8,7 +8,13 @@ use crate::analysis::{
 	tok::{self, file_id::FileId},
 };
 use std::{
-	cell::RefCell, collections::{HashMap, HashSet}, fs, io::{BufReader, Read}, path::{Path, PathBuf}, rc::Rc, result
+	cell::RefCell,
+	collections::{HashMap, HashSet},
+	fs,
+	io::{BufReader, Read},
+	path::{Path, PathBuf},
+	rc::Rc,
+	result,
 };
 
 use lalrpop_util::ParseError;
@@ -54,7 +60,10 @@ impl DiagnosticEngine {
 		self.fatal_errors.push(diag)
 	}
 	pub fn get_file_path(&self, id: usize) -> Option<PathBuf> {
-		self.file_map_ref.borrow().get_by_left(&id).map(|p| p.clone())
+		self.file_map_ref
+			.borrow()
+			.get_by_left(&id)
+			.map(|p| p.clone())
 	}
 	pub fn id(&self) -> usize {
 		self.file_map_ref.borrow().len()
@@ -63,7 +72,8 @@ impl DiagnosticEngine {
 	where
 		P: AsRef<Path>,
 	{
-		self.file_map_ref.borrow()
+		self.file_map_ref
+			.borrow()
 			.get_by_right::<Path>(name.as_ref())
 			.map(|p| *p)
 	}
@@ -74,7 +84,9 @@ impl DiagnosticEngine {
 	where
 		P: AsRef<Path>,
 	{
-		self.file_map_ref.borrow_mut().insert(id, full_path.as_ref().to_path_buf());
+		self.file_map_ref
+			.borrow_mut()
+			.insert(id, full_path.as_ref().to_path_buf());
 		let file = fs::File::open(&full_path).unwrap();
 		let mut reader = BufReader::new(file);
 		let mut buf = String::new();
@@ -122,7 +134,12 @@ impl DiagnosticEngine {
 			ParseError::InvalidToken { .. } => unreachable!("invalid token"),
 			ParseError::UnrecognizedEof { location, expected } => {
 				let file_id = 0;
-				let file_path = self.file_map_ref.borrow().get_by_left(&file_id).unwrap().clone();
+				let file_path = self
+					.file_map_ref
+					.borrow()
+					.get_by_left(&file_id)
+					.unwrap()
+					.clone();
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
 				let _ = file.read_to_string(&mut source);

@@ -85,30 +85,9 @@ ReplacementToken: PPTokenTriple = {
 PreprocessingToken: TokenTriple = {
 	Identifier,
 	PPNumber,
-	<lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
-		let file_id = tk.file_id;
-		match tk.kind.try_into() {
-			Ok(kind) => Ok((
-				lo,
-				Token{
-					kind,
-					file_id,
-				},
-				hi
-			)),
-			Err(kind) => Err(lalr::ParseError::User {
-				error: diag::Diagnostic::error(
-					kind,
-					diag::Span {
-						loc: (hi, lo),
-						file_id: tk.file_id,
-					},
-				)
-			}),
-		}
-	},
-	StrLit => <>,
-	<lo:@L> <tk:PUNCT> <hi:@R> =>? {
+	CharConst,
+	StrLit,
+	<lo:@L> <tk:Punct> <hi:@R> =>? {
 		let file_id = tk.file_id;
 		match tk.kind.try_into() {
 			Ok(kind) => Ok((
@@ -151,6 +130,7 @@ NonHash: TokenTriple = {
 	Identifier,
 	StrLit,
 	PPNumber,
+	CharConst,
 	<lo:@L> <tk:NonHashPunct> <hi:@R> =>? {
 		let file_id = tk.file_id;
 		match tk.kind.try_into() {
@@ -173,6 +153,29 @@ NonHash: TokenTriple = {
 			}),
 		}
 	},
+};
+
+CharConst: TokenTriple = <lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
+	let file_id = tk.file_id;
+	match tk.kind.try_into() {
+		Ok(kind) => Ok((
+			lo,
+			Token{
+				kind,
+				file_id,
+			},
+			hi
+		)),
+		Err(kind) => Err(lalr::ParseError::User {
+			error: diag::Diagnostic::error(
+				kind,
+				diag::Span {
+					loc: (hi, lo),
+					file_id: tk.file_id,
+				},
+			)
+		}),
+	}
 };
 
 PPNumber: TokenTriple = <lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
@@ -239,7 +242,7 @@ StrLit: TokenTriple = <lo:@L> <tk:STR_LIT> <hi:@R> => {
 	)
 };
 
-PUNCT: PPToken = {
+Punct: PPToken = {
 	"#",
 	NonHashPunct,
 };

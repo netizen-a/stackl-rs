@@ -1,6 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
 
-use crate::{analysis::tok::{self, PPToken, PPTokenTriple}, diagnostics::DiagnosticEngine};
+use crate::{
+	analysis::tok::{self, PPToken, PPTokenTriple},
+	diagnostics::DiagnosticEngine,
+};
 
 use super::lexer::Lexer;
 use crate::diagnostics as diag;
@@ -19,6 +22,26 @@ pub struct PPTokenStack {
 }
 
 impl PPTokenStack {
+	fn new(value: Lexer, file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>) -> Self {
+		let mut defines = HashMap::new();
+		defines.insert("__DATE__".to_string(), vec![]);
+		defines.insert("__FILE__".to_string(), vec![]);
+		defines.insert("__LINE__".to_string(), vec![]);
+		defines.insert("__STDC__".to_string(), vec![]);
+		defines.insert("__STDC_HOSTED__".to_string(), vec![]);
+		defines.insert("__STDC_MB_MIGHT_NEQ_WC__".to_string(), vec![]);
+		defines.insert("__STDC_VERSION__".to_string(), vec![]);
+		defines.insert("__TIME__".to_string(), vec![]);
+		defines.insert("__STDC_IEC_559__".to_string(), vec![]);
+		defines.insert("__STDC_IEC_559_COMPLEX__".to_string(), vec![]);
+		defines.insert("__STDC_ISO_10646__".to_string(), vec![]);
+		Self {
+			stack: vec![StackKind::Lexer(value)],
+			defines,
+			file_map_ref,
+			line: 1,
+		}
+	}
 	pub fn define_obj_macro(&mut self, name: String, replacement_list: Vec<PPTokenTriple>) {
 		self.defines.insert(name, replacement_list);
 	}
@@ -57,7 +80,7 @@ impl PPTokenStack {
 			tok::PPTokenKind::NewLine(_) => {
 				self.line += 1;
 				return Some(triple);
-			},
+			}
 			_ => {
 				// we don't need this token, so return it to iterator
 				return Some(triple);
@@ -68,48 +91,97 @@ impl PPTokenStack {
 		}
 
 		match ident.name.as_str() {
-			"__DATE__" => {},
+			"__DATE__" => {}
 			"__FILE__" => {
 				let file_map = self.file_map_ref.borrow();
 				let file_path = file_map.get_by_left(&file_id).unwrap();
 				let seq = file_path.to_str().unwrap().to_owned();
-				let kind = tok::PPTokenKind::StrLit(tok::StrLit { seq, is_wide: false, file_id });
-				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				let kind = tok::PPTokenKind::StrLit(tok::StrLit {
+					seq,
+					is_wide: false,
+					file_id,
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
 				return Some((triple.0, pp_token, triple.2));
-			},
+			}
 			"__LINE__" => {
-				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: format!("{}", self.line)});
-				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: format!("{}", self.line),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
 				return Some((triple.0, pp_token, triple.2));
-			},
+			}
 			"__STDC__" => {
-				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "1".to_string()});
-				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "1".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
 				return Some((triple.0, pp_token, triple.2));
-			},
+			}
+			// This compiler is freestanding
 			"__STDC_HOSTED__" => {
-				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "0".to_string()});
-				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "0".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
 				return Some((triple.0, pp_token, triple.2));
-			},
-			"__STDC_MB_MIGHT_NEQ_WC__" => {},
+			}
+			"__STDC_MB_MIGHT_NEQ_WC__" => {}
 			"__STDC_VERSION__" => {
-				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "199901L".to_string()});
-				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "199901L".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
 				return Some((triple.0, pp_token, triple.2));
-			},
-			"__TIME__" => {},
-			"__STDC_IEC_559__" => {},
+			}
+			"__TIME__" => {}
+			"__STDC_IEC_559__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "1".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
+				return Some((triple.0, pp_token, triple.2));
+			}
 			// freestanding implementations are not required to conform to informative annex G.
 			"__STDC_IEC_559_COMPLEX__" => {
-				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "0".to_string()});
-				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "0".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
 				return Some((triple.0, pp_token, triple.2));
-			},
-			"__STDC_ISO_10646__" => {},
+			}
+			"__STDC_ISO_10646__" => {}
 			_ => {
 				// do nothing
-			},
+			}
 		}
 		Some(triple)
 	}
@@ -135,12 +207,7 @@ pub struct PPTokenIter {
 
 impl PPTokenIter {
 	pub fn new(value: Lexer, file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>) -> Self {
-		let pp_token_stack = PPTokenStack {
-			stack: vec![StackKind::Lexer(value)],
-			defines: HashMap::new(),
-			file_map_ref,
-			line: 1,
-		};
+		let pp_token_stack = PPTokenStack::new(value, file_map_ref);
 		Self {
 			stack_ref: Rc::new(RefCell::new(pp_token_stack)),
 		}
