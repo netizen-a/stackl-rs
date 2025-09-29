@@ -87,7 +87,7 @@ PreprocessingToken: TokenTriple = {
 	PPNumber,
 	CharConst,
 	StrLit,
-	<lo:@L> <tk:Punct> <hi:@R> =>? {
+	<lo:@L> <tk:PUNCT> <hi:@R> =>? {
 		let file_id = tk.file_id;
 		match tk.kind.try_into() {
 			Ok(kind) => Ok((
@@ -242,7 +242,7 @@ StrLit: TokenTriple = <lo:@L> <tk:STR_LIT> <hi:@R> => {
 	)
 };
 
-Punct: PPToken = {
+PUNCT: PPToken = {
 	"#",
 	NonHashPunct,
 };

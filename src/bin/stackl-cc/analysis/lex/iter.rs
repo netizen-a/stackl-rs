@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, time};
 
 use crate::{
 	analysis::tok::{self, PPToken, PPTokenTriple},
@@ -7,10 +7,38 @@ use crate::{
 
 use super::lexer::Lexer;
 use crate::diagnostics as diag;
+use chrono::{Datelike, Timelike};
 
 pub enum StackKind {
 	Buffer(Vec<diag::ResultTriple<PPToken, usize>>),
 	Lexer(Lexer),
+}
+
+static MON_NAME: [&str;12] = [
+	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+fn current_date() -> String {
+	let mut result = String::new();
+	let utc = chrono::Local::now();
+	let (day, month, year) = (utc.day(), utc.month(), utc.year());
+	result.push_str(MON_NAME[(month - 1) as usize]);
+	result.push_str(" ");
+	if day < 10 {
+		result.push_str(" ");
+	}
+	result.push_str(&format!("{day}"));
+	result.push_str(" ");
+	result.push_str(&format!("{year}"));
+
+	return result;
+}
+
+fn current_time() -> String {
+	let utc = chrono::Local::now();
+	let (hour, min, sec) = (utc.hour(), utc.minute(), utc.second());
+	format!("{hour:02}:{min:02}:{sec:02}")
 }
 
 #[derive(Default)]
@@ -91,7 +119,16 @@ impl PPTokenStack {
 		}
 
 		match ident.name.as_str() {
-			"__DATE__" => {}
+			"__DATE__" => {
+				let seq = current_date();
+				let kind = tok::PPTokenKind::StrLit(tok::StrLit { seq, is_wide: false, file_id, });
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
+				return Some((triple.0, pp_token, triple.2));
+			}
 			"__FILE__" => {
 				let file_map = self.file_map_ref.borrow();
 				let file_path = file_map.get_by_left(&file_id).unwrap();
@@ -154,7 +191,16 @@ impl PPTokenStack {
 				};
 				return Some((triple.0, pp_token, triple.2));
 			}
-			"__TIME__" => {}
+			"__TIME__" => {
+				let seq = current_time();
+				let kind = tok::PPTokenKind::StrLit(tok::StrLit { seq, is_wide: false, file_id, });
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
+				return Some((triple.0, pp_token, triple.2));
+			}
 			"__STDC_IEC_559__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
 					name: "1".to_string(),
