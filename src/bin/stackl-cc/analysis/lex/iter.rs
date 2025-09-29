@@ -68,6 +68,7 @@ impl PPTokenStack {
 		}
 
 		match ident.name.as_str() {
+			"__DATE__" => {},
 			"__FILE__" => {
 				let file_map = self.file_map_ref.borrow();
 				let file_path = file_map.get_by_left(&file_id).unwrap();
@@ -80,8 +81,35 @@ impl PPTokenStack {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: format!("{}", self.line)});
 				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
 				return Some((triple.0, pp_token, triple.2));
-			}
-			_ => {}
+			},
+			"__STDC__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "1".to_string()});
+				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				return Some((triple.0, pp_token, triple.2));
+			},
+			"__STDC_HOSTED__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "0".to_string()});
+				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				return Some((triple.0, pp_token, triple.2));
+			},
+			"__STDC_MB_MIGHT_NEQ_WC__" => {},
+			"__STDC_VERSION__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "199901L".to_string()});
+				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				return Some((triple.0, pp_token, triple.2));
+			},
+			"__TIME__" => {},
+			"__STDC_IEC_559__" => {},
+			// freestanding implementations are not required to conform to informative annex G.
+			"__STDC_IEC_559_COMPLEX__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {name: "0".to_string()});
+				let pp_token = tok::PPToken {file_id, kind, leading_space: triple.1.leading_space};
+				return Some((triple.0, pp_token, triple.2));
+			},
+			"__STDC_ISO_10646__" => {},
+			_ => {
+				// do nothing
+			},
 		}
 		Some(triple)
 	}
