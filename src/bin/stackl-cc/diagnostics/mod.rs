@@ -310,6 +310,16 @@ impl DiagnosticEngine {
 				let msg0 = "expression is not an integer constant expression";
 				self.format_diagnostic(&diag, msg0, "")
 			}
+			DiagKind::EnumNonIntegral(name) => {
+				let msg0 =
+					format!("enumerator value for '{name}' is not an integer constant expression");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::EnumRange => {
+				let msg0 = "enumerator value is out of range";
+				let msg1 = "ISO C restricts enumerator values to range of 'int' before C23";
+				self.format_diagnostic(&diag, msg0, msg1)
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

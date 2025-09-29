@@ -31,4 +31,6 @@ pub enum DiagKind {
 	BitfieldExceedsWidth(Option<String>),
 	BitfieldNonIntegral(Option<String>),
 	NonConstExpr,
+	EnumRange,
+	EnumNonIntegral(String),
 }

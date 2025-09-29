@@ -163,7 +163,10 @@ impl fmt::Display for DataType {
 			Self::Scalar(ScalarType::Float) => write!(f, "float"),
 			Self::Scalar(ScalarType::Double) => write!(f, "double"),
 			Self::Scalar(ScalarType::LongDouble) => write!(f, "long double"),
-			Self::Struct(StructType { members, is_incomplete }) => {
+			Self::Struct(StructType {
+				members,
+				is_incomplete,
+			}) => {
 				if *is_incomplete {
 					write!(f, "struct")
 				} else {

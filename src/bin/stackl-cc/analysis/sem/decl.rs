@@ -454,7 +454,11 @@ impl super::SemanticParser<'_> {
 						is_valid = false;
 					}
 					match &data_type {
-						Some(dtype::DataType::Struct(_) | dtype::DataType::Union(_) | dtype::DataType::Enum) => {
+						Some(
+							dtype::DataType::Struct(_)
+							| dtype::DataType::Union(_)
+							| dtype::DataType::Enum,
+						) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
@@ -756,17 +760,17 @@ impl super::SemanticParser<'_> {
 					match struct_or_union.kind {
 						StructOrUnionKind::Struct => {
 							let struct_type = dtype::StructType {
-							members,
-							is_incomplete: *is_incomplete,
-						};
-						data_type = Some(dtype::DataType::Struct(struct_type));
+								members,
+								is_incomplete: *is_incomplete,
+							};
+							data_type = Some(dtype::DataType::Struct(struct_type));
 						}
 						StructOrUnionKind::Union => {
 							let union_type = dtype::UnionType {
-							members,
-							is_incomplete: *is_incomplete,
-						};
-						data_type = Some(dtype::DataType::Union(union_type));
+								members,
+								is_incomplete: *is_incomplete,
+							};
+							data_type = Some(dtype::DataType::Union(union_type));
 						}
 					}
 
@@ -782,7 +786,7 @@ impl super::SemanticParser<'_> {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
 									SIGNED_STR.to_owned(),
-									STRUCT_STR.to_owned(),
+									struct_or_union.kind.to_string(),
 								),
 								span.clone(),
 							));
@@ -803,7 +807,11 @@ impl super::SemanticParser<'_> {
 						}
 					}
 				}
-				TypeSpecifier::EnumSpecifier(EnumSpecifier { tag_span, .. }) => {
+				TypeSpecifier::EnumSpecifier(EnumSpecifier {
+					tag_span,
+					enumerator_list,
+					..
+				}) => {
 					let span = tag_span.clone();
 					match data_type {
 						Some(_) => {
@@ -813,7 +821,7 @@ impl super::SemanticParser<'_> {
 							));
 							is_valid = false;
 						}
-						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I8)),
+						None => data_type = Some(dtype::DataType::Scalar(dtype::ScalarType::I32)),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -824,6 +832,29 @@ impl super::SemanticParser<'_> {
 							span.clone(),
 						));
 						is_valid = false;
+					}
+					for enumerator in enumerator_list {
+						match enumerator.constant_expr.as_mut().map(|v| v.to_i32()) {
+							Some(Err(ConversionError::OutOfRange)) => {
+								self.diagnostics.push(diag::Diagnostic::error(
+									diag::DiagKind::EnumRange,
+									enumerator.enumeration_constant.span.clone(),
+								));
+								is_valid = false;
+							}
+							Some(Err(ConversionError::Expr(_))) => {
+								self.diagnostics.push(diag::Diagnostic::error(
+									diag::DiagKind::EnumNonIntegral(
+										enumerator.enumeration_constant.name.clone(),
+									),
+									enumerator.enumeration_constant.span.clone(),
+								));
+								is_valid = false;
+							}
+							_ => {
+								// do nothing
+							}
+						}
 					}
 				}
 				TypeSpecifier::TypedefName { .. } => todo!("typedef"),
@@ -863,7 +894,6 @@ impl super::SemanticParser<'_> {
 		}
 	}
 
-	// FIXME: symbol table infrastructure required to parse this AST.
 	fn struct_declaration(
 		&mut self,
 		struct_decl: &mut StructDeclaration,
@@ -921,7 +951,7 @@ impl super::SemanticParser<'_> {
 							is_valid = false;
 						}
 						continue;
-					},
+					}
 					Some(Err(ConversionError::OutOfRange)) => {
 						let kind = diag::DiagKind::BitfieldExceedsWidth(name_opt);
 						let diag = diag::Diagnostic::error(kind, span.clone());

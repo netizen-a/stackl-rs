@@ -145,6 +145,40 @@ impl Expr {
 			expr => Err(ConversionError::Expr(expr.clone())),
 		}
 	}
+	pub fn to_i32(&mut self) -> Result<i32, ConversionError> {
+		const U32_CAP: u32 = i32::MAX as u32;
+		const U64_CAP: u64 = i32::MAX as u64;
+		const I64_CAP: i64 = i32::MAX as i64;
+		const U128_CAP: u128 = i32::MAX as u128;
+		const I128_CAP: i128 = i32::MAX as i128;
+		*self = self.reduce();
+		match self {
+			Self::Const(tok::Const::Integer(int_const)) => match int_const {
+				IntegerConstant::U32(val) => match val {
+					0..U32_CAP => Ok(*val as i32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::I32(val) => Ok(*val),
+				IntegerConstant::U64(val) => match val {
+					0..U64_CAP => Ok(*val as i32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::I64(val) => match val {
+					0..I64_CAP => Ok(*val as i32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::U128(val) => match val {
+					0..U128_CAP => Ok(*val as i32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+				IntegerConstant::I128(val) => match val {
+					0..I128_CAP => Ok(*val as i32),
+					_ => Err(ConversionError::OutOfRange),
+				},
+			},
+			expr => Err(ConversionError::Expr(expr.clone())),
+		}
+	}
 }
 
 /// (6.5.3) unary-expression
