@@ -163,6 +163,18 @@ impl fmt::Display for DataType {
 			Self::Scalar(ScalarType::Float) => write!(f, "float"),
 			Self::Scalar(ScalarType::Double) => write!(f, "double"),
 			Self::Scalar(ScalarType::LongDouble) => write!(f, "long double"),
+			Self::Struct(StructType { members, is_incomplete }) => {
+				if *is_incomplete {
+					write!(f, "struct")
+				} else {
+					let mut s = String::from("struct {{\n");
+					for mem in members {
+						s.push_str(&format!("    {mem}"));
+					}
+					s.push_str("}}");
+					write!(f, "{s}")
+				}
+			}
 			_ => todo!("{:?}", self),
 		}
 	}

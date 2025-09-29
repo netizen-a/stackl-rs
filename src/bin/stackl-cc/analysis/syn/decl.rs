@@ -201,11 +201,27 @@ pub struct StructOrUnionSpecifier {
 	pub is_incomplete: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum StructOrUnionKind {
+	Struct,
+	Union,
+}
+
+impl fmt::Display for StructOrUnionKind {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let s = match self {
+			Self::Struct => "struct",
+			Self::Union => "union",
+		};
+		write!(f, "{s}")
+	}
+}
+
 /// (6.7.2.1) struct-or-union
 #[derive(Debug, Clone)]
 pub struct StructOrUnion {
 	pub span: diag::Span,
-	pub keyword: tok::Keyword,
+	pub kind: StructOrUnionKind,
 }
 
 /// (6.7.2.1) struct-declaration

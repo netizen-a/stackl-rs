@@ -575,14 +575,14 @@ StructOrUnion: StructOrUnion = {
 			loc: (lo,hi),
 			file_id: kw.file_id(),
 		},
-		keyword: Keyword::Struct,
+		kind: StructOrUnionKind::Struct,
 	},
 	<lo:@L> <kw:"union"> <hi:@R> => StructOrUnion{
 		span: diag::Span{
 			loc: (lo,hi),
 			file_id: kw.file_id(),
 		},
-		keyword: Keyword::Union,
+		kind: StructOrUnionKind::Union,
 	},
 };
 

@@ -80,6 +80,9 @@ unsigned union Cat { int y; } cat;
 union Food { unsigned char x; } signed food;
 union Farm { unsigned char x; } unsigned farm;
 
+long union Fun foo;
+struct Fuun long long bar;
+
 // auto x;
 
 

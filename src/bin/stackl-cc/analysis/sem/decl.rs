@@ -454,6 +454,13 @@ impl super::SemanticParser<'_> {
 						is_valid = false;
 					}
 					match &data_type {
+						Some(dtype::DataType::Struct(_) | dtype::DataType::Union(_) | dtype::DataType::Enum) => {
+							self.diagnostics.push(diag::Diagnostic::error(
+								diag::DiagKind::MultipleTypes,
+								span.clone(),
+							));
+							is_valid = false;
+						}
 						Some(data_type) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
@@ -746,31 +753,26 @@ impl super::SemanticParser<'_> {
 						};
 						members.append(&mut member_vec);
 					}
-					if data_type.is_some() {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						));
-						is_valid = false;
-					} else if let tok::Keyword::Struct = struct_or_union.keyword {
-						let struct_type = dtype::StructType {
+					match struct_or_union.kind {
+						StructOrUnionKind::Struct => {
+							let struct_type = dtype::StructType {
 							members,
 							is_incomplete: *is_incomplete,
 						};
 						data_type = Some(dtype::DataType::Struct(struct_type));
-					} else if let tok::Keyword::Union = struct_or_union.keyword {
-						let union_type = dtype::UnionType {
+						}
+						StructOrUnionKind::Union => {
+							let union_type = dtype::UnionType {
 							members,
 							is_incomplete: *is_incomplete,
 						};
 						data_type = Some(dtype::DataType::Union(union_type));
+						}
 					}
-					if long_count > 0 {
+
+					if data_type.is_some() || long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								CHAR_STR.to_owned(),
-							),
+							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						));
 						is_valid = false;
@@ -790,7 +792,7 @@ impl super::SemanticParser<'_> {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::BothSpecifiers(
 									UNSIGNED_STR.to_owned(),
-									struct_or_union.keyword.to_string(),
+									struct_or_union.kind.to_string(),
 								),
 								span.clone(),
 							));
