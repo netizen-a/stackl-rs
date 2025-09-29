@@ -3,6 +3,7 @@ use std::rc::Rc;
 use std::io::{Read, BufReader};
 use std::fs;
 use std::path::PathBuf;
+use std::collections::HashMap;
 
 use crate::diagnostics::{self as diag,lex};
 use lalrpop_util as lalr;
@@ -13,7 +14,7 @@ use crate::directive;
 
 grammar<'a>(
 	diagnostics: &mut diag::DiagnosticEngine,
-	stack_ref: &'a Rc<RefCell<PPTokenStack>>
+	stack_ref: &'a Rc<RefCell<PPTokenStack>>,
 );
 
 pub Tokens: Vec<TokenTriple> = {
@@ -54,6 +55,12 @@ ControlLine: Vec<TokenTriple> = {
 		stack.push_lexer(Lexer::new(buf, file_id));
 		vec![]
 	},
+	// "#" DirectiveDefine <ident:Identifier> <list:ReplacementList> "\n" => {
+	// 	let name = ident.1.kind.clone().unwrap_ident().name;
+	// 	let mut stack = stack_ref.borrow_mut();
+	// 	stack.define_obj_macro(name, list);
+	// 	vec![]
+	// }
 };
 
 TextLine: Vec<TokenTriple> = {
@@ -65,33 +72,19 @@ TextLine: Vec<TokenTriple> = {
 	},
 };
 
+ReplacementList: Vec<PPTokenTriple> = ReplacementToken*;
+
+ReplacementToken: PPTokenTriple = {
+	<lo:@L> <tk:IDENT> <hi:@R> => (lo,tk,hi),
+	<lo:@L> <tk:PP_NUMBER> <hi:@R> => (lo,tk,hi),
+	<lo:@L> <tk:CHAR_CONST> <hi:@R> => (lo,tk,hi),
+	<lo:@L> <tk:STR_LIT> <hi:@R> => (lo,tk,hi),
+	<lo:@L> <tk:PUNCT> <hi:@R> => (lo,tk,hi),
+};
+
 PreprocessingToken: TokenTriple = {
-	Ident,
-	<lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
-		let file_id = tk.file_id;
-		match tk.kind.try_into() {
-			Ok(kind) => Ok((
-				lo,
-				Token{
-					kind,
-					file_id,
-				},
-				hi
-			)),
-			Err(kind) => {
-				eprintln!("pp-number error");
-				Err(lalr::ParseError::User {
-					error: diag::Diagnostic::error(
-						kind,
-						diag::Span {
-							loc: (hi, lo),
-							file_id: tk.file_id,
-						},
-					)
-				})
-			},
-		}
-	},
+	Identifier,
+	PPNumber,
 	<lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
 		let file_id = tk.file_id;
 		match tk.kind.try_into() {
@@ -155,8 +148,9 @@ DirectivePragma: () = <lo:@L> <tk:IDENT> <hi:@R> =>? directive!(tk.kind, "pragma
 
 
 NonHash: TokenTriple = {
-	Ident,
+	Identifier,
 	StrLit,
+	PPNumber,
 	<lo:@L> <tk:NonHashPunct> <hi:@R> =>? {
 		let file_id = tk.file_id;
 		match tk.kind.try_into() {
@@ -181,7 +175,7 @@ NonHash: TokenTriple = {
 	},
 };
 
-Ident: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
+PPNumber: TokenTriple = <lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
 	let file_id = tk.file_id;
 	match tk.kind.try_into() {
 		Ok(kind) => Ok((
@@ -192,15 +186,44 @@ Ident: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 			},
 			hi
 		)),
-		Err(kind) => Err(lalr::ParseError::User {
-			error: diag::Diagnostic::error(
+		Err(kind) => {
+			eprintln!("pp-number error");
+			Err(lalr::ParseError::User {
+				error: diag::Diagnostic::error(
+					kind,
+					diag::Span {
+						loc: (hi, lo),
+						file_id: tk.file_id,
+					},
+				)
+			})
+		},
+	}
+};
+
+Identifier: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
+	let file_id = tk.file_id;
+	match tk.kind.try_into() {
+		Ok(kind) => Ok((
+			lo,
+			Token{
 				kind,
-				diag::Span {
-					loc: (hi, lo),
-					file_id: tk.file_id,
-				},
-			)
-		}),
+				file_id,
+			},
+			hi
+		)),
+		Err(kind) => {
+			eprintln!("identifier error!");
+			Err(lalr::ParseError::User {
+				error: diag::Diagnostic::error(
+					kind,
+					diag::Span {
+						loc: (hi, lo),
+						file_id: tk.file_id,
+					},
+				)
+			})
+		},
 	}
 };
 

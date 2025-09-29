@@ -116,6 +116,7 @@ impl Lexer {
 			},
 			name,
 			is_type: false,
+			expandable: true,
 		};
 		Ok((
 			lo,

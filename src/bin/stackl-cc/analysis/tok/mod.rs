@@ -7,6 +7,7 @@ pub mod punct;
 use crate::diagnostics::{self as diag, lex};
 pub use keyword::*;
 pub use punct::*;
+use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -16,6 +17,13 @@ pub struct Ident {
 	pub name: String,
 	/// is the identifier previously declared in a typedef?
 	pub is_type: bool,
+	pub expandable: bool,
+}
+
+impl fmt::Display for Ident {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.name)
+	}
 }
 
 #[derive(Debug)]
@@ -378,6 +386,27 @@ pub struct PPToken {
 	pub kind: PPTokenKind,
 	pub file_id: usize,
 	pub leading_space: bool,
+}
+
+impl PPToken {
+	pub fn print(self, enabled: bool) -> Self {
+		if !enabled {
+			return self;
+		}
+		if self.leading_space {
+			print!(" ");
+		}
+		match &self.kind {
+			PPTokenKind::Punct(punct) => print!("{punct}"),
+			PPTokenKind::Ident(ident) => print!("{ident}"),
+			PPTokenKind::CharConst(char_const) => print!("{}", char_const.seq),
+			PPTokenKind::NewLine(new_line) => print!("{}", new_line.name),
+			PPTokenKind::StrLit(literal) => print!("{}", literal.seq),
+			PPTokenKind::HeaderName(header) => print!("{}", header.name),
+			PPTokenKind::PPNumber(number) => print!("{}", number.name),
+		}
+		self
+	}
 }
 
 impl file_id::FileId for PPToken {

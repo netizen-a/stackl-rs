@@ -8,11 +8,7 @@ use crate::analysis::{
 	tok::{self, file_id::FileId},
 };
 use std::{
-	collections::{HashMap, HashSet},
-	fs,
-	io::{BufReader, Read},
-	path::{Path, PathBuf},
-	result,
+	cell::RefCell, collections::{HashMap, HashSet}, fs, io::{BufReader, Read}, path::{Path, PathBuf}, rc::Rc, result
 };
 
 use lalrpop_util::ParseError;
@@ -27,7 +23,7 @@ pub type Result<T> = result::Result<T, Diagnostic>;
 #[derive(Default)]
 pub struct DiagnosticEngine {
 	enable_color: bool,
-	file_map: bimap::BiHashMap<usize, PathBuf>,
+	file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>,
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
@@ -42,6 +38,9 @@ impl DiagnosticEngine {
 			..Self::default()
 		}
 	}
+	pub fn get_file_map(&self) -> Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>> {
+		self.file_map_ref.clone()
+	}
 	#[inline]
 	pub fn push(&mut self, diag: Diagnostic) {
 		self.list_other.push(diag)
@@ -54,17 +53,17 @@ impl DiagnosticEngine {
 	pub fn push_fatal_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
 		self.fatal_errors.push(diag)
 	}
-	pub fn get_file_path(&self, id: usize) -> Option<&PathBuf> {
-		self.file_map.get_by_left(&id)
+	pub fn get_file_path(&self, id: usize) -> Option<PathBuf> {
+		self.file_map_ref.borrow().get_by_left(&id).map(|p| p.clone())
 	}
 	pub fn id(&self) -> usize {
-		self.file_map.len()
+		self.file_map_ref.borrow().len()
 	}
 	pub fn get_file_id<P>(&self, name: &P) -> Option<usize>
 	where
 		P: AsRef<Path>,
 	{
-		self.file_map
+		self.file_map_ref.borrow()
 			.get_by_right::<Path>(name.as_ref())
 			.map(|p| *p)
 	}
@@ -75,7 +74,7 @@ impl DiagnosticEngine {
 	where
 		P: AsRef<Path>,
 	{
-		self.file_map.insert(id, full_path.as_ref().to_path_buf());
+		self.file_map_ref.borrow_mut().insert(id, full_path.as_ref().to_path_buf());
 		let file = fs::File::open(&full_path).unwrap();
 		let mut reader = BufReader::new(file);
 		let mut buf = String::new();
@@ -92,6 +91,7 @@ impl DiagnosticEngine {
 	}
 	pub fn print_diagnostics(&self) {
 		for diag in self.fatal_errors.iter() {
+			eprintln!("{diag:?}");
 			self.print_parse_errors(DiagLevel::Fatal, diag)
 		}
 		for diag in self.syntax_errors.iter() {
@@ -122,7 +122,7 @@ impl DiagnosticEngine {
 			ParseError::InvalidToken { .. } => unreachable!("invalid token"),
 			ParseError::UnrecognizedEof { location, expected } => {
 				let file_id = 0;
-				let file_path = self.file_map.get_by_left(&file_id).unwrap();
+				let file_path = self.file_map_ref.borrow().get_by_left(&file_id).unwrap().clone();
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
 				let _ = file.read_to_string(&mut source);

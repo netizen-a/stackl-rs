@@ -8,6 +8,8 @@ mod symtab;
 mod synthesis;
 
 use clap::Parser;
+use std::cell;
+use std::collections::HashMap;
 use std::io::IsTerminal;
 use std::io::Read;
 use std::{fs, rc};
@@ -56,9 +58,7 @@ pub struct Args {
 	pub in_file: PathBuf,
 	#[arg(long = "output", short = 'o')]
 	pub out_file: Option<PathBuf>,
-	#[arg(long, default_value_t = false)]
-	pub pp_stdout_comments: bool,
-	#[arg(long, default_value_t = false)]
+	#[arg(short = 'E', long, default_value_t = false)]
 	pub pp_stdout_tokens: bool,
 	#[arg(long = "trace", default_value_t = false)]
 	pub is_traced: bool,
@@ -84,7 +84,7 @@ fn main() -> ExitCode {
 	let mut text = String::new();
 	file.read_to_string(&mut text).unwrap();
 	let lexer = lex::lexer::Lexer::new(text, 0);
-	let pp_iter = lex::PPTokenIter::from(lexer);
+	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
 	let pp_ref = rc::Rc::clone(&pp_iter.stack_ref);
 	let tokens: Vec<tok::TokenTriple> =
 		match lex::TokensParser::new().parse(&mut diag_engine, &pp_ref, pp_iter) {
@@ -94,6 +94,16 @@ fn main() -> ExitCode {
 				vec![]
 			}
 		};
+
+	diag_engine.print_diagnostics();
+	if args.pp_stdout_tokens {
+		println!("{:#?}", tokens);
+		return ExitCode::SUCCESS;
+	}
+
+	if diag_engine.contains_error() {
+		return ExitCode::FAILURE;
+	}
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let tk_ref = rc::Rc::clone(&tk_iter.inner);

@@ -1053,8 +1053,7 @@ impl super::SemanticParser<'_> {
 								Err(ConversionError::Expr(_)) => dtype::ArrayLength::Variable,
 							}
 						} else {
-							//TODO
-							continue;
+							todo!()
 						};
 
 						dtype::ArrayType {
@@ -1062,8 +1061,7 @@ impl super::SemanticParser<'_> {
 							length,
 						}
 					} else {
-						//TODO
-						continue;
+						todo!()
 					};
 
 					dtype::DataType::Array(array_type)
