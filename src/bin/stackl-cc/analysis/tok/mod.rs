@@ -70,15 +70,38 @@ pub struct StrLit {
 	pub file_id: usize,
 }
 
+impl fmt::Display for StrLit {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let prefix = if self.is_wide { "L" } else { "" };
+		let seq = self.seq.as_str();
+		write!(f, "{prefix}\"{seq}\"")
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct HeaderName {
 	pub is_builtin: bool,
 	pub name: String,
 }
 
+impl fmt::Display for HeaderName {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self.is_builtin {
+			true => write!(f, "<{}>", self.name),
+			false => write!(f, "\"{}\"", self.name),
+		}
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct PPNumber {
 	pub name: String,
+}
+
+impl fmt::Display for PPNumber {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.name)
+	}
 }
 
 impl PPNumber {
@@ -226,10 +249,29 @@ pub struct CharConst {
 	pub is_wide: bool,
 }
 
+impl fmt::Display for CharConst {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let prefix = if self.is_wide { "L" } else { "" };
+		let seq = self.seq.as_str();
+		write!(f, "{prefix}'{seq}'")
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct NewLine {
 	pub name: String,
 	pub is_deleted: bool,
+}
+
+impl fmt::Display for NewLine {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let new_line = if self.is_deleted {
+			""
+		} else {
+			self.name.as_str()
+		};
+		write!(f, "{new_line}")
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -443,6 +485,23 @@ impl PPToken {
 			PPTokenKind::Directive(directive) => print!("{directive}"),
 		}
 		self
+	}
+}
+
+impl fmt::Display for PPToken {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let tok_str = match &self.kind {
+			PPTokenKind::Punct(punct) => punct.to_string(),
+			PPTokenKind::Ident(ident) => ident.to_string(),
+			PPTokenKind::CharConst(char_const) => char_const.to_string(),
+			PPTokenKind::NewLine(new_line) => new_line.to_string(),
+			PPTokenKind::StrLit(literal) => literal.to_string(),
+			PPTokenKind::HeaderName(header) => header.to_string(),
+			PPTokenKind::PPNumber(number) => number.to_string(),
+			PPTokenKind::Directive(directive) => directive.to_string(),
+		};
+		let space = if self.leading_space { " " } else { "" };
+		write!(f, "{space}{tok_str}")
 	}
 }
 

@@ -66,6 +66,28 @@ ControlLine: Vec<TokenTriple> = {
 		stack.undef_macro(name);
 		vec![]
 	},
+	"#" DIRECTIVE_LINE RawPPToken+ "\n" => { vec![] },
+	"#" <lo:@L> <directive:DIRECTIVE_ERROR> <hi:@R> <pp_token_list:RawPPToken*> "\n" => {
+		let span = diag::Span {
+			file_id: directive.file_id,
+			loc: (lo,hi),
+		};
+		let mut error_str = String::new();
+		for (index, (_, pp_token, _)) in pp_token_list.iter().enumerate() {
+			if index == 0 {
+				// omit leading space
+				error_str.push_str(&pp_token.kind.to_name());
+			} else {
+				error_str.push_str(&format!("{pp_token}"));
+			}
+		}
+		let kind = diag::DiagKind::Error(error_str);
+		let diag = diag::Diagnostic::error(kind, span);
+		diagnostics.push(diag);
+		vec![]
+	},
+	"#" DIRECTIVE_PRAGMA RawPPToken* "\n" => { vec![] },
+	"#" "\n" => { vec![] },
 };
 
 TextLine: Vec<TokenTriple> = {
@@ -77,9 +99,9 @@ TextLine: Vec<TokenTriple> = {
 	},
 };
 
-ReplacementList: Vec<PPTokenTriple> = ReplacementToken*;
+ReplacementList: Vec<PPTokenTriple> = RawPPToken*;
 
-ReplacementToken: PPTokenTriple = {
+RawPPToken: PPTokenTriple = {
 	<lo:@L> <tk:IDENT> <hi:@R> => (lo,tk,hi),
 	<lo:@L> <tk:PP_NUMBER> <hi:@R> => (lo,tk,hi),
 	<lo:@L> <tk:CHAR_CONST> <hi:@R> => (lo,tk,hi),

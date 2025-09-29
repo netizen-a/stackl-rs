@@ -4,6 +4,7 @@ use crate::analysis::syn::StorageClass;
 
 #[derive(Debug)]
 pub enum DiagKind {
+	Error(String),
 	UnexpectedEof,
 	UnexpectedEscape,
 	UnrecognizedToken { expected: Vec<String> },

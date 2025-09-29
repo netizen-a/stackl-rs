@@ -337,6 +337,10 @@ impl DiagnosticEngine {
 				let msg1 = "ISO C restricts enumerator values to range of 'int' before C23";
 				self.format_diagnostic(&diag, msg0, msg1)
 			}
+			DiagKind::Error(err_msg) => {
+				let msg0 = format!("{err_msg}");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

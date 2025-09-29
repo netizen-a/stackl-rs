@@ -3,6 +3,8 @@
 __DATE__
 __TIME__
 
+#error hello world  4
+
 // int v[*];
 // int a[3];
 // int s0[static 5];
