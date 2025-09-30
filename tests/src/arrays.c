@@ -8,4 +8,8 @@ int s0[0];
 
 void foo(int s2[static const const restrict volatile 5]) {}
 
+void bar(int a[]);
+
+void bar(int a[]) {}
+
 

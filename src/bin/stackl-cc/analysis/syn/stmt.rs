@@ -82,7 +82,7 @@ pub enum SelectStmt {
 	},
 	Switch {
 		expr: expr::Expr,
-		statement: Box<Stmt>,
+		stmt: Box<Stmt>,
 	},
 }
 

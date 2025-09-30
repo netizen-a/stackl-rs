@@ -980,18 +980,24 @@ Unmatched: Stmt = {
 		stmt_else: None,
 	}),
 	"if" "(" Expr ")" Matched "else" Unmatched => todo!("opened-if-else"),
-	"switch" "(" Expr ")" Unmatched => todo!("opened-switch"),
-	UnmatchedLabeledStatement => todo!("opened-label"),
-	UnmatchedIterationStatement => todo!("opened-iter"),
+	"switch" "(" <expr:Expr> ")" <stmt:Unmatched> => Stmt::Select(SelectStmt::Switch{
+		expr,
+		stmt: Box::new(stmt),
+	}),
+	UnmatchedLabeledStatement => Stmt::Label(<>),
+	UnmatchedIterationStatement => Stmt::Iter(<>),
 };
 
 Matched: Stmt = {
 	SimpleStatement,
 	"if" "(" Expr ")" Matched "else" Matched => todo!("closed-if"),
-	"switch" "(" Expr ")" Matched => todo!("closed-switch"),
-	MatchedLabeledStatement => todo!("closed-label"),
+	"switch" "(" <expr:Expr> ")" <stmt:Matched> => Stmt::Select(SelectStmt::Switch{
+		expr,
+		stmt: Box::new(stmt),
+	}),
+	MatchedLabeledStatement => Stmt::Label(<>),
 	CompoundStatement => Stmt::Compound(<>),
-	MatchedIterationStatement => todo!("closed-iter"),
+	MatchedIterationStatement => Stmt::Iter(<>),
 };
 
 SimpleStatement: Stmt = {
@@ -1002,15 +1008,15 @@ SimpleStatement: Stmt = {
 
 
 UnmatchedLabeledStatement: LabeledStmt = {
-	Identifier ":" Unmatched => todo!("label"),
-	"case" ConstantExpr ":" Unmatched => todo!("case"),
-	"default" ":" Unmatched => todo!("default"),
+	<ident:Identifier> ":" <stmt:Unmatched> => LabeledStmt::Label(ident, Box::new(stmt)),
+	"case" <expr:ConstantExpr> ":" <stmt:Unmatched> => LabeledStmt::Case(expr, Box::new(stmt)),
+	"default" ":" <stmt:Unmatched> => LabeledStmt::Default(Box::new(stmt)),
 };
 
 MatchedLabeledStatement: LabeledStmt = {
-	Identifier ":" Matched => todo!("label"),
-	"case" ConstantExpr ":" Matched => todo!("case"),
-	"default" ":" Matched => todo!("default"),
+	<ident:Identifier> ":" <stmt:Matched> => LabeledStmt::Label(ident, Box::new(stmt)),
+	"case" <expr:ConstantExpr> ":" <stmt:Matched> => LabeledStmt::Case(expr, Box::new(stmt)),
+	"default" ":" <stmt:Matched> => LabeledStmt::Default(Box::new(stmt)),
 };
 
 
