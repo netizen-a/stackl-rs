@@ -34,7 +34,7 @@ impl ToString for EnableColor {
 	}
 }
 
-#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq, Eq)]
 enum WarnLevel {
 	All,
 	Minimal,
@@ -126,7 +126,6 @@ fn main() -> ExitCode {
 	}
 
 	//synthesis::parse(&analysis_result.unwrap());
-	
 
 	ExitCode::SUCCESS
 }

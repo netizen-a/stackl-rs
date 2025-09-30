@@ -350,6 +350,14 @@ impl DiagnosticEngine {
 				let msg0 = "ISO C forbids zero-size array";
 				self.format_diagnostic(&diag, msg0, "")
 			}
+			DiagKind::DeclaratorLimit => {
+				let msg0 = "declarators modifying a type in a declaration exceeds translation limit '12'";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::ParameterLimit => {
+				let msg0 = "parameters in function definition exceeds translation limit '127'";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

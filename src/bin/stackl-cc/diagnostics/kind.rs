@@ -36,4 +36,6 @@ pub enum DiagKind {
 	EnumNonIntegral(String),
 	ArrayMaxRange,
 	ArrayMinRange,
+	DeclaratorLimit,
+	ParameterLimit,
 }

@@ -7,6 +7,7 @@ use crate::analysis::tok;
 use crate::data_types as dtype;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
+use crate::WarnLevel;
 
 const SIGNED_STR: &str = "signed";
 const UNSIGNED_STR: &str = "unsigned";
@@ -61,7 +62,7 @@ impl super::SemanticParser<'_> {
 				false,
 				DeclType::FnDef,
 				Some(decl.ident.name.clone()),
-				None
+				None,
 			);
 		}
 		match decl.declarators.first_mut() {
@@ -82,10 +83,17 @@ impl super::SemanticParser<'_> {
 				self.symtab.insert(key, entry);
 			}
 			Some(Declarator::ParamList(param_list)) => {
+				if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
+					// 5.2.4.1 translation limit
+					let diag =
+						diag::Diagnostic::warn(diag::DiagKind::ParameterLimit, decl.ident.span.clone());
+					self.diagnostics.push(diag);
+				}
 				let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
 					// failed to get param types
 					return false;
 				};
+
 				let is_variadic = param_list.is_variadic;
 				let func_type = dtype::FuncType {
 					params,
@@ -264,7 +272,7 @@ impl super::SemanticParser<'_> {
 				true,
 				decl_type,
 				param_name,
-				None
+				None,
 			);
 			result.push(param_type)
 		}
@@ -305,6 +313,12 @@ impl super::SemanticParser<'_> {
 					continue;
 				}
 			};
+			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
+				// 5.2.4.1 translation limit
+				let diag =
+					diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.span.clone());
+				self.diagnostics.push(diag);
+			}
 			let mut var_dtype = data_type.clone();
 			is_valid &= self.declarator_list(
 				ident.span.clone(),
@@ -313,7 +327,7 @@ impl super::SemanticParser<'_> {
 				false,
 				DeclType::Decl,
 				Some(ident.name.clone()),
-				init_list_count
+				init_list_count,
 			);
 			if !is_valid {
 				return false;
@@ -916,7 +930,7 @@ impl super::SemanticParser<'_> {
 				false,
 				DeclType::Decl,
 				name_opt.clone(),
-				None
+				None,
 			);
 
 			let bits = if let dtype::DataType::Scalar(scalar) = &data_type {
@@ -1058,22 +1072,24 @@ impl super::SemanticParser<'_> {
 					if !is_param || array.has_static {
 						let length = if let Some(assign_expr) = &mut array.assignment_expr {
 							match assign_expr.to_u32() {
-								Ok(val) => if val == 0 {
-									let kind = diag::DiagKind::ArrayMinRange;
-									let diag = diag::Diagnostic::error(kind, span.clone());
-									self.diagnostics.push(diag);
-									is_valid = false;
-									continue;
-								} else {
-									dtype::ArrayLength::Fixed(val)
-								},
+								Ok(val) => {
+									if val == 0 {
+										let kind = diag::DiagKind::ArrayMinRange;
+										let diag = diag::Diagnostic::error(kind, span.clone());
+										self.diagnostics.push(diag);
+										is_valid = false;
+										continue;
+									} else {
+										dtype::ArrayLength::Fixed(val)
+									}
+								}
 								Err(ConversionError::OutOfRange) => {
 									let kind = diag::DiagKind::ArrayMaxRange;
 									let diag = diag::Diagnostic::error(kind, span.clone());
 									self.diagnostics.push(diag);
 									is_valid = false;
 									continue;
-								},
+								}
 								Err(ConversionError::Expr(_)) => dtype::ArrayLength::Variable,
 							}
 						} else if let Some(count) = init_list_count {
@@ -1103,7 +1119,7 @@ impl super::SemanticParser<'_> {
 								TypeQualifierKind::Volatile => is_volatile = true,
 							}
 						}
-						let ptr_type = dtype::PtrType{
+						let ptr_type = dtype::PtrType {
 							inner: Box::new(data_type.clone()),
 							is_const,
 							is_restrict,
