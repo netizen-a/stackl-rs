@@ -79,6 +79,7 @@ impl ScalarType {
 pub enum ArrayLength {
 	Fixed(u32),
 	Variable,
+	Incomplete,
 }
 
 #[derive(Debug, Hash, Clone)]

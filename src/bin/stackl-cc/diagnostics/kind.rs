@@ -4,7 +4,7 @@ use crate::analysis::syn::StorageClass;
 
 #[derive(Debug)]
 pub enum DiagKind {
-	Error(String),
+	ErrorDirective(String),
 	UnexpectedEof,
 	UnexpectedEscape,
 	UnrecognizedToken { expected: Vec<String> },
@@ -29,9 +29,11 @@ pub enum DiagKind {
 	OnlyVoid,
 	ArrayOfVoid(Option<String>),
 	IllegalStorage(StorageClass),
-	BitfieldExceedsWidth(Option<String>),
+	BitfieldRange(Option<String>),
 	BitfieldNonIntegral(Option<String>),
 	NonConstExpr,
 	EnumRange,
 	EnumNonIntegral(String),
+	ArrayMaxRange,
+	ArrayMinRange,
 }

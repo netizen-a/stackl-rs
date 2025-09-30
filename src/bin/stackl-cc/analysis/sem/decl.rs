@@ -61,6 +61,7 @@ impl super::SemanticParser<'_> {
 				false,
 				DeclType::FnDef,
 				Some(decl.ident.name.clone()),
+				None
 			);
 		}
 		match decl.declarators.first_mut() {
@@ -263,6 +264,7 @@ impl super::SemanticParser<'_> {
 				true,
 				decl_type,
 				param_name,
+				None
 			);
 			result.push(param_type)
 		}
@@ -283,6 +285,10 @@ impl super::SemanticParser<'_> {
 		};
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
+			let mut init_list_count = None;
+			if let Some(ref mut init) = init_decl.initializer {
+				self.initializer(init, &mut init_list_count);
+			}
 			let ident = &init_decl.identifier;
 			let data_type = match &maybe_ty {
 				Ok(ty) => ty,
@@ -307,12 +313,10 @@ impl super::SemanticParser<'_> {
 				false,
 				DeclType::Decl,
 				Some(ident.name.clone()),
+				init_list_count
 			);
 			if !is_valid {
 				return false;
-			}
-			if let Some(ref mut init) = init_decl.initializer {
-				self.initializer(init);
 			}
 			let entry = SymbolTableEntry {
 				data_type: var_dtype,
@@ -878,13 +882,6 @@ impl super::SemanticParser<'_> {
 			(None, true) => Err(false),
 		}
 	}
-	fn init_declarator(&mut self, decl: &mut InitDeclarator) {
-		let _ = decl.identifier;
-		let _ = decl.declarator;
-		if let Some(ref mut init) = decl.initializer {
-			self.initializer(init);
-		}
-	}
 	fn enum_specifier(&mut self, _spec: &mut EnumSpecifier) {
 		todo!("enum-specifier")
 	}
@@ -919,6 +916,7 @@ impl super::SemanticParser<'_> {
 				false,
 				DeclType::Decl,
 				name_opt.clone(),
+				None
 			);
 
 			let bits = if let dtype::DataType::Scalar(scalar) = &data_type {
@@ -934,7 +932,7 @@ impl super::SemanticParser<'_> {
 						if value <= scalar.bits() {
 							Some(value)
 						} else {
-							let kind = diag::DiagKind::BitfieldExceedsWidth(name_opt);
+							let kind = diag::DiagKind::BitfieldRange(name_opt);
 							let diag = diag::Diagnostic::error(kind, span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
@@ -953,7 +951,7 @@ impl super::SemanticParser<'_> {
 						continue;
 					}
 					Some(Err(ConversionError::OutOfRange)) => {
-						let kind = diag::DiagKind::BitfieldExceedsWidth(name_opt);
+						let kind = diag::DiagKind::BitfieldRange(name_opt);
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
@@ -982,12 +980,13 @@ impl super::SemanticParser<'_> {
 		}
 	}
 
-	fn initializer(&mut self, init: &mut Initializer) -> bool {
-		use Initializer::*;
+	fn initializer(&mut self, init: &mut Initializer, list_count: &mut Option<u32>) -> bool {
 		let mut is_valid = true;
 		match init {
-			Expr(expr) => is_valid &= self.expr(expr),
-			InitializerList(list) => is_valid &= self.initializer_list(list),
+			Initializer::Expr(expr) => is_valid &= self.expr(expr),
+			Initializer::InitializerList(InitializerList(list)) => {
+				*list_count = Some(list.len().try_into().unwrap());
+			}
 		}
 		is_valid
 	}
@@ -1000,7 +999,9 @@ impl super::SemanticParser<'_> {
 		mut is_param: bool,
 		mut decl_type: DeclType,
 		name: Option<String>,
+		init_list_count: Option<u32>,
 	) -> bool {
+		let mut is_valid = true;
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		// first iteration is for type checking
 		for declarator in decl_list.iter() {
@@ -1011,10 +1012,12 @@ impl super::SemanticParser<'_> {
 							let kind = diag::DiagKind::UnboundVLA;
 							let diag = diag::Diagnostic::error(kind, span.clone());
 							self.diagnostics.push(diag);
+							is_valid = false;
 						} else if !is_param {
 							let kind = diag::DiagKind::InvalidStar;
 							let diag = diag::Diagnostic::error(kind, array.span.clone());
 							self.diagnostics.push(diag);
+							is_valid = false;
 						}
 					}
 					last_is_ptr = false;
@@ -1027,6 +1030,7 @@ impl super::SemanticParser<'_> {
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
+						is_valid = false;
 					}
 					last_is_ptr = false;
 				}
@@ -1035,36 +1039,78 @@ impl super::SemanticParser<'_> {
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
+						is_valid = false;
 					}
 					last_is_ptr = false;
 				}
 			};
 		}
+
+		if !is_valid {
+			return false;
+		}
+
 		// reversed iterator because recursive type construction has
 		// data type at the end
 		for declarator in decl_list.iter_mut().rev() {
 			*data_type = match declarator {
 				Declarator::Array(array) => {
-					let array_type: dtype::ArrayType = if !is_param {
+					if !is_param || array.has_static {
 						let length = if let Some(assign_expr) = &mut array.assignment_expr {
 							match assign_expr.to_u32() {
-								Ok(val) => dtype::ArrayLength::Fixed(val),
-								Err(ConversionError::OutOfRange) => todo!("error"),
+								Ok(val) => if val == 0 {
+									let kind = diag::DiagKind::ArrayMinRange;
+									let diag = diag::Diagnostic::error(kind, span.clone());
+									self.diagnostics.push(diag);
+									is_valid = false;
+									continue;
+								} else {
+									dtype::ArrayLength::Fixed(val)
+								},
+								Err(ConversionError::OutOfRange) => {
+									let kind = diag::DiagKind::ArrayMaxRange;
+									let diag = diag::Diagnostic::error(kind, span.clone());
+									self.diagnostics.push(diag);
+									is_valid = false;
+									continue;
+								},
 								Err(ConversionError::Expr(_)) => dtype::ArrayLength::Variable,
 							}
+						} else if let Some(count) = init_list_count {
+							dtype::ArrayLength::Fixed(count as u32)
 						} else {
-							todo!()
+							dtype::ArrayLength::Incomplete
 						};
-
-						dtype::ArrayType {
+						let array_type = dtype::ArrayType {
 							component: Box::new(data_type.clone()),
 							length,
-						}
+						};
+						dtype::DataType::Array(array_type)
+					} else if array.has_star {
+						let array_type = dtype::ArrayType {
+							component: Box::new(data_type.clone()),
+							length: dtype::ArrayLength::Variable,
+						};
+						dtype::DataType::Array(array_type)
 					} else {
-						todo!()
-					};
-
-					dtype::DataType::Array(array_type)
+						let mut is_const = false;
+						let mut is_restrict = false;
+						let mut is_volatile = false;
+						for qual in array.type_qualifiers.iter() {
+							match qual.kind {
+								TypeQualifierKind::Const => is_const = true,
+								TypeQualifierKind::Restrict => is_restrict = true,
+								TypeQualifierKind::Volatile => is_volatile = true,
+							}
+						}
+						let ptr_type = dtype::PtrType{
+							inner: Box::new(data_type.clone()),
+							is_const,
+							is_restrict,
+							is_volatile,
+						};
+						dtype::DataType::Pointer(ptr_type)
+					}
 				}
 				Declarator::Pointer(pointer) => {
 					let ptr_type = dtype::PtrType {
@@ -1105,7 +1151,7 @@ impl super::SemanticParser<'_> {
 				}
 			};
 		}
-		return true;
+		return is_valid;
 	}
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
 		match qual.kind {
@@ -1114,19 +1160,9 @@ impl super::SemanticParser<'_> {
 			TypeQualifierKind::Volatile => (),
 		}
 	}
-	fn initializer_list(&mut self, list: &mut InitializerList) -> bool {
+	fn designation(&mut self, desig: &mut Vec<Designator>) -> bool {
 		let mut is_valid = true;
-		for (desig, ref mut init) in list.0.iter_mut() {
-			if let Some(ref mut desig) = desig {
-				is_valid &= self.designation(desig);
-			}
-			is_valid &= self.initializer(init);
-		}
-		is_valid
-	}
-	fn designation(&mut self, desig: &mut Designation) -> bool {
-		let mut is_valid = true;
-		for ref mut desig in desig.0.iter_mut() {
+		for ref mut desig in desig.iter_mut() {
 			is_valid &= self.designator(desig)
 		}
 		is_valid
@@ -1135,7 +1171,7 @@ impl super::SemanticParser<'_> {
 		use Designator::*;
 		let mut is_valid = true;
 		match desig {
-			ConstantExpr(expr) => is_valid &= self.expr(expr),
+			ConstExpr(expr) => is_valid &= self.expr(expr),
 			Dot(_) => (),
 		}
 		is_valid

@@ -946,21 +946,26 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 
 Initializer: Initializer = {
 	AssignmentExpr => Initializer::Expr(<>),
-	"{" InitializerList ","? "}" => todo!("init-list"),
+	"{" <init_list:InitializerList> ","? "}" => Initializer::InitializerList(init_list),
 };
 
 InitializerList: InitializerList = {
-	Designation? Initializer => todo!("desig init"),
-	InitializerList "," Designation? Initializer => todo!("init list , desig"),
+	<desig:Designation?> <init:Initializer> => {
+		InitializerList(vec![(desig.unwrap_or_default(), init)])
+	},
+	<mut init_list:InitializerList> "," <desig:Designation?> <init:Initializer> => {
+		init_list.0.push((desig.unwrap_or_default(), init));
+		init_list
+	},
 };
 
-Designation: Designation = {
-	Designator+ "=" => todo!("desig list"),
+Designation: Vec<Designator> = {
+	<desig:Designator+> "=" => desig,
 };
 
 Designator: Designator = {
-	"[" ConstantExpr "]" => todo!("const-expr"),
-	"." Identifier => todo!(" . identifier"),
+	"[" <expr:ConstantExpr> "]" => Designator::ConstExpr(expr),
+	"." <ident:Identifier> => Designator::Dot(ident),
 };
 
 

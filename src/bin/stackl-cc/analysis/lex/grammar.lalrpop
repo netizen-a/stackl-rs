@@ -81,7 +81,7 @@ ControlLine: Vec<TokenTriple> = {
 				error_str.push_str(&format!("{pp_token}"));
 			}
 		}
-		let kind = diag::DiagKind::Error(error_str);
+		let kind = diag::DiagKind::ErrorDirective(error_str);
 		let diag = diag::Diagnostic::error(kind, span);
 		diagnostics.push(diag);
 		vec![]

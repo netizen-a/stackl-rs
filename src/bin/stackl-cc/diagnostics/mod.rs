@@ -307,11 +307,11 @@ impl DiagnosticEngine {
 				let msg0 = format!("function definition declared '{kind}'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::BitfieldExceedsWidth(Some(name)) => {
+			DiagKind::BitfieldRange(Some(name)) => {
 				let msg0 = format!("width of bit-field '{name}' exceeds width of its type");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::BitfieldExceedsWidth(None) => {
+			DiagKind::BitfieldRange(None) => {
 				let msg0 = format!("width of anonymous bit-field exceeds width of its type");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
@@ -337,9 +337,18 @@ impl DiagnosticEngine {
 				let msg1 = "ISO C restricts enumerator values to range of 'int' before C23";
 				self.format_diagnostic(&diag, msg0, msg1)
 			}
-			DiagKind::Error(err_msg) => {
+			DiagKind::ErrorDirective(err_msg) => {
 				let msg0 = format!("{err_msg}");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::ArrayMaxRange => {
+				// array range is 2 ^ 32 - 1 = 4,294,967,295
+				let msg0 = "size of array exceeds maximum object size '4294967295'";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::ArrayMinRange => {
+				let msg0 = "ISO C forbids zero-size array";
+				self.format_diagnostic(&diag, msg0, "")
 			}
 			kind => unimplemented!("{kind:?}"),
 		};

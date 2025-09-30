@@ -126,19 +126,19 @@ impl Expr {
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::U64(val) => match val {
-					0..U64_CAP => Ok(*val as u32),
+					0..=U64_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I64(val) => match val {
-					0..I64_CAP => Ok(*val as u32),
+					0..=I64_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::U128(val) => match val {
-					0..U128_CAP => Ok(*val as u32),
+					0..=U128_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I128(val) => match val {
-					0..I128_CAP => Ok(*val as u32),
+					0..=I128_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 			},
@@ -155,24 +155,24 @@ impl Expr {
 		match self {
 			Self::Const(tok::Const::Integer(int_const)) => match int_const {
 				IntegerConstant::U32(val) => match val {
-					0..U32_CAP => Ok(*val as i32),
+					0..=U32_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I32(val) => Ok(*val),
 				IntegerConstant::U64(val) => match val {
-					0..U64_CAP => Ok(*val as i32),
+					0..=U64_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I64(val) => match val {
-					0..I64_CAP => Ok(*val as i32),
+					0..=I64_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::U128(val) => match val {
-					0..U128_CAP => Ok(*val as i32),
+					0..=U128_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 				IntegerConstant::I128(val) => match val {
-					0..I128_CAP => Ok(*val as i32),
+					0..=I128_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
 			},

@@ -341,15 +341,11 @@ pub struct TypeName {
 
 /// (6.7.8) initializer-list
 #[derive(Debug, Clone)]
-pub struct InitializerList(pub Vec<(Option<Designation>, Initializer)>);
-
-/// (6.7.8) designation
-#[derive(Debug, Clone)]
-pub struct Designation(pub Vec<Designator>);
+pub struct InitializerList(pub Vec<(Vec<Designator>, Initializer)>);
 
 /// (6.7.8) designator
 #[derive(Debug, Clone)]
 pub enum Designator {
-	ConstantExpr(expr::Expr),
+	ConstExpr(expr::Expr),
 	Dot(tok::Ident),
 }

@@ -1,14 +1,11 @@
-// char x[12] = __DATE__;
+int s1[] = {[0] = 5};
+char x[12] = __DATE__;
+int v[*];
+int a[];
+int s0[4294967295];
+int s0[500000000000];
+int s0[0];
 
-__DATE__
-__TIME__
-
-#error hello world  4
-
-// int v[*];
-// int a[3];
-// int s0[static 5];
-// int s1[5 static];
-// int s2[static const 5];
+void foo(int s2[static const const restrict volatile 5]) {}
 
 

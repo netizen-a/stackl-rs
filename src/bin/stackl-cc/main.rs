@@ -113,6 +113,11 @@ fn main() -> ExitCode {
 	for error_recov in syntax_errors {
 		diag_engine.push_syntax_error(error_recov.error)
 	}
+
+	if args.is_traced {
+		println!("{:#?}", unit);
+	}
+
 	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
 
 	diag_engine.print_diagnostics();
@@ -121,9 +126,7 @@ fn main() -> ExitCode {
 	}
 
 	//synthesis::parse(&analysis_result.unwrap());
-	if args.is_traced {
-		println!("{:#?}", _analysis_result);
-	}
+	
 
 	ExitCode::SUCCESS
 }
