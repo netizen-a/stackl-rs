@@ -990,7 +990,11 @@ Unmatched: Stmt = {
 
 Matched: Stmt = {
 	SimpleStatement,
-	"if" "(" Expr ")" Matched "else" Matched => todo!("closed-if"),
+	"if" "(" <cond:Expr> ")" <stmt_then:Matched> "else" <stmt_else:Matched> => Stmt::Select(SelectStmt::If{
+		stmt_cond: cond,
+		stmt_then: Box::new(stmt_then),
+		stmt_else: Some(Box::new(stmt_else)),
+	}),
 	"switch" "(" <expr:Expr> ")" <stmt:Matched> => Stmt::Select(SelectStmt::Switch{
 		expr,
 		stmt: Box::new(stmt),
