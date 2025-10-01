@@ -407,7 +407,7 @@ impl DiagnosticEngine {
 		let mut hi_line = line;
 		let source_triple = diag.span.to_vec(source.as_ref());
 		let triple_len = source_triple.len();
-		hi_line += source_triple.len();
+		hi_line += 1 - source_triple.len();
 
 		let line_len = hi_line.to_string().len();
 		let mut line_space = " ".repeat(line_len);
