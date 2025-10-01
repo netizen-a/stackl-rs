@@ -4,12 +4,12 @@ pub mod iter;
 pub mod stmt;
 
 use super::tok;
+use crate::diagnostics as diag;
 pub use decl::*;
+use diag::ToSpan;
 pub use expr::*;
 pub use iter::*;
 pub use stmt::*;
-use crate::diagnostics as diag;
-use diag::ToSpan;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");

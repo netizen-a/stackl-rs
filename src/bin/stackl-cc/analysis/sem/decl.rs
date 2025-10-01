@@ -317,8 +317,7 @@ impl super::SemanticParser<'_> {
 			};
 			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
 				// 5.2.4.1 translation limit
-				let diag =
-					diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.to_span());
+				let diag = diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.to_span());
 				self.diagnostics.push(diag);
 			}
 			let mut var_dtype = data_type.clone();

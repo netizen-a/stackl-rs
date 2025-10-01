@@ -40,4 +40,9 @@ pub enum DiagKind {
 	ParameterLimit,
 	UndefPredef,
 	RedefPredef,
+	DirectiveLineNotSimple,
+	DirectiveLineMinRange,
+	DirectiveLineMaxRange,
+	DirectiveLineFilename,
+	DirectiveExtraTokens,
 }

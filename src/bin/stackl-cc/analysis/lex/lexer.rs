@@ -27,7 +27,12 @@ impl Lexer {
 			chars: char_iter.enumerate().peekable(),
 			leading_space: false,
 			include_state: 1,
-			span: diag::Span{ file_id, line: 1, .. Default::default() }
+			span: diag::Span {
+				file_id,
+				line: 1,
+				name_id: file_id,
+				..Default::default()
+			},
 		}
 	}
 
@@ -52,7 +57,10 @@ impl Lexer {
 				is_builtin = true;
 				let seq = self.h_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '>').is_none() {
-					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
+					return Err(diag::Diagnostic::error(
+						diag::DiagKind::InvalidToken,
+						self.to_span(),
+					));
 				}
 				seq
 			}
@@ -60,7 +68,10 @@ impl Lexer {
 				is_builtin = false;
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
-					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
+					return Err(diag::Diagnostic::error(
+						diag::DiagKind::InvalidToken,
+						self.to_span(),
+					));
 				}
 				seq
 			}
@@ -75,7 +86,7 @@ impl Lexer {
 			tok::PPToken {
 				kind: tok::PPTokenKind::HeaderName(head_name),
 				leading_space: self.leading_space,
-				span: self.to_span()
+				span: self.to_span(),
 			},
 			hi,
 		))
@@ -128,7 +139,10 @@ impl Lexer {
 					c = next_c;
 				}
 			} else {
-				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, self.to_span()));
+				return Err(diag::Diagnostic::error(
+					diag::DiagKind::UnexpectedEof,
+					self.to_span(),
+				));
 			}
 		}
 		let seq = self.c_char_sequence()?;
@@ -136,7 +150,10 @@ impl Lexer {
 			// name.push('\'');
 			self.set_end(curr_pos);
 		} else {
-			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
+			return Err(diag::Diagnostic::error(
+				diag::DiagKind::InvalidToken,
+				self.to_span(),
+			));
 		}
 
 		let str_lit = tok::CharConst { seq, is_wide };
@@ -158,14 +175,20 @@ impl Lexer {
 			if let Some((pos, _)) = self.chars.next() {
 				self.set_end(pos);
 			} else {
-				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, self.to_span()));
+				return Err(diag::Diagnostic::error(
+					diag::DiagKind::UnexpectedEof,
+					self.to_span(),
+				));
 			}
 		}
 		let seq = self.s_char_sequence()?;
 		if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '"') {
 			self.set_end(pos);
 		} else {
-			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
+			return Err(diag::Diagnostic::error(
+				diag::DiagKind::InvalidToken,
+				self.to_span(),
+			));
 		}
 
 		let str_lit = tok::StrLit {
@@ -219,12 +242,10 @@ impl Lexer {
 			'x' => todo!("hexadecimal-escape-sequence"),
 			// [c99] universal-character-name
 			// 'u' | 'U' => todo!("universal-character-name"),
-			_ => {
-				Err(diag::Diagnostic::error(
-					diag::DiagKind::UnexpectedEscape,
-					self.to_span(),
-				))
-			}
+			_ => Err(diag::Diagnostic::error(
+				diag::DiagKind::UnexpectedEscape,
+				self.to_span(),
+			)),
 		}
 	}
 
@@ -588,19 +609,15 @@ impl Iterator for Lexer {
 						hi,
 					)))
 				}
-				Some(Ok(_)) => {
-					Some(Err(diag::Diagnostic::error(
-						diag::DiagKind::InvalidToken,
-						self.to_span(),
-					)))
-				}
+				Some(Ok(_)) => Some(Err(diag::Diagnostic::error(
+					diag::DiagKind::InvalidToken,
+					self.to_span(),
+				))),
 				Some(Err(error)) => Some(Err(error)),
-				None => {
-					Some(Err(diag::Diagnostic::error(
-						diag::DiagKind::UnexpectedEof,
-						self.to_span(),
-					)))
-				}
+				None => Some(Err(diag::Diagnostic::error(
+					diag::DiagKind::UnexpectedEof,
+					self.to_span(),
+				))),
 			},
 			'+' => {
 				self.include_state = 0;

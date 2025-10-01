@@ -5,8 +5,11 @@ pub trait ToSpan {
 #[derive(Debug, Clone, Default)]
 pub struct Span {
 	pub loc: (usize, usize),
+	/// actual file id
 	pub file_id: usize,
 	pub line: usize,
+	/// reported name of file
+	pub name_id: usize,
 }
 
 impl ToSpan for Span {

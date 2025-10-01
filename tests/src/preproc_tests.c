@@ -8,5 +8,13 @@
 // #define __LINE__
 // #define __STDC__
 
-#undef FOO bar baz 128 "so many extra tokens"
-#include <foo.h> and even more 128 right here ???
+// #undef FOO bar baz 128 "so many extra tokens"
+// #include <foo.h> and even more 128 right here ???
+#line 5 "hello world!"
+
+unsigned struct Foo {} foo;
+
+#line 8 "different source"
+
+signed struct Bar {} bar;
+

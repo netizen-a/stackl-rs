@@ -3,8 +3,11 @@
 use std::{collections::VecDeque, fmt};
 
 use super::expr;
-use crate::{analysis::tok, diagnostics::{self as diag, ToSpan}};
 use super::Identifier;
+use crate::{
+	analysis::tok,
+	diagnostics::{self as diag, ToSpan},
+};
 
 /// (6.9.1) declaration-list
 pub struct DeclarationList(Vec<Declaration>);
@@ -166,7 +169,7 @@ impl TypeSpecifier {
 				Some(ident) => ident.span.clone(),
 				None => spec.tag_span.clone(),
 			},
-			Self::TypedefName(ident)=> ident.to_span(),
+			Self::TypedefName(ident) => ident.to_span(),
 		}
 	}
 }

@@ -1,9 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
+use super::Identifier;
 use crate::analysis::tok::{Token, TokenKind, TokenTriple};
 use crate::diagnostics as diag;
 use crate::symtab::SymbolTable;
-use super::Identifier;
 
 #[derive(Default)]
 pub struct InnerIter {

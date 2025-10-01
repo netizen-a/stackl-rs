@@ -1,9 +1,9 @@
 use std::f32;
 
 use super::decl;
+use super::Identifier;
 use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
 use crate::diagnostics as diag;
-use super::Identifier;
 
 pub enum ConversionError {
 	OutOfRange,

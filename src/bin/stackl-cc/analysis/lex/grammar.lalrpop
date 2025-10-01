@@ -57,7 +57,6 @@ ControlLine: () = {
 		stack.push_lexer(Lexer::new(buf, file_id));
 	},
 	"#" DIRECTIVE_DEFINE <lo:@L> <ident:Identifier> <hi:@R> <list:ReplacementList> "\n" => {
-		let mut stack = stack_ref.borrow();
 		let name = ident.1.kind.clone().unwrap_name();
 		let mut stack = stack_ref.borrow_mut();
 		if let Some(error) = stack.define_obj_macro(name, list, ident.1.to_span()) {
@@ -65,14 +64,18 @@ ControlLine: () = {
 		}
 	},
 	"#" DIRECTIVE_UNDEF <lo:@L> <ident:Identifier> <hi:@R> "\n" => {
-		let mut stack = stack_ref.borrow();
 		let name = ident.1.kind.clone().unwrap_name();
 		let mut stack = stack_ref.borrow_mut();
 		if let Some(error) = stack.undef_macro(name, ident.1.to_span()) {
 			diagnostics.push(error);
 		}
 	},
-	"#" DIRECTIVE_LINE RawPPToken+ "\n" => {},
+	"#" DIRECTIVE_LINE <tokens:RawPPToken+> "\n" => {
+		let mut stack = stack_ref.borrow_mut();
+		if let Some(error) = stack.line_directive(tokens) {
+			diagnostics.push(error);
+		}
+	},
 	"#" <lo:@L> <directive:DIRECTIVE_ERROR> <hi:@R> <pp_token_list:RawPPToken*> "\n" => {
 		let mut stack = stack_ref.borrow();
 		let mut error_str = String::new();

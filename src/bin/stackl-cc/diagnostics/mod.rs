@@ -3,10 +3,7 @@ mod kind;
 pub mod lex;
 mod span;
 
-use crate::analysis::{
-	syn,
-	tok,
-};
+use crate::analysis::{syn, tok};
 use std::{
 	cell::RefCell,
 	collections::{HashMap, HashSet},
@@ -144,6 +141,7 @@ impl DiagnosticEngine {
 					loc: (*location, *location),
 					// TODO: get line from external source
 					line: usize::MAX,
+					name_id: file_id,
 				};
 				let diag = Diagnostic {
 					level,
@@ -377,6 +375,7 @@ impl DiagnosticEngine {
 
 		let mut result = String::new();
 		let file_path = self.get_file_path(diag.span.file_id).unwrap();
+		let file_name = self.get_file_path(diag.span.name_id).unwrap();
 		let source = self.get_file_data(diag.span.file_id).unwrap();
 		let level_color = match diag.level {
 			DiagLevel::Fatal => {
@@ -409,7 +408,7 @@ impl DiagnosticEngine {
 
 		result.push_str(&format!(
 			"{line_space}{color_blue}-->{color_default} {}:{line}:{col}\n",
-			file_path.display()
+			file_name.display()
 		));
 		line_space.push(' ');
 		result.push_str(&format!("{line_space}{color_blue}|{color_default}\n"));
