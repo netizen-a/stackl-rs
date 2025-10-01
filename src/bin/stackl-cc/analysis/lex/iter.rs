@@ -202,11 +202,12 @@ impl PPTokenStack {
 	}
 
 	fn preprocess(&mut self, mut triple: PPTokenTriple) -> Option<diag::ResultTriple<PPToken, usize>> {
-		let span = triple.1.to_span();
-		if let Some(name_id) =  self.id_map.get(&span.file_id) {
+		if let Some(name_id) =  self.id_map.get(&triple.1.span.file_id) {
 			triple.1.span.name_id = *name_id;
 		}
 		triple.1.span.line = self.line;
+
+		let span = triple.1.to_span();
 		let ident = match &triple.1.kind {
 			tok::PPTokenKind::Ident(ident) => ident,
 			tok::PPTokenKind::NewLine(_) => {
