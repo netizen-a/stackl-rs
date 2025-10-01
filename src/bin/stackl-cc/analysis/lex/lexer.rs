@@ -76,13 +76,11 @@ impl Lexer {
 		name.push_str(&char_seq);
 		self.include_state = 0;
 		let head_name = tok::HeaderName { is_builtin, name };
-		Ok(
-			tok::PPToken {
-				kind: tok::PPTokenKind::HeaderName(head_name),
-				leading_space: self.leading_space,
-				span: self.to_span(),
-			}
-		)
+		Ok(tok::PPToken {
+			kind: tok::PPTokenKind::HeaderName(head_name),
+			leading_space: self.leading_space,
+			span: self.to_span(),
+		})
 	}
 
 	fn identifier(&mut self, c: char) -> Result<tok::PPToken, diag::Diagnostic> {
@@ -105,13 +103,11 @@ impl Lexer {
 			is_type: false,
 			expandable: true,
 		};
-		Ok(
-			tok::PPToken {
-				kind: tok::PPTokenKind::Ident(ident),
-				leading_space: self.leading_space,
-				span: self.to_span(),
-			}
-		)
+		Ok(tok::PPToken {
+			kind: tok::PPTokenKind::Ident(ident),
+			leading_space: self.leading_space,
+			span: self.to_span(),
+		})
 	}
 
 	#[allow(dead_code)]
@@ -147,13 +143,11 @@ impl Lexer {
 		}
 
 		let str_lit = tok::CharConst { seq, is_wide };
-		Ok(
-			tok::PPToken {
-				kind: tok::PPTokenKind::CharConst(str_lit),
-				leading_space: self.leading_space,
-				span: self.to_span(),
-			}
-		)
+		Ok(tok::PPToken {
+			kind: tok::PPTokenKind::CharConst(str_lit),
+			leading_space: self.leading_space,
+			span: self.to_span(),
+		})
 	}
 
 	fn string_literal(&mut self, c: char) -> Result<tok::PPToken, diag::Diagnostic> {
@@ -183,13 +177,11 @@ impl Lexer {
 			is_wide,
 			file_id: self.to_span().file_id,
 		};
-		Ok(
-			tok::PPToken {
-				kind: tok::PPTokenKind::StrLit(str_lit),
-				leading_space: self.leading_space,
-				span: self.to_span(),
-			}
-		)
+		Ok(tok::PPToken {
+			kind: tok::PPTokenKind::StrLit(str_lit),
+			leading_space: self.leading_space,
+			span: self.to_span(),
+		})
 	}
 	#[allow(dead_code)]
 	fn punctuator(&mut self) -> Result<tok::PPToken, diag::Diagnostic> {
@@ -326,25 +318,21 @@ impl Iterator for Lexer {
 					name,
 					is_deleted: false,
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::NewLine(new_line),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::NewLine(new_line),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			// punctuators without trailing characters
 			'[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
 				self.include_state = 0;
 				let punct = tok::Punct::try_from(c).unwrap();
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(punct),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(punct),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 
 			// identifier
@@ -377,13 +365,11 @@ impl Iterator for Lexer {
 					}
 				}
 				let num = tok::PPNumber { name };
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::PPNumber(num),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::PPNumber(num),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			// `.` or `...` or pp-number
 			'.' => {
@@ -396,13 +382,11 @@ impl Iterator for Lexer {
 						// case: `...`
 						self.set_end(pos);
 						let punct = tok::Punct::Ellipsis;
-						Some(Ok(
-							tok::PPToken {
-								kind: tok::PPTokenKind::Punct(punct),
-								leading_space: self.leading_space,
-								span: self.to_span(),
-							}
-						))
+						Some(Ok(tok::PPToken {
+							kind: tok::PPTokenKind::Punct(punct),
+							leading_space: self.leading_space,
+							span: self.to_span(),
+						}))
 					} else {
 						Some(Err(diag::Diagnostic::error(
 							diag::DiagKind::InvalidToken,
@@ -438,13 +422,11 @@ impl Iterator for Lexer {
 						}
 					}
 					let num = tok::PPNumber { name };
-					Some(Ok(
-						tok::PPToken {
-							kind: tok::PPTokenKind::PPNumber(num),
-							leading_space: self.leading_space,
-							span: self.to_span(),
-						}
-					))
+					Some(Ok(tok::PPToken {
+						kind: tok::PPTokenKind::PPNumber(num),
+						leading_space: self.leading_space,
+						span: self.to_span(),
+					}))
 				} else {
 					Some(Err(diag::Diagnostic::error(
 						diag::DiagKind::InvalidToken,
@@ -462,13 +444,11 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 				}
 				let punct = tok::Punct::Hash;
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(punct),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(punct),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'<' => {
 				let term = if self.include_state == 3 {
@@ -490,13 +470,11 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 					tok::Punct::Less
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'/' => {
 				self.include_state = 0;
@@ -541,29 +519,23 @@ impl Iterator for Lexer {
 				} else {
 					tok::Punct::FSlash
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'\\' => match self.next() {
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::NewLine(mut new_line),
-						..
-					},
-				)) => {
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::NewLine(mut new_line),
+					..
+				})) => {
 					new_line.is_deleted = true;
-					Some(Ok(
-						tok::PPToken {
-							kind: tok::PPTokenKind::NewLine(new_line),
-							leading_space: self.leading_space,
-							span: self.to_span(),
-						}
-					))
+					Some(Ok(tok::PPToken {
+						kind: tok::PPTokenKind::NewLine(new_line),
+						leading_space: self.leading_space,
+						span: self.to_span(),
+					}))
 				}
 				Some(Ok(_)) => Some(Err(diag::Diagnostic::error(
 					diag::DiagKind::InvalidToken,
@@ -589,13 +561,11 @@ impl Iterator for Lexer {
 					// case: `+`
 					tok::Punct::Plus
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'-' => {
 				self.include_state = 0;
@@ -611,13 +581,11 @@ impl Iterator for Lexer {
 					// case: `-`
 					tok::Punct::Minus
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'=' => {
 				self.include_state = 0;
@@ -629,13 +597,11 @@ impl Iterator for Lexer {
 					// case: `=`
 					tok::Punct::Equal
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'*' => {
 				self.include_state = 0;
@@ -647,13 +613,11 @@ impl Iterator for Lexer {
 					// case: `*`
 					tok::Punct::Star
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			':' => {
 				self.include_state = 0;
@@ -665,13 +629,11 @@ impl Iterator for Lexer {
 					// case: `:`
 					tok::Punct::Colon
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			'!' => {
 				self.include_state = 0;
@@ -683,13 +645,11 @@ impl Iterator for Lexer {
 					// case: `!`
 					tok::Punct::Bang
 				};
-				Some(Ok(
-					tok::PPToken {
-						kind: tok::PPTokenKind::Punct(term),
-						leading_space: self.leading_space,
-						span: self.to_span(),
-					}
-				))
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
 			}
 			_ => todo!("{}", c as i32),
 		}

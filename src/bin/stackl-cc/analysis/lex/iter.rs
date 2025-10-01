@@ -118,52 +118,75 @@ impl PPTokenStack {
 					PPTokenKind::PPNumber(num) => match num.name.parse::<usize>() {
 						Ok(new_line_num @ 1..=2147483647) => line_num = new_line_num,
 						Ok(0) => {
-							let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineMinRange, token.to_span());
+							let error = diag::Diagnostic::error(
+								diag::DiagKind::DirectiveLineMinRange,
+								token.to_span(),
+							);
 							return Some(error);
 						}
 						Ok(2147483648..) => {
-							let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineMinRange, token.to_span());
+							let error = diag::Diagnostic::error(
+								diag::DiagKind::DirectiveLineMinRange,
+								token.to_span(),
+							);
 							return Some(error);
 						}
 						Err(_) => {
-							let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineNotSimple, token.to_span());
+							let error = diag::Diagnostic::error(
+								diag::DiagKind::DirectiveLineNotSimple,
+								token.to_span(),
+							);
 							return Some(error);
 						}
 					},
 					_ => {
-						let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineNotSimple, token.to_span());
+						let error = diag::Diagnostic::error(
+							diag::DiagKind::DirectiveLineNotSimple,
+							token.to_span(),
+						);
 						return Some(error);
 					}
 				}
 			} else if index == 1 {
 				match &token.kind {
-					PPTokenKind::StrLit(str_lit) => if str_lit.is_wide {
-						let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineFilename, token.to_span());
-						return Some(error);
-					} else {
-						let file_map = self.file_map_ref.borrow();
-						let name_path = PathBuf::from(str_lit.seq.clone());
-						let span = token.to_span();
-						if let Some(name_id) = file_map.get_by_right(&name_path) {
-							id_pair = Some((span.file_id, *name_id));
+					PPTokenKind::StrLit(str_lit) => {
+						if str_lit.is_wide {
+							let error = diag::Diagnostic::error(
+								diag::DiagKind::DirectiveLineFilename,
+								token.to_span(),
+							);
+							return Some(error);
 						} else {
-							id_pair = Some((span.file_id, file_map.len()));
-							file_name = Some(str_lit.seq.clone());
+							let file_map = self.file_map_ref.borrow();
+							let name_path = PathBuf::from(str_lit.seq.clone());
+							let span = token.to_span();
+							if let Some(name_id) = file_map.get_by_right(&name_path) {
+								id_pair = Some((span.file_id, *name_id));
+							} else {
+								id_pair = Some((span.file_id, file_map.len()));
+								file_name = Some(str_lit.seq.clone());
+							}
 						}
-					},
+					}
 					_ => {
-						let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineFilename, token.to_span());
+						let error = diag::Diagnostic::error(
+							diag::DiagKind::DirectiveLineFilename,
+							token.to_span(),
+						);
 						return Some(error);
 					}
 				}
 			} else {
-				let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineExtraTokens, token.to_span());
+				let error = diag::Diagnostic::error(
+					diag::DiagKind::DirectiveLineExtraTokens,
+					token.to_span(),
+				);
 				return Some(error);
 			}
 		}
 		self.line = line_num;
 		if let Some((file_id, file_name_id)) = id_pair {
-			self.id_map.insert(file_id,file_name_id);
+			self.id_map.insert(file_id, file_name_id);
 			if let Some(file_name) = file_name {
 				let mut file_map = self.file_map_ref.borrow_mut();
 				file_map.insert(file_name_id, PathBuf::from(file_name));
@@ -209,7 +232,7 @@ impl PPTokenStack {
 	}
 
 	fn preprocess(&mut self, mut triple: PPToken) -> Option<Result<PPToken, diag::Diagnostic>> {
-		if let Some(name_id) =  self.id_map.get(&triple.span.file_id) {
+		if let Some(name_id) = self.id_map.get(&triple.span.file_id) {
 			triple.span.name_id = *name_id;
 		}
 		triple.span.line = self.line;
@@ -224,13 +247,11 @@ impl PPTokenStack {
 			}
 			tok::PPTokenKind::Punct(tok::Punct::Hash) => {
 				match self.pop_token() {
-					Some(Ok(
-						PPToken {
-							kind: PPTokenKind::Ident(ident),
-							leading_space,
-							span,
-						}
-					)) => {
+					Some(Ok(PPToken {
+						kind: PPTokenKind::Ident(ident),
+						leading_space,
+						span,
+					})) => {
 						let kind = match ident.name.as_str() {
 							"include" => PPTokenKind::Directive(Directive::Include),
 							"if" => PPTokenKind::Directive(Directive::If),
