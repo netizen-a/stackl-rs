@@ -8,7 +8,6 @@ use crate::diagnostics::ToSpan;
 
 grammar<'a>(
 	diagnostics: &mut diag::DiagnosticEngine,
-	tk_ref: &'a Rc<RefCell<InnerIter>>
 );
 
 
@@ -331,7 +330,6 @@ ConstantExpr = ConditionalExpr;
 
 Declaration: Declaration = {
 	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
-		tk_ref.borrow_mut().is_typedef = false;
 		Declaration {
 			specifiers: Specifiers::from(kind_list),
 			init_declarator_list: init_list.unwrap_or_default(),
@@ -369,7 +367,6 @@ InitDeclarator: InitDeclarator = {
 
 StorageClassSpecifier: StorageClassSpecifier = {
 	<lo:@L> <kw:"typedef"> <hi:@R> => {
-		tk_ref.borrow_mut().is_typedef = true;
 		StorageClassSpecifier {
 			span: kw.to_span(),
 			kind: StorageClass::Typedef,
@@ -532,13 +529,7 @@ Declarator: (Identifier, Vec<Declarator>) = {
 };
 
 DirectDeclaratorList: (Identifier, Vec<Declarator>) = {
-	<mut ident:Identifier> => {
-		let mut tk_mut = tk_ref.borrow_mut();
-		if tk_mut.is_typedef {
-			tk_mut.push_type(ident.name.clone());
-		}
-		(ident, vec![])
-	},
+	<mut ident:Identifier> => (ident, vec![]),
 	"(" <decl:Declarator> ")" => decl,
 	<mut dd_list:DirectDeclaratorList> <lo:@L> <lsqr:"["> <hi:@R> <qual:TypeQualifier*> <expr:AssignmentExpr?> "]" => {
 		let array = ArrayDecl{
@@ -844,12 +835,10 @@ CompoundStatement: CompoundStmt = {
 };
 
 LeftCurly: diag::Span = <lo:@L> <lcurly:"{"> <hi:@R> => {
-	tk_ref.borrow_mut().increase_scope();
 	lcurly.to_span()
 };
 
 RightCurly: diag::Span = <lo:@L> <rcurly:"}"> <hi:@R> => {
-	tk_ref.borrow_mut().decrease_scope();
 	rcurly.to_span()
 };
 

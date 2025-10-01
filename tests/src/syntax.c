@@ -11,7 +11,9 @@
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
-
+typedef int Foo;
+Foo bar;
+int foo;
 
 // static static int foo(void);
 
@@ -50,38 +52,38 @@
 // long float v;
 // long long long double;
 
-struct Bar {
-    int x;
-    int y[*];
-};
+// struct Bar {
+//     int x;
+//     int y[*];
+// };
 
-struct Barz z;
+// struct Barz z;
 
-struct Fooz signed i;
+// struct Fooz signed i;
 
-unsigned struct FooFoo { int x; } j;
-unsigned struct FooBar { int y; } k;
+// unsigned struct FooFoo { int x; } j;
+// unsigned struct FooBar { int y; } k;
 
-struct Baz { unsigned char x; } signed xx;
-struct FooBaz { unsigned char x; } unsigned yy;
+// struct Baz { unsigned char x; } signed xx;
+// struct FooBaz { unsigned char x; } unsigned yy;
 
-union Bark {
-    int zz;
-    int hh[*];
-};
+// union Bark {
+//     int zz;
+//     int hh[*];
+// };
 
-union Blap s_bar;
+// union Blap s_bar;
 
-union Bloop signed bloop;
+// union Bloop signed bloop;
 
-unsigned union Car { int x; } car;
-unsigned union Cat { int y; } cat;
+// unsigned union Car { int x; } car;
+// unsigned union Cat { int y; } cat;
 
-union Food { unsigned char x; } signed food;
-union Farm { unsigned char x; } unsigned farm;
+// union Food { unsigned char x; } signed food;
+// union Farm { unsigned char x; } unsigned farm;
 
-long union Fun foo;
-struct Fuun long long bar;
+// long union Fun foo;
+// struct Fuun long long bar;
 
 // auto x;
 

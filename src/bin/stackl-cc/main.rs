@@ -97,8 +97,7 @@ fn main() -> ExitCode {
 	}
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
-	let tk_ref = rc::Rc::clone(&tk_iter.inner);
-	let unit = match syn::SyntaxParser::new().parse(&mut diag_engine, &tk_ref, tk_iter) {
+	let unit = match syn::SyntaxParser::new().parse(&mut diag_engine, tk_iter) {
 		Ok(unit) => unit,
 		Err(error) => {
 			diag_engine.push_syntax_error(error);
