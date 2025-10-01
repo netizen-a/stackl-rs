@@ -42,13 +42,9 @@ impl Lexer {
 	fn set_end(&mut self, end: usize) {
 		self.span.loc.1 = end;
 	}
-	fn location(&mut self) -> (usize, usize) {
-		let result = self.span.loc;
-		result
-	}
 
 	#[allow(dead_code)]
-	fn header_name(&mut self, c: char) -> diag::ResultTriple<tok::PPToken, usize> {
+	fn header_name(&mut self, c: char) -> Result<tok::PPToken, diag::Diagnostic> {
 		let mut name = String::new();
 		// name.push(c);
 		let is_builtin;
@@ -77,22 +73,19 @@ impl Lexer {
 			}
 			_ => unreachable!(),
 		};
-		name.push_str(&char_seq.1);
+		name.push_str(&char_seq);
 		self.include_state = 0;
 		let head_name = tok::HeaderName { is_builtin, name };
-		let (lo, hi) = self.location();
-		Ok((
-			lo,
+		Ok(
 			tok::PPToken {
 				kind: tok::PPTokenKind::HeaderName(head_name),
 				leading_space: self.leading_space,
 				span: self.to_span(),
-			},
-			hi,
-		))
+			}
+		)
 	}
 
-	fn identifier(&mut self, c: char) -> diag::ResultTriple<tok::PPToken, usize> {
+	fn identifier(&mut self, c: char) -> Result<tok::PPToken, diag::Diagnostic> {
 		let mut name = String::new();
 		name.push(c);
 		while let Some((pos, next_c)) = self
@@ -107,29 +100,26 @@ impl Lexer {
 		} else {
 			self.include_state = 0;
 		}
-		let (lo, hi) = self.location();
 		let ident = tok::Ident {
 			name,
 			is_type: false,
 			expandable: true,
 		};
-		Ok((
-			lo,
+		Ok(
 			tok::PPToken {
 				kind: tok::PPTokenKind::Ident(ident),
 				leading_space: self.leading_space,
 				span: self.to_span(),
-			},
-			hi,
-		))
+			}
+		)
 	}
 
 	#[allow(dead_code)]
-	fn pp_number(&mut self) -> diag::ResultTriple<tok::PPToken, usize> {
+	fn pp_number(&mut self) -> Result<tok::PPToken, diag::Diagnostic> {
 		todo!("pp-number")
 	}
 
-	fn character_constant(&mut self, mut c: char) -> diag::ResultTriple<tok::PPToken, usize> {
+	fn character_constant(&mut self, mut c: char) -> Result<tok::PPToken, diag::Diagnostic> {
 		self.include_state = 0;
 		let is_wide = c == 'L';
 		if is_wide {
@@ -157,19 +147,16 @@ impl Lexer {
 		}
 
 		let str_lit = tok::CharConst { seq, is_wide };
-		let (lo, hi) = self.location();
-		Ok((
-			lo,
+		Ok(
 			tok::PPToken {
 				kind: tok::PPTokenKind::CharConst(str_lit),
 				leading_space: self.leading_space,
 				span: self.to_span(),
-			},
-			hi,
-		))
+			}
+		)
 	}
 
-	fn string_literal(&mut self, c: char) -> diag::ResultTriple<tok::PPToken, usize> {
+	fn string_literal(&mut self, c: char) -> Result<tok::PPToken, diag::Diagnostic> {
 		let is_wide = c == 'L';
 		if is_wide {
 			if let Some((pos, _)) = self.chars.next() {
@@ -196,19 +183,16 @@ impl Lexer {
 			is_wide,
 			file_id: self.to_span().file_id,
 		};
-		let (lo, hi) = self.location();
-		Ok((
-			lo,
+		Ok(
 			tok::PPToken {
 				kind: tok::PPTokenKind::StrLit(str_lit),
 				leading_space: self.leading_space,
 				span: self.to_span(),
-			},
-			hi,
-		))
+			}
+		)
 	}
 	#[allow(dead_code)]
-	fn punctuator(&mut self) -> diag::ResultTriple<tok::PPToken, usize> {
+	fn punctuator(&mut self) -> Result<tok::PPToken, diag::Diagnostic> {
 		todo!("punctuator")
 	}
 
@@ -275,24 +259,24 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
-	fn h_char_sequence(&mut self) -> diag::ResultTriple<String, usize> {
+	fn h_char_sequence(&mut self) -> Result<String, diag::Diagnostic> {
 		let mut seq = String::new();
 		while let Some((_, h_char)) = self.chars.next_if(|&(_, c)| c != '>' && c != '\n') {
 			seq.push(h_char);
 		}
-		Ok((0, seq, 0))
+		Ok(seq)
 	}
-	fn q_char_sequence(&mut self) -> diag::ResultTriple<String, usize> {
+	fn q_char_sequence(&mut self) -> Result<String, diag::Diagnostic> {
 		let mut seq = String::new();
 		while let Some((_, q_char)) = self.chars.next_if(|&(_, c)| c != '"' && c != '\n') {
 			seq.push(q_char);
 		}
-		Ok((0, seq, 0))
+		Ok(seq)
 	}
 }
 
 impl Iterator for Lexer {
-	type Item = diag::ResultTriple<tok::PPToken, usize>;
+	type Item = Result<tok::PPToken, diag::Diagnostic>;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.leading_space = false;
 		// skip whitespace
@@ -342,31 +326,25 @@ impl Iterator for Lexer {
 					name,
 					is_deleted: false,
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::NewLine(new_line),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			// punctuators without trailing characters
 			'[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
 				self.include_state = 0;
-				let (lo, hi) = self.location();
 				let punct = tok::Punct::try_from(c).unwrap();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 
 			// identifier
@@ -399,16 +377,13 @@ impl Iterator for Lexer {
 					}
 				}
 				let num = tok::PPNumber { name };
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::PPNumber(num),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			// `.` or `...` or pp-number
 			'.' => {
@@ -421,16 +396,13 @@ impl Iterator for Lexer {
 						// case: `...`
 						self.set_end(pos);
 						let punct = tok::Punct::Ellipsis;
-						let (lo, hi) = self.location();
-						Some(Ok((
-							lo,
+						Some(Ok(
 							tok::PPToken {
 								kind: tok::PPTokenKind::Punct(punct),
 								leading_space: self.leading_space,
 								span: self.to_span(),
-							},
-							hi,
-						)))
+							}
+						))
 					} else {
 						Some(Err(diag::Diagnostic::error(
 							diag::DiagKind::InvalidToken,
@@ -466,16 +438,13 @@ impl Iterator for Lexer {
 						}
 					}
 					let num = tok::PPNumber { name };
-					let (lo, hi) = self.location();
-					Some(Ok((
-						lo,
+					Some(Ok(
 						tok::PPToken {
 							kind: tok::PPTokenKind::PPNumber(num),
 							leading_space: self.leading_space,
 							span: self.to_span(),
-						},
-						hi,
-					)))
+						}
+					))
 				} else {
 					Some(Err(diag::Diagnostic::error(
 						diag::DiagKind::InvalidToken,
@@ -493,16 +462,13 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 				}
 				let punct = tok::Punct::Hash;
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'<' => {
 				let term = if self.include_state == 3 {
@@ -524,16 +490,13 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 					tok::Punct::Less
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'/' => {
 				self.include_state = 0;
@@ -578,36 +541,29 @@ impl Iterator for Lexer {
 				} else {
 					tok::Punct::FSlash
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'\\' => match self.next() {
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::NewLine(mut new_line),
 						..
 					},
-					hi,
-				))) => {
+				)) => {
 					new_line.is_deleted = true;
-					Some(Ok((
-						lo,
+					Some(Ok(
 						tok::PPToken {
 							kind: tok::PPTokenKind::NewLine(new_line),
 							leading_space: self.leading_space,
 							span: self.to_span(),
-						},
-						hi,
-					)))
+						}
+					))
 				}
 				Some(Ok(_)) => Some(Err(diag::Diagnostic::error(
 					diag::DiagKind::InvalidToken,
@@ -633,16 +589,13 @@ impl Iterator for Lexer {
 					// case: `+`
 					tok::Punct::Plus
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'-' => {
 				self.include_state = 0;
@@ -658,16 +611,13 @@ impl Iterator for Lexer {
 					// case: `-`
 					tok::Punct::Minus
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'=' => {
 				self.include_state = 0;
@@ -679,16 +629,13 @@ impl Iterator for Lexer {
 					// case: `=`
 					tok::Punct::Equal
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'*' => {
 				self.include_state = 0;
@@ -700,16 +647,13 @@ impl Iterator for Lexer {
 					// case: `*`
 					tok::Punct::Star
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			':' => {
 				self.include_state = 0;
@@ -721,16 +665,13 @@ impl Iterator for Lexer {
 					// case: `:`
 					tok::Punct::Colon
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			'!' => {
 				self.include_state = 0;
@@ -742,16 +683,13 @@ impl Iterator for Lexer {
 					// case: `!`
 					tok::Punct::Bang
 				};
-				let (lo, hi) = self.location();
-				Some(Ok((
-					lo,
+				Some(Ok(
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
 						leading_space: self.leading_space,
 						span: self.to_span(),
-					},
-					hi,
-				)))
+					}
+				))
 			}
 			_ => todo!("{}", c as i32),
 		}

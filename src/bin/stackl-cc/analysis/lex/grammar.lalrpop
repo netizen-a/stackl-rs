@@ -76,7 +76,7 @@ ControlLine: () = {
 			diagnostics.push(error);
 		}
 	},
-	"#" <lo:@L> <directive:DIRECTIVE_ERROR> <hi:@R> <pp_token_list:RawPPToken*> "\n" => {
+	"#" <directive:DIRECTIVE_ERROR> <pp_token_list:RawPPToken*> "\n" => {
 		let mut error_str = String::new();
 		for (index, (_, pp_token, _)) in pp_token_list.iter().enumerate() {
 			if index == 0 {
@@ -216,10 +216,7 @@ StrLit: TokenTriple = <lo:@L> <tk:STR_LIT> <hi:@R> => {
 	)
 };
 
-PUNCT: PPToken = {
-	"#",
-	NonHashPunct,
-};
+PUNCT: PPToken = { "#", NonHashPunct };
 
 NonHashPunct: PPToken = {
 	"##",  "(", " (", ")",  "{",

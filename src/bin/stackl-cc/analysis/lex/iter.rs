@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, time};
 
 use crate::{
-	analysis::tok::{self, Directive, PPToken, PPTokenKind, PPTokenTriple},
+	analysis::tok::{self, Directive, PPToken, PPTokenKind},
 	diagnostics::DiagnosticEngine,
 };
 
@@ -12,7 +12,7 @@ use chrono::{Datelike, Timelike};
 use lalrpop_util as lalr;
 
 pub enum StackKind {
-	Buffer(Vec<diag::ResultTriple<PPToken, usize>>),
+	Buffer(Vec<Result<PPToken, diag::Diagnostic>>),
 	Lexer(Lexer),
 }
 
@@ -45,7 +45,7 @@ fn current_time() -> String {
 #[derive(Default)]
 pub struct PPTokenStack {
 	stack: Vec<StackKind>,
-	defines: HashMap<String, Vec<PPTokenTriple>>,
+	defines: HashMap<String, Vec<PPToken>>,
 	file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>,
 	line: usize,
 	last_token_kind: Option<PPTokenKind>,
@@ -66,7 +66,7 @@ impl PPTokenStack {
 	pub fn define_obj_macro(
 		&mut self,
 		name: String,
-		replacement_list: Vec<PPTokenTriple>,
+		replacement_list: Vec<PPToken>,
 		span: diag::Span,
 	) -> Option<diag::Diagnostic> {
 		let error = diag::Diagnostic::error(diag::DiagKind::RedefPredef, span);
@@ -108,11 +108,11 @@ impl PPTokenStack {
 			}
 		}
 	}
-	pub fn line_directive(&mut self, tokens: Vec<PPTokenTriple>) -> Option<diag::Diagnostic> {
+	pub fn line_directive(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
 		let mut line_num: usize = self.line;
 		let mut file_name = None;
 		let mut id_pair = None;
-		for (index, (_, token, _)) in tokens.iter().enumerate() {
+		for (index, token) in tokens.iter().enumerate() {
 			if index == 0 {
 				match &token.kind {
 					PPTokenKind::PPNumber(num) => match num.name.parse::<usize>() {
@@ -174,7 +174,7 @@ impl PPTokenStack {
 	pub fn push_lexer(&mut self, lexer: Lexer) {
 		self.stack.push(StackKind::Lexer(lexer));
 	}
-	pub fn push_token(&mut self, triple: PPTokenTriple) {
+	pub fn push_token(&mut self, triple: PPToken) {
 		match self.stack.last_mut() {
 			Some(StackKind::Buffer(buffer)) => buffer.push(Ok(triple)),
 			_ => {
@@ -183,7 +183,7 @@ impl PPTokenStack {
 			}
 		}
 	}
-	pub fn push_result_triple(&mut self, result_triple: diag::ResultTriple<PPToken, usize>) {
+	pub fn push_result_triple(&mut self, result_triple: Result<PPToken, diag::Diagnostic>) {
 		match self.stack.last_mut() {
 			Some(StackKind::Buffer(buffer)) => buffer.push(result_triple),
 			_ => {
@@ -192,7 +192,7 @@ impl PPTokenStack {
 			}
 		}
 	}
-	fn pop_token(&mut self) -> Option<diag::ResultTriple<PPToken, usize>> {
+	fn pop_token(&mut self) -> Option<Result<PPToken, diag::Diagnostic>> {
 		while let Some(queue) = self.stack.last_mut() {
 			if let StackKind::Buffer(buffer) = queue {
 				if let Some(result) = buffer.pop() {
@@ -208,31 +208,29 @@ impl PPTokenStack {
 		None
 	}
 
-	fn preprocess(&mut self, mut triple: PPTokenTriple) -> Option<diag::ResultTriple<PPToken, usize>> {
-		if let Some(name_id) =  self.id_map.get(&triple.1.span.file_id) {
-			triple.1.span.name_id = *name_id;
+	fn preprocess(&mut self, mut triple: PPToken) -> Option<Result<PPToken, diag::Diagnostic>> {
+		if let Some(name_id) =  self.id_map.get(&triple.span.file_id) {
+			triple.span.name_id = *name_id;
 		}
-		triple.1.span.line = self.line;
+		triple.span.line = self.line;
 
-		let span = triple.1.to_span();
-		let ident = match &triple.1.kind {
+		let span = triple.to_span();
+		let ident = match &triple.kind {
 			tok::PPTokenKind::Ident(ident) => ident,
 			tok::PPTokenKind::NewLine(_) => {
 				self.line += 1;
-				triple.1.span.line = self.line;
+				triple.span.line = self.line;
 				return Some(Ok(triple));
 			}
 			tok::PPTokenKind::Punct(tok::Punct::Hash) => {
 				match self.pop_token() {
-					Some(Ok((
-						lo,
+					Some(Ok(
 						PPToken {
 							kind: PPTokenKind::Ident(ident),
 							leading_space,
 							span,
-						},
-						hi,
-					))) => {
+						}
+					)) => {
 						let kind = match ident.name.as_str() {
 							"include" => PPTokenKind::Directive(Directive::Include),
 							"if" => PPTokenKind::Directive(Directive::If),
@@ -253,7 +251,7 @@ impl PPTokenStack {
 							leading_space,
 							span,
 						};
-						self.push_token((lo, new_tok, hi));
+						self.push_token(new_tok);
 					}
 					Some(other) => {
 						self.push_result_triple(other);
@@ -274,6 +272,7 @@ impl PPTokenStack {
 			return Some(Ok(triple));
 		}
 
+		// This prevents predefined macros from expanding in define and undef directives.
 		if matches!(
 			self.last_token_kind,
 			Some(PPTokenKind::Directive(Directive::Define | Directive::Undef))
@@ -291,10 +290,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__FILE__" => {
 				let file_map = self.file_map_ref.borrow();
@@ -307,10 +306,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__LINE__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
@@ -318,10 +317,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__STDC__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
@@ -329,10 +328,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			// This compiler is freestanding
 			"__STDC_HOSTED__" => {
@@ -341,10 +340,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__STDC_MB_MIGHT_NEQ_WC__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
@@ -352,10 +351,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__STDC_VERSION__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
@@ -363,10 +362,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__TIME__" => {
 				let seq = current_time();
@@ -377,10 +376,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__STDC_IEC_559__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
@@ -388,10 +387,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			// freestanding implementations are not required to conform to informative annex G.
 			"__STDC_IEC_559_COMPLEX__" => {
@@ -400,10 +399,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			"__STDC_ISO_10646__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
@@ -411,10 +410,10 @@ impl PPTokenStack {
 				});
 				let pp_token = tok::PPToken {
 					kind,
-					leading_space: triple.1.leading_space,
+					leading_space: triple.leading_space,
 					span,
 				};
-				return Some(Ok((triple.0, pp_token, triple.2)));
+				return Some(Ok(pp_token));
 			}
 			_ => {
 				// do nothing
@@ -423,13 +422,13 @@ impl PPTokenStack {
 		Some(Ok(triple))
 	}
 
-	fn read_and_expand_token(&mut self) -> Option<diag::ResultTriple<PPToken, usize>> {
+	fn read_and_expand_token(&mut self) -> Option<Result<PPToken, diag::Diagnostic>> {
 		loop {
 			match self.pop_token() {
 				Some(Ok(triple)) => {
 					if let Some(result) = self.preprocess(triple) {
 						match &result {
-							Ok((_, token, _)) => self.last_token_kind = Some(token.kind.clone()),
+							Ok(token) => self.last_token_kind = Some(token.kind.clone()),
 							Err(_) => self.last_token_kind = None,
 						}
 						return Some(result);
@@ -442,21 +441,21 @@ impl PPTokenStack {
 }
 
 pub struct PPTokenIter {
-	pub stack_ref: Rc<RefCell<PPTokenStack>>,
+	pub stack_ref: PPTokenStack,
 }
 
 impl PPTokenIter {
 	pub fn new(value: Lexer, file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>) -> Self {
 		let pp_token_stack = PPTokenStack::new(value, file_map_ref);
 		Self {
-			stack_ref: Rc::new(RefCell::new(pp_token_stack)),
+			stack_ref: pp_token_stack,
 		}
 	}
 }
 
 impl Iterator for PPTokenIter {
-	type Item = diag::ResultTriple<PPToken, usize>;
+	type Item = Result<PPToken, diag::Diagnostic>;
 	fn next(&mut self) -> Option<Self::Item> {
-		self.stack_ref.borrow_mut().read_and_expand_token()
+		self.stack_ref.read_and_expand_token()
 	}
 }

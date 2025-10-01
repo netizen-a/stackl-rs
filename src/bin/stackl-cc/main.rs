@@ -84,15 +84,7 @@ fn main() -> ExitCode {
 	file.read_to_string(&mut text).unwrap();
 	let lexer = lex::lexer::Lexer::new(text, 0);
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
-	let pp_ref = rc::Rc::clone(&pp_iter.stack_ref);
-	let tokens: Vec<tok::TokenTriple> =
-		match lex::TokensParser::new().parse(&mut diag_engine, &pp_ref, pp_iter) {
-			Ok(tokens) => tokens,
-			Err(error) => {
-				diag_engine.push_preproc_error(error);
-				vec![]
-			}
-		};
+	let tokens: Vec<tok::TokenTriple> = lex::TokensParser::new(&mut diag_engine, pp_iter).parse();
 
 	diag_engine.print_diagnostics();
 	if args.pp_stdout_tokens {

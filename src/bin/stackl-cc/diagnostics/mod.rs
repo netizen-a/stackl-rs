@@ -30,7 +30,6 @@ pub struct DiagnosticEngine {
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
-	preproc_errors: Vec<ParseError<usize, tok::PPToken, Diagnostic>>,
 }
 
 impl DiagnosticEngine {
@@ -51,10 +50,6 @@ impl DiagnosticEngine {
 	#[inline]
 	pub fn push_syntax_error(&mut self, diag: ParseError<usize, tok::Token, Diagnostic>) {
 		self.syntax_errors.push(diag)
-	}
-	#[inline]
-	pub fn push_preproc_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
-		self.preproc_errors.push(diag)
 	}
 	pub fn get_file_path(&self, id: usize) -> Option<PathBuf> {
 		self.file_map_ref
@@ -96,12 +91,9 @@ impl DiagnosticEngine {
 				return true;
 			}
 		}
-		!self.preproc_errors.is_empty() || !self.syntax_errors.is_empty()
+		!self.syntax_errors.is_empty()
 	}
 	pub fn print_diagnostics(&self) {
-		for diag in self.preproc_errors.iter() {
-			self.print_parse_errors(DiagLevel::Error, diag)
-		}
 		for diag in self.syntax_errors.iter() {
 			self.print_parse_errors(DiagLevel::Error, diag)
 		}
@@ -191,11 +183,11 @@ impl DiagnosticEngine {
 			DiagKind::InvalidToken => {
 				let msg0 = "invalid token";
 				self.format_diagnostic(&diag, msg0, "consider don't ...")
-			},
+			}
 			DiagKind::InvalidRestrict => {
 				let msg0 = "restrict requires a pointer or reference";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			// DiagKind::TypeError { found, expected } => {
 			// 	let msg0 = "mismatched types";
 			// 	let msg1 = format!("expected `{expected}`, found `{found}`");
@@ -204,32 +196,32 @@ impl DiagnosticEngine {
 			DiagKind::MultStorageClasses => {
 				let msg0 = "multiple storage classes in declaration specifiers";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DuplicateSpecifier(name) => {
 				let msg0 = format!("duplicate '{name}' declaration specifier");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::BothSpecifiers(name0, name1) => {
 				let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::MultipleTypes => {
 				let msg0 = "two or more data types in declaration specifiers";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::TooLong => {
 				let msg0 = "'long long long' is too long for stackl-cc";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::ImplicitInt(ident) => {
 				let msg0 = format!("type defaults to 'int' in declaration of {ident}");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::ArrayOfFunctions(ident) => {
 				let msg0 =
 					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::UnrecognizedToken { expected } => {
 				let msg0 = "unrecognized token";
 				let mut msg1 = String::from("expected ");
@@ -253,132 +245,132 @@ impl DiagnosticEngine {
 					}
 				}
 				self.format_diagnostic(&diag, msg0, &msg1)
-			},
+			}
 			DiagKind::FnRetFn(Some(name)) => {
 				let msg0 = format!("'{name}' declared as function returning function");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::FnRetFn(None) => {
 				let msg0 = format!("type name declared as function returning function");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::OmittedParamName => {
 				let msg0 = "parameter name omitted";
 				let msg1 = "ISO C does not support omitting parameter names in function definitions before C23";
 				self.format_diagnostic(&diag, msg0, msg1)
-			},
+			}
 			DiagKind::DeclIdentList => {
 				let msg0 = "parameter names (without types) in function declaration";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::InvalidStar => {
 				let msg0 = "star modifier used outside of function prototype";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::UnboundVLA => {
 				let msg0 = "variable length array must be bound in function definition";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::IfAssign => {
 				let msg0 = "using the result of an assignment as a condition without parenthesis";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::OnlyVoid => {
 				let msg0 = "'void' must be the only parameter and unnamed";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::ArrayOfVoid(None) => {
 				let msg0 = "declaration of type name as array of voids";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::ArrayOfVoid(Some(name)) => {
 				let msg0 = format!("declaration of '{name}' as array of voids");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::IllegalStorage(kind) => {
 				let msg0 = format!("function definition declared '{kind}'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::BitfieldRange(Some(name)) => {
 				let msg0 = format!("width of bit-field '{name}' exceeds width of its type");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::BitfieldRange(None) => {
 				let msg0 = format!("width of anonymous bit-field exceeds width of its type");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::BitfieldNonIntegral(Some(name)) => {
 				let msg0 = format!("bit-field '{name}' has non-integral type");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::BitfieldNonIntegral(None) => {
 				let msg0 = format!("anonymous bit-field has non-integral type");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::NonConstExpr => {
 				let msg0 = "expression is not an integer constant expression";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::EnumNonIntegral(name) => {
 				let msg0 =
 					format!("enumerator value for '{name}' is not an integer constant expression");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::EnumRange => {
 				let msg0 = "enumerator value is out of range";
 				let msg1 = "ISO C restricts enumerator values to range of 'int' before C23";
 				self.format_diagnostic(&diag, msg0, msg1)
-			},
+			}
 			DiagKind::ErrorDirective(err_msg) => {
 				let msg0 = format!("{err_msg}");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
-			},
+			}
 			DiagKind::ArrayMaxRange => {
 				// array range is 2 ^ 32 - 1 = 4,294,967,295
 				let msg0 = "size of array exceeds maximum object size '4294967295'";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::ArrayMinRange => {
 				let msg0 = "ISO C forbids zero-size array";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DeclaratorLimit => {
 				let msg0 =
 					"declarators modifying a type in a declaration exceeds translation limit '12'";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::ParameterLimit => {
 				let msg0 = "parameters in function definition exceeds translation limit '127'";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::UndefPredef => {
 				let msg0 = "undefining builtin macro";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::RedefPredef => {
 				let msg0 = "redefining builtin macro";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DirectiveLineNotSimple => {
 				let msg0 = "#line directive requires a simple digit sequence";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DirectiveLineMinRange => {
 				let msg0 = "ISO C forbids #line directive with zero argument";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DirectiveLineMaxRange => {
 				let msg0 = "#line directive requires a positive integer argument";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DirectiveLineFilename => {
 				let msg0 = "invalid filename for #line directive";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			DiagKind::DirectiveLineExtraTokens => {
 				let msg0 = "extra tokens at end of #line directive";
 				self.format_diagnostic(&diag, msg0, "")
-			},
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
