@@ -15,9 +15,9 @@ unsigned struct Foo {} foo;
 
 #line 5 "hello world!"
 
-unsigned struct Foo {} foo;
+unsigned struct Bar {} bar;
 
-#line 8 "different source"
+// #line 8 "different source"
 
-signed struct Bar {} bar;
+signed struct Baz {} baz;
 

@@ -219,6 +219,7 @@ impl PPTokenStack {
 			tok::PPTokenKind::Ident(ident) => ident,
 			tok::PPTokenKind::NewLine(_) => {
 				self.line += 1;
+				triple.1.span.line = self.line;
 				return Some(Ok(triple));
 			}
 			tok::PPTokenKind::Punct(tok::Punct::Hash) => {

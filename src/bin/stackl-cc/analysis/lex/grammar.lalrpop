@@ -72,12 +72,11 @@ ControlLine: () = {
 	},
 	"#" DIRECTIVE_LINE <tokens:RawPPToken+> "\n" => {
 		let mut stack = stack_ref.borrow_mut();
-		if let Some(error) = stack.line_directive(tokens) {
+		if let Some(error) = stack.line_directive(tokens.clone()) {
 			diagnostics.push(error);
 		}
 	},
 	"#" <lo:@L> <directive:DIRECTIVE_ERROR> <hi:@R> <pp_token_list:RawPPToken*> "\n" => {
-		let mut stack = stack_ref.borrow();
 		let mut error_str = String::new();
 		for (index, (_, pp_token, _)) in pp_token_list.iter().enumerate() {
 			if index == 0 {
@@ -120,7 +119,6 @@ PreprocessingToken: TokenTriple = {
 	CharConst,
 	StrLit,
 	<lo:@L> <tk:PUNCT> <hi:@R> =>? {
-		let mut stack = stack_ref.borrow();
 		let span = tk.to_span();
 		match tk.kind.try_into() {
 			Ok(kind) => Ok((
@@ -144,7 +142,6 @@ NonHash: TokenTriple = {
 	PPNumber,
 	CharConst,
 	<lo:@L> <tk:NonHashPunct> <hi:@R> =>? {
-		let mut stack = stack_ref.borrow();
 		let span = tk.to_span();
 		match tk.kind.try_into() {
 			Ok(kind) => Ok((
@@ -163,14 +160,9 @@ NonHash: TokenTriple = {
 };
 
 CharConst: TokenTriple = <lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
-	let mut stack = stack_ref.borrow();
 	let span = tk.to_span();
 	match tk.kind.try_into() {
-		Ok(kind) => Ok((
-			lo,
-			Token{kind, span},
-			hi
-		)),
+		Ok(kind) => Ok((lo,Token{kind, span},hi)),
 		Err(kind) => Err(lalr::ParseError::User {
 			error: diag::Diagnostic::error(
 				kind,
@@ -181,14 +173,9 @@ CharConst: TokenTriple = <lo:@L> <tk:CHAR_CONST> <hi:@R> =>? {
 };
 
 PPNumber: TokenTriple = <lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
-	let mut stack = stack_ref.borrow();
 	let span = tk.to_span();
 	match tk.kind.try_into() {
-		Ok(kind) => Ok((
-			lo,
-			Token{kind, span},
-			hi
-		)),
+		Ok(kind) => Ok((lo,Token{kind, span},hi)),
 		Err(kind) => {
 			eprintln!("pp-number error");
 			Err(lalr::ParseError::User {
@@ -202,14 +189,9 @@ PPNumber: TokenTriple = <lo:@L> <tk:PP_NUMBER> <hi:@R> =>? {
 };
 
 Identifier: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
-	let mut stack = stack_ref.borrow();
 	let span = tk.to_span();
 	match tk.kind.try_into() {
-		Ok(kind) => Ok((
-			lo,
-			Token{kind, span},
-			hi
-		)),
+		Ok(kind) => Ok((lo,Token{kind, span},hi)),
 		Err(kind) => {
 			eprintln!("identifier error!");
 			Err(lalr::ParseError::User {
@@ -223,7 +205,6 @@ Identifier: TokenTriple = <lo:@L> <tk:IDENT> <hi:@R> =>? {
 };
 
 StrLit: TokenTriple = <lo:@L> <tk:STR_LIT> <hi:@R> => {
-	let mut stack = stack_ref.borrow();
 	let span = tk.to_span();
 	(
 		lo,
