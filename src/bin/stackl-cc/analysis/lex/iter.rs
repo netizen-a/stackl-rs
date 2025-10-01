@@ -65,7 +65,7 @@ impl PPTokenStack {
 		name: String,
 		replacement_list: Vec<PPTokenTriple>,
 		span: diag::Span,
-	) -> Result<(),diag::Diagnostic> {
+	) -> Option<diag::Diagnostic> {
 		let error = diag::Diagnostic::error(diag::DiagKind::RedefPredef, span);
 		match name.as_str() {
 			"__DATE__"
@@ -78,14 +78,14 @@ impl PPTokenStack {
 			| "__TIME__"
 			| "__STDC_IEC_559__"
 			| "__STDC_IEC_559_COMPLEX__"
-			| "__STDC_ISO_10646__" => Err(error),
+			| "__STDC_ISO_10646__" => Some(error),
 			_ => {
 				self.defines.insert(name, replacement_list);
-				Ok(())
+				None
 			}
 		}
 	}
-	pub fn undef_macro(&mut self, name: String, span: diag::Span) -> Result<(),diag::Diagnostic> {
+	pub fn undef_macro(&mut self, name: String, span: diag::Span) -> Option<diag::Diagnostic> {
 		let error = diag::Diagnostic::error(diag::DiagKind::UndefPredef, span);
 		match name.as_str() {
 			"__DATE__"
@@ -98,10 +98,10 @@ impl PPTokenStack {
 			| "__TIME__"
 			| "__STDC_IEC_559__"
 			| "__STDC_IEC_559_COMPLEX__"
-			| "__STDC_ISO_10646__" => Err(error),
+			| "__STDC_ISO_10646__" => Some(error),
 			_ => {
 				self.defines.remove(&name);
-				Ok(())
+				None
 			}
 		}
 	}

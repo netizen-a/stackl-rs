@@ -26,13 +26,13 @@ pub Tokens: Vec<TokenTriple> = {
 
 GroupPart: Vec<TokenTriple> = {
 	// IfSection,
-	ControlLine,
+	ControlLine => vec![],
 	TextLine,
 	// "#" <non_dir:NonDirective> => non_dir,
 	! => { diagnostics.push_preproc_error(<>.error); vec![] },
 };
 
-ControlLine: Vec<TokenTriple> = {
+ControlLine: () = {
 	// TODO: make this fallible
 	"#" DIRECTIVE_INCLUDE <header:HEADER_NAME> "\n" => {
 		let origin_path = diagnostics.get_file_path(header.file_id).unwrap();
@@ -53,7 +53,6 @@ ControlLine: Vec<TokenTriple> = {
 			file_id
 		};
 		stack.push_lexer(Lexer::new(buf, file_id));
-		vec![]
 	},
 	"#" DIRECTIVE_DEFINE <lo:@L> <ident:Identifier> <hi:@R> <list:ReplacementList> "\n" => {
 		let name = ident.1.kind.clone().unwrap_ident().name;
@@ -62,10 +61,9 @@ ControlLine: Vec<TokenTriple> = {
 			file_id: ident.1.file_id,
 			loc: (lo, hi),
 		};
-		if let Err(error) = stack.define_obj_macro(name, list, span) {
+		if let Some(error) = stack.define_obj_macro(name, list, span) {
 			diagnostics.push(error);
 		}
-		vec![]
 	},
 	"#" DIRECTIVE_UNDEF <lo:@L> <ident:Identifier> <hi:@R> "\n" => {
 		let name = ident.1.kind.clone().unwrap_ident().name;
@@ -74,12 +72,11 @@ ControlLine: Vec<TokenTriple> = {
 			file_id: ident.1.file_id,
 			loc: (lo, hi),
 		};
-		if let Err(error) = stack.undef_macro(name, span) {
+		if let Some(error) = stack.undef_macro(name, span) {
 			diagnostics.push(error);
 		}
-		vec![]
 	},
-	"#" DIRECTIVE_LINE RawPPToken+ "\n" => { vec![] },
+	"#" DIRECTIVE_LINE RawPPToken+ "\n" => {},
 	"#" <lo:@L> <directive:DIRECTIVE_ERROR> <hi:@R> <pp_token_list:RawPPToken*> "\n" => {
 		let span = diag::Span {
 			file_id: directive.file_id,
@@ -97,10 +94,9 @@ ControlLine: Vec<TokenTriple> = {
 		let kind = diag::DiagKind::ErrorDirective(error_str);
 		let diag = diag::Diagnostic::error(kind, span);
 		diagnostics.push(diag);
-		vec![]
 	},
-	"#" DIRECTIVE_PRAGMA RawPPToken* "\n" => { vec![] },
-	"#" "\n" => { vec![] },
+	"#" DIRECTIVE_PRAGMA RawPPToken* "\n" => {},
+	"#" "\n" => {},
 };
 
 TextLine: Vec<TokenTriple> = {
