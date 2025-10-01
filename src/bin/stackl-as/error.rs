@@ -35,7 +35,7 @@ pub fn print_errors(
 					token, line, expected
 				)
 			}
-			ParseError::ExtraToken { token } => eprintln!("unrecognized token: {:?}", token),
+			ParseError::ExtraToken { token } => eprintln!("extra token: {:?}", token),
 			ParseError::User { error } => eprintln!("lexical error: {:?}", error),
 		}
 	}

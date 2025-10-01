@@ -1,15 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::analysis::tok::{Ident, Token, TokenKind, TokenTriple};
+use crate::analysis::tok::{Token, TokenKind, TokenTriple};
 use crate::diagnostics as diag;
 use crate::symtab::SymbolTable;
+use super::Identifier;
 
 #[derive(Default)]
 pub struct InnerIter {
 	data: Box<[TokenTriple]>,
 	pos: usize,
 	pub is_typedef: bool,
-	typename_table: SymbolTable<String, Ident>,
+	typename_table: SymbolTable<String, ()>,
 }
 impl InnerIter {
 	fn new(data: Box<[TokenTriple]>) -> Self {
@@ -18,9 +19,9 @@ impl InnerIter {
 			..Default::default()
 		}
 	}
-	pub fn push_type(&mut self, ident: Ident) {
+	pub fn push_type(&mut self, name: String) {
 		self.typename_table
-			.insert(ident.name.clone(), ident)
+			.insert(name, ())
 			.expect("failed to insert into token symbol table");
 	}
 	#[inline]

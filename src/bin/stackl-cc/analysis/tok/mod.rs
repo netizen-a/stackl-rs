@@ -1,6 +1,5 @@
 //! Lexical Elements
 
-pub mod file_id;
 pub mod keyword;
 pub mod punct;
 
@@ -13,7 +12,6 @@ use std::str::Chars;
 
 #[derive(Debug, Clone)]
 pub struct Ident {
-	pub span: diag::Span,
 	pub name: String,
 	/// is the identifier previously declared in a typedef?
 	pub is_type: bool,
@@ -305,9 +303,9 @@ impl TokenKind {
 			other => panic!("called `Token::unwrap_keyword` on an `{other:?}` value"),
 		}
 	}
-	pub fn unwrap_ident(self) -> Ident {
+	pub fn unwrap_name(self) -> String {
 		match self {
-			Self::Ident(token) => token,
+			Self::Ident(token) => token.name,
 			other => panic!("called `Token::unwrap_ident` on an `{other:?}` value"),
 		}
 	}
@@ -374,12 +372,12 @@ impl TryFrom<PPTokenKind> for TokenKind {
 #[derive(Debug, Clone)]
 pub struct Token {
 	pub kind: TokenKind,
-	pub file_id: usize,
+	pub span: diag::Span,
 }
 
-impl file_id::FileId for Token {
-	fn file_id(&self) -> usize {
-		self.file_id
+impl diag::ToSpan for Token {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
 	}
 }
 
@@ -462,8 +460,14 @@ impl From<Punct> for PPTokenKind {
 #[derive(Debug, Clone)]
 pub struct PPToken {
 	pub kind: PPTokenKind,
-	pub file_id: usize,
 	pub leading_space: bool,
+	pub span: diag::Span,
+}
+
+impl diag::ToSpan for PPToken {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
 }
 
 impl PPToken {
@@ -502,12 +506,6 @@ impl fmt::Display for PPToken {
 		};
 		let space = if self.leading_space { " " } else { "" };
 		write!(f, "{space}{tok_str}")
-	}
-}
-
-impl file_id::FileId for PPToken {
-	fn file_id(&self) -> usize {
-		self.file_id
 	}
 }
 

@@ -9,6 +9,7 @@ use super::lexer::Lexer;
 use crate::diagnostics as diag;
 use chrono::{Datelike, Timelike};
 use lalrpop_util as lalr;
+use crate::diagnostics::ToSpan;
 
 pub enum StackKind {
 	Buffer(Vec<diag::ResultTriple<PPToken, usize>>),
@@ -143,7 +144,7 @@ impl PPTokenStack {
 	}
 
 	fn preprocess(&mut self, triple: PPTokenTriple) -> Option<diag::ResultTriple<PPToken, usize>> {
-		let file_id = triple.1.file_id;
+		let span = triple.1.to_span();
 		let ident = match &triple.1.kind {
 			tok::PPTokenKind::Ident(ident) => ident,
 			tok::PPTokenKind::NewLine(_) => {
@@ -156,8 +157,8 @@ impl PPTokenStack {
 						lo,
 						PPToken {
 							kind: PPTokenKind::Ident(ident),
-							file_id,
 							leading_space,
+							span,
 						},
 						hi,
 					))) => {
@@ -178,8 +179,8 @@ impl PPTokenStack {
 						};
 						let new_tok = PPToken {
 							kind,
-							file_id,
 							leading_space,
+							span,
 						};
 						self.push_token((lo, new_tok, hi));
 					}
@@ -215,28 +216,28 @@ impl PPTokenStack {
 				let kind = tok::PPTokenKind::StrLit(tok::StrLit {
 					seq,
 					is_wide: false,
-					file_id,
+					file_id: span.file_id
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span,
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
 			"__FILE__" => {
 				let file_map = self.file_map_ref.borrow();
-				let file_path = file_map.get_by_left(&file_id).unwrap();
+				let file_path = file_map.get_by_left(&span.file_id).unwrap();
 				let seq = file_path.to_str().unwrap().to_owned();
 				let kind = tok::PPTokenKind::StrLit(tok::StrLit {
 					seq,
 					is_wide: false,
-					file_id,
+					file_id: span.file_id
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -245,9 +246,9 @@ impl PPTokenStack {
 					name: format!("{}", self.line),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -256,9 +257,9 @@ impl PPTokenStack {
 					name: "1".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -268,9 +269,9 @@ impl PPTokenStack {
 					name: "0".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -279,9 +280,9 @@ impl PPTokenStack {
 					name: "0".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -290,9 +291,9 @@ impl PPTokenStack {
 					name: "199901L".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span,
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -301,12 +302,12 @@ impl PPTokenStack {
 				let kind = tok::PPTokenKind::StrLit(tok::StrLit {
 					seq,
 					is_wide: false,
-					file_id,
+					file_id: span.file_id
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -315,9 +316,9 @@ impl PPTokenStack {
 					name: "1".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -327,9 +328,9 @@ impl PPTokenStack {
 					name: "0".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
@@ -338,9 +339,9 @@ impl PPTokenStack {
 					name: "0".to_string(),
 				});
 				let pp_token = tok::PPToken {
-					file_id,
 					kind,
 					leading_space: triple.1.leading_space,
+					span
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}

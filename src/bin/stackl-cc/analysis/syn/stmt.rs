@@ -1,6 +1,7 @@
 use super::{decl, expr};
 use crate::analysis::tok;
 use crate::diagnostics as diag;
+use super::Identifier;
 
 /// (6.8.2) compound-statement
 #[derive(Debug)]
@@ -45,13 +46,13 @@ pub struct AsmConstraints {
 	pub output_operands: Vec<OutputOperand>,
 	pub input_operands: Vec<InputOperand>,
 	pub clobber_operands: Vec<tok::StrLit>,
-	pub goto_labels: Vec<tok::Ident>,
+	pub goto_labels: Vec<Identifier>,
 }
 
 #[derive(Debug)]
 pub struct OutputOperand {
 	pub prefix: tok::StrLit,
-	pub ident: tok::Ident,
+	pub ident: Identifier,
 }
 
 #[derive(Debug)]
@@ -63,7 +64,7 @@ pub struct InputOperand {
 /// (6.8.1) labeled-statement
 #[derive(Debug)]
 pub enum LabeledStmt {
-	Label(tok::Ident, Box<Stmt>),
+	Label(Identifier, Box<Stmt>),
 	Case(expr::Expr, Box<Stmt>),
 	Default(Box<Stmt>),
 }
@@ -114,7 +115,7 @@ pub enum IterStmt {
 /// (6.8.6) jump-statement
 #[derive(Debug)]
 pub enum JumpStmt {
-	Goto(tok::Ident),
+	Goto(Identifier),
 	Continue,
 	Break,
 	Return(Option<expr::Expr>),

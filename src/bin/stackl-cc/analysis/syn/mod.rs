@@ -8,9 +8,35 @@ pub use decl::*;
 pub use expr::*;
 pub use iter::*;
 pub use stmt::*;
+use crate::diagnostics as diag;
+use diag::ToSpan;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");
+
+#[derive(Debug, Clone)]
+pub struct Identifier {
+	pub name: String,
+	span: diag::Span,
+}
+
+impl Identifier {
+	pub fn new(token: tok::Token) -> Self {
+		match token.kind {
+			tok::TokenKind::Ident(ident) => Self {
+				name: ident.name,
+				span: token.span,
+			},
+			other => panic!("internal compiler error: failed to get identifier"),
+		}
+	}
+}
+
+impl ToSpan for Identifier {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
+}
 
 /// (6.9) translation-unit
 pub type TranslationUnit = Vec<ExternalDeclaration>;
@@ -28,7 +54,7 @@ pub enum ExternalDeclaration {
 #[derive(Debug)]
 pub struct FunctionDefinition {
 	pub specifiers: Specifiers,
-	pub ident: tok::Ident,
+	pub ident: Identifier,
 	pub declarators: Vec<Declarator>,
 	pub declaration_list: Vec<Declaration>,
 	pub compound_stmt: CompoundStmt,
@@ -38,8 +64,9 @@ pub fn string_concat(v: Box<[tok::Token]>) -> tok::StrLit {
 	let mut str_lit = tok::StrLit::default();
 	let mut is_first = true;
 	for literal in v {
+		let span = literal.to_span();
 		if is_first {
-			str_lit.file_id = literal.file_id;
+			str_lit.file_id = span.file_id;
 			is_first = false;
 		}
 		let tmp = literal.kind.unwrap_str_lit();

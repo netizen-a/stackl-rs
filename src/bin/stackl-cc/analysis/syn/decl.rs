@@ -3,7 +3,8 @@
 use std::{collections::VecDeque, fmt};
 
 use super::expr;
-use crate::{analysis::tok, diagnostics as diag};
+use crate::{analysis::tok, diagnostics::{self as diag, ToSpan}};
+use super::Identifier;
 
 /// (6.9.1) declaration-list
 pub struct DeclarationList(Vec<Declaration>);
@@ -85,7 +86,7 @@ pub enum SpecifierKind {
 /// (6.7) init-declarator
 #[derive(Debug)]
 pub struct InitDeclarator {
-	pub identifier: tok::Ident,
+	pub identifier: Identifier,
 	pub declarator: Vec<Declarator>,
 	pub initializer: Option<Initializer>,
 }
@@ -141,10 +142,7 @@ pub enum TypeSpecifier {
 	StructOrUnionSpecifier(StructOrUnionSpecifier),
 	EnumSpecifier(EnumSpecifier),
 	/// (6.7.7) typedef-name
-	TypedefName {
-		span: diag::Span,
-		name: tok::Ident,
-	},
+	TypedefName(Identifier),
 }
 
 impl TypeSpecifier {
@@ -168,7 +166,7 @@ impl TypeSpecifier {
 				Some(ident) => ident.span.clone(),
 				None => spec.tag_span.clone(),
 			},
-			Self::TypedefName { span, .. } => span.clone(),
+			Self::TypedefName(ident)=> ident.to_span(),
 		}
 	}
 }
@@ -177,7 +175,7 @@ impl TypeSpecifier {
 #[derive(Debug, Clone)]
 pub struct EnumSpecifier {
 	pub tag_span: diag::Span,
-	pub identifier: Option<tok::Ident>,
+	pub identifier: Option<Identifier>,
 	/// (6.7.2.2) enumerator-list
 	pub enumerator_list: Vec<Enumerator>,
 }
@@ -186,7 +184,7 @@ pub struct EnumSpecifier {
 #[derive(Debug, Clone)]
 pub struct Enumerator {
 	/// (6.4.4.3) enumeration-constant
-	pub enumeration_constant: tok::Ident,
+	pub enumeration_constant: Identifier,
 	pub constant_expr: Option<expr::Expr>,
 }
 
@@ -195,7 +193,7 @@ pub struct Enumerator {
 pub struct StructOrUnionSpecifier {
 	/// (6.7.2.1) struct-or-union
 	pub struct_or_union: StructOrUnion,
-	pub ident: Option<tok::Ident>,
+	pub ident: Option<Identifier>,
 	/// (6.7.2.1) struct-declaration-list
 	pub struct_declaration_list: Vec<StructDeclaration>,
 	pub is_incomplete: bool,
@@ -234,7 +232,7 @@ pub struct StructDeclaration {
 /// (6.7.2.1) struct-declarator
 #[derive(Debug, Clone)]
 pub struct StructDeclarator {
-	pub ident: Option<tok::Ident>,
+	pub ident: Option<Identifier>,
 	pub declarators: Vec<Declarator>,
 	pub const_expr: Option<expr::Expr>,
 }
@@ -270,13 +268,12 @@ pub enum Declarator {
 #[derive(Debug, Clone)]
 pub struct IdentList {
 	pub span: diag::Span,
-	pub ident_list: Vec<tok::Ident>,
+	pub ident_list: Vec<Identifier>,
 }
 
 /// (6.7.5) parameter-type-list
 #[derive(Debug, Clone)]
 pub struct ParamList {
-	pub span: diag::Span,
 	/// (6.7.5) parameter-list
 	pub param_list: Vec<ParameterDeclaration>,
 	pub is_variadic: bool,
@@ -312,7 +309,7 @@ impl From<&[TypeQualifier]> for PtrDecl {
 /// (6.7.5) parameter-declaration
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
-	pub name: Option<tok::Ident>,
+	pub name: Option<Identifier>,
 	pub specifiers: Specifiers,
 	pub declarators: VecDeque<Declarator>,
 }
@@ -347,5 +344,5 @@ pub struct InitializerList(pub Vec<(Vec<Designator>, Initializer)>);
 #[derive(Debug, Clone)]
 pub enum Designator {
 	ConstExpr(expr::Expr),
-	Dot(tok::Ident),
+	Dot(Identifier),
 }

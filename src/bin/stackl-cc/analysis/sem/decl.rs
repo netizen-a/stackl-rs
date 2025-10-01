@@ -56,7 +56,7 @@ impl super::SemanticParser<'_> {
 			None | Some(Declarator::Pointer(_))
 		) {
 			self.declarator_list(
-				decl.ident.span.clone(),
+				decl.ident.to_span(),
 				&mut decl.declarators[1..],
 				&mut ret_type,
 				false,
@@ -87,7 +87,7 @@ impl super::SemanticParser<'_> {
 					// 5.2.4.1 translation limit
 					let diag = diag::Diagnostic::warn(
 						diag::DiagKind::ParameterLimit,
-						decl.ident.span.clone(),
+						decl.ident.to_span(),
 					);
 					self.diagnostics.push(diag);
 				}
@@ -225,13 +225,13 @@ impl super::SemanticParser<'_> {
 						match param.declarators.front() {
 							Some(Declarator::Array(ArrayDecl { span, .. })) => {
 								let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
-								let diag = diag::Diagnostic::error(kind, ident.span.clone());
+								let diag = diag::Diagnostic::error(kind, ident.to_span());
 								self.diagnostics.push(diag);
 								is_valid = false;
 							}
 							Some(Declarator::IdentList(_)) => {
 								let kind = diag::DiagKind::DeclIdentList;
-								let diag = diag::Diagnostic::error(kind, ident.span.clone());
+								let diag = diag::Diagnostic::error(kind, ident.to_span());
 								self.diagnostics.push(diag);
 								is_valid = false;
 							}
@@ -246,12 +246,12 @@ impl super::SemanticParser<'_> {
 							Some(Declarator::Pointer(_)) => {}
 							None => {
 								let kind = diag::DiagKind::OnlyVoid;
-								let diag = diag::Diagnostic::error(kind, ident.span.clone());
+								let diag = diag::Diagnostic::error(kind, ident.to_span());
 								self.diagnostics.push(diag);
 								is_valid = false;
 							}
 						}
-						(Some(ident.name.clone()), ident.span.clone())
+						(Some(ident.name.clone()), ident.to_span())
 					}
 					(None, _) => {
 						if decl_type == DeclType::FnDef {
@@ -263,7 +263,7 @@ impl super::SemanticParser<'_> {
 						}
 						(None, param.specifiers.first_span.clone())
 					}
-					(Some(ident), _) => (Some(ident.name.clone()), ident.span.clone()),
+					(Some(ident), _) => (Some(ident.name.clone()), ident.to_span()),
 				};
 			let param_type = self.specifiers_dtype(&mut param.specifiers);
 			let mut param_type = param_type.unwrap();
@@ -305,7 +305,7 @@ impl super::SemanticParser<'_> {
 				Err(false) => {
 					let diag = diag::Diagnostic::error(
 						diag::DiagKind::ImplicitInt(ident.name.clone()),
-						ident.span.clone(),
+						ident.to_span(),
 					);
 					self.diagnostics.push(diag);
 					continue;
@@ -318,12 +318,12 @@ impl super::SemanticParser<'_> {
 			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
 				// 5.2.4.1 translation limit
 				let diag =
-					diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.span.clone());
+					diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.to_span());
 				self.diagnostics.push(diag);
 			}
 			let mut var_dtype = data_type.clone();
 			is_valid &= self.declarator_list(
-				ident.span.clone(),
+				ident.to_span(),
 				&mut init_decl.declarator,
 				&mut var_dtype,
 				false,
@@ -858,7 +858,7 @@ impl super::SemanticParser<'_> {
 							Some(Err(ConversionError::OutOfRange)) => {
 								self.diagnostics.push(diag::Diagnostic::error(
 									diag::DiagKind::EnumRange,
-									enumerator.enumeration_constant.span.clone(),
+									enumerator.enumeration_constant.to_span(),
 								));
 								is_valid = false;
 							}
@@ -867,7 +867,7 @@ impl super::SemanticParser<'_> {
 									diag::DiagKind::EnumNonIntegral(
 										enumerator.enumeration_constant.name.clone(),
 									),
-									enumerator.enumeration_constant.span.clone(),
+									enumerator.enumeration_constant.to_span(),
 								));
 								is_valid = false;
 							}
@@ -918,7 +918,7 @@ impl super::SemanticParser<'_> {
 		for decl in struct_decl.struct_declaration_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
 			let span = match &decl.ident {
-				Some(ident) => ident.span.clone(),
+				Some(ident) => ident.to_span(),
 				None => struct_decl.specifiers.first_span.clone(),
 			};
 			let Ok(mut data_type) = ty_opt.clone() else {

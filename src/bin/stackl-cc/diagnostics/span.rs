@@ -1,5 +1,3 @@
-use crate::analysis::tok::file_id::FileId;
-
 pub trait ToSpan {
 	fn to_span(&self) -> Span;
 }
@@ -8,12 +6,7 @@ pub trait ToSpan {
 pub struct Span {
 	pub loc: (usize, usize),
 	pub file_id: usize,
-}
-
-impl FileId for Span {
-	fn file_id(&self) -> usize {
-		self.file_id
-	}
+	pub line: usize,
 }
 
 impl ToSpan for Span {
@@ -30,8 +23,7 @@ impl Span {
 	// 	}
 	// }
 	/// returns (line, column)
-	pub fn location(&self, source: &str) -> Option<(usize, usize)> {
-		let mut line = 1;
+	pub fn column(&self, source: &str) -> Option<usize> {
 		let mut column = 0;
 		let mut last_byte = 1;
 		for byte in source.as_bytes().get(0..=self.loc.0)? {
@@ -39,15 +31,12 @@ impl Span {
 				column = 0;
 			}
 			column += 1;
-			if *byte == b'\n' {
-				line += 1;
-			}
 			last_byte = *byte;
 		}
-		Some((line, column))
+		Some(column)
 	}
 	pub fn to_vec(&self, source: &str) -> Vec<(usize, String, usize)> {
-		let (_, column) = self.location(source).unwrap();
+		let column = self.column(source).unwrap();
 		let mut length = self.loc.1 - self.loc.0;
 		let line_min = source[..self.loc.0].chars().filter(|x| *x == '\n').count();
 		let line_max = source[..self.loc.1].chars().filter(|x| *x == '\n').count();

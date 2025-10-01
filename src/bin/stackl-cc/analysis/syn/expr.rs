@@ -3,6 +3,7 @@ use std::f32;
 use super::decl;
 use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
 use crate::diagnostics as diag;
+use super::Identifier;
 
 pub enum ConversionError {
 	OutOfRange,
@@ -14,7 +15,7 @@ pub enum ConversionError {
 pub enum Expr {
 	// Paren variant is required for the AssignIf warning to work.
 	Paren(Box<Expr>),
-	Ident(tok::Ident),
+	Ident(Identifier),
 	Const(tok::Const),
 	StrLit(tok::StrLit),
 	UnaryPrefix(UnaryPrefix),
@@ -436,8 +437,8 @@ pub enum Postfix {
 	Array(Box<Expr>),
 	/// (6.5.2) argument-expression-list
 	ArgExprList(Vec<Expr>),
-	Dot(tok::Ident),
-	Arrow(tok::Ident),
+	Dot(Identifier),
+	Arrow(Identifier),
 	Inc,
 	Dec,
 }

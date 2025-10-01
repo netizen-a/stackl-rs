@@ -5,7 +5,7 @@ mod span;
 
 use crate::analysis::{
 	syn,
-	tok::{self, file_id::FileId},
+	tok,
 };
 use std::{
 	cell::RefCell,
@@ -103,7 +103,6 @@ impl DiagnosticEngine {
 	}
 	pub fn print_diagnostics(&self) {
 		for diag in self.preproc_errors.iter() {
-			eprintln!("{diag:?}");
 			self.print_parse_errors(DiagLevel::Error, diag)
 		}
 		for diag in self.syntax_errors.iter() {
@@ -115,14 +114,11 @@ impl DiagnosticEngine {
 	}
 	fn print_parse_errors<T>(&self, level: DiagLevel, error: &ParseError<usize, T, Diagnostic>)
 	where
-		T: FileId,
+		T: ToSpan,
 	{
 		match &error {
 			ParseError::ExtraToken { token } => {
-				let span = Span {
-					file_id: token.1.file_id(),
-					loc: (token.0, token.2),
-				};
+				let span = token.1.to_span();
 				let diag = Diagnostic {
 					level,
 					kind: DiagKind::ExtraToken,
@@ -146,6 +142,8 @@ impl DiagnosticEngine {
 				let span = Span {
 					file_id,
 					loc: (*location, *location),
+					// TODO: get line from external source
+					line: usize::MAX,
 				};
 				let diag = Diagnostic {
 					level,
@@ -179,14 +177,10 @@ impl DiagnosticEngine {
 					is_first
 				});
 
-				let span = Span {
-					file_id: token.1.file_id(),
-					loc: (token.0, token.2),
-				};
 				let diag = Diagnostic {
 					level,
 					kind: DiagKind::UnrecognizedToken { expected: pruned },
-					span,
+					span: token.1.to_span(),
 					notes: vec![],
 				};
 				self.stderr_diagnostic(&diag);
@@ -382,8 +376,8 @@ impl DiagnosticEngine {
 		let color_bold_white: &str = if self.enable_color { "\x1b[1;97m" } else { "" };
 
 		let mut result = String::new();
-		let file_path = self.get_file_path(diag.span.file_id()).unwrap();
-		let source = self.get_file_data(diag.span.file_id()).unwrap();
+		let file_path = self.get_file_path(diag.span.file_id).unwrap();
+		let source = self.get_file_data(diag.span.file_id).unwrap();
 		let level_color = match diag.level {
 			DiagLevel::Fatal => {
 				result.push_str(&format!("{color_bold_red}fatal error:{color_default} "));
@@ -403,7 +397,8 @@ impl DiagnosticEngine {
 			"{color_bold_white}{}{color_default}\n",
 			msg0.as_ref()
 		));
-		let (mut line, col) = diag.span.location(source.as_ref()).unwrap();
+		let mut line = diag.span.line;
+		let col = diag.span.column(source.as_ref()).unwrap();
 		let mut hi_line = line;
 		let source_triple = diag.span.to_vec(source.as_ref());
 		let triple_len = source_triple.len();

@@ -3,21 +3,19 @@ use std::iter::{Enumerate, Peekable};
 use std::vec::IntoIter;
 
 use crate::analysis::tok;
-use crate::analysis::tok::file_id::FileId;
-use crate::diagnostics::{self as diag, lex};
+use crate::diagnostics::{self as diag, lex, ToSpan};
 
 #[derive(Debug)]
 pub struct Lexer {
 	chars: Peekable<Enumerate<IntoIter<char>>>,
-	file_id: usize,
+	span: diag::Span,
 	leading_space: bool,
-	location: (usize, usize),
 	include_state: u8,
 }
 
-impl FileId for Lexer {
-	fn file_id(&self) -> usize {
-		self.file_id
+impl ToSpan for Lexer {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
 	}
 }
 
@@ -27,22 +25,20 @@ impl Lexer {
 		let char_iter = char_vec.into_iter();
 		Self {
 			chars: char_iter.enumerate().peekable(),
-			file_id,
 			leading_space: false,
-			location: (0, 0),
 			include_state: 1,
+			span: diag::Span{ file_id, line: 1, .. Default::default() }
 		}
 	}
 
 	fn set_start(&mut self, start: usize) {
-		self.location.0 = start;
+		self.span.loc.0 = start;
 	}
 	fn set_end(&mut self, end: usize) {
-		self.location.1 = end;
+		self.span.loc.1 = end;
 	}
-	fn pop_location(&mut self) -> (usize, usize) {
-		let result = self.location;
-		self.location = (0, 0);
+	fn location(&mut self) -> (usize, usize) {
+		let result = self.span.loc;
 		result
 	}
 
@@ -56,11 +52,7 @@ impl Lexer {
 				is_builtin = true;
 				let seq = self.h_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '>').is_none() {
-					let span = diag::Span {
-						loc: self.pop_location(),
-						file_id: self.file_id(),
-					};
-					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, span));
+					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
 				}
 				seq
 			}
@@ -68,11 +60,7 @@ impl Lexer {
 				is_builtin = false;
 				let seq = self.q_char_sequence()?;
 				if self.chars.next_if(|(_, c)| *c == '"').is_none() {
-					let span = diag::Span {
-						loc: self.pop_location(),
-						file_id: self.file_id(),
-					};
-					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, span));
+					return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
 				}
 				seq
 			}
@@ -81,13 +69,13 @@ impl Lexer {
 		name.push_str(&char_seq.1);
 		self.include_state = 0;
 		let head_name = tok::HeaderName { is_builtin, name };
-		let (lo, hi) = self.pop_location();
+		let (lo, hi) = self.location();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::HeaderName(head_name),
-				file_id: self.file_id(),
 				leading_space: self.leading_space,
+				span: self.to_span()
 			},
 			hi,
 		))
@@ -108,12 +96,8 @@ impl Lexer {
 		} else {
 			self.include_state = 0;
 		}
-		let (lo, hi) = self.pop_location();
+		let (lo, hi) = self.location();
 		let ident = tok::Ident {
-			span: diag::Span {
-				file_id: self.file_id(),
-				loc: (lo, hi),
-			},
 			name,
 			is_type: false,
 			expandable: true,
@@ -122,8 +106,8 @@ impl Lexer {
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::Ident(ident),
-				file_id: self.file_id(),
 				leading_space: self.leading_space,
+				span: self.to_span(),
 			},
 			hi,
 		))
@@ -144,11 +128,7 @@ impl Lexer {
 					c = next_c;
 				}
 			} else {
-				let span = diag::Span {
-					loc: self.pop_location(),
-					file_id: self.file_id(),
-				};
-				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, span));
+				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, self.to_span()));
 			}
 		}
 		let seq = self.c_char_sequence()?;
@@ -156,21 +136,17 @@ impl Lexer {
 			// name.push('\'');
 			self.set_end(curr_pos);
 		} else {
-			let span = diag::Span {
-				loc: self.pop_location(),
-				file_id: self.file_id(),
-			};
-			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, span));
+			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
 		}
 
 		let str_lit = tok::CharConst { seq, is_wide };
-		let (lo, hi) = self.pop_location();
+		let (lo, hi) = self.location();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::CharConst(str_lit),
-				file_id: self.file_id(),
 				leading_space: self.leading_space,
+				span: self.to_span(),
 			},
 			hi,
 		))
@@ -182,36 +158,28 @@ impl Lexer {
 			if let Some((pos, _)) = self.chars.next() {
 				self.set_end(pos);
 			} else {
-				let span = diag::Span {
-					loc: self.pop_location(),
-					file_id: self.file_id(),
-				};
-				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, span));
+				return Err(diag::Diagnostic::error(diag::DiagKind::UnexpectedEof, self.to_span()));
 			}
 		}
 		let seq = self.s_char_sequence()?;
 		if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '"') {
 			self.set_end(pos);
 		} else {
-			let span = diag::Span {
-				loc: self.pop_location(),
-				file_id: self.file_id(),
-			};
-			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, span));
+			return Err(diag::Diagnostic::error(diag::DiagKind::InvalidToken, self.to_span()));
 		}
 
 		let str_lit = tok::StrLit {
 			seq,
 			is_wide,
-			file_id: self.file_id,
+			file_id: self.to_span().file_id,
 		};
-		let (lo, hi) = self.pop_location();
+		let (lo, hi) = self.location();
 		Ok((
 			lo,
 			tok::PPToken {
 				kind: tok::PPTokenKind::StrLit(str_lit),
-				file_id: self.file_id(),
 				leading_space: self.leading_space,
+				span: self.to_span(),
 			},
 			hi,
 		))
@@ -223,13 +191,9 @@ impl Lexer {
 
 	fn escape_sequence(&mut self) -> diag::Result<char> {
 		let Some((curr_pos, term)) = self.chars.next() else {
-			let span = diag::Span {
-				loc: self.pop_location(),
-				file_id: self.file_id(),
-			};
 			return Err(diag::Diagnostic::error(
 				diag::DiagKind::UnexpectedEscape,
-				span,
+				self.to_span(),
 			));
 		};
 		match term {
@@ -256,13 +220,9 @@ impl Lexer {
 			// [c99] universal-character-name
 			// 'u' | 'U' => todo!("universal-character-name"),
 			_ => {
-				let span = diag::Span {
-					loc: self.pop_location(),
-					file_id: self.file_id(),
-				};
 				Err(diag::Diagnostic::error(
 					diag::DiagKind::UnexpectedEscape,
-					span,
+					self.to_span(),
 				))
 			}
 		}
@@ -348,6 +308,7 @@ impl Iterator for Lexer {
 		match c {
 			new_line @ ('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}'
 			| '\u{2029}') => {
+				self.span.line += 1;
 				name.push(new_line);
 				if c == '\r' {
 					if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '\n') {
@@ -360,13 +321,13 @@ impl Iterator for Lexer {
 					name,
 					is_deleted: false,
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::NewLine(new_line),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -374,14 +335,14 @@ impl Iterator for Lexer {
 			// punctuators without trailing characters
 			'[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
 				self.include_state = 0;
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				let punct = tok::Punct::try_from(c).unwrap();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -402,13 +363,9 @@ impl Iterator for Lexer {
 						name.push(curr_c);
 						if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 							let Some((_, sign)) = self.chars.peek() else {
-								let span = diag::Span {
-									loc: self.pop_location(),
-									file_id: self.file_id(),
-								};
 								return Some(Err(diag::Diagnostic::error(
 									diag::DiagKind::UnexpectedEof,
-									span,
+									self.to_span(),
 								)));
 							};
 							if matches!(sign, '-' | '+' | '0'..='9') {
@@ -421,13 +378,13 @@ impl Iterator for Lexer {
 					}
 				}
 				let num = tok::PPNumber { name };
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::PPNumber(num),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -443,24 +400,20 @@ impl Iterator for Lexer {
 						// case: `...`
 						self.set_end(pos);
 						let punct = tok::Punct::Ellipsis;
-						let (lo, hi) = self.pop_location();
+						let (lo, hi) = self.location();
 						Some(Ok((
 							lo,
 							tok::PPToken {
 								kind: tok::PPTokenKind::Punct(punct),
-								file_id: self.file_id(),
 								leading_space: self.leading_space,
+								span: self.to_span(),
 							},
 							hi,
 						)))
 					} else {
-						let span = diag::Span {
-							loc: self.pop_location(),
-							file_id: self.file_id(),
-						};
 						Some(Err(diag::Diagnostic::error(
 							diag::DiagKind::InvalidToken,
-							span,
+							self.to_span(),
 						)))
 					}
 				} else if let Some((_, digit)) = self.chars.next_if(|&(_, c)| c.is_ascii_digit()) {
@@ -477,13 +430,9 @@ impl Iterator for Lexer {
 							name.push(c);
 							if matches!(next_c, 'e' | 'E' | 'p' | 'P') {
 								let Some((_, sign)) = self.chars.peek() else {
-									let span = diag::Span {
-										loc: self.pop_location(),
-										file_id: self.file_id(),
-									};
 									return Some(Err(diag::Diagnostic::error(
 										diag::DiagKind::UnexpectedEof,
-										span,
+										self.to_span(),
 									)));
 								};
 								if matches!(sign, '-' | '+' | '0'..='9') {
@@ -496,24 +445,20 @@ impl Iterator for Lexer {
 						}
 					}
 					let num = tok::PPNumber { name };
-					let (lo, hi) = self.pop_location();
+					let (lo, hi) = self.location();
 					Some(Ok((
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::PPNumber(num),
-							file_id: self.file_id(),
 							leading_space: self.leading_space,
+							span: self.to_span(),
 						},
 						hi,
 					)))
 				} else {
-					let span = diag::Span {
-						loc: self.pop_location(),
-						file_id: self.file_id(),
-					};
 					Some(Err(diag::Diagnostic::error(
 						diag::DiagKind::InvalidToken,
-						span,
+						self.to_span(),
 					)))
 				}
 			}
@@ -527,13 +472,13 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 				}
 				let punct = tok::Punct::Hash;
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(punct),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -558,13 +503,13 @@ impl Iterator for Lexer {
 					self.set_end(pos);
 					tok::Punct::Less
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -585,13 +530,9 @@ impl Iterator for Lexer {
 				} else if self.chars.next_if(|&(_, c)| c == '*').is_some() {
 					name.push_str("/*");
 					let Some((pos, mut last_c)) = self.chars.next() else {
-						let span = diag::Span {
-							loc: self.pop_location(),
-							file_id: self.file_id(),
-						};
 						return Some(Err(diag::Diagnostic::error(
 							diag::DiagKind::UnexpectedEof,
-							span,
+							self.to_span(),
 						)));
 					};
 					self.set_end(pos);
@@ -608,25 +549,21 @@ impl Iterator for Lexer {
 					if found_end {
 						return self.next();
 					} else {
-						let span = diag::Span {
-							loc: self.pop_location(),
-							file_id: self.file_id(),
-						};
 						return Some(Err(diag::Diagnostic::error(
 							diag::DiagKind::UnexpectedEof,
-							span,
+							self.to_span(),
 						)));
 					}
 				} else {
 					tok::Punct::FSlash
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -645,31 +582,23 @@ impl Iterator for Lexer {
 						lo,
 						tok::PPToken {
 							kind: tok::PPTokenKind::NewLine(new_line),
-							file_id: self.file_id(),
 							leading_space: self.leading_space,
+							span: self.to_span(),
 						},
 						hi,
 					)))
 				}
 				Some(Ok(_)) => {
-					let span = diag::Span {
-						loc: self.pop_location(),
-						file_id: self.file_id(),
-					};
 					Some(Err(diag::Diagnostic::error(
 						diag::DiagKind::InvalidToken,
-						span,
+						self.to_span(),
 					)))
 				}
 				Some(Err(error)) => Some(Err(error)),
 				None => {
-					let span = diag::Span {
-						loc: self.pop_location(),
-						file_id: self.file_id(),
-					};
 					Some(Err(diag::Diagnostic::error(
 						diag::DiagKind::UnexpectedEof,
-						span,
+						self.to_span(),
 					)))
 				}
 			},
@@ -687,13 +616,13 @@ impl Iterator for Lexer {
 					// case: `+`
 					tok::Punct::Plus
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -712,13 +641,13 @@ impl Iterator for Lexer {
 					// case: `-`
 					tok::Punct::Minus
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -733,13 +662,13 @@ impl Iterator for Lexer {
 					// case: `=`
 					tok::Punct::Equal
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -754,13 +683,13 @@ impl Iterator for Lexer {
 					// case: `*`
 					tok::Punct::Star
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -775,13 +704,13 @@ impl Iterator for Lexer {
 					// case: `:`
 					tok::Punct::Colon
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
@@ -796,13 +725,13 @@ impl Iterator for Lexer {
 					// case: `!`
 					tok::Punct::Bang
 				};
-				let (lo, hi) = self.pop_location();
+				let (lo, hi) = self.location();
 				Some(Ok((
 					lo,
 					tok::PPToken {
 						kind: tok::PPTokenKind::Punct(term),
-						file_id: self.file_id(),
 						leading_space: self.leading_space,
+						span: self.to_span(),
 					},
 					hi,
 				)))
