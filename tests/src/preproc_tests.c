@@ -11,6 +11,9 @@
 // #undef FOO bar baz 128 "so many extra tokens"
 // #include <foo.h> and even more 128 right here ???
 #line 5 "hello world!"
+unsigned struct Foo {} foo;
+
+#line 5 "hello world!"
 
 unsigned struct Foo {} foo;
 
