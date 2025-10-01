@@ -152,7 +152,7 @@ impl PPTokenStack {
 					}
 				}
 			} else {
-				let error = diag::Diagnostic::error(diag::DiagKind::DirectiveExtraTokens, token.to_span());
+				let error = diag::Diagnostic::error(diag::DiagKind::DirectiveLineExtraTokens, token.to_span());
 				return Some(error);
 			}
 		}

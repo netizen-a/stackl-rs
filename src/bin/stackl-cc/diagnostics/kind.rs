@@ -44,5 +44,5 @@ pub enum DiagKind {
 	DirectiveLineMinRange,
 	DirectiveLineMaxRange,
 	DirectiveLineFilename,
-	DirectiveExtraTokens,
+	DirectiveLineExtraTokens,
 }
