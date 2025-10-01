@@ -29,6 +29,7 @@ GroupPart: Vec<TokenTriple> = {
 	ControlLine,
 	TextLine,
 	// "#" <non_dir:NonDirective> => non_dir,
+	! => { diagnostics.push_preproc_error(<>.error); vec![] },
 };
 
 ControlLine: Vec<TokenTriple> = {
@@ -54,16 +55,28 @@ ControlLine: Vec<TokenTriple> = {
 		stack.push_lexer(Lexer::new(buf, file_id));
 		vec![]
 	},
-	"#" DIRECTIVE_DEFINE <ident:Identifier> <list:ReplacementList> "\n" => {
+	"#" DIRECTIVE_DEFINE <lo:@L> <ident:Identifier> <hi:@R> <list:ReplacementList> "\n" => {
 		let name = ident.1.kind.clone().unwrap_ident().name;
 		let mut stack = stack_ref.borrow_mut();
-		stack.define_obj_macro(name, list);
+		let span = diag::Span {
+			file_id: ident.1.file_id,
+			loc: (lo, hi),
+		};
+		if let Err(error) = stack.define_obj_macro(name, list, span) {
+			diagnostics.push(error);
+		}
 		vec![]
 	},
-	"#" DIRECTIVE_UNDEF <ident:Identifier> "\n" => {
+	"#" DIRECTIVE_UNDEF <lo:@L> <ident:Identifier> <hi:@R> "\n" => {
 		let name = ident.1.kind.clone().unwrap_ident().name;
 		let mut stack = stack_ref.borrow_mut();
-		stack.undef_macro(name);
+		let span = diag::Span {
+			file_id: ident.1.file_id,
+			loc: (lo, hi),
+		};
+		if let Err(error) = stack.undef_macro(name, span) {
+			diagnostics.push(error);
+		}
 		vec![]
 	},
 	"#" DIRECTIVE_LINE RawPPToken+ "\n" => { vec![] },

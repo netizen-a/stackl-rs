@@ -78,7 +78,6 @@ fn main() -> ExitCode {
 
 	let mut diag_engine = diagnostics::DiagnosticEngine::new(enable_color);
 
-	let mut syntax_errors = Vec::new();
 	diag_engine.insert_file_info(0, &args.in_file);
 	let mut file = fs::File::open(&args.in_file).unwrap();
 	let mut text = String::new();
@@ -90,7 +89,7 @@ fn main() -> ExitCode {
 		match lex::TokensParser::new().parse(&mut diag_engine, &pp_ref, pp_iter) {
 			Ok(tokens) => tokens,
 			Err(error) => {
-				diag_engine.push_fatal_error(error);
+				diag_engine.push_preproc_error(error);
 				vec![]
 			}
 		};
@@ -107,12 +106,13 @@ fn main() -> ExitCode {
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let tk_ref = rc::Rc::clone(&tk_iter.inner);
-	let unit = syn::SyntaxParser::new()
-		.parse(&mut syntax_errors, &tk_ref, tk_iter)
-		.unwrap();
-	for error_recov in syntax_errors {
-		diag_engine.push_syntax_error(error_recov.error)
-	}
+	let unit = match syn::SyntaxParser::new().parse(&mut diag_engine, &tk_ref, tk_iter) {
+		Ok(unit) => unit,
+		Err(error) => {
+			diag_engine.push_syntax_error(error);
+			vec![]
+		}
+	};
 
 	if args.is_traced {
 		println!("{:#?}", unit);

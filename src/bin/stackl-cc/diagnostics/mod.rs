@@ -33,7 +33,7 @@ pub struct DiagnosticEngine {
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
-	fatal_errors: Vec<ParseError<usize, tok::PPToken, Diagnostic>>,
+	preproc_errors: Vec<ParseError<usize, tok::PPToken, Diagnostic>>,
 }
 
 impl DiagnosticEngine {
@@ -56,8 +56,8 @@ impl DiagnosticEngine {
 		self.syntax_errors.push(diag)
 	}
 	#[inline]
-	pub fn push_fatal_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
-		self.fatal_errors.push(diag)
+	pub fn push_preproc_error(&mut self, diag: ParseError<usize, tok::PPToken, Diagnostic>) {
+		self.preproc_errors.push(diag)
 	}
 	pub fn get_file_path(&self, id: usize) -> Option<PathBuf> {
 		self.file_map_ref
@@ -99,12 +99,12 @@ impl DiagnosticEngine {
 				return true;
 			}
 		}
-		!self.fatal_errors.is_empty() || !self.syntax_errors.is_empty()
+		!self.preproc_errors.is_empty() || !self.syntax_errors.is_empty()
 	}
 	pub fn print_diagnostics(&self) {
-		for diag in self.fatal_errors.iter() {
+		for diag in self.preproc_errors.iter() {
 			eprintln!("{diag:?}");
-			self.print_parse_errors(DiagLevel::Fatal, diag)
+			self.print_parse_errors(DiagLevel::Error, diag)
 		}
 		for diag in self.syntax_errors.iter() {
 			self.print_parse_errors(DiagLevel::Error, diag)
@@ -351,11 +351,20 @@ impl DiagnosticEngine {
 				self.format_diagnostic(&diag, msg0, "")
 			}
 			DiagKind::DeclaratorLimit => {
-				let msg0 = "declarators modifying a type in a declaration exceeds translation limit '12'";
+				let msg0 =
+					"declarators modifying a type in a declaration exceeds translation limit '12'";
 				self.format_diagnostic(&diag, msg0, "")
 			}
 			DiagKind::ParameterLimit => {
 				let msg0 = "parameters in function definition exceeds translation limit '127'";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::UndefPredef => {
+				let msg0 = "undefining builtin macro";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::RedefPredef => {
+				let msg0 = "redefining builtin macro";
 				self.format_diagnostic(&diag, msg0, "")
 			}
 			kind => unimplemented!("{kind:?}"),

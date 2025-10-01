@@ -38,4 +38,6 @@ pub enum DiagKind {
 	ArrayMinRange,
 	DeclaratorLimit,
 	ParameterLimit,
+	UndefPredef,
+	RedefPredef,
 }

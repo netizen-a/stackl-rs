@@ -8,6 +8,7 @@ use crate::{
 use super::lexer::Lexer;
 use crate::diagnostics as diag;
 use chrono::{Datelike, Timelike};
+use lalrpop_util as lalr;
 
 pub enum StackKind {
 	Buffer(Vec<diag::ResultTriple<PPToken, usize>>),
@@ -46,34 +47,63 @@ pub struct PPTokenStack {
 	defines: HashMap<String, Vec<PPTokenTriple>>,
 	file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>,
 	line: usize,
+	last_token_kind: Option<PPTokenKind>,
 }
 
 impl PPTokenStack {
 	fn new(value: Lexer, file_map_ref: Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>>) -> Self {
-		let mut defines = HashMap::new();
-		defines.insert("__DATE__".to_string(), vec![]);
-		defines.insert("__FILE__".to_string(), vec![]);
-		defines.insert("__LINE__".to_string(), vec![]);
-		defines.insert("__STDC__".to_string(), vec![]);
-		defines.insert("__STDC_HOSTED__".to_string(), vec![]);
-		defines.insert("__STDC_MB_MIGHT_NEQ_WC__".to_string(), vec![]);
-		defines.insert("__STDC_VERSION__".to_string(), vec![]);
-		defines.insert("__TIME__".to_string(), vec![]);
-		defines.insert("__STDC_IEC_559__".to_string(), vec![]);
-		defines.insert("__STDC_IEC_559_COMPLEX__".to_string(), vec![]);
-		defines.insert("__STDC_ISO_10646__".to_string(), vec![]);
 		Self {
 			stack: vec![StackKind::Lexer(value)],
-			defines,
+			defines: HashMap::new(),
 			file_map_ref,
 			line: 1,
+			last_token_kind: None,
 		}
 	}
-	pub fn define_obj_macro(&mut self, name: String, replacement_list: Vec<PPTokenTriple>) {
-		self.defines.insert(name, replacement_list);
+	pub fn define_obj_macro(
+		&mut self,
+		name: String,
+		replacement_list: Vec<PPTokenTriple>,
+		span: diag::Span,
+	) -> Result<(),diag::Diagnostic> {
+		let error = diag::Diagnostic::error(diag::DiagKind::RedefPredef, span);
+		match name.as_str() {
+			"__DATE__"
+			| "__FILE__"
+			| "__LINE__"
+			| "__STDC__"
+			| "__STDC_HOSTED__"
+			| "__STDC_MB_MIGHT_NEQ_WC__"
+			| "__STDC_VERSION__"
+			| "__TIME__"
+			| "__STDC_IEC_559__"
+			| "__STDC_IEC_559_COMPLEX__"
+			| "__STDC_ISO_10646__" => Err(error),
+			_ => {
+				self.defines.insert(name, replacement_list);
+				Ok(())
+			}
+		}
 	}
-	pub fn undef_macro(&mut self, name: String) {
-		self.defines.remove(&name);
+	pub fn undef_macro(&mut self, name: String, span: diag::Span) -> Result<(),diag::Diagnostic> {
+		let error = diag::Diagnostic::error(diag::DiagKind::UndefPredef, span);
+		match name.as_str() {
+			"__DATE__"
+			| "__FILE__"
+			| "__LINE__"
+			| "__STDC__"
+			| "__STDC_HOSTED__"
+			| "__STDC_MB_MIGHT_NEQ_WC__"
+			| "__STDC_VERSION__"
+			| "__TIME__"
+			| "__STDC_IEC_559__"
+			| "__STDC_IEC_559_COMPLEX__"
+			| "__STDC_ISO_10646__" => Err(error),
+			_ => {
+				self.defines.remove(&name);
+				Ok(())
+			}
+		}
 	}
 	pub fn push_lexer(&mut self, lexer: Lexer) {
 		self.stack.push(StackKind::Lexer(lexer));
@@ -172,6 +202,13 @@ impl PPTokenStack {
 			return Some(Ok(triple));
 		}
 
+		if matches!(
+			self.last_token_kind,
+			Some(PPTokenKind::Directive(Directive::Define | Directive::Undef))
+		) {
+			return Some(Ok(triple));
+		}
+
 		match ident.name.as_str() {
 			"__DATE__" => {
 				let seq = current_date();
@@ -237,7 +274,17 @@ impl PPTokenStack {
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
-			"__STDC_MB_MIGHT_NEQ_WC__" => {}
+			"__STDC_MB_MIGHT_NEQ_WC__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "0".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
+				return Some(Ok((triple.0, pp_token, triple.2)));
+			}
 			"__STDC_VERSION__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
 					name: "199901L".to_string(),
@@ -286,7 +333,17 @@ impl PPTokenStack {
 				};
 				return Some(Ok((triple.0, pp_token, triple.2)));
 			}
-			"__STDC_ISO_10646__" => {}
+			"__STDC_ISO_10646__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "0".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					file_id,
+					kind,
+					leading_space: triple.1.leading_space,
+				};
+				return Some(Ok((triple.0, pp_token, triple.2)));
+			}
 			_ => {
 				// do nothing
 			}
@@ -299,6 +356,10 @@ impl PPTokenStack {
 			match self.pop_token() {
 				Some(Ok(triple)) => {
 					if let Some(result) = self.preprocess(triple) {
+						match &result {
+							Ok((_, token, _)) => self.last_token_kind = Some(token.kind.clone()),
+							Err(_) => self.last_token_kind = None,
+						}
 						return Some(result);
 					}
 				}

@@ -8,7 +8,7 @@ use crate::analysis::tok::file_id::FileId;
 
 
 grammar<'a>(
-	errors: &'a mut Vec<lalr::ErrorRecovery<usize, Token, diag::Diagnostic>>,
+	diagnostics: &mut diag::DiagnosticEngine,
 	tk_ref: &'a Rc<RefCell<InnerIter>>
 );
 
@@ -1052,7 +1052,7 @@ RightCurly: diag::Span = <lo:@L> <rcurly:"}"> <hi:@R> => {
 BlockItem: BlockItem = {
 	Declaration => BlockItem::Declaration(<>),
 	Statement => BlockItem::Statement(<>),
-	! => { errors.push(<>); BlockItem::Error },
+	! => { diagnostics.push_syntax_error(<>.error); BlockItem::Error },
 };
 
 ExprStatement: ExprStmt = <expr:Expr?> ";" => ExprStmt(expr);
@@ -1096,7 +1096,7 @@ ExternalDeclaration: ExternalDeclaration = {
 	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
 	Declaration => ExternalDeclaration::Declaration(<>),
 	AsmStatement => ExternalDeclaration::Asm(<>),
-	! => { errors.push(<>); ExternalDeclaration::Error },
+	! => { diagnostics.push_syntax_error(<>.error); ExternalDeclaration::Error },
 };
 
 FunctionDefinition: FunctionDefinition = {

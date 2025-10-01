@@ -85,8 +85,10 @@ impl super::SemanticParser<'_> {
 			Some(Declarator::ParamList(param_list)) => {
 				if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
 					// 5.2.4.1 translation limit
-					let diag =
-						diag::Diagnostic::warn(diag::DiagKind::ParameterLimit, decl.ident.span.clone());
+					let diag = diag::Diagnostic::warn(
+						diag::DiagKind::ParameterLimit,
+						decl.ident.span.clone(),
+					);
 					self.diagnostics.push(diag);
 				}
 				let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
