@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-// #include "example_header.h"
+#include "example_header.h"
 
 // float ff = 5e5;
 // int a = 1 + 1;
@@ -11,19 +11,19 @@
 // int (*g)(void);
 // int (*const h[3])(unsigned int, ...);
 
-typedef int Foo;
-Foo bar;
-int foo;
+// typedef int Foo;
+// Foo bar;
+// int foo;
 
-// static static int foo(void);
+static static int foo(void);
 
-// unsigned signed unsigned bar;
+unsigned signed unsigned bar;
 
-// signed float x;
-// unsigned float y;
+signed float x;
+unsigned float y;
 
-// signed double xx;
-// unsigned double yy;
+signed double xx;
+unsigned double yy;
 
 // float signed xxx;
 // float unsigned yyy;

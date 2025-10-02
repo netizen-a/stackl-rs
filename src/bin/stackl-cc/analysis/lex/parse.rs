@@ -1,7 +1,11 @@
+use std::fs;
+use std::io;
+use std::io::Read;
 use std::iter::Peekable;
 use std::path::PathBuf;
 
 use super::PPTokenIter;
+use crate::analysis::lex::lexer::Lexer;
 use crate::analysis::tok::Directive;
 use crate::analysis::tok::PPToken;
 use crate::analysis::tok::PPTokenKind;
@@ -85,10 +89,46 @@ impl<'a> TokensParser<'a> {
 
 		let maybe_diag = match directive {
             Directive::Line => self.iter.stack_ref.directive_line(dir_args),
+			Directive::Include => self.directive_include(dir_args),
             _ => todo!()
         };
         if let Some(diagnostic) = maybe_diag {
             self.diag_engine.push(diagnostic);
         }
+	}
+	fn directive_include(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
+		for (index, token) in tokens.iter().enumerate() {
+			let span = token.to_span();
+			if index == 0 {
+				if let PPTokenKind::HeaderName(header) = &token.kind {
+
+					let origin_path = self.diag_engine.get_file_path(span.file_id).unwrap();
+					let header_name = PathBuf::from(token.kind.to_name());
+					let full_path = origin_path.parent().unwrap().join(header_name);
+					let mut stack = &mut self.iter.stack_ref;
+					let file = fs::File::open(&full_path).unwrap();
+
+					let mut reader = io::BufReader::new(file);
+					let mut buf = String::new();
+					reader.read_to_string(&mut buf).unwrap();
+
+					let file_id = if let Some(file_id) = self.diag_engine.get_file_id(&full_path) {
+						file_id
+					} else {
+						let file_id = self.diag_engine.id();
+						self.diag_engine.insert_file_info(file_id, full_path);
+						file_id
+					};
+					stack.push_lexer(Lexer::new(buf, file_id));
+				} else {
+					let error = diag::Diagnostic::error(diag::DiagKind::InvalidToken, span);
+					return Some(error)
+				}
+			} else {
+				let error = diag::Diagnostic::error(diag::DiagKind::DirectiveIncludeExtraTokens, span);
+				return Some(error)
+			}
+		}
+		None
 	}
 }
