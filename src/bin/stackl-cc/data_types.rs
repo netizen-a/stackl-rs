@@ -89,11 +89,13 @@ pub struct ArrayType {
 }
 
 #[derive(Debug, Hash, Clone)]
-pub struct PtrType {
+pub struct PtrType(pub Box<DataType>);
+
+#[derive(Debug, Hash, Clone, Default)]
+pub struct TypeQual {
 	pub is_const: bool,
 	pub is_volatile: bool,
 	pub is_restrict: bool,
-	pub inner: Box<DataType>,
 }
 
 #[derive(Debug, Hash, Clone)]
@@ -135,7 +137,7 @@ pub struct UnionType {
 }
 
 #[derive(Debug, Hash, Clone)]
-pub enum DataType {
+pub enum TypeKind {
 	Void,
 	Scalar(ScalarType),
 	Struct(StructType),
@@ -146,10 +148,10 @@ pub enum DataType {
 	Array(ArrayType),
 }
 
-impl fmt::Display for DataType {
+impl fmt::Display for TypeKind {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
-			Self::Void => write!(f, "()"),
+			Self::Void => write!(f, "void"),
 			Self::Scalar(ScalarType::Bool) => write!(f, "_Bool"),
 			Self::Scalar(ScalarType::U8) => write!(f, "unsigned char"),
 			Self::Scalar(ScalarType::I8) => write!(f, "char"),
@@ -181,5 +183,27 @@ impl fmt::Display for DataType {
 			}
 			_ => todo!("{:?}", self),
 		}
+	}
+}
+
+#[derive(Debug, Hash, Clone)]
+pub struct DataType {
+	pub kind: TypeKind,
+	pub qual: TypeQual,
+}
+
+impl fmt::Display for DataType {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let mut qual_str = String::new();
+		if self.qual.is_const {
+			qual_str.push_str("const ");
+		}
+		if self.qual.is_volatile {
+			qual_str.push_str("volatile ");
+		}
+		if self.qual.is_restrict {
+			qual_str.push_str("restrict ");
+		}
+		write!(f, "{qual_str}{}", self.kind)
 	}
 }
