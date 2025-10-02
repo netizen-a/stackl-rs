@@ -1,6 +1,6 @@
 // use crate::data_types::DataType;
 
-use crate::analysis::syn::StorageClass;
+use crate::analysis::{syn::StorageClass, tok};
 
 #[derive(Debug, Clone)]
 pub enum DiagKind {
@@ -40,10 +40,10 @@ pub enum DiagKind {
 	ParameterLimit,
 	UndefPredef,
 	RedefPredef,
+	DirectiveExtraTokens(tok::Directive),
 	DirectiveLineNotSimple,
 	DirectiveLineMinRange,
 	DirectiveLineMaxRange,
 	DirectiveLineFilename,
-	DirectiveLineExtraTokens,
 	DirectiveIncludeExtraTokens,
 }

@@ -17,11 +17,11 @@
 
 // unsigned struct Bar {} bar;
 
-#line 8 "different source"
+#line 8 "different source" "invalid string"
 
-// signed struct Baz {} baz;
+signed struct Baz {} baz;
 
 // #error "this is an error. Hello world!" "hello"
 
-int foo () {
+// int foo () {
 

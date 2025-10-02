@@ -179,7 +179,7 @@ impl PPTokenStack {
 				}
 			} else {
 				let error = diag::Diagnostic::error(
-					diag::DiagKind::DirectiveLineExtraTokens,
+					diag::DiagKind::DirectiveExtraTokens(Directive::Line),
 					token.to_span(),
 				);
 				return Some(error);

@@ -30,7 +30,7 @@ pub struct DiagnosticEngine {
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
-	pub last_token: Option<tok::Token>
+	pub last_token: Option<tok::Token>,
 }
 
 impl DiagnosticEngine {
@@ -372,9 +372,9 @@ impl DiagnosticEngine {
 				let msg0 = "invalid filename for #line directive";
 				self.format_diagnostic(&diag, msg0, "")
 			}
-			DiagKind::DirectiveLineExtraTokens => {
-				let msg0 = "extra tokens at end of #line directive";
-				self.format_diagnostic(&diag, msg0, "")
+			DiagKind::DirectiveExtraTokens(directive) => {
+				let msg0 = format!("extra tokens at end of {directive} directive");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			kind => unimplemented!("{kind:?}"),
 		};

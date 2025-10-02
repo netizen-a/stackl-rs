@@ -22,17 +22,16 @@ pub struct TokensParser<'a> {
 
 impl<'a> TokensParser<'a> {
 	pub fn new(diag_engine: &'a mut diag::DiagnosticEngine, iter: PPTokenIter) -> Self {
-		Self {
-			diag_engine,
-			iter,
-		}
+		Self { diag_engine, iter }
 	}
 	pub fn parse(&mut self) -> Vec<tok::TokenTriple> {
 		let mut triple_list = vec![];
 		while let Some(result) = self.iter.next() {
 			match result {
 				Ok(pp_token) => match pp_token.kind {
-					PPTokenKind::Directive(directive) => self.exec_directive(directive, pp_token.to_span()),
+					PPTokenKind::Directive(directive) => {
+						self.exec_directive(directive, pp_token.to_span())
+					}
 					PPTokenKind::NewLine(_) | PPTokenKind::Punct(tok::Punct::Hash) => {
 						// this branch is handled in the iterator
 					}
@@ -66,40 +65,44 @@ impl<'a> TokensParser<'a> {
 		}
 	}
 	fn exec_directive(&mut self, directive: Directive, span: diag::Span) {
-        let mut error_found = false;
-        let mut dir_args = vec![];
-        while let Some(peeked_result) = self.iter.next() {
-            match peeked_result {
-                Err(error) => {
-                    self.diag_engine.push(error.clone());
-                    error_found = true;
-                },
-                Ok(pp_token) => match pp_token.kind {
-                    PPTokenKind::NewLine(_) => {
-                        break;
-                    }
-                    _ => dir_args.push(pp_token)
-                }
-            }
-        }
+		let mut error_found = false;
+		let mut dir_args = vec![];
+		while let Some(peeked_result) = self.iter.next() {
+			match peeked_result {
+				Err(error) => {
+					self.diag_engine.push(error.clone());
+					error_found = true;
+				}
+				Ok(pp_token) => match pp_token.kind {
+					PPTokenKind::NewLine(_) => {
+						break;
+					}
+					_ => dir_args.push(pp_token),
+				},
+			}
+		}
 
-        if error_found {
-            return;
-        }
+		if error_found {
+			return;
+		}
 
 		let maybe_diag = match directive {
-            Directive::Line => self.iter.stack_ref.directive_line(dir_args),
+			Directive::Line => self.iter.stack_ref.directive_line(dir_args),
 			Directive::Include => self.directive_include(dir_args),
 			Directive::Define => self.directive_define(dir_args),
 			Directive::Undef => self.directive_undef(dir_args),
 			Directive::Error => self.directive_error(dir_args, span),
-            _ => todo!()
-        };
-        if let Some(diagnostic) = maybe_diag {
-            self.diag_engine.push(diagnostic);
-        }
+			_ => todo!(),
+		};
+		if let Some(diagnostic) = maybe_diag {
+			self.diag_engine.push(diagnostic);
+		}
 	}
-	fn directive_error(&mut self, tokens: Vec<PPToken>, span: diag::Span) -> Option<diag::Diagnostic> {
+	fn directive_error(
+		&mut self,
+		tokens: Vec<PPToken>,
+		span: diag::Span,
+	) -> Option<diag::Diagnostic> {
 		let mut error_str = String::new();
 		for (index, pp_token) in tokens.iter().enumerate() {
 			if index == 0 {
@@ -114,18 +117,29 @@ impl<'a> TokensParser<'a> {
 	}
 	fn directive_define(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
 		let mut tok_iter = tokens.into_iter();
-		let Some(PPToken{kind: PPTokenKind::Ident(identifier), span, ..}) = tok_iter.next() else {
+		let Some(PPToken {
+			kind: PPTokenKind::Ident(identifier),
+			span,
+			..
+		}) = tok_iter.next()
+		else {
 			panic!()
 		};
 
-		if let Some(PPToken{kind: PPTokenKind::Punct(tok::Punct::LParen), ..}) = tok_iter.next() {
+		if let Some(PPToken {
+			kind: PPTokenKind::Punct(tok::Punct::LParen),
+			..
+		}) = tok_iter.next()
+		{
 			panic!()
 		} else {
 			let mut replacement_list: Vec<PPToken> = vec![];
 			for pp_tok in tok_iter {
 				replacement_list.push(pp_tok);
 			}
-			self.iter.stack_ref.define_obj_macro(identifier.name, replacement_list, span.clone());
+			self.iter
+				.stack_ref
+				.define_obj_macro(identifier.name, replacement_list, span.clone());
 		}
 
 		None
@@ -174,11 +188,12 @@ impl<'a> TokensParser<'a> {
 					stack.push_lexer(Lexer::new(buf, file_id));
 				} else {
 					let error = diag::Diagnostic::error(diag::DiagKind::InvalidToken, span);
-					return Some(error)
+					return Some(error);
 				}
 			} else {
-				let error = diag::Diagnostic::error(diag::DiagKind::DirectiveIncludeExtraTokens, span);
-				return Some(error)
+				let error =
+					diag::Diagnostic::error(diag::DiagKind::DirectiveIncludeExtraTokens, span);
+				return Some(error);
 			}
 		}
 		None

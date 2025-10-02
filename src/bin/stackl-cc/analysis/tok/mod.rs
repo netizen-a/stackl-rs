@@ -400,18 +400,18 @@ pub enum Directive {
 impl fmt::Display for Directive {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let dir_str = match self {
-			Self::Include => "include",
-			Self::If => "if",
-			Self::Ifdef => "ifdef",
-			Self::Ifndef => "ifndef",
-			Self::Elif => "elif",
-			Self::Else => "else",
-			Self::Endif => "endif",
-			Self::Define => "define",
-			Self::Undef => "undef",
-			Self::Line => "line",
-			Self::Error => "error",
-			Self::Pragma => "pragma",
+			Self::Include => "#include",
+			Self::If => "#if",
+			Self::Ifdef => "#ifdef",
+			Self::Ifndef => "#ifndef",
+			Self::Elif => "#elif",
+			Self::Else => "#else",
+			Self::Endif => "#endif",
+			Self::Define => "#define",
+			Self::Undef => "#undef",
+			Self::Line => "#line",
+			Self::Error => "#error",
+			Self::Pragma => "#pragma",
 		};
 		write!(f, "{dir_str}")
 	}
