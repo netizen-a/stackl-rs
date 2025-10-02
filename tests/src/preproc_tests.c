@@ -21,5 +21,5 @@
 
 // signed struct Baz {} baz;
 
-#error this is an error. Hello world!
+#error "this is an error. Hello world!" "hello"
 

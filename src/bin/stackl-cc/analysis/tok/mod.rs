@@ -430,24 +430,19 @@ pub enum PPTokenKind {
 	Directive(Directive),
 }
 
-impl PPTokenKind {
-	pub fn to_name(&self) -> String {
-		match self {
-			Self::HeaderName(value) => value.name.clone(),
-			Self::Ident(value) => value.name.clone(),
-			Self::PPNumber(value) => value.name.clone(),
-			Self::CharConst(value) => value.seq.clone(),
-			Self::StrLit(value) => value.seq.clone(),
-			Self::Punct(value) => format!("{value}"),
-			Self::NewLine(_) => String::from("\\n"),
-			Self::Directive(dir) => dir.to_string(),
-		}
-	}
-	pub fn unwrap_str_lit(self) -> StrLit {
-		match self {
-			PPTokenKind::StrLit(token) => token,
-			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
-		}
+impl fmt::Display for PPTokenKind {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let tok_str = match &self {
+			PPTokenKind::Punct(punct) => punct.to_string(),
+			PPTokenKind::Ident(ident) => ident.to_string(),
+			PPTokenKind::CharConst(char_const) => char_const.to_string(),
+			PPTokenKind::NewLine(new_line) => new_line.to_string(),
+			PPTokenKind::StrLit(literal) => literal.to_string(),
+			PPTokenKind::HeaderName(header) => header.to_string(),
+			PPTokenKind::PPNumber(number) => number.to_string(),
+			PPTokenKind::Directive(directive) => directive.to_string(),
+		};
+		write!(f, "{tok_str}")
 	}
 }
 

@@ -104,7 +104,7 @@ impl<'a> TokensParser<'a> {
 		for (index, pp_token) in tokens.iter().enumerate() {
 			if index == 0 {
 				// omit leading space
-				error_str.push_str(&pp_token.kind.to_name());
+				error_str.push_str(&pp_token.kind.to_string());
 			} else {
 				error_str.push_str(&format!("{pp_token}"));
 			}
@@ -144,7 +144,7 @@ impl<'a> TokensParser<'a> {
 			if index == 0 {
 				if let PPTokenKind::HeaderName(header) = &token.kind {
 					let origin_path = self.diag_engine.get_file_path(span.file_id).unwrap();
-					let header_name = PathBuf::from(token.kind.to_name());
+					let header_name = PathBuf::from(token.kind.to_string());
 					let full_path = origin_path.parent().unwrap().join(header_name);
 					let mut stack = &mut self.iter.stack_ref;
 					let Ok(file) = fs::File::open(&full_path) else {
