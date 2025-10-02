@@ -27,7 +27,6 @@ pub struct SymbolTableEntry {
 	pub data_type: DataType,
 	pub storage: StorageClass,
 	pub linkage: Linkage,
-	pub is_incomplete: bool,
 }
 
 pub struct SemanticParser<'a> {

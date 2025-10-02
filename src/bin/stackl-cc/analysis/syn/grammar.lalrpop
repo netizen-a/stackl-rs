@@ -254,72 +254,32 @@ ConditionalExpr: Expr = {
 
 AssignmentExpr: Expr = {
 	ConditionalExpr,
-	<lhs:UnaryExpr> <op:AssignmentOperator> <rhs:AssignmentExpr> => {
-		Expr::Binary(ExprBinary{
-			left: Box::new(lhs),
-			op: op,
-			right: Box::new(rhs),
-		})
-	},
+	<lhs:UnaryExpr> <op:AssignmentOperator> <rhs:AssignmentExpr> => Expr::with_binary(op, lhs, rhs),
 };
 
 AssignmentOperator: BinOp = {
-	<lo:@L> <op:"="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::Assign
-	},
-	<lo:@L> <op:"*="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::MulAssign
-	},
-	<lo:@L> <op:"/="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::DivAssign
-	},
-	<lo:@L> <op:"%="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::ModAssign
-	},
-	<lo:@L> <op:"+="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::AddAssign
-	},
-	<lo:@L> <op:"-="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::SubAssign
-	},
-	<lo:@L> <op:"<<="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::LShiftAssign
-	},
-	<lo:@L> <op:">>="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::RShiftAssign
-	},
-	<lo:@L> <op:"&="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::AmpAssign
-	},
-	<lo:@L> <op:"^="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::XOrAssign
-	},
-	<lo:@L> <op:"|="> <hi:@R> => BinOp{
-		span: op.to_span(),
-		kind: BinOpKind::OrAssign
-	},
+	<op:"=">   => BinOp{span: op.to_span(), kind: BinOpKind::Assign      },
+	<op:"*=">  => BinOp{span: op.to_span(), kind: BinOpKind::MulAssign   },
+	<op:"/=">  => BinOp{span: op.to_span(), kind: BinOpKind::DivAssign   },
+	<op:"%=">  => BinOp{span: op.to_span(), kind: BinOpKind::ModAssign   },
+	<op:"+=">  => BinOp{span: op.to_span(), kind: BinOpKind::AddAssign   },
+	<op:"-=">  => BinOp{span: op.to_span(), kind: BinOpKind::SubAssign   },
+	<op:"<<="> => BinOp{span: op.to_span(), kind: BinOpKind::LShiftAssign},
+	<op:">>="> => BinOp{span: op.to_span(),	kind: BinOpKind::RShiftAssign},
+	<op:"&=">  => BinOp{span: op.to_span(), kind: BinOpKind::AmpAssign   },
+	<op:"^=">  => BinOp{span: op.to_span(), kind: BinOpKind::XOrAssign   },
+	<op:"|=">  => BinOp{span: op.to_span(), kind: BinOpKind::OrAssign    },
 };
 
 Expr: Expr = {
 	AssignmentExpr,
-	<lhs:Expr> <lo:@L> <op:","> <hi:@R> <rhs:AssignmentExpr> => Expr::Binary(ExprBinary{
-		left: Box::new(lhs),
-		op: BinOp{
+	<lhs:Expr> <op:","> <rhs:AssignmentExpr> => {
+		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::Comma,
-		},
-		right: Box::new(rhs),
-	}),
+		};
+		Expr::with_binary(bin_op, lhs, rhs)
+	},
 };
 
 ConstantExpr = ConditionalExpr;
@@ -366,44 +326,42 @@ InitDeclarator: InitDeclarator = {
 };
 
 StorageClassSpecifier: StorageClassSpecifier = {
-	<lo:@L> <kw:"typedef"> <hi:@R> => {
-		StorageClassSpecifier {
-			span: kw.to_span(),
-			kind: StorageClass::Typedef,
-		}
+	<kw:"typedef"> => StorageClassSpecifier {
+		span: kw.to_span(),
+		kind: StorageClass::Typedef,
 	},
-	<lo:@L> <kw:"extern"> <hi:@R> => StorageClassSpecifier {
+	<kw:"extern"> => StorageClassSpecifier {
 		span: kw.to_span(),
 		kind: StorageClass::Extern,
 	},
-	<lo:@L> <kw:"static"> <hi:@R> => StorageClassSpecifier {
+	<kw:"static"> => StorageClassSpecifier {
 		span: kw.to_span(),
 		kind: StorageClass::Static,
 	},
-	<lo:@L> <kw:"auto"> <hi:@R> => StorageClassSpecifier {
+	<kw:"auto"> => StorageClassSpecifier {
 		span: kw.to_span(),
 		kind: StorageClass::Auto,
 	},
-	<lo:@L> <kw:"register"> <hi:@R> => StorageClassSpecifier {
+	<kw:"register"> => StorageClassSpecifier {
 		span: kw.to_span(),
 		kind: StorageClass::Register,
 	},
 }
 
 TypeSpecifier: TypeSpecifier = {
-	<lo:@L> <kw:"void"> <hi:@R> => TypeSpecifier::Void(kw.to_span()),
-	<lo:@L> <kw:"char"> <hi:@R> => TypeSpecifier::Char(kw.to_span()),
-	<lo:@L> <kw:"short"> <hi:@R> => TypeSpecifier::Short(kw.to_span()),
-	<lo:@L> <kw:"int"> <hi:@R> => TypeSpecifier::Int(kw.to_span()),
-	<lo:@L> <kw:"long"> <hi:@R> => TypeSpecifier::Long(kw.to_span()),
-	<lo:@L> <kw:"float"> <hi:@R> => TypeSpecifier::Float(kw.to_span()),
-	<lo:@L> <kw:"double"> <hi:@R> => TypeSpecifier::Double(kw.to_span()),
-	<lo:@L> <kw:"signed"> <hi:@R> => TypeSpecifier::Signed(kw.to_span()),
-	<lo:@L> <kw:"unsigned"> <hi:@R> => TypeSpecifier::Unsigned(kw.to_span()),
-	<lo:@L> <kw:"_Bool"> <hi:@R> => TypeSpecifier::Bool(kw.to_span()),
+	<kw:"void"> => TypeSpecifier::Void(kw.to_span()),
+	<kw:"char"> => TypeSpecifier::Char(kw.to_span()),
+	<kw:"short"> => TypeSpecifier::Short(kw.to_span()),
+	<kw:"int"> => TypeSpecifier::Int(kw.to_span()),
+	<kw:"long"> => TypeSpecifier::Long(kw.to_span()),
+	<kw:"float"> => TypeSpecifier::Float(kw.to_span()),
+	<kw:"double"> => TypeSpecifier::Double(kw.to_span()),
+	<kw:"signed"> => TypeSpecifier::Signed(kw.to_span()),
+	<kw:"unsigned"> => TypeSpecifier::Unsigned(kw.to_span()),
+	<kw:"_Bool"> => TypeSpecifier::Bool(kw.to_span()),
 	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
 	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
-	<lo:@L> <type_name:TYPE_NAME> <hi:@R> => TypeSpecifier::TypedefName(Identifier::new(type_name)),
+	<type_name:TYPE_NAME> => TypeSpecifier::TypedefName(Identifier::new(type_name)),
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {

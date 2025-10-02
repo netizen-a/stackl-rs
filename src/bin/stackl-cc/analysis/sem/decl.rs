@@ -77,7 +77,6 @@ impl super::SemanticParser<'_> {
 					data_type: dtype::DataType::Function(func_type),
 					linkage,
 					storage,
-					is_incomplete: false,
 				};
 				let key = Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
@@ -107,7 +106,6 @@ impl super::SemanticParser<'_> {
 					data_type: dtype::DataType::Function(func_type),
 					linkage,
 					storage,
-					is_incomplete: false,
 				};
 				let key = Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
@@ -335,7 +333,6 @@ impl super::SemanticParser<'_> {
 			}
 			let entry = SymbolTableEntry {
 				data_type: var_dtype,
-				is_incomplete: false,
 				linkage,
 				storage,
 			};
