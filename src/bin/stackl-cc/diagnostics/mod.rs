@@ -30,6 +30,7 @@ pub struct DiagnosticEngine {
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
+	pub last_token: Option<tok::Token>
 }
 
 impl DiagnosticEngine {
@@ -128,12 +129,16 @@ impl DiagnosticEngine {
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
 				let _ = file.read_to_string(&mut source);
-				let span = Span {
-					file_id,
-					loc: (*location, *location),
-					// TODO: get line from external source
-					line: usize::MAX,
-					name_id: file_id,
+				let span = if let Some(token) = &self.last_token {
+					token.to_span()
+				} else {
+					Span {
+						file_id,
+						loc: (*location, *location),
+						// TODO: get line from external source
+						line: 1,
+						name_id: file_id,
+					}
 				};
 				let diag = Diagnostic {
 					level,

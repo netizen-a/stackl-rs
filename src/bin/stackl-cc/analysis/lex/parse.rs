@@ -113,12 +113,21 @@ impl<'a> TokensParser<'a> {
 		Some(diag::Diagnostic::error(kind, span))
 	}
 	fn directive_define(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
-		// let mut tok_iter = tokens.iter().peekable();
-		// if let Some(PPToken) = tok_iter.next_if(|v| matches!(v.kind, PPTokenKind::Ident(_))) {
+		let mut tok_iter = tokens.into_iter();
+		let Some(PPToken{kind: PPTokenKind::Ident(identifier), span, ..}) = tok_iter.next() else {
+			panic!()
+		};
 
-		// } else {
-		// 	// error
-		// }
+		if let Some(PPToken{kind: PPTokenKind::Punct(tok::Punct::LParen), ..}) = tok_iter.next() {
+			panic!()
+		} else {
+			let mut replacement_list: Vec<PPToken> = vec![];
+			for pp_tok in tok_iter {
+				replacement_list.push(pp_tok);
+			}
+			self.iter.stack_ref.define_obj_macro(identifier.name, replacement_list, span.clone());
+		}
+
 		None
 	}
 	fn directive_undef(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {

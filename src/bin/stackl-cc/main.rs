@@ -17,6 +17,8 @@ use std::{path::PathBuf, process::ExitCode};
 
 use analysis::{lex, sem, syn, tok};
 
+use crate::diagnostics::ToSpan;
+
 #[derive(Debug, Clone, clap::ValueEnum)]
 pub enum EnableColor {
 	Auto,
@@ -85,6 +87,8 @@ fn main() -> ExitCode {
 	let lexer = lex::lexer::Lexer::new(text, 0);
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
 	let tokens: Vec<tok::TokenTriple> = lex::TokensParser::new(&mut diag_engine, pp_iter).parse();
+
+	diag_engine.last_token = tokens.last().map(|t| t.1.clone());
 
 	diag_engine.print_diagnostics();
 	if args.pp_stdout_tokens {
