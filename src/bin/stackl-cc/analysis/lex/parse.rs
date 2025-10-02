@@ -92,17 +92,17 @@ impl<'a> TokensParser<'a> {
 			Directive::Define => self.directive_define(dir_args),
 			Directive::Undef => self.directive_undef(dir_args),
 			Directive::Error => self.directive_error(dir_args, span),
-			_ => todo!(),
-		};
-		if let Some(diagnostic) = maybe_diag {
-			self.diag_engine.push(diagnostic);
-		}
+			Directive::Pragma => self.directive_pragma(dir_args, span),
+            _ => todo!()
+        };
+        if let Some(diagnostic) = maybe_diag {
+            self.diag_engine.push(diagnostic);
+        }
 	}
-	fn directive_error(
-		&mut self,
-		tokens: Vec<PPToken>,
-		span: diag::Span,
-	) -> Option<diag::Diagnostic> {
+	fn directive_pragma(&mut self, tokens: Vec<PPToken>, span: diag::Span) -> Option<diag::Diagnostic> {
+		todo!("pragma")
+	}
+	fn directive_error(&mut self, tokens: Vec<PPToken>, span: diag::Span) -> Option<diag::Diagnostic> {
 		let mut error_str = String::new();
 		for (index, pp_token) in tokens.iter().enumerate() {
 			if index == 0 {

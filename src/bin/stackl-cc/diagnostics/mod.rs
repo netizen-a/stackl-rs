@@ -135,7 +135,6 @@ impl DiagnosticEngine {
 					Span {
 						file_id,
 						loc: (*location, *location),
-						// TODO: get line from external source
 						line: 1,
 						name_id: file_id,
 					}
