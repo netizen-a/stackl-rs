@@ -32,7 +32,7 @@ impl<'a> TokensParser<'a> {
 		while let Some(result) = self.iter.next() {
 			match result {
 				Ok(pp_token) => match pp_token.kind {
-					PPTokenKind::Directive(directive) => self.exec_directive(directive),
+					PPTokenKind::Directive(directive) => self.exec_directive(directive, pp_token.to_span()),
 					PPTokenKind::NewLine(_) | PPTokenKind::Punct(tok::Punct::Hash) => {
 						// this branch is handled in the iterator
 					}
@@ -65,7 +65,7 @@ impl<'a> TokensParser<'a> {
 			}
 		}
 	}
-	fn exec_directive(&mut self, directive: Directive) {
+	fn exec_directive(&mut self, directive: Directive, span: diag::Span) {
         let mut error_found = false;
         let mut dir_args = vec![];
         while let Some(peeked_result) = self.iter.next() {
@@ -90,23 +90,66 @@ impl<'a> TokensParser<'a> {
 		let maybe_diag = match directive {
             Directive::Line => self.iter.stack_ref.directive_line(dir_args),
 			Directive::Include => self.directive_include(dir_args),
+			Directive::Define => self.directive_define(dir_args),
+			Directive::Undef => self.directive_undef(dir_args),
+			Directive::Error => self.directive_error(dir_args, span),
             _ => todo!()
         };
         if let Some(diagnostic) = maybe_diag {
             self.diag_engine.push(diagnostic);
         }
 	}
+	fn directive_error(&mut self, tokens: Vec<PPToken>, span: diag::Span) -> Option<diag::Diagnostic> {
+		let mut error_str = String::new();
+		for (index, pp_token) in tokens.iter().enumerate() {
+			if index == 0 {
+				// omit leading space
+				error_str.push_str(&pp_token.kind.to_name());
+			} else {
+				error_str.push_str(&format!("{pp_token}"));
+			}
+		}
+		let kind = diag::DiagKind::ErrorDirective(error_str);
+		Some(diag::Diagnostic::error(kind, span))
+	}
+	fn directive_define(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
+		// let mut tok_iter = tokens.iter().peekable();
+		// if let Some(PPToken) = tok_iter.next_if(|v| matches!(v.kind, PPTokenKind::Ident(_))) {
+
+		// } else {
+		// 	// error
+		// }
+		None
+	}
+	fn directive_undef(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
+		for (index, token) in tokens.iter().enumerate() {
+			if index == 0 {
+				if let PPTokenKind::Ident(ident) = &token.kind {
+					let name = ident.name.clone();
+					let mut stack = &mut self.iter.stack_ref;
+					if let Some(error) = stack.undef_macro(name, token.to_span()) {
+						self.diag_engine.push(error);
+					}
+				}
+			} else {
+				// error
+				todo!("undef error")
+			}
+		}
+		None
+	}
 	fn directive_include(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
 		for (index, token) in tokens.iter().enumerate() {
 			let span = token.to_span();
 			if index == 0 {
 				if let PPTokenKind::HeaderName(header) = &token.kind {
-
 					let origin_path = self.diag_engine.get_file_path(span.file_id).unwrap();
 					let header_name = PathBuf::from(token.kind.to_name());
 					let full_path = origin_path.parent().unwrap().join(header_name);
 					let mut stack = &mut self.iter.stack_ref;
-					let file = fs::File::open(&full_path).unwrap();
+					let Ok(file) = fs::File::open(&full_path) else {
+						panic!("fatal error")
+					};
 
 					let mut reader = io::BufReader::new(file);
 					let mut buf = String::new();

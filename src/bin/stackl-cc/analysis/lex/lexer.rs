@@ -428,10 +428,11 @@ impl Iterator for Lexer {
 						span: self.to_span(),
 					}))
 				} else {
-					Some(Err(diag::Diagnostic::error(
-						diag::DiagKind::InvalidToken,
-						self.to_span(),
-					)))
+					Some(Ok(tok::PPToken {
+						kind: tok::PPTokenKind::Punct(tok::Punct::Dot),
+						leading_space: self.leading_space,
+						span: self.to_span(),
+					}))
 				}
 			}
 			'#' => {

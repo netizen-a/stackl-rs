@@ -108,7 +108,7 @@ impl PPTokenStack {
 			}
 		}
 	}
-	
+
 	pub fn directive_line(&mut self, tokens: Vec<PPToken>) -> Option<diag::Diagnostic> {
 		let mut line_num: usize = self.line;
 		let mut file_name = None;
