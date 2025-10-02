@@ -2,7 +2,7 @@
 
 use crate::analysis::syn::StorageClass;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DiagKind {
 	ErrorDirective(String),
 	UnexpectedEof,

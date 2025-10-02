@@ -1,4 +1,5 @@
 use std::iter::Peekable;
+use std::path::PathBuf;
 
 use super::PPTokenIter;
 use crate::analysis::tok::Directive;
@@ -12,14 +13,14 @@ use crate::tok;
 
 pub struct TokensParser<'a> {
 	diag_engine: &'a mut diag::DiagnosticEngine,
-	iter: Peekable<PPTokenIter>,
+	iter: PPTokenIter,
 }
 
 impl<'a> TokensParser<'a> {
 	pub fn new(diag_engine: &'a mut diag::DiagnosticEngine, iter: PPTokenIter) -> Self {
 		Self {
 			diag_engine,
-			iter: iter.peekable(),
+			iter,
 		}
 	}
 	pub fn parse(&mut self) -> Vec<tok::TokenTriple> {
@@ -61,6 +62,33 @@ impl<'a> TokensParser<'a> {
 		}
 	}
 	fn exec_directive(&mut self, directive: Directive) {
-		todo!()
+        let mut error_found = false;
+        let mut dir_args = vec![];
+        while let Some(peeked_result) = self.iter.next() {
+            match peeked_result {
+                Err(error) => {
+                    self.diag_engine.push(error.clone());
+                    error_found = true;
+                },
+                Ok(pp_token) => match pp_token.kind {
+                    PPTokenKind::NewLine(_) => {
+                        break;
+                    }
+                    _ => dir_args.push(pp_token)
+                }
+            }
+        }
+
+        if error_found {
+            return;
+        }
+
+		let maybe_diag = match directive {
+            Directive::Line => self.iter.stack_ref.directive_line(dir_args),
+            _ => todo!()
+        };
+        if let Some(diagnostic) = maybe_diag {
+            self.diag_engine.push(diagnostic);
+        }
 	}
 }

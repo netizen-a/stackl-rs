@@ -1,13 +1,13 @@
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DiagLevel {
 	Warning,
 	Error,
 	Fatal,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Diagnostic {
 	pub level: DiagLevel,
 	pub kind: kind::DiagKind,
