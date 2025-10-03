@@ -18,11 +18,20 @@ use crate::tok;
 pub struct TokensParser<'a> {
 	diag_engine: &'a mut diag::DiagnosticEngine,
 	iter: PPTokenIter,
+	stdout_preproc: bool,
 }
 
 impl<'a> TokensParser<'a> {
-	pub fn new(diag_engine: &'a mut diag::DiagnosticEngine, iter: PPTokenIter) -> Self {
-		Self { diag_engine, iter }
+	pub fn new(
+		diag_engine: &'a mut diag::DiagnosticEngine,
+		iter: PPTokenIter,
+		stdout_preproc: bool,
+	) -> Self {
+		Self {
+			diag_engine,
+			iter,
+			stdout_preproc,
+		}
 	}
 	pub fn parse(&mut self) -> Vec<tok::TokenTriple> {
 		let mut triple_list = vec![];
@@ -32,7 +41,12 @@ impl<'a> TokensParser<'a> {
 					PPTokenKind::Directive(directive) => {
 						self.exec_directive(directive, pp_token.to_span())
 					}
-					PPTokenKind::NewLine(_) | PPTokenKind::Punct(tok::Punct::Hash) => {
+					PPTokenKind::NewLine(_) => {
+						if self.stdout_preproc {
+							println!();
+						}
+					}
+					PPTokenKind::Punct(tok::Punct::Hash) => {
 						// this branch is handled in the iterator
 					}
 					_ => {
@@ -47,6 +61,9 @@ impl<'a> TokensParser<'a> {
 		triple_list
 	}
 	fn convert_token(&mut self, pp_token: PPToken) -> Option<TokenTriple> {
+		if self.stdout_preproc {
+			print!("{pp_token}");
+		}
 		let span = pp_token.to_span();
 		match pp_token.kind.try_into() {
 			Ok(kind) => Some((

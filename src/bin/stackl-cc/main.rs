@@ -91,7 +91,8 @@ fn main() -> ExitCode {
 	file.read_to_string(&mut text).unwrap();
 	let lexer = lex::lexer::Lexer::new(text, 0);
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
-	let tokens: Vec<tok::TokenTriple> = lex::TokensParser::new(&mut diag_engine, pp_iter).parse();
+	let tokens: Vec<tok::TokenTriple> =
+		lex::TokensParser::new(&mut diag_engine, pp_iter, args.stdout_preproc).parse();
 
 	if let Some(last_token) = tokens.last().map(|t| &t.1) {
 		diag_engine.set_eof_span(last_token);
@@ -100,9 +101,6 @@ fn main() -> ExitCode {
 	diag_engine.print_once();
 	let has_error = diag_engine.contains_error();
 	if has_error || args.stdout_preproc {
-		if args.stdout_preproc {
-			println!("{:#?}", tokens);
-		}
 		return match has_error {
 			true => ExitCode::FAILURE,
 			false => ExitCode::SUCCESS,

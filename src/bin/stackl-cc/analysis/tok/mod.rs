@@ -465,28 +465,6 @@ impl diag::ToSpan for PPToken {
 	}
 }
 
-impl PPToken {
-	pub fn print(self, enabled: bool) -> Self {
-		if !enabled {
-			return self;
-		}
-		if self.leading_space {
-			print!(" ");
-		}
-		match &self.kind {
-			PPTokenKind::Punct(punct) => print!("{punct}"),
-			PPTokenKind::Ident(ident) => print!("{ident}"),
-			PPTokenKind::CharConst(char_const) => print!("{}", char_const.seq),
-			PPTokenKind::NewLine(new_line) => print!("{}", new_line.name),
-			PPTokenKind::StrLit(literal) => print!("{}", literal.seq),
-			PPTokenKind::HeaderName(header) => print!("{}", header.name),
-			PPTokenKind::PPNumber(number) => print!("{}", number.name),
-			PPTokenKind::Directive(directive) => print!("{directive}"),
-		}
-		self
-	}
-}
-
 impl fmt::Display for PPToken {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let tok_str = match &self.kind {
