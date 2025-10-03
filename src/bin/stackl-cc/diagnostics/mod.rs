@@ -91,6 +91,7 @@ impl DiagnosticEngine {
 		self.source_map.insert(id, buf);
 		Ok(self.source_map.get(&id).unwrap())
 	}
+	/// Must be called before print_once
 	pub fn contains_error(&self) -> bool {
 		for diag in self.list_other.iter() {
 			if matches!(diag.level, DiagLevel::Error | DiagLevel::Fatal) {

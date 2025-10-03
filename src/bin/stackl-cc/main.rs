@@ -102,7 +102,7 @@ fn main() -> ExitCode {
 	let mut diag_engine = DiagnosticEngine::new(enable_color);
 
 	let Ok(text) = diag_engine.insert_file_info(0, &args.in_file) else {
-		let diag = Diagnostic::fatal(DiagKind::FileNotFound(args.in_file));
+		let diag = Diagnostic::fatal(DiagKind::FileNotFound(args.in_file), None);
 		diag_engine.push(diag);
 		diag_engine.print_once();
 		return ExitCode::FAILURE;
@@ -124,8 +124,8 @@ fn main() -> ExitCode {
 		diag_engine.set_eof_span(last_token);
 	}
 
-	diag_engine.print_once();
 	let has_error = diag_engine.contains_error();
+	diag_engine.print_once();
 	if has_error || args.stdout_preproc {
 		return match has_error {
 			true => ExitCode::FAILURE,
@@ -156,8 +156,8 @@ fn main() -> ExitCode {
 		print_time("semantic parser time", duration);
 	}
 
-	diag_engine.print_once();
 	let has_error = diag_engine.contains_error();
+	diag_engine.print_once();
 	if has_error || args.check {
 		return match has_error {
 			true => ExitCode::FAILURE,

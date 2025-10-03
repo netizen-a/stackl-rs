@@ -6,6 +6,7 @@
 // #define __DATE__
 // #define __FILE__
 // #define __LINE__
+#include "random header"
 #define __STDC__
 
 // #undef FOO bar baz 128 "so many extra tokens"

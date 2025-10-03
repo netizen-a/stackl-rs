@@ -39,7 +39,10 @@ impl<'a> TokensParser<'a> {
 			match result {
 				Ok(pp_token) => match pp_token.kind {
 					PPTokenKind::Directive(directive) => {
-						self.exec_directive(directive, pp_token.to_span())
+						if let Some(diag::DiagLevel::Fatal) = self.exec_directive(directive, pp_token.to_span()) {
+							// fatal error was encountered.
+							return triple_list
+						}
 					}
 					PPTokenKind::NewLine(_) => {
 						if self.stdout_preproc {
@@ -81,14 +84,14 @@ impl<'a> TokensParser<'a> {
 			}
 		}
 	}
-	fn exec_directive(&mut self, directive: Directive, span: diag::Span) {
-		let mut error_found = false;
+	fn exec_directive(&mut self, directive: Directive, span: diag::Span) -> Option<diag::DiagLevel> {
+		let mut error_found = None;
 		let mut dir_args = vec![];
 		while let Some(peeked_result) = self.iter.next() {
 			match peeked_result {
 				Err(error) => {
+					error_found = Some(error.level);
 					self.diag_engine.push(error.clone());
-					error_found = true;
 				}
 				Ok(pp_token) => match pp_token.kind {
 					PPTokenKind::NewLine(_) => {
@@ -99,8 +102,8 @@ impl<'a> TokensParser<'a> {
 			}
 		}
 
-		if error_found {
-			return;
+		if error_found.is_some() {
+			return error_found;
 		}
 
 		let maybe_diag = match directive {
@@ -113,8 +116,10 @@ impl<'a> TokensParser<'a> {
 			_ => todo!(),
 		};
 		if let Some(diagnostic) = maybe_diag {
+			error_found = Some(diagnostic.level);
 			self.diag_engine.push(diagnostic);
 		}
+		error_found
 	}
 	fn directive_pragma(
 		&mut self,
@@ -193,24 +198,21 @@ impl<'a> TokensParser<'a> {
 				if let PPTokenKind::HeaderName(header) = &token.kind {
 					let origin_path = self.diag_engine.get_file_path(span.file_id).unwrap();
 					let header_name = PathBuf::from(token.kind.to_string());
-					let full_path = origin_path.parent().unwrap().join(header_name);
+					let full_path = origin_path.parent().unwrap().join(&header_name);
 					let mut stack = &mut self.iter.stack_ref;
-					let Ok(file) = fs::File::open(&full_path) else {
-						panic!("fatal error")
-					};
 
-					let mut reader = io::BufReader::new(file);
-					let mut buf = String::new();
-					reader.read_to_string(&mut buf).unwrap();
-
-					let file_id = if let Some(file_id) = self.diag_engine.get_file_id(&full_path) {
-						file_id
+					let (file_id, file_data) = if let Some(file_id) = self.diag_engine.get_file_id(&full_path) {
+						(file_id, self.diag_engine.get_file_data(file_id))
 					} else {
 						let file_id = self.diag_engine.id();
-						self.diag_engine.insert_file_info(file_id, full_path);
-						file_id
+						(file_id, self.diag_engine.insert_file_info(file_id, &full_path).ok())
 					};
-					stack.push_lexer(Lexer::new(buf, file_id));
+					if let Some(buf) = file_data {
+						stack.push_lexer(Lexer::new(buf.to_string(), file_id));
+					} else {
+						let error = diag::Diagnostic::fatal(diag::DiagKind::FileNotFound(header_name), Some(token.to_span()));
+						return Some(error);
+					}
 				} else {
 					let error = diag::Diagnostic::error(diag::DiagKind::InvalidToken, span);
 					return Some(error);

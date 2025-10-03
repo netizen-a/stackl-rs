@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiagLevel {
 	Warning,
 	Error,
@@ -17,11 +17,11 @@ pub struct Diagnostic {
 
 impl Diagnostic {
 	#[inline]
-	pub const fn fatal(kind: DiagKind) -> Self {
+	pub const fn fatal(kind: DiagKind, span: Option<Span>) -> Self {
 		Self {
 			level: DiagLevel::Fatal,
 			kind,
-			span: None,
+			span,
 			notes: vec![],
 		}
 	}
