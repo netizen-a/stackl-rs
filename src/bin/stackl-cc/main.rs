@@ -12,6 +12,7 @@ use std::cell;
 use std::collections::HashMap;
 use std::io::IsTerminal;
 use std::io::Read;
+use std::time;
 use std::{fs, rc};
 use std::{path::PathBuf, process::ExitCode};
 
@@ -60,19 +61,31 @@ pub struct Args {
 	pub in_file: PathBuf,
 	#[arg(long = "output", short = 'o')]
 	pub out_file: Option<PathBuf>,
-	#[arg(short = 'E', long)]
+	#[arg(
+		short = 'E',
+		group = "early-exit",
+		group = "stdout",
+		help = "Preprocess only; do not compile, assemble or link"
+	)]
 	pub stdout_preproc: bool,
-	#[arg(long = "trace")]
+	#[arg(long = "trace", group = "stdout")]
 	pub is_traced: bool,
 	#[arg(long, default_value_t = EnableColor::Auto)]
 	pub enable_color: EnableColor,
 	#[arg(short = 'W', default_value_t = WarnLevel::Minimal)]
 	pub warn_lvl: WarnLevel,
 	#[arg(
-		long,
-		help = "Analyse the current translation unit and report errors, but don't build object files"
+		short = 'S',
+		group = "early-exit",
+		help = "Compile only; do not assemble or link"
 	)]
 	pub check: bool,
+	#[arg(
+		long = "time",
+		group = "stdout",
+		help = "Time the execution of each subprocess"
+	)]
+	pub is_timed: bool,
 }
 
 fn main() -> ExitCode {
@@ -89,10 +102,22 @@ fn main() -> ExitCode {
 	let mut file = fs::File::open(&args.in_file).unwrap();
 	let mut text = String::new();
 	file.read_to_string(&mut text).unwrap();
+
+	// start preprocessor timer
+	let timer = time::Instant::now();
 	let lexer = lex::lexer::Lexer::new(text, 0);
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
 	let tokens: Vec<tok::TokenTriple> =
 		lex::TokensParser::new(&mut diag_engine, pp_iter, args.stdout_preproc).parse();
+
+	let duration = time::Instant::now().duration_since(timer);
+	if args.is_timed {
+		println!(
+			"preprocessor time: {}.{}s",
+			duration.as_secs(),
+			duration.as_millis()
+		)
+	}
 
 	if let Some(last_token) = tokens.last().map(|t| &t.1) {
 		diag_engine.set_eof_span(last_token);
@@ -107,6 +132,7 @@ fn main() -> ExitCode {
 		};
 	}
 
+	let timer = time::Instant::now();
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
 	let unit = match syn::SyntaxParser::new().parse(&mut diag_engine, tk_iter) {
 		Ok(unit) => unit,
@@ -116,11 +142,26 @@ fn main() -> ExitCode {
 		}
 	};
 
-	if args.is_traced {
-		println!("{:#?}", unit);
+	let duration = time::Instant::now().duration_since(timer);
+	if args.is_timed {
+		println!(
+			"syntax parser time: {}.{}s",
+			duration.as_secs(),
+			duration.as_millis()
+		)
 	}
 
+	let timer = time::Instant::now();
 	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
+
+	let duration = time::Instant::now().duration_since(timer);
+	if args.is_timed {
+		println!(
+			"semantic parser time: {}.{}s",
+			duration.as_secs(),
+			duration.as_millis()
+		)
+	}
 
 	diag_engine.print_once();
 	let has_error = diag_engine.contains_error();
