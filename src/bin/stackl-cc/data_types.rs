@@ -1,6 +1,8 @@
 use std::fmt;
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+use crate::analysis::syn;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScalarType {
 	Bool,
 	I8,
@@ -75,30 +77,38 @@ impl ScalarType {
 	}
 }
 
-#[derive(Debug, Hash, Clone)]
-pub enum ArrayLength {
-	Fixed(u32),
-	Variable,
-	Incomplete,
+#[derive(Debug, Clone)]
+pub enum VlaLength {
+	Star,
+	Expr(syn::Expr),
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
+pub enum ArrayLength {
+	Incomplete,
+	Fixed(u32),
+	Contract(u32),
+	VLA(VlaLength),
+}
+
+#[derive(Debug, Clone)]
 pub struct ArrayType {
 	pub component: Box<DataType>,
 	pub length: ArrayLength,
+	pub is_decayed: bool
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct PtrType(pub Box<DataType>);
 
-#[derive(Debug, Hash, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TypeQual {
 	pub is_const: bool,
 	pub is_volatile: bool,
 	pub is_restrict: bool,
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct FuncType {
 	pub params: Vec<DataType>,
 	pub ret: Box<DataType>,
@@ -107,7 +117,7 @@ pub struct FuncType {
 }
 
 // TODO: add optional bitfields
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct MemberType {
 	pub name: Option<String>,
 	pub dtype: Box<DataType>,
@@ -124,19 +134,19 @@ impl fmt::Display for MemberType {
 	}
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct StructType {
 	pub members: Vec<MemberType>,
 	pub is_incomplete: bool,
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct UnionType {
 	pub members: Vec<MemberType>,
 	pub is_incomplete: bool,
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub enum TypeKind {
 	Void,
 	Scalar(ScalarType),
@@ -186,7 +196,7 @@ impl fmt::Display for TypeKind {
 	}
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct DataType {
 	pub kind: TypeKind,
 	pub qual: TypeQual,

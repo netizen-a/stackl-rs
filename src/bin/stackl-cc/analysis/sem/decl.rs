@@ -280,7 +280,7 @@ impl super::SemanticParser<'_> {
 									is_valid = false;
 									continue;
 								}
-								Err(ConversionError::Expr(_)) => dtype::ArrayLength::Variable,
+								Err(ConversionError::Expr(expr)) => dtype::ArrayLength::VLA(dtype::VlaLength::Expr(expr)),
 							}
 						} else if let Some(count) = init_list_count {
 							dtype::ArrayLength::Fixed(count as u32)
@@ -290,6 +290,7 @@ impl super::SemanticParser<'_> {
 						let array_type = dtype::ArrayType {
 							component: Box::new(data_type.clone()),
 							length,
+							is_decayed: is_param,
 						};
 						dtype::DataType {
 							kind: dtype::TypeKind::Array(array_type),
@@ -298,7 +299,8 @@ impl super::SemanticParser<'_> {
 					} else if array.has_star {
 						let array_type = dtype::ArrayType {
 							component: Box::new(data_type.clone()),
-							length: dtype::ArrayLength::Variable,
+							length: dtype::ArrayLength::VLA(dtype::VlaLength::Star),
+							is_decayed: is_param,
 						};
 						dtype::DataType {
 							kind: dtype::TypeKind::Array(array_type),
