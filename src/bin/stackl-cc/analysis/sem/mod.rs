@@ -1,9 +1,9 @@
+mod data;
 mod decl;
 mod expr;
-mod stmt;
-mod spec;
 mod func;
-mod data;
+mod spec;
+mod stmt;
 
 use crate::analysis::syn::{self, *};
 use crate::data_types::DataType;

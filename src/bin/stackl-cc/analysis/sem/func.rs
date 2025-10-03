@@ -4,7 +4,7 @@ use crate::diagnostics::{self as diag, ToSpan};
 use crate::{data_types as dtype, WarnLevel};
 
 impl super::SemanticParser<'_> {
-    pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
+	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let func_ident = &decl.ident;

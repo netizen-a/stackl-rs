@@ -1,7 +1,7 @@
 use crate::analysis::syn;
 use crate::data_types as dtype;
-use crate::diagnostics::ToSpan;
 use crate::diagnostics as diag;
+use crate::diagnostics::ToSpan;
 
 const SIGNED_STR: &str = "signed";
 const UNSIGNED_STR: &str = "unsigned";
@@ -16,7 +16,10 @@ const LONG_LONG_STR: &str = "long long";
 const STRUCT_STR: &str = "struct";
 
 impl super::SemanticParser<'_> {
-    pub(super) fn specifiers_storage(&mut self, specifiers: &mut syn::Specifiers) -> Option<syn::StorageClassSpecifier> {
+	pub(super) fn specifiers_storage(
+		&mut self,
+		specifiers: &mut syn::Specifiers,
+	) -> Option<syn::StorageClassSpecifier> {
 		let mut storage_class = None;
 		let mut is_valid = true;
 		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
@@ -51,7 +54,10 @@ impl super::SemanticParser<'_> {
 			None
 		}
 	}
-    pub(super) fn specifiers_dtype(&mut self, specifiers: &mut syn::Specifiers) -> Option<dtype::DataType> {
+	pub(super) fn specifiers_dtype(
+		&mut self,
+		specifiers: &mut syn::Specifiers,
+	) -> Option<dtype::DataType> {
 		let mut type_kind: Option<dtype::TypeKind> = None;
 
 		let mut is_signed: Option<bool> = None;
@@ -159,7 +165,7 @@ impl super::SemanticParser<'_> {
 						Some(
 							dtype::TypeKind::Struct(_)
 							| dtype::TypeKind::Union(_)
-							| dtype::TypeKind::Enum,
+							| dtype::TypeKind::Enum(_),
 						) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,

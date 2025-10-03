@@ -259,7 +259,9 @@ impl super::SemanticParser<'_> {
 								is_valid = false;
 								continue;
 							}
-							Err(ConversionError::Expr(expr)) => dtype::ArrayLength::VLA(dtype::VlaLength::Expr(expr)),
+							Err(ConversionError::Expr(expr)) => {
+								dtype::ArrayLength::VLA(dtype::VlaLength::Expr(expr))
+							}
 						}
 					} else if array.has_star {
 						dtype::ArrayLength::VLA(dtype::VlaLength::Star)

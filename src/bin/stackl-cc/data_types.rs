@@ -153,7 +153,7 @@ pub enum TypeKind {
 	Scalar(ScalarType),
 	Struct(StructType),
 	Union(UnionType),
-	Enum,
+	Enum(String),
 	Function(FuncType),
 	Pointer(PtrType),
 	Array(ArrayType),

@@ -30,7 +30,8 @@ pub struct DiagnosticEngine {
 	source_map: HashMap<usize, String>,
 	list_other: Vec<Diagnostic>,
 	syntax_errors: Vec<ParseError<usize, tok::Token, Diagnostic>>,
-	pub last_token: Option<tok::Token>,
+	// this is for the ParseError 'unexpected EOF', which doesn't have a span.
+	eof_span: Option<Span>,
 }
 
 impl DiagnosticEngine {
@@ -40,6 +41,9 @@ impl DiagnosticEngine {
 			enable_color,
 			..Self::default()
 		}
+	}
+	pub fn set_eof_span<S: ToSpan>(&mut self, token: &S) {
+		self.eof_span = Some(token.to_span());
 	}
 	pub fn get_file_map(&self) -> Rc<RefCell<bimap::BiHashMap<usize, PathBuf>>> {
 		self.file_map_ref.clone()
@@ -94,13 +98,16 @@ impl DiagnosticEngine {
 		}
 		!self.syntax_errors.is_empty()
 	}
-	pub fn print_diagnostics(&self) {
+	/// consume and print the errors
+	pub fn print_once(&mut self) {
 		for diag in self.syntax_errors.iter() {
 			self.print_parse_errors(DiagLevel::Error, diag)
 		}
 		for diag in self.list_other.iter() {
 			self.stderr_diagnostic(diag)
 		}
+		self.syntax_errors.clear();
+		self.list_other.clear();
 	}
 	fn print_parse_errors<T>(&self, level: DiagLevel, error: &ParseError<usize, T, Diagnostic>)
 	where
@@ -129,7 +136,7 @@ impl DiagnosticEngine {
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
 				let _ = file.read_to_string(&mut source);
-				let span = if let Some(token) = &self.last_token {
+				let span = if let Some(token) = &self.eof_span {
 					token.to_span()
 				} else {
 					Span {

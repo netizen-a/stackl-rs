@@ -60,14 +60,19 @@ pub struct Args {
 	pub in_file: PathBuf,
 	#[arg(long = "output", short = 'o')]
 	pub out_file: Option<PathBuf>,
-	#[arg(short = 'E', long, default_value_t = false)]
-	pub pp_stdout_tokens: bool,
-	#[arg(long = "trace", default_value_t = false)]
+	#[arg(short = 'E', long)]
+	pub stdout_preproc: bool,
+	#[arg(long = "trace")]
 	pub is_traced: bool,
 	#[arg(long, default_value_t = EnableColor::Auto)]
 	pub enable_color: EnableColor,
 	#[arg(short = 'W', default_value_t = WarnLevel::Minimal)]
 	pub warn_lvl: WarnLevel,
+	#[arg(
+		long,
+		help = "Analyse the current translation unit and report errors, but don't build object files"
+	)]
+	pub check: bool,
 }
 
 fn main() -> ExitCode {
@@ -88,16 +93,20 @@ fn main() -> ExitCode {
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
 	let tokens: Vec<tok::TokenTriple> = lex::TokensParser::new(&mut diag_engine, pp_iter).parse();
 
-	diag_engine.last_token = tokens.last().map(|t| t.1.clone());
-
-	diag_engine.print_diagnostics();
-	if args.pp_stdout_tokens {
-		println!("{:#?}", tokens);
-		return ExitCode::SUCCESS;
+	if let Some(last_token) = tokens.last().map(|t| &t.1) {
+		diag_engine.set_eof_span(last_token);
 	}
 
-	if diag_engine.contains_error() {
-		return ExitCode::FAILURE;
+	diag_engine.print_once();
+	let has_error = diag_engine.contains_error();
+	if has_error || args.stdout_preproc {
+		if args.stdout_preproc {
+			println!("{:#?}", tokens);
+		}
+		return match has_error {
+			true => ExitCode::FAILURE,
+			false => ExitCode::SUCCESS,
+		};
 	}
 
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
@@ -115,9 +124,13 @@ fn main() -> ExitCode {
 
 	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
 
-	diag_engine.print_diagnostics();
-	if diag_engine.contains_error() {
-		return ExitCode::FAILURE;
+	diag_engine.print_once();
+	let has_error = diag_engine.contains_error();
+	if has_error || args.check {
+		return match has_error {
+			true => ExitCode::FAILURE,
+			false => ExitCode::SUCCESS,
+		};
 	}
 
 	//synthesis::parse(&analysis_result.unwrap());
