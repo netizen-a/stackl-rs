@@ -410,8 +410,7 @@ impl DiagnosticEngine {
 		};
 
 		let Some(span) = diag.span.clone() else {
-			result.push_str(msg0.as_ref());
-			result.push('\n');
+			result.push_str(&format!("{color_bold_white}{}{color_default}\n",msg0.as_ref()));
 			return result;
 		};
 
