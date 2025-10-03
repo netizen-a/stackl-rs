@@ -12,7 +12,9 @@ use std::cell;
 use std::collections::HashMap;
 use std::io::IsTerminal;
 use std::io::Read;
+use std::thread::sleep;
 use std::time;
+use std::time::Duration;
 use std::{fs, rc};
 use std::{path::PathBuf, process::ExitCode};
 use diagnostics::*;
@@ -99,7 +101,6 @@ fn main() -> ExitCode {
 
 	let mut diag_engine = DiagnosticEngine::new(enable_color);
 
-	
 	let Ok(text) = diag_engine.insert_file_info(0, &args.in_file) else {
 		let diag = Diagnostic::fatal(DiagKind::FileNotFound(args.in_file));
 		diag_engine.push(diag);
@@ -116,11 +117,7 @@ fn main() -> ExitCode {
 
 	let duration = time::Instant::now().duration_since(timer);
 	if args.is_timed {
-		println!(
-			"preprocessor time: {}.{}s",
-			duration.as_secs(),
-			duration.as_millis()
-		)
+		print_time("preprocessor time", duration);
 	}
 
 	if let Some(last_token) = tokens.last().map(|t| &t.1) {
@@ -148,11 +145,7 @@ fn main() -> ExitCode {
 
 	let duration = time::Instant::now().duration_since(timer);
 	if args.is_timed {
-		println!(
-			"syntax parser time: {}.{}s",
-			duration.as_secs(),
-			duration.as_millis()
-		)
+		print_time("syntax parser time", duration);
 	}
 
 	let timer = time::Instant::now();
@@ -160,11 +153,7 @@ fn main() -> ExitCode {
 
 	let duration = time::Instant::now().duration_since(timer);
 	if args.is_timed {
-		println!(
-			"semantic parser time: {}.{}s",
-			duration.as_secs(),
-			duration.as_millis()
-		)
+		print_time("semantic parser time", duration);
 	}
 
 	diag_engine.print_once();
@@ -179,4 +168,17 @@ fn main() -> ExitCode {
 	//synthesis::parse(&analysis_result.unwrap());
 
 	ExitCode::SUCCESS
+}
+
+fn print_time(name: &str, duration: Duration) {
+	let secs = duration.as_secs();
+	let millis = duration.as_millis();
+	let micros = duration.as_micros();
+	if secs > 0 {
+		println!("{name}: {secs}.{}s", millis % 1000);
+	} else if millis > 0 {
+		println!("{name}: {millis}.{}ms", micros % 1000);
+	} else {
+		println!("{name}: {}μs", micros);
+	}
 }
