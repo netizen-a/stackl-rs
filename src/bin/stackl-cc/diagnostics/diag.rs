@@ -11,17 +11,26 @@ pub enum DiagLevel {
 pub struct Diagnostic {
 	pub level: DiagLevel,
 	pub kind: kind::DiagKind,
-	pub span: Span,
+	pub span: Option<Span>,
 	pub(super) notes: Vec<String>,
 }
 
 impl Diagnostic {
 	#[inline]
+	pub const fn fatal(kind: DiagKind) -> Self {
+		Self {
+			level: DiagLevel::Fatal,
+			kind,
+			span: None,
+			notes: vec![],
+		}
+	}
+	#[inline]
 	pub const fn error(kind: DiagKind, span: Span) -> Self {
 		Self {
 			level: DiagLevel::Error,
 			kind,
-			span,
+			span: Some(span),
 			notes: vec![],
 		}
 	}
@@ -30,7 +39,7 @@ impl Diagnostic {
 		Self {
 			level: DiagLevel::Warning,
 			kind,
-			span,
+			span: Some(span),
 			notes: vec![],
 		}
 	}

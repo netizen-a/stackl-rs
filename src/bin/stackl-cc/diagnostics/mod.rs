@@ -8,7 +8,7 @@ use std::{
 	cell::RefCell,
 	collections::{HashMap, HashSet},
 	fs,
-	io::{BufReader, Read},
+	io::{self, BufReader, Read},
 	path::{Path, PathBuf},
 	rc::Rc,
 	result,
@@ -77,18 +77,19 @@ impl DiagnosticEngine {
 	pub fn get_file_data(&self, id: usize) -> Option<&String> {
 		self.source_map.get(&id)
 	}
-	pub fn insert_file_info<P>(&mut self, id: usize, full_path: P)
+	pub fn insert_file_info<P>(&mut self, id: usize, full_path: P) -> io::Result<&String>
 	where
 		P: AsRef<Path>,
 	{
 		self.file_map_ref
 			.borrow_mut()
 			.insert(id, full_path.as_ref().to_path_buf());
-		let file = fs::File::open(&full_path).unwrap();
+		let file = fs::File::open(&full_path)?;
 		let mut reader = BufReader::new(file);
 		let mut buf = String::new();
 		reader.read_to_string(&mut buf).unwrap();
 		self.source_map.insert(id, buf);
+		Ok(self.source_map.get(&id).unwrap())
 	}
 	pub fn contains_error(&self) -> bool {
 		for diag in self.list_other.iter() {
@@ -119,7 +120,7 @@ impl DiagnosticEngine {
 				let diag = Diagnostic {
 					level,
 					kind: DiagKind::ExtraToken,
-					span,
+					span: Some(span),
 					notes: vec![],
 				};
 				self.stderr_diagnostic(&diag);
@@ -136,20 +137,10 @@ impl DiagnosticEngine {
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
 				let _ = file.read_to_string(&mut source);
-				let span = if let Some(token) = &self.eof_span {
-					token.to_span()
-				} else {
-					Span {
-						file_id,
-						loc: (*location, *location),
-						line: 1,
-						name_id: file_id,
-					}
-				};
 				let diag = Diagnostic {
 					level,
 					kind: DiagKind::UnexpectedEof,
-					span,
+					span: self.eof_span.clone(),
 					notes: vec![],
 				};
 				let msg0 = "unexpected EOF";
@@ -181,7 +172,7 @@ impl DiagnosticEngine {
 				let diag = Diagnostic {
 					level,
 					kind: DiagKind::UnrecognizedToken { expected: pruned },
-					span: token.1.to_span(),
+					span: Some(token.1.to_span()),
 					notes: vec![],
 				};
 				self.stderr_diagnostic(&diag);
@@ -382,6 +373,10 @@ impl DiagnosticEngine {
 				let msg0 = format!("extra tokens at end of {directive} directive");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
+			DiagKind::FileNotFound(file_path) => {
+				let msg0 = format!("cannot find {}: no such file or directory", file_path.display());
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
@@ -397,9 +392,7 @@ impl DiagnosticEngine {
 		let color_bold_white: &str = if self.enable_color { "\x1b[1;97m" } else { "" };
 
 		let mut result = String::new();
-		let file_path = self.get_file_path(diag.span.file_id).unwrap();
-		let file_name = self.get_file_path(diag.span.name_id).unwrap();
-		let source = self.get_file_data(diag.span.file_id).unwrap();
+
 		let level_color = match diag.level {
 			DiagLevel::Fatal => {
 				result.push_str(&format!("{color_bold_red}fatal error:{color_default} "));
@@ -415,14 +408,24 @@ impl DiagnosticEngine {
 			}
 		};
 
+		let Some(span) = diag.span.clone() else {
+			result.push_str(msg0.as_ref());
+			result.push('\n');
+			return result;
+		};
+
+		let file_path = self.get_file_path(span.file_id).unwrap();
+		let file_name = self.get_file_path(span.name_id).unwrap();
+		let source = self.get_file_data(span.file_id).unwrap();
+
 		result.push_str(&format!(
 			"{color_bold_white}{}{color_default}\n",
 			msg0.as_ref()
 		));
-		let mut line = diag.span.line;
-		let col = diag.span.column(source.as_ref()).unwrap();
+		let mut line = span.line;
+		let col = span.column(source.as_ref()).unwrap();
 		let mut hi_line = line;
-		let source_triple = diag.span.to_vec(source.as_ref());
+		let source_triple = span.to_vec(source.as_ref());
 		let triple_len = source_triple.len();
 		hi_line += 1 - source_triple.len();
 

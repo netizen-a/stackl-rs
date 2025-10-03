@@ -1,9 +1,12 @@
 // use crate::data_types::DataType;
 
+use std::path;
+
 use crate::analysis::{syn::StorageClass, tok};
 
 #[derive(Debug, Clone)]
 pub enum DiagKind {
+	FileNotFound(path::PathBuf),
 	ErrorDirective(String),
 	UnexpectedEof,
 	UnexpectedEscape,

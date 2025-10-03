@@ -15,6 +15,7 @@ use std::io::Read;
 use std::time;
 use std::{fs, rc};
 use std::{path::PathBuf, process::ExitCode};
+use diagnostics::*;
 
 use analysis::{lex, sem, syn, tok};
 
@@ -96,16 +97,19 @@ fn main() -> ExitCode {
 		EnableColor::Never => false,
 	};
 
-	let mut diag_engine = diagnostics::DiagnosticEngine::new(enable_color);
+	let mut diag_engine = DiagnosticEngine::new(enable_color);
 
-	diag_engine.insert_file_info(0, &args.in_file);
-	let mut file = fs::File::open(&args.in_file).unwrap();
-	let mut text = String::new();
-	file.read_to_string(&mut text).unwrap();
+	
+	let Ok(text) = diag_engine.insert_file_info(0, &args.in_file) else {
+		let diag = Diagnostic::fatal(DiagKind::FileNotFound(args.in_file));
+		diag_engine.push(diag);
+		diag_engine.print_once();
+		return ExitCode::FAILURE;
+	};
 
 	// start preprocessor timer
 	let timer = time::Instant::now();
-	let lexer = lex::lexer::Lexer::new(text, 0);
+	let lexer = lex::lexer::Lexer::new(text.to_string(), 0);
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
 	let tokens: Vec<tok::TokenTriple> =
 		lex::TokensParser::new(&mut diag_engine, pp_iter, args.stdout_preproc).parse();
