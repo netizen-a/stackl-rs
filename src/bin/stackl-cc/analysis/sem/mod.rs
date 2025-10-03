@@ -3,6 +3,7 @@ mod expr;
 mod stmt;
 mod spec;
 mod func;
+mod data;
 
 use crate::analysis::syn::{self, *};
 use crate::data_types::DataType;
@@ -29,6 +30,13 @@ pub struct SymbolTableEntry {
 	pub data_type: DataType,
 	pub storage: StorageClass,
 	pub linkage: Linkage,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DeclType {
+	Proto,
+	FnDef,
+	Decl,
 }
 
 pub struct SemanticParser<'a> {

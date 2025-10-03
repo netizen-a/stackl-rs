@@ -1,13 +1,13 @@
-use crate::analysis::sem::decl::DeclType;
-use crate::analysis::sem::{Namespace, SymbolTableEntry};
+use crate::analysis::sem::{DeclType, Namespace, SymbolTableEntry};
 use crate::analysis::{sem::Linkage, syn};
 use crate::diagnostics::{self as diag, ToSpan};
 use crate::{data_types as dtype, WarnLevel};
 
 impl super::SemanticParser<'_> {
     pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
-		let data_type = self.specifiers_dtype(&mut decl.specifiers);
+		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
+		let func_ident = &decl.ident;
 
 		let (storage, linkage) = match &maybe_sc {
 			None
@@ -26,7 +26,7 @@ impl super::SemanticParser<'_> {
 				return false;
 			}
 		};
-		let mut ret_type = data_type.unwrap();
+		let mut data_type = self.unwrap_or_poison(maybe_ty, func_ident.clone());
 		if !matches!(
 			decl.declarators.first_mut(),
 			None | Some(syn::Declarator::Pointer(_))
@@ -34,7 +34,7 @@ impl super::SemanticParser<'_> {
 			self.declarator_list(
 				decl.ident.to_span(),
 				&mut decl.declarators[1..],
-				&mut ret_type,
+				&mut data_type,
 				false,
 				DeclType::FnDef,
 				Some(decl.ident.name.clone()),
@@ -45,7 +45,7 @@ impl super::SemanticParser<'_> {
 			Some(syn::Declarator::IdentList(ident_list)) => {
 				let func_type = dtype::FuncType {
 					params: vec![],
-					ret: Box::new(ret_type),
+					ret: Box::new(data_type),
 					is_variadic: false,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
@@ -77,7 +77,7 @@ impl super::SemanticParser<'_> {
 				let is_variadic = param_list.is_variadic;
 				let func_type = dtype::FuncType {
 					params,
-					ret: Box::new(ret_type),
+					ret: Box::new(data_type),
 					is_variadic,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};

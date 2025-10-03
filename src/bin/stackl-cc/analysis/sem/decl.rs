@@ -1,3 +1,4 @@
+use crate::analysis::sem::DeclType;
 use crate::analysis::sem::Linkage;
 use crate::analysis::sem::Namespace;
 use crate::analysis::sem::StorageClass;
@@ -9,13 +10,6 @@ use crate::data_types as dtype;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 use crate::WarnLevel;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum DeclType {
-	Proto,
-	FnDef,
-	Decl,
-}
 
 impl super::SemanticParser<'_> {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
@@ -34,17 +28,7 @@ impl super::SemanticParser<'_> {
 				self.initializer(init, &mut init_list_count);
 			}
 			let ident = &init_decl.identifier;
-			let data_type = match &maybe_ty {
-				Some(ty) => ty,
-				None => {
-					let diag = diag::Diagnostic::error(
-						diag::DiagKind::ImplicitInt(ident.name.clone()),
-						ident.to_span(),
-					);
-					self.diagnostics.push(diag);
-					continue;
-				}
-			};
+			let data_type = self.unwrap_or_poison(maybe_ty.clone(), ident.clone());
 			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
 				// 5.2.4.1 translation limit
 				let diag = diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.to_span());
