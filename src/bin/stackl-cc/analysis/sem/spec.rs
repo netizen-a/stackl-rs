@@ -51,8 +51,7 @@ impl super::SemanticParser<'_> {
 			None
 		}
 	}
-    pub(super) fn specifiers_dtype(&mut self, specifiers: &mut syn::Specifiers) -> Result<dtype::DataType, bool> {
-		let mut is_valid = true;
+    pub(super) fn specifiers_dtype(&mut self, specifiers: &mut syn::Specifiers) -> Option<dtype::DataType> {
 		let mut type_kind: Option<dtype::TypeKind> = None;
 
 		let mut is_signed: Option<bool> = None;
@@ -61,14 +60,17 @@ impl super::SemanticParser<'_> {
 			match type_spec {
 				syn::TypeSpecifier::Void(span) => {
 					match type_kind {
+						None => type_kind = Some(dtype::TypeKind::Void),
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
-						None => type_kind = Some(dtype::TypeKind::Void),
 					}
 					if long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -78,17 +80,20 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 				}
 				syn::TypeSpecifier::Char(span) => {
 					match type_kind {
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::I8)),
 					}
@@ -100,17 +105,20 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 				}
 				syn::TypeSpecifier::Short(span) => {
 					match type_kind {
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::I16)),
 					}
@@ -122,16 +130,19 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 				}
 				syn::TypeSpecifier::Int(span) => match type_kind {
+					Some(dtype::TypeKind::Poison) => {
+						// do nothing
+					}
 					Some(_) => {
 						self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 					None => type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::I32)),
 				},
@@ -142,9 +153,9 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::TooLong,
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
-					match &type_kind {
+					match &mut type_kind {
 						Some(
 							dtype::TypeKind::Struct(_)
 							| dtype::TypeKind::Union(_)
@@ -154,7 +165,7 @@ impl super::SemanticParser<'_> {
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(type_kind) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -164,7 +175,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							*type_kind = dtype::TypeKind::Poison;
 						}
 						None | Some(dtype::TypeKind::Scalar(dtype::ScalarType::I32)) => {
 							// do nothing
@@ -181,7 +192,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(false) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -191,19 +202,22 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => {
 							// do nothing
 						}
 					}
 					match type_kind {
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::Float)),
 					}
@@ -215,7 +229,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 				}
 				syn::TypeSpecifier::Double(span) => {
@@ -228,7 +242,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(false) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -238,19 +252,22 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => {
 							// do nothing
 						}
 					}
 					match type_kind {
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => {
 							type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::Double))
@@ -264,7 +281,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 				}
 				syn::TypeSpecifier::Signed(span) => {
@@ -274,7 +291,7 @@ impl super::SemanticParser<'_> {
 								diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(false) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -284,7 +301,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => is_signed = Some(true),
 					}
@@ -297,7 +314,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(dtype::TypeKind::Scalar(dtype::ScalarType::Float)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -307,7 +324,10 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
+						}
+						Some(dtype::TypeKind::Scalar(_) | dtype::TypeKind::Poison) | None => {
+							// do nothing
 						}
 						Some(_) => {
 							let expected = vec![
@@ -319,10 +339,7 @@ impl super::SemanticParser<'_> {
 								diag::DiagKind::UnrecognizedToken { expected },
 								span.clone(),
 							));
-							is_valid = false;
-						}
-						Some(dtype::TypeKind::Scalar(_)) | None => {
-							// do nothing
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 					}
 				}
@@ -336,14 +353,14 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(false) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => is_signed = Some(false),
 					}
@@ -356,7 +373,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(dtype::TypeKind::Scalar(dtype::ScalarType::Float)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -366,7 +383,10 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
+						}
+						Some(dtype::TypeKind::Scalar(_) | dtype::TypeKind::Poison) | None => {
+							// do nothing
 						}
 						Some(_) => {
 							let expected = vec![
@@ -378,21 +398,21 @@ impl super::SemanticParser<'_> {
 								diag::DiagKind::UnrecognizedToken { expected },
 								span.clone(),
 							));
-							is_valid = false;
-						}
-						Some(dtype::TypeKind::Scalar(_)) | None => {
-							// do nothing
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 					}
 				}
 				syn::TypeSpecifier::Bool(span) => {
 					match type_kind {
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::Bool)),
 					}
@@ -404,7 +424,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 					match is_signed {
 						Some(true) => {
@@ -415,7 +435,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(false) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -425,7 +445,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => {
 							// do nothing
@@ -443,7 +463,7 @@ impl super::SemanticParser<'_> {
 					for decl in struct_declaration_list.iter_mut() {
 						let mut member_vec = self.struct_declaration(decl);
 						let Some(mut member_vec) = member_vec else {
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 							continue;
 						};
 						members.append(&mut member_vec);
@@ -470,7 +490,7 @@ impl super::SemanticParser<'_> {
 							diag::DiagKind::MultipleTypes,
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 					match is_signed {
 						Some(true) => {
@@ -481,7 +501,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						Some(false) => {
 							self.diagnostics.push(diag::Diagnostic::error(
@@ -491,7 +511,7 @@ impl super::SemanticParser<'_> {
 								),
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => {
 							// do nothing
@@ -505,12 +525,15 @@ impl super::SemanticParser<'_> {
 				}) => {
 					let span = tag_span.clone();
 					match type_kind {
+						Some(dtype::TypeKind::Poison) => {
+							// do nothing
+						}
 						Some(_) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
 							));
-							is_valid = false;
+							type_kind = Some(dtype::TypeKind::Poison);
 						}
 						None => type_kind = Some(dtype::TypeKind::Scalar(dtype::ScalarType::I32)),
 					}
@@ -522,7 +545,7 @@ impl super::SemanticParser<'_> {
 							),
 							span.clone(),
 						));
-						is_valid = false;
+						type_kind = Some(dtype::TypeKind::Poison);
 					}
 					for enumerator in enumerator_list {
 						match enumerator.constant_expr.as_mut().map(|v| v.to_i32()) {
@@ -531,7 +554,7 @@ impl super::SemanticParser<'_> {
 									diag::DiagKind::EnumRange,
 									enumerator.enumeration_constant.to_span(),
 								));
-								is_valid = false;
+								type_kind = Some(dtype::TypeKind::Poison);
 							}
 							Some(Err(syn::ConversionError::Expr(_))) => {
 								self.diagnostics.push(diag::Diagnostic::error(
@@ -540,7 +563,7 @@ impl super::SemanticParser<'_> {
 									),
 									enumerator.enumeration_constant.to_span(),
 								));
-								is_valid = false;
+								type_kind = Some(dtype::TypeKind::Poison);
 							}
 							_ => {
 								// do nothing
@@ -564,7 +587,7 @@ impl super::SemanticParser<'_> {
 			}
 		}
 
-		let data_type = if let (Some(type_kind), true) = (type_kind, is_valid) {
+		if let Some(type_kind) = type_kind {
 			let type_qual = dtype::TypeQual {
 				is_const: specifiers.is_const,
 				is_restrict: !specifiers.restrict_list.is_empty(),
@@ -576,12 +599,6 @@ impl super::SemanticParser<'_> {
 			})
 		} else {
 			None
-		};
-
-		match (data_type, is_valid) {
-			(Some(data_type), true) => Ok(data_type),
-			(maybe, false) => Err(maybe.is_some()),
-			(None, true) => Err(false),
 		}
 	}
 }

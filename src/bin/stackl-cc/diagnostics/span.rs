@@ -19,13 +19,6 @@ impl ToSpan for Span {
 }
 
 impl Span {
-	// pub fn combine(lhs: &Self, rhs: &Self) -> Self {
-	// 	Self {
-	// 		file_id: lhs.file_id,
-	// 		loc: (lhs.loc.0, rhs.loc.1),
-	// 	}
-	// }
-	/// returns (line, column)
 	pub fn column(&self, source: &str) -> Option<usize> {
 		let mut column = 0;
 		let mut last_byte = 1;

@@ -35,17 +35,13 @@ impl super::SemanticParser<'_> {
 			}
 			let ident = &init_decl.identifier;
 			let data_type = match &maybe_ty {
-				Ok(ty) => ty,
-				Err(false) => {
+				Some(ty) => ty,
+				None => {
 					let diag = diag::Diagnostic::error(
 						diag::DiagKind::ImplicitInt(ident.name.clone()),
 						ident.to_span(),
 					);
 					self.diagnostics.push(diag);
-					continue;
-				}
-				Err(true) => {
-					// do nothing
 					continue;
 				}
 			};
@@ -101,7 +97,7 @@ impl super::SemanticParser<'_> {
 				Some(ident) => ident.to_span(),
 				None => struct_decl.specifiers.first_span.clone(),
 			};
-			let Ok(mut data_type) = ty_opt.clone() else {
+			let Some(mut data_type) = ty_opt.clone() else {
 				is_valid = false;
 				continue;
 			};

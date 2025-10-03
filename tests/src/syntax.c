@@ -1,6 +1,6 @@
 // Test for declarator syntax
 
-#include "example_header.h"
+// #include "example_header.h"
 
 // float ff = 5e5;
 // int a = 1 + 1;
@@ -85,7 +85,7 @@ unsigned double yy;
 // long union Fun foo;
 // struct Fuun long long bar;
 
-// auto x;
+auto x;
 
 
 // int bar(int a, int b)
