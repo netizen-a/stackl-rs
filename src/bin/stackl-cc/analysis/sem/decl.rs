@@ -259,67 +259,45 @@ impl super::SemanticParser<'_> {
 							TypeQualifierKind::Volatile => type_qual.is_volatile = true,
 						}
 					}
-					if !is_param || array.has_static {
-						let length = if let Some(assign_expr) = &mut array.assignment_expr {
-							match assign_expr.to_u32() {
-								Ok(val) => {
-									if val == 0 {
-										let kind = diag::DiagKind::ArrayMinRange;
-										let diag = diag::Diagnostic::error(kind, span.clone());
-										self.diagnostics.push(diag);
-										is_valid = false;
-										continue;
-									} else {
-										dtype::ArrayLength::Fixed(val)
-									}
-								}
-								Err(ConversionError::OutOfRange) => {
-									let kind = diag::DiagKind::ArrayMaxRange;
+					let array_length = if let Some(assign_expr) = &mut array.assignment_expr {
+						match assign_expr.to_u32() {
+							Ok(val) => {
+								if val == 0 {
+									let kind = diag::DiagKind::ArrayMinRange;
 									let diag = diag::Diagnostic::error(kind, span.clone());
 									self.diagnostics.push(diag);
 									is_valid = false;
 									continue;
+								} else {
+									dtype::ArrayLength::Fixed(val)
 								}
-								Err(ConversionError::Expr(expr)) => dtype::ArrayLength::VLA(dtype::VlaLength::Expr(expr)),
 							}
-						} else if let Some(count) = init_list_count {
-							dtype::ArrayLength::Fixed(count as u32)
-						} else {
-							dtype::ArrayLength::Incomplete
-						};
-						let array_type = dtype::ArrayType {
-							component: Box::new(data_type.clone()),
-							length,
-							is_decayed: is_param,
-						};
-						dtype::DataType {
-							kind: dtype::TypeKind::Array(array_type),
-							qual: type_qual,
+							Err(ConversionError::OutOfRange) => {
+								let kind = diag::DiagKind::ArrayMaxRange;
+								let diag = diag::Diagnostic::error(kind, span.clone());
+								self.diagnostics.push(diag);
+								is_valid = false;
+								continue;
+							}
+							Err(ConversionError::Expr(expr)) => dtype::ArrayLength::VLA(dtype::VlaLength::Expr(expr)),
 						}
 					} else if array.has_star {
-						let array_type = dtype::ArrayType {
-							component: Box::new(data_type.clone()),
-							length: dtype::ArrayLength::VLA(dtype::VlaLength::Star),
-							is_decayed: is_param,
-						};
-						dtype::DataType {
-							kind: dtype::TypeKind::Array(array_type),
-							qual: type_qual,
-						}
+						dtype::ArrayLength::VLA(dtype::VlaLength::Star)
+					} else if let (Some(count), true) = (init_list_count, !is_param) {
+						dtype::ArrayLength::Fixed(count)
 					} else {
-						let mut type_qual = dtype::TypeQual::default();
-						for qual in array.type_qualifiers.iter() {
-							match qual.kind {
-								TypeQualifierKind::Const => type_qual.is_const = true,
-								TypeQualifierKind::Restrict => type_qual.is_restrict = true,
-								TypeQualifierKind::Volatile => type_qual.is_volatile = true,
-							}
-						}
-						let ptr_type = dtype::PtrType(Box::new(data_type.clone()));
-						dtype::DataType {
-							kind: dtype::TypeKind::Pointer(ptr_type),
-							qual: type_qual,
-						}
+						println!("incomplete: {name:?}");
+						dtype::ArrayLength::Incomplete
+					};
+					let array_type = dtype::ArrayType {
+						component: Box::new(data_type.clone()),
+						length: array_length,
+						is_decayed: is_param,
+						has_static: array.has_static,
+					};
+					dtype::DataType {
+						kind: dtype::TypeKind::Array(array_type),
+						qual: type_qual,
 					}
 				}
 				Declarator::Pointer(pointer) => {

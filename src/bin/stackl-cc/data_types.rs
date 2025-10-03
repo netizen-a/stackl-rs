@@ -87,7 +87,6 @@ pub enum VlaLength {
 pub enum ArrayLength {
 	Incomplete,
 	Fixed(u32),
-	Contract(u32),
 	VLA(VlaLength),
 }
 
@@ -95,7 +94,8 @@ pub enum ArrayLength {
 pub struct ArrayType {
 	pub component: Box<DataType>,
 	pub length: ArrayLength,
-	pub is_decayed: bool
+	pub is_decayed: bool,
+	pub has_static: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -148,6 +148,7 @@ pub struct UnionType {
 
 #[derive(Debug, Clone)]
 pub enum TypeKind {
+	Poison,
 	Void,
 	Scalar(ScalarType),
 	Struct(StructType),
