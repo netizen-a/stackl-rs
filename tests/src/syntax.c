@@ -15,15 +15,15 @@
 // Foo bar;
 // int foo;
 
-static static int foo(void);
+// static static int foo(void);
 
-unsigned signed unsigned bar;
+// unsigned signed unsigned bar;
 
-signed float x;
-unsigned float y;
+// signed float x;
+// unsigned float y;
 
-signed double xx;
-unsigned double yy;
+// signed double xx;
+// unsigned double yy;
 
 // float signed xxx;
 // float unsigned yyy;
@@ -85,7 +85,10 @@ unsigned double yy;
 // long union Fun foo;
 // struct Fuun long long bar;
 
-auto x;
+// auto x;
+struct Foo {
+    const: 8;
+} x;
 
 
 // int bar(int a, int b)

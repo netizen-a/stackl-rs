@@ -465,6 +465,14 @@ impl super::SemanticParser<'_> {
 					..
 				}) => {
 					let span = struct_or_union.span.clone();
+					if type_kind.is_some() || long_count > 0 {
+						self.diagnostics.push(diag::Diagnostic::error(
+							diag::DiagKind::MultipleTypes,
+							span.clone(),
+						));
+						type_kind = Some(dtype::TypeKind::Poison);
+						break;
+					}
 					let mut members = vec![];
 					for decl in struct_declaration_list.iter_mut() {
 						let mut member_vec = self.struct_declaration(decl);
@@ -491,13 +499,6 @@ impl super::SemanticParser<'_> {
 						}
 					}
 
-					if type_kind.is_some() || long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						));
-						type_kind = Some(dtype::TypeKind::Poison);
-					}
 					match is_signed {
 						Some(true) => {
 							self.diagnostics.push(diag::Diagnostic::error(

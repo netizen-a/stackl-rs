@@ -28,7 +28,8 @@ impl super::SemanticParser<'_> {
 				self.initializer(init, &mut init_list_count);
 			}
 			let ident = &init_decl.identifier;
-			let data_type = self.unwrap_or_poison(maybe_ty.clone(), ident.clone());
+			let data_type =
+				self.unwrap_or_poison(maybe_ty.clone(), Some(ident.name.clone()), ident.to_span());
 			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
 				// 5.2.4.1 translation limit
 				let diag = diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.to_span());
@@ -81,10 +82,12 @@ impl super::SemanticParser<'_> {
 				Some(ident) => ident.to_span(),
 				None => struct_decl.specifiers.first_span.clone(),
 			};
-			let Some(mut data_type) = ty_opt.clone() else {
-				is_valid = false;
+			let mut data_type =
+				self.unwrap_or_poison(ty_opt.clone(), name_opt.clone(), span.clone());
+			if let dtype::TypeKind::Poison = data_type.kind {
 				continue;
-			};
+			}
+
 			is_valid &= self.declarator_list(
 				span.clone(),
 				&mut decl.declarators,

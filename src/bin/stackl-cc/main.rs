@@ -8,6 +8,7 @@ mod symtab;
 mod synthesis;
 
 use clap::Parser;
+use diagnostics::*;
 use std::cell;
 use std::collections::HashMap;
 use std::io::IsTerminal;
@@ -17,7 +18,6 @@ use std::time;
 use std::time::Duration;
 use std::{fs, rc};
 use std::{path::PathBuf, process::ExitCode};
-use diagnostics::*;
 
 use analysis::{lex, sem, syn, tok};
 

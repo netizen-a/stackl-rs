@@ -7,15 +7,13 @@ impl super::SemanticParser<'_> {
 	pub(super) fn unwrap_or_poison(
 		&mut self,
 		value: Option<DataType>,
-		ident: syn::Identifier,
+		name: Option<String>,
+		span: diag::Span,
 	) -> DataType {
-		let ident_span = ident.to_span();
-		let ident_name = ident.name;
 		match value {
 			Some(ty) => ty.clone(),
 			None => {
-				let diag =
-					diag::Diagnostic::error(diag::DiagKind::ImplicitInt(ident_name), ident_span);
+				let diag = diag::Diagnostic::error(diag::DiagKind::ImplicitInt(name), span);
 				self.diagnostics.push(diag);
 				DataType {
 					kind: TypeKind::Poison,

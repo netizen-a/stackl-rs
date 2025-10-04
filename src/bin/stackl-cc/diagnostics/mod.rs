@@ -216,8 +216,12 @@ impl DiagnosticEngine {
 				let msg0 = "'long long long' is too long for stackl-cc";
 				self.format_diagnostic(&diag, msg0, "")
 			}
-			DiagKind::ImplicitInt(ident) => {
+			DiagKind::ImplicitInt(Some(ident)) => {
 				let msg0 = format!("type defaults to 'int' in declaration of {ident}");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::ImplicitInt(None) => {
+				let msg0 = format!("type defaults to 'int' in declaration of type name");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			DiagKind::ArrayOfFunctions(ident) => {
@@ -375,7 +379,10 @@ impl DiagnosticEngine {
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			DiagKind::FileNotFound(file_path) => {
-				let msg0 = format!("cannot find {}: no such file or directory", file_path.display());
+				let msg0 = format!(
+					"cannot find {}: no such file or directory",
+					file_path.display()
+				);
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			kind => unimplemented!("{kind:?}"),
@@ -410,7 +417,10 @@ impl DiagnosticEngine {
 		};
 
 		let Some(span) = diag.span.clone() else {
-			result.push_str(&format!("{color_bold_white}{}{color_default}\n",msg0.as_ref()));
+			result.push_str(&format!(
+				"{color_bold_white}{}{color_default}\n",
+				msg0.as_ref()
+			));
 			return result;
 		};
 

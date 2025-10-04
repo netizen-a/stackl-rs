@@ -26,7 +26,11 @@ impl super::SemanticParser<'_> {
 				return false;
 			}
 		};
-		let mut data_type = self.unwrap_or_poison(maybe_ty, func_ident.clone());
+		let mut data_type = self.unwrap_or_poison(
+			maybe_ty,
+			Some(func_ident.name.clone()),
+			func_ident.to_span(),
+		);
 		if !matches!(
 			decl.declarators.first_mut(),
 			None | Some(syn::Declarator::Pointer(_))

@@ -39,9 +39,11 @@ impl<'a> TokensParser<'a> {
 			match result {
 				Ok(pp_token) => match pp_token.kind {
 					PPTokenKind::Directive(directive) => {
-						if let Some(diag::DiagLevel::Fatal) = self.exec_directive(directive, pp_token.to_span()) {
+						if let Some(diag::DiagLevel::Fatal) =
+							self.exec_directive(directive, pp_token.to_span())
+						{
 							// fatal error was encountered.
-							return triple_list
+							return triple_list;
 						}
 					}
 					PPTokenKind::NewLine(_) => {
@@ -84,7 +86,11 @@ impl<'a> TokensParser<'a> {
 			}
 		}
 	}
-	fn exec_directive(&mut self, directive: Directive, span: diag::Span) -> Option<diag::DiagLevel> {
+	fn exec_directive(
+		&mut self,
+		directive: Directive,
+		span: diag::Span,
+	) -> Option<diag::DiagLevel> {
 		let mut error_found = None;
 		let mut dir_args = vec![];
 		while let Some(peeked_result) = self.iter.next() {
@@ -201,16 +207,23 @@ impl<'a> TokensParser<'a> {
 					let full_path = origin_path.parent().unwrap().join(&header_name);
 					let mut stack = &mut self.iter.stack_ref;
 
-					let (file_id, file_data) = if let Some(file_id) = self.diag_engine.get_file_id(&full_path) {
-						(file_id, self.diag_engine.get_file_data(file_id))
-					} else {
-						let file_id = self.diag_engine.id();
-						(file_id, self.diag_engine.insert_file_info(file_id, &full_path).ok())
-					};
+					let (file_id, file_data) =
+						if let Some(file_id) = self.diag_engine.get_file_id(&full_path) {
+							(file_id, self.diag_engine.get_file_data(file_id))
+						} else {
+							let file_id = self.diag_engine.id();
+							(
+								file_id,
+								self.diag_engine.insert_file_info(file_id, &full_path).ok(),
+							)
+						};
 					if let Some(buf) = file_data {
 						stack.push_lexer(Lexer::new(buf.to_string(), file_id));
 					} else {
-						let error = diag::Diagnostic::fatal(diag::DiagKind::FileNotFound(header_name), Some(token.to_span()));
+						let error = diag::Diagnostic::fatal(
+							diag::DiagKind::FileNotFound(header_name),
+							Some(token.to_span()),
+						);
 						return Some(error);
 					}
 				} else {
