@@ -2,14 +2,14 @@
 
 // #include "example_header.h"
 
-// float ff = 5e5;
-// int a = 1 + 1;
-// int *b;
-// int *c[3];
-// int (*d)[*];
-// int *f();
-// int (*g)(void);
-// int (*const h[3])(unsigned int, ...);
+float ff = 5e5;
+int a = 1 + 1;
+int *b;
+int *c[3];
+int (*d)[*];
+int *f();
+int (*g)(void);
+int (*const h[3])(unsigned int, ...);
 
 // typedef int Foo;
 // Foo bar;
@@ -92,10 +92,10 @@
 // } x;
 
 
-int bar(const a, int b)
-{
-    return a + b;
-}
+// int bar(const a, int b)
+// {
+//     return a + b;
+// }
 
 // int (*foo(a, b))(int, int)
 //     int a, b;

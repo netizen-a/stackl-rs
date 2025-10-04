@@ -41,10 +41,11 @@ impl ToString for EnableColor {
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq, Eq)]
+#[repr(u8)]
 enum WarnLevel {
-	All,
-	Minimal,
 	None,
+	Minimal,
+	All,
 }
 
 impl ToString for WarnLevel {

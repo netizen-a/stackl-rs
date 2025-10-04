@@ -6,6 +6,7 @@ use crate::analysis::{syn::StorageClass, tok};
 
 #[derive(Debug, Clone)]
 pub enum DiagKind {
+	Internal(String),
 	FileNotFound(path::PathBuf),
 	ErrorDirective(String),
 	UnexpectedEof,

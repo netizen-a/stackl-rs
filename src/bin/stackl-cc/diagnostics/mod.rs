@@ -10,6 +10,7 @@ use std::{
 	fs,
 	io::{self, BufReader, Read},
 	path::{Path, PathBuf},
+	process::exit,
 	rc::Rc,
 	result,
 };
@@ -55,6 +56,11 @@ impl DiagnosticEngine {
 	#[inline]
 	pub fn push_syntax_error(&mut self, diag: ParseError<usize, tok::Token, Diagnostic>) {
 		self.syntax_errors.push(diag)
+	}
+	pub fn push_and_exit(&mut self, diagnostic: Diagnostic) -> ! {
+		self.push(diagnostic);
+		self.print_once();
+		exit(1);
 	}
 	pub fn get_file_path(&self, id: usize) -> Option<PathBuf> {
 		self.file_map_ref
@@ -388,6 +394,10 @@ impl DiagnosticEngine {
 			DiagKind::StructNoNamedMembers => {
 				let msg0 = "struct has no named members";
 				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::Internal(err_msg) => {
+				let msg0 = format!("internal compiler error: {err_msg}");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			kind => unimplemented!("{kind:?}"),
 		};
