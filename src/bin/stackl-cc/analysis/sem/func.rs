@@ -139,106 +139,25 @@ impl super::SemanticParser<'_> {
 		let mut result = vec![];
 		let mut is_valid = true;
 		for (index, param) in param_list.param_list.iter_mut().enumerate() {
-			let data_type = self.specifiers_dtype(&mut param.specifiers).unwrap();
-			let (param_name, param_span): (Option<String>, diag::Span) =
-				match (param.name.as_ref(), data_type.kind) {
-					(None, dtype::TypeKind::Void) => {
-						let span: diag::Span = match param.declarators.front() {
-							Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
-								let kind = diag::DiagKind::ArrayOfVoid(None);
-								let diag = diag::Diagnostic::error(kind, span.clone());
-								self.diagnostics.push(diag);
-								is_valid = false;
-								span.clone()
-							}
-							Some(syn::Declarator::Pointer(_)) => {
-								if decl_type == DeclType::FnDef {
-									let kind = diag::DiagKind::OmittedParamName;
-									let diag = diag::Diagnostic::error(
-										kind,
-										param.specifiers.first_span.clone(),
-									);
-									self.diagnostics.push(diag);
-									is_valid = false;
-								}
-								param.specifiers.first_span.clone()
-							}
-							Some(syn::Declarator::ParamList(_)) => {
-								if decl_type == DeclType::FnDef {
-									let kind = diag::DiagKind::OmittedParamName;
-									let diag = diag::Diagnostic::error(
-										kind,
-										param.specifiers.first_span.clone(),
-									);
-									self.diagnostics.push(diag);
-									is_valid = false;
-								}
-								let implicit = syn::Declarator::Pointer(syn::PtrDecl {
-									is_const: false,
-									is_volatile: false,
-									is_restrict: false,
-								});
-								param.declarators.push_front(implicit);
-								param.specifiers.first_span.clone()
-							}
-							Some(syn::Declarator::IdentList(_)) => {
-								let kind = diag::DiagKind::DeclIdentList;
-								let diag = diag::Diagnostic::error(
-									kind,
-									param.specifiers.first_span.clone(),
-								);
-								self.diagnostics.push(diag);
-								is_valid = false;
-								param.specifiers.first_span.clone()
-							}
-							None => {
-								if param_count > 1 {
-									let kind = diag::DiagKind::OnlyVoid;
-									let diag = diag::Diagnostic::error(
-										kind,
-										param.specifiers.first_span.clone(),
-									);
-									self.diagnostics.push(diag);
-									is_valid = false;
-								}
-								param.specifiers.first_span.clone()
-							}
-						};
-						(None, span)
+			let name_opt = param.ident.as_ref().and_then(|v| Some(v.name.clone()));
+			let param_span = match &param.ident {
+				Some(ident) => ident.to_span(),
+				None => param.specifiers.first_span.clone(),
+			};
+			let maybe_type = self.specifiers_dtype(&mut param.specifiers);
+			let data_type = self.unwrap_or_poison(maybe_type, name_opt.clone(), param_span.clone());
+			if let dtype::TypeKind::Poison = data_type.kind {
+				continue;
+			}
+			match (param.ident.as_ref(), data_type.kind) {
+				(None, dtype::TypeKind::Void) => match param.declarators.front() {
+					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
+						let kind = diag::DiagKind::ArrayOfVoid(None);
+						let diag = diag::Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+						is_valid = false;
 					}
-					(Some(ident), dtype::TypeKind::Void) => {
-						match param.declarators.front() {
-							Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
-								let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
-								let diag = diag::Diagnostic::error(kind, ident.to_span());
-								self.diagnostics.push(diag);
-								is_valid = false;
-							}
-							Some(syn::Declarator::IdentList(_)) => {
-								let kind = diag::DiagKind::DeclIdentList;
-								let diag = diag::Diagnostic::error(kind, ident.to_span());
-								self.diagnostics.push(diag);
-								is_valid = false;
-							}
-							Some(syn::Declarator::ParamList(_)) => {
-								let implicit = syn::Declarator::Pointer(syn::PtrDecl {
-									is_const: false,
-									is_volatile: false,
-									is_restrict: false,
-								});
-								param.declarators.push_front(implicit);
-							}
-							Some(syn::Declarator::Pointer(_)) => {}
-							None => {
-								let kind = diag::DiagKind::OnlyVoid;
-								let diag = diag::Diagnostic::error(kind, ident.to_span());
-								self.diagnostics.push(diag);
-								is_valid = false;
-							}
-						}
-						(Some(ident.name.clone()), ident.to_span())
-					}
-					(None, _) => {
+					Some(syn::Declarator::Pointer(_)) => {
 						if decl_type == DeclType::FnDef {
 							let kind = diag::DiagKind::OmittedParamName;
 							let diag =
@@ -246,21 +165,94 @@ impl super::SemanticParser<'_> {
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
-						(None, param.specifiers.first_span.clone())
 					}
-					(Some(ident), _) => (Some(ident.name.clone()), ident.to_span()),
-				};
+					Some(syn::Declarator::ParamList(_)) => {
+						if decl_type == DeclType::FnDef {
+							let kind = diag::DiagKind::OmittedParamName;
+							let diag =
+								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							self.diagnostics.push(diag);
+							is_valid = false;
+						}
+						let implicit = syn::Declarator::Pointer(syn::PtrDecl {
+							is_const: false,
+							is_volatile: false,
+							is_restrict: false,
+						});
+						param.declarators.push_front(implicit);
+					}
+					Some(syn::Declarator::IdentList(_)) => {
+						let kind = diag::DiagKind::DeclIdentList;
+						let diag =
+							diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+						self.diagnostics.push(diag);
+						is_valid = false;
+					}
+					None => {
+						if param_count > 1 {
+							let kind = diag::DiagKind::OnlyVoid;
+							let diag =
+								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							self.diagnostics.push(diag);
+							is_valid = false;
+						}
+					}
+				},
+				(Some(ident), dtype::TypeKind::Void) => match param.declarators.front() {
+					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
+						let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
+						let diag = diag::Diagnostic::error(kind, ident.to_span());
+						self.diagnostics.push(diag);
+						is_valid = false;
+					}
+					Some(syn::Declarator::IdentList(_)) => {
+						let kind = diag::DiagKind::DeclIdentList;
+						let diag = diag::Diagnostic::error(kind, ident.to_span());
+						self.diagnostics.push(diag);
+						is_valid = false;
+					}
+					Some(syn::Declarator::ParamList(_)) => {
+						let implicit = syn::Declarator::Pointer(syn::PtrDecl {
+							is_const: false,
+							is_volatile: false,
+							is_restrict: false,
+						});
+						param.declarators.push_front(implicit);
+					}
+					Some(syn::Declarator::Pointer(_)) => {}
+					None => {
+						let kind = diag::DiagKind::OnlyVoid;
+						let diag = diag::Diagnostic::error(kind, ident.to_span());
+						self.diagnostics.push(diag);
+						is_valid = false;
+					}
+				},
+				(None, _) => {
+					if decl_type == DeclType::FnDef {
+						let kind = diag::DiagKind::OmittedParamName;
+						let diag =
+							diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+						self.diagnostics.push(diag);
+						is_valid = false;
+					}
+				}
+				(Some(ident), _) => {}
+			}
 			let param_type = self.specifiers_dtype(&mut param.specifiers);
 			let mut param_type = param_type.unwrap();
-			is_valid &= self.declarator_list(
+			self.declarator_list(
 				param_span,
 				param.declarators.make_contiguous(),
 				&mut param_type,
 				true,
 				decl_type,
-				param_name,
+				name_opt,
 				None,
 			);
+			if let dtype::TypeKind::Poison = param_type.kind {
+				return None;
+			}
+
 			result.push(param_type)
 		}
 		match is_valid {

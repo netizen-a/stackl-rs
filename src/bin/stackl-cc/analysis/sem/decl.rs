@@ -36,7 +36,7 @@ impl super::SemanticParser<'_> {
 				self.diagnostics.push(diag);
 			}
 			let mut var_dtype = data_type.clone();
-			is_valid &= self.declarator_list(
+			self.declarator_list(
 				ident.to_span(),
 				&mut init_decl.declarator,
 				&mut var_dtype,
@@ -45,7 +45,7 @@ impl super::SemanticParser<'_> {
 				Some(ident.name.clone()),
 				init_list_count,
 			);
-			if !is_valid {
+			if let dtype::TypeKind::Poison = var_dtype.kind {
 				return false;
 			}
 			let entry = SymbolTableEntry {
@@ -92,7 +92,7 @@ impl super::SemanticParser<'_> {
 				continue;
 			}
 
-			is_valid &= self.declarator_list(
+			self.declarator_list(
 				member_span.clone(),
 				&mut decl.declarators,
 				&mut data_type,
@@ -101,6 +101,10 @@ impl super::SemanticParser<'_> {
 				name_opt.clone(),
 				None,
 			);
+
+			if let dtype::TypeKind::Poison = data_type.kind {
+				is_valid = false;
+			}
 
 			let bits = if let dtype::TypeKind::Scalar(scalar) = &data_type.kind {
 				if !scalar.is_integral() && decl.const_expr.is_some() {
@@ -189,8 +193,7 @@ impl super::SemanticParser<'_> {
 		mut decl_type: DeclType,
 		name: Option<String>,
 		init_list_count: Option<u32>,
-	) -> bool {
-		let mut is_valid = true;
+	) {
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		// first iteration is for type checking
 		for declarator in decl_list.iter() {
@@ -201,12 +204,12 @@ impl super::SemanticParser<'_> {
 							let kind = diag::DiagKind::UnboundVLA;
 							let diag = diag::Diagnostic::error(kind, span.clone());
 							self.diagnostics.push(diag);
-							is_valid = false;
+							data_type.kind = dtype::TypeKind::Poison;
 						} else if !is_param {
 							let kind = diag::DiagKind::InvalidStar;
 							let diag = diag::Diagnostic::error(kind, array.span.clone());
 							self.diagnostics.push(diag);
-							is_valid = false;
+							data_type.kind = dtype::TypeKind::Poison;
 						}
 					}
 					last_is_ptr = false;
@@ -219,7 +222,7 @@ impl super::SemanticParser<'_> {
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
-						is_valid = false;
+						data_type.kind = dtype::TypeKind::Poison;
 					}
 					last_is_ptr = false;
 				}
@@ -228,15 +231,15 @@ impl super::SemanticParser<'_> {
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
-						is_valid = false;
+						data_type.kind = dtype::TypeKind::Poison;
 					}
 					last_is_ptr = false;
 				}
 			};
 		}
 
-		if !is_valid {
-			return false;
+		if let dtype::TypeKind::Poison = data_type.kind {
+			return;
 		}
 
 		// reversed iterator because recursive type construction has
@@ -259,7 +262,7 @@ impl super::SemanticParser<'_> {
 									let kind = diag::DiagKind::ArrayMinRange;
 									let diag = diag::Diagnostic::error(kind, span.clone());
 									self.diagnostics.push(diag);
-									is_valid = false;
+									data_type.kind = dtype::TypeKind::Poison;
 									continue;
 								} else {
 									dtype::ArrayLength::Fixed(val)
@@ -269,7 +272,7 @@ impl super::SemanticParser<'_> {
 								let kind = diag::DiagKind::ArrayMaxRange;
 								let diag = diag::Diagnostic::error(kind, span.clone());
 								self.diagnostics.push(diag);
-								is_valid = false;
+								data_type.kind = dtype::TypeKind::Poison;
 								continue;
 							}
 							Err(ConversionError::Expr(expr)) => {
@@ -326,7 +329,8 @@ impl super::SemanticParser<'_> {
 						decl_type = DeclType::Proto;
 					}
 					let Some(mut params) = self.param_list(type_list, decl_type) else {
-						return false;
+						data_type.kind = dtype::TypeKind::Poison;
+						return;
 					};
 
 					let func_type = dtype::FuncType {
@@ -342,7 +346,6 @@ impl super::SemanticParser<'_> {
 				}
 			};
 		}
-		return is_valid;
 	}
 	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
 		match qual.kind {

@@ -577,7 +577,7 @@ ParameterDeclaration: ParameterDeclaration = {
 	<kind_list:DeclarationSpecifier+> <decl:ParameterDeclarator> => {
 		let specifiers = Specifiers::from(kind_list);
 		ParameterDeclaration {
-			name: decl.0,
+			ident: decl.0,
 			specifiers,
 			declarators: decl.1.into(),
 		}

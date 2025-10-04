@@ -86,16 +86,16 @@
 // struct Fuun long long bar;
 
 // auto x;
-struct Foo {
-    const int: 8;
-    int x;
-} x;
+// struct Foo {
+//     const x: 8;
+//     int x;
+// } x;
 
 
-// int bar(int a, int b)
-// {
-//     return a + b;
-// }
+int bar(const a, int b)
+{
+    return a + b;
+}
 
 // int (*foo(a, b))(int, int)
 //     int a, b;

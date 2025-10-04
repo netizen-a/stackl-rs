@@ -312,7 +312,7 @@ impl From<&[TypeQualifier]> for PtrDecl {
 /// (6.7.5) parameter-declaration
 #[derive(Debug, Clone)]
 pub struct ParameterDeclaration {
-	pub name: Option<Identifier>,
+	pub ident: Option<Identifier>,
 	pub specifiers: Specifiers,
 	pub declarators: VecDeque<Declarator>,
 }
