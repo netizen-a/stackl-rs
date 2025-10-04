@@ -108,6 +108,7 @@ fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 
+	let mut since_array = vec![];
 	// start preprocessor timer
 	let timer = time::Instant::now();
 	let lexer = lex::lexer::Lexer::new(text.to_string(), 0);
@@ -116,9 +117,7 @@ fn main() -> ExitCode {
 		lex::TokensParser::new(&mut diag_engine, pp_iter, args.stdout_preproc).parse();
 
 	let duration = time::Instant::now().duration_since(timer);
-	if args.is_timed {
-		print_time("preprocessor time", duration);
-	}
+	since_array.push((duration, "preprocessor time"));
 
 	if let Some(last_token) = tokens.last().map(|t| &t.1) {
 		diag_engine.set_eof_span(last_token);
@@ -127,6 +126,9 @@ fn main() -> ExitCode {
 	let has_error = diag_engine.contains_error();
 	diag_engine.print_once();
 	if has_error || args.stdout_preproc {
+		if args.is_timed {
+			print_time(since_array);
+		}
 		return match has_error {
 			true => ExitCode::FAILURE,
 			false => ExitCode::SUCCESS,
@@ -144,21 +146,20 @@ fn main() -> ExitCode {
 	};
 
 	let duration = time::Instant::now().duration_since(timer);
-	if args.is_timed {
-		print_time("syntax parser time", duration);
-	}
+	since_array.push((duration, "syntax parser time"));
 
 	let timer = time::Instant::now();
 	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
 
 	let duration = time::Instant::now().duration_since(timer);
-	if args.is_timed {
-		print_time("semantic parser time", duration);
-	}
+	since_array.push((duration, "semantic parser time"));
 
 	let has_error = diag_engine.contains_error();
 	diag_engine.print_once();
 	if has_error || args.check {
+		if args.is_timed {
+			print_time(since_array);
+		}
 		return match has_error {
 			true => ExitCode::FAILURE,
 			false => ExitCode::SUCCESS,
@@ -167,18 +168,24 @@ fn main() -> ExitCode {
 
 	//synthesis::parse(&analysis_result.unwrap());
 
+	if args.is_timed {
+		print_time(since_array);
+	}
+
 	ExitCode::SUCCESS
 }
 
-fn print_time(name: &str, duration: Duration) {
-	let secs = duration.as_secs();
-	let millis = duration.as_millis();
-	let micros = duration.as_micros();
-	if secs > 0 {
-		println!("{name}: {secs}.{}s", millis % 1000);
-	} else if millis > 0 {
-		println!("{name}: {millis}.{}ms", micros % 1000);
-	} else {
-		println!("{name}: {}μs", micros);
+fn print_time(since_array: Vec<(Duration, &str)>) {
+	for (duration, name) in since_array {
+		let secs = duration.as_secs();
+		let millis = duration.as_millis();
+		let micros = duration.as_micros();
+		if secs > 0 {
+			println!("{name}: {secs}.{}s", millis % 1000);
+		} else if millis > 0 {
+			println!("{name}: {millis}.{}ms", micros % 1000);
+		} else {
+			println!("{name}: {}μs", micros);
+		}
 	}
 }
