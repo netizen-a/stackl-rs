@@ -52,4 +52,5 @@ pub enum DiagKind {
 	DirectiveIncludeExtraTokens,
 	DirectivePragma,
 	StructNoNamedMembers,
+	ArrayArgTooSmall,
 }

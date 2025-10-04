@@ -6,10 +6,10 @@ use crate::analysis::sem::SymbolTableEntry;
 use crate::analysis::syn;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
+use crate::cli::WarnLevel;
 use crate::data_types as dtype;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
-use crate::WarnLevel;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
@@ -54,7 +54,7 @@ impl super::SemanticParser<'_> {
 				storage,
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
-			self.symtab.insert(key, entry);
+			self.symtab.insert(key, entry).unwrap();
 		}
 		is_valid
 	}
@@ -189,7 +189,7 @@ impl super::SemanticParser<'_> {
 		span: diag::Span,
 		decl_list: &mut [Declarator],
 		data_type: &mut dtype::DataType,
-		mut is_param: bool,
+		is_param: bool,
 		mut decl_type: DeclType,
 		name: Option<String>,
 		init_list_count: Option<u32>,
@@ -214,7 +214,7 @@ impl super::SemanticParser<'_> {
 					}
 					last_is_ptr = false;
 				}
-				Declarator::Pointer(pointer) => {
+				Declarator::Pointer(_) => {
 					last_is_ptr = true;
 				}
 				Declarator::IdentList(_) => {
@@ -226,7 +226,7 @@ impl super::SemanticParser<'_> {
 					}
 					last_is_ptr = false;
 				}
-				Declarator::ParamList(type_list) => {
+				Declarator::ParamList(_) => {
 					if !last_is_ptr {
 						let kind = diag::DiagKind::FnRetFn(name.clone());
 						let diag = diag::Diagnostic::error(kind, span.clone());
@@ -328,7 +328,7 @@ impl super::SemanticParser<'_> {
 					if DeclType::FnDef == decl_type && is_param {
 						decl_type = DeclType::Proto;
 					}
-					let Some(mut params) = self.param_list(type_list, decl_type) else {
+					let Some(params) = self.param_list(type_list, decl_type) else {
 						data_type.kind = dtype::TypeKind::Poison;
 						return;
 					};

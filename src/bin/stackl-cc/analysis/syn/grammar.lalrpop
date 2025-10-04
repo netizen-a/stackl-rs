@@ -5,9 +5,11 @@ use crate::analysis::tok;
 use crate::diagnostics as diag;
 use lalrpop_util as lalr;
 use crate::diagnostics::ToSpan;
+use crate::cli;
 
 grammar<'a>(
 	diagnostics: &mut diag::DiagnosticEngine,
+	opt_lvl: &cli::OptLevel,
 );
 
 

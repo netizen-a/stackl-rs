@@ -1,7 +1,7 @@
 use crate::analysis::sem::{DeclType, Namespace, SymbolTableEntry};
 use crate::analysis::{sem::Linkage, syn};
 use crate::diagnostics::{self as diag, ToSpan};
-use crate::{data_types as dtype, WarnLevel};
+use crate::{cli::WarnLevel, data_types as dtype};
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {

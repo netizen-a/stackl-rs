@@ -6,6 +6,7 @@ mod spec;
 mod stmt;
 
 use crate::analysis::syn::{self, *};
+use crate::cli;
 use crate::data_types::DataType;
 use crate::diagnostics::DiagnosticEngine;
 use crate::symtab::SymbolTable;
@@ -43,11 +44,11 @@ pub struct SemanticParser<'a> {
 	symtab: SymbolTable<Namespace, SymbolTableEntry>,
 	diagnostics: &'a mut DiagnosticEngine,
 	is_traced: bool,
-	warn_lvl: crate::WarnLevel,
+	warn_lvl: cli::WarnLevel,
 }
 
 impl<'a> SemanticParser<'a> {
-	pub fn new(diagnostics: &'a mut DiagnosticEngine, args: &crate::Args) -> Self {
+	pub fn new(diagnostics: &'a mut DiagnosticEngine, args: &cli::Args) -> Self {
 		Self {
 			symtab: SymbolTable::new(),
 			diagnostics,

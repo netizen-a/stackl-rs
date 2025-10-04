@@ -480,7 +480,7 @@ impl super::SemanticParser<'_> {
 					let mut members = vec![];
 					let mut member_is_named = false;
 					for decl in struct_declaration_list.iter_mut() {
-						let mut member_vec = self.struct_declaration(decl, &mut member_is_named);
+						let member_vec = self.struct_declaration(decl, &mut member_is_named);
 						let Some(mut member_vec) = member_vec else {
 							type_kind = Some(dtype::TypeKind::Poison);
 							continue;

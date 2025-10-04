@@ -1,21 +1,17 @@
-use std::{cell::RefCell, rc::Rc};
-
-use super::Identifier;
-use crate::analysis::tok::{self, Token, TokenKind, TokenTriple};
-use crate::diagnostics as diag;
+use crate::analysis::tok;
 use crate::symtab::SymbolTable;
 
 #[derive(Default)]
 pub struct TokenIter {
-	data: Box<[TokenTriple]>,
+	data: Box<[tok::TokenTriple]>,
 	pos: usize,
 	is_typedef: bool,
 	typename_table: SymbolTable<String, ()>,
 }
 
 impl Iterator for TokenIter {
-	type Item = TokenTriple;
-	fn next(&mut self) -> Option<TokenTriple> {
+	type Item = tok::TokenTriple;
+	fn next(&mut self) -> Option<tok::TokenTriple> {
 		if self.pos == self.data.len() {
 			return None;
 		}
@@ -23,7 +19,7 @@ impl Iterator for TokenIter {
 		let pos = self.pos;
 		self.pos += 1;
 		match &mut self.data[pos].1.kind {
-			TokenKind::Ident(ident) => {
+			tok::TokenKind::Ident(ident) => {
 				if self.is_typedef {
 					self.typename_table
 						.insert(ident.name.clone(), ())
@@ -31,16 +27,16 @@ impl Iterator for TokenIter {
 				}
 				ident.is_type = self.typename_table.global_lookup(&ident.name).is_some();
 			}
-			TokenKind::Keyword(tok::Keyword::Typedef) => {
+			tok::TokenKind::Keyword(tok::Keyword::Typedef) => {
 				self.is_typedef = true;
 			}
-			TokenKind::Punct(tok::Punct::SemiColon) => {
+			tok::TokenKind::Punct(tok::Punct::SemiColon) => {
 				self.is_typedef = false;
 			}
-			TokenKind::Punct(tok::Punct::LCurly) => {
+			tok::TokenKind::Punct(tok::Punct::LCurly) => {
 				self.typename_table.increase_scope();
 			}
-			TokenKind::Punct(tok::Punct::RCurly) => {
+			tok::TokenKind::Punct(tok::Punct::RCurly) => {
 				self.typename_table.decrease_scope();
 			}
 			_ => {}
@@ -49,8 +45,8 @@ impl Iterator for TokenIter {
 	}
 }
 
-impl From<Box<[TokenTriple]>> for TokenIter {
-	fn from(value: Box<[TokenTriple]>) -> Self {
+impl From<Box<[tok::TokenTriple]>> for TokenIter {
+	fn from(value: Box<[tok::TokenTriple]>) -> Self {
 		Self {
 			data: value,
 			..Default::default()

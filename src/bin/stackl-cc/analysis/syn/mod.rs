@@ -27,7 +27,7 @@ impl Identifier {
 				name: ident.name,
 				span: token.span,
 			},
-			other => panic!("internal compiler error: failed to get identifier"),
+			_ => panic!("internal compiler error: failed to get identifier"),
 		}
 	}
 }

@@ -13,12 +13,12 @@ cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
 all-features = true
 
 [build-dependencies]
-lalrpop = "0.22.0"
+lalrpop = "^0.22"
 
 [dependencies]
-logos = "0.15.0"
-lalrpop-util = "0.22.0"
-clap = { version = "4.5.17", features = ["derive", "cargo"] }
+logos = "^0.15"
+lalrpop-util = "^0.22"
+clap = { version = "4.5.48", features = ["derive", "cargo"] }
 bimap = "0.6.3"
 bitflags = "2.9.0"
 chrono = "0.4.42"

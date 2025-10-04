@@ -3,7 +3,7 @@
 pub mod keyword;
 pub mod punct;
 
-use crate::diagnostics::{self as diag, lex};
+use crate::diagnostics as diag;
 pub use keyword::*;
 pub use punct::*;
 use std::fmt;
@@ -282,33 +282,6 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-	pub fn is_keyword(&self) -> bool {
-		matches!(self, Self::Keyword(_))
-	}
-	pub fn is_ident(&self) -> bool {
-		matches!(self, Self::Ident(_))
-	}
-	pub fn is_constant(&self) -> bool {
-		matches!(self, Self::Const(_))
-	}
-	pub fn is_str_lit(&self) -> bool {
-		matches!(self, Self::StrLit(_))
-	}
-	pub fn is_punct(&self) -> bool {
-		matches!(self, Self::Punct(_))
-	}
-	pub fn unwrap_keyword(self) -> Keyword {
-		match self {
-			Self::Keyword(token) => token,
-			other => panic!("called `Token::unwrap_keyword` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_name(self) -> String {
-		match self {
-			Self::Ident(token) => token.name,
-			other => panic!("called `Token::unwrap_ident` on an `{other:?}` value"),
-		}
-	}
 	pub fn unwrap_const(self) -> Const {
 		match self {
 			Self::Const(token) => token,
@@ -319,12 +292,6 @@ impl TokenKind {
 		match self {
 			Self::StrLit(token) => token,
 			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
-		}
-	}
-	pub fn unwrap_punct(self) -> Punct {
-		match self {
-			Self::Punct(token) => token,
-			other => panic!("called `Token::unwrap_punct` on an `{other:?}` value"),
 		}
 	}
 }
