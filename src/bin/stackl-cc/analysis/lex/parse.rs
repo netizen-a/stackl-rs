@@ -133,6 +133,12 @@ impl<'a> TokensParser<'a> {
 		span: diag::Span,
 	) -> Option<diag::Diagnostic> {
 		todo!("pragma")
+		// TODO:
+		// #pragma STDC FP_CONTRACT on-off-switch
+		// #pragma STDC FENV_ACCESS on-off-switch
+		// #pragma STDC CX_LIMITED_RANGE on-off-switch
+		// #pragma STACKL STACK_SIZE integer-constant
+		// #pragma STACKL FEATURE identifier
 	}
 	fn directive_error(
 		&mut self,

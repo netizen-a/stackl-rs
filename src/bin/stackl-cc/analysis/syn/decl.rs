@@ -229,7 +229,7 @@ pub struct StructOrUnion {
 #[derive(Debug, Clone)]
 pub struct StructDeclaration {
 	pub specifiers: Specifiers,
-	pub struct_declaration_list: Vec<StructDeclarator>,
+	pub struct_declarator_list: Vec<StructDeclarator>,
 }
 
 /// (6.7.2.1) struct-declarator

@@ -71,16 +71,16 @@ impl super::SemanticParser<'_> {
 	pub(super) fn struct_declaration(
 		&mut self,
 		struct_decl: &mut StructDeclaration,
-		struct_span: diag::Span,
+		member_is_named: &mut bool,
 	) -> Option<Vec<dtype::MemberType>> {
 		let mut result = vec![];
 		let mut is_valid = true;
-		let mut member_is_named = false;
 		// only type-specifier and type-qualifier is syntactically allowed here.
 		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers);
-		for decl in struct_decl.struct_declaration_list.iter_mut() {
+		for decl in struct_decl.struct_declarator_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
-			member_is_named &= name_opt.is_some();
+			*member_is_named |= name_opt.is_some();
+
 			let member_span = match &decl.ident {
 				Some(ident) => ident.to_span(),
 				None => struct_decl.specifiers.first_span.clone(),
@@ -88,6 +88,7 @@ impl super::SemanticParser<'_> {
 			let mut data_type =
 				self.unwrap_or_poison(ty_opt.clone(), name_opt.clone(), member_span.clone());
 			if let dtype::TypeKind::Poison = data_type.kind {
+				is_valid = false;
 				continue;
 			}
 
@@ -107,6 +108,7 @@ impl super::SemanticParser<'_> {
 					let diag = diag::Diagnostic::error(kind, member_span.clone());
 					self.diagnostics.push(diag);
 					is_valid = false;
+					data_type.kind = dtype::TypeKind::Poison;
 					continue;
 				}
 				match decl.const_expr.as_mut().map(|val| val.to_u32()) {
@@ -118,6 +120,7 @@ impl super::SemanticParser<'_> {
 							let diag = diag::Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
+							data_type.kind = dtype::TypeKind::Poison;
 							continue;
 						}
 					}
@@ -129,6 +132,7 @@ impl super::SemanticParser<'_> {
 							let diag = diag::Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
+							data_type.kind = dtype::TypeKind::Poison;
 						}
 						continue;
 					}
@@ -137,6 +141,7 @@ impl super::SemanticParser<'_> {
 						let diag = diag::Diagnostic::error(kind, member_span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
+						data_type.kind = dtype::TypeKind::Poison;
 						continue;
 					}
 					None => None,
@@ -146,6 +151,7 @@ impl super::SemanticParser<'_> {
 				let diag = diag::Diagnostic::error(kind, member_span.clone());
 				self.diagnostics.push(diag);
 				is_valid = false;
+				data_type.kind = dtype::TypeKind::Poison;
 				continue;
 			} else {
 				None
@@ -155,11 +161,6 @@ impl super::SemanticParser<'_> {
 				dtype: Box::new(data_type),
 				bits,
 			});
-		}
-
-		if !member_is_named {
-			let error = diag::Diagnostic::error(diag::DiagKind::StructNoNamedMembers, struct_span);
-			self.diagnostics.push(error);
 		}
 
 		match is_valid {

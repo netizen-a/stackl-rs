@@ -87,7 +87,8 @@
 
 // auto x;
 struct Foo {
-    const: 8;
+    const int: 8;
+    int x;
 } x;
 
 

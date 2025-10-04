@@ -393,7 +393,7 @@ StructOrUnion: StructOrUnion = {
 StructDeclaration: StructDeclaration = {
 	<list0:SpecifierQualifierList> <list1:StructDeclaratorList> ";" => StructDeclaration {
 		specifiers: Specifiers::from(list0),
-		struct_declaration_list: list1,
+		struct_declarator_list: list1,
 	}
 };
 

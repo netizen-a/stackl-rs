@@ -478,13 +478,21 @@ impl super::SemanticParser<'_> {
 						break;
 					}
 					let mut members = vec![];
+					let mut member_is_named = false;
 					for decl in struct_declaration_list.iter_mut() {
-						let mut member_vec = self.struct_declaration(decl, span.clone());
+						let mut member_vec = self.struct_declaration(decl, &mut member_is_named);
 						let Some(mut member_vec) = member_vec else {
 							type_kind = Some(dtype::TypeKind::Poison);
 							continue;
 						};
 						members.append(&mut member_vec);
+					}
+					if !member_is_named {
+						let error = diag::Diagnostic::error(
+							diag::DiagKind::StructNoNamedMembers,
+							span.clone(),
+						);
+						self.diagnostics.push(error);
 					}
 					match struct_or_union.kind {
 						syn::StructOrUnionKind::Struct => {
