@@ -88,21 +88,21 @@ MultiplicativeExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Mul,
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:MultiplicativeExpr> <lo:@L> <op:"/"> <hi:@R> <rhs:CastExpr> => {
 		let bin_op = BinOp{
 			span: op.to_span(),
 			kind: BinOpKind::Div,
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:MultiplicativeExpr> <lo:@L> <op:"%"> <hi:@R> <rhs:CastExpr> => {
 		let bin_op = BinOp{
 			span: op.to_span(),
 			kind: BinOpKind::Rem,
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -113,14 +113,14 @@ AdditiveExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Add
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:AdditiveExpr> <lo:@L> <op:"-"> <hi:@R> <rhs:MultiplicativeExpr> => {
 		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::Sub
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -131,14 +131,14 @@ ShiftExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Shl
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:ShiftExpr> <lo:@L> <op:">>"> <hi:@R> <rhs:AdditiveExpr> => {
 		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::Shr
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -149,28 +149,28 @@ RelationalExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Less
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:RelationalExpr> <lo:@L> <op:">"> <hi:@R> <rhs:ShiftExpr> => {
 		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::Great
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:RelationalExpr> <lo:@L> <op:"<="> <hi:@R> <rhs:ShiftExpr> => {
 		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::LessEqual
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:RelationalExpr> <lo:@L> <op:">="> <hi:@R> <rhs:ShiftExpr> => {
 		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::GreatEqual
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -181,14 +181,14 @@ EqualityExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Equal
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 	<lhs:EqualityExpr> <lo:@L> <op:"!="> <hi:@R> <rhs:RelationalExpr> => {
 		let bin_op = BinOp {
 			span: op.to_span(),
 			kind: BinOpKind::NotEqual
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -199,7 +199,7 @@ AndExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::And
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -210,7 +210,7 @@ ExclusiveOrExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::XOr
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -221,7 +221,7 @@ InclusiveOrExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Or
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -232,7 +232,7 @@ LogicalAndExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::LogicalAnd
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -243,7 +243,7 @@ LogicalOrExpr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::XOr
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 
@@ -256,7 +256,7 @@ ConditionalExpr: Expr = {
 
 AssignmentExpr: Expr = {
 	ConditionalExpr,
-	<lhs:UnaryExpr> <op:AssignmentOperator> <rhs:AssignmentExpr> => Expr::with_binary(op, lhs, rhs),
+	<lhs:UnaryExpr> <bin_op:AssignmentOperator> <rhs:AssignmentExpr> => Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false),
 };
 
 AssignmentOperator: BinOp = {
@@ -280,7 +280,7 @@ Expr: Expr = {
 			span: op.to_span(),
 			kind: BinOpKind::Comma,
 		};
-		Expr::with_binary(bin_op, lhs, rhs)
+		Expr::with_binary(bin_op, lhs, rhs, !opt_lvl.is_none(), false)
 	},
 };
 

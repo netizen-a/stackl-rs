@@ -74,6 +74,10 @@ fn main() -> ExitCode {
 	let duration = time::Instant::now().duration_since(timer);
 	since_array.push((duration, "syntax parser time"));
 
+	if args.ast {
+		println!("{unit:#?}");
+	}
+
 	let timer = time::Instant::now();
 	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
 

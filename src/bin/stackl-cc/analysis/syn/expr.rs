@@ -42,12 +42,24 @@ impl Expr {
 		})
 	}
 	#[inline]
-	pub fn with_binary(op: BinOp, left: Self, right: Self) -> Self {
-		Self::Binary(ExprBinary {
+	pub fn with_binary(
+		op: BinOp,
+		left: Self,
+		right: Self,
+		contract_int: bool,
+		contract_float: bool,
+	) -> Self {
+		use tok::Const::{Floating, Integer};
+		let result = Self::Binary(ExprBinary {
 			op,
 			left: Box::new(left),
 			right: Box::new(right),
-		})
+		});
+		if contract_int || contract_float {
+			result.reduce(contract_int, contract_float)
+		} else {
+			result
+		}
 	}
 	#[inline]
 	pub fn with_ternary(cond_expr: Self, then_expr: Self, else_expr: Self) -> Self {
@@ -58,12 +70,12 @@ impl Expr {
 		})
 	}
 
-	fn reduce(&self) -> Expr {
+	fn reduce(&self, contract_int: bool, contract_float: bool) -> Expr {
 		use tok::Const::{Floating, Integer};
 		match self {
 			Self::UnaryPrefix(unary) => {
 				let op = &unary.op;
-				let expr = unary.expr.reduce();
+				let expr = unary.expr.reduce(contract_int, contract_float);
 				match &expr {
 					Expr::Const(Integer(rhs_int)) => op.reduce_int(rhs_int),
 					_ => Self::UnaryPrefix(UnaryPrefix {
@@ -74,7 +86,7 @@ impl Expr {
 			}
 			Self::UnaryPostfix(unary) => {
 				let op = &unary.op;
-				let expr = unary.expr.reduce();
+				let expr = unary.expr.reduce(contract_int, contract_float);
 				match &expr {
 					Expr::Const(Integer(rhs_int)) => {
 						//op.reduce_int(rhs_int)
@@ -87,20 +99,23 @@ impl Expr {
 				}
 			}
 			Self::Binary(binary) => {
-				let left = binary.left.reduce();
-				let right = binary.right.reduce();
+				let left = binary.left.reduce(contract_int, contract_float);
+				let right = binary.right.reduce(contract_int, contract_float);
 				let op = binary.op.clone();
-				match (&left, &right) {
-					(Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
+				match (contract_int, contract_float, &left, &right) {
+					(true, _, Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
 						op.reduce_int(lhs_int, rhs_int)
 					}
-					(Expr::Const(Floating(lhs_float)), Expr::Const(Floating(rhs_float))) => {
-						op.reduce_float(lhs_float, rhs_float)
-					}
+					(
+						_,
+						true,
+						Expr::Const(Floating(lhs_float)),
+						Expr::Const(Floating(rhs_float)),
+					) => op.reduce_float(lhs_float, rhs_float),
 					_ => Self::Binary(ExprBinary {
-						op,
-						left: Box::new(left),
-						right: Box::new(right),
+						op: op.clone(),
+						left: Box::new(left.clone()),
+						right: Box::new(right.clone()),
 					}),
 				}
 			}
@@ -118,7 +133,7 @@ impl Expr {
 		const I64_CAP: i64 = u32::MAX as i64;
 		const U128_CAP: u128 = u32::MAX as u128;
 		const I128_CAP: i128 = u32::MAX as i128;
-		*self = self.reduce();
+		*self = self.reduce(true, false);
 		match self {
 			Self::Const(tok::Const::Integer(int_const)) => match int_const {
 				IntegerConstant::U32(val) => Ok(*val),
@@ -152,7 +167,7 @@ impl Expr {
 		const I64_CAP: i64 = i32::MAX as i64;
 		const U128_CAP: u128 = i32::MAX as u128;
 		const I128_CAP: i128 = i32::MAX as i128;
-		*self = self.reduce();
+		*self = self.reduce(true, false);
 		match self {
 			Self::Const(tok::Const::Integer(int_const)) => match int_const {
 				IntegerConstant::U32(val) => match val {
