@@ -462,9 +462,13 @@ impl super::SemanticParser<'_> {
 					struct_or_union,
 					struct_declaration_list,
 					is_incomplete,
+					ident,
 					..
 				}) => {
-					let span = struct_or_union.span.clone();
+					let span = match ident {
+						Some(ident) => ident.to_span(),
+						None => struct_or_union.span.clone(),
+					};
 					if type_kind.is_some() || long_count > 0 {
 						self.diagnostics.push(diag::Diagnostic::error(
 							diag::DiagKind::MultipleTypes,
@@ -475,7 +479,7 @@ impl super::SemanticParser<'_> {
 					}
 					let mut members = vec![];
 					for decl in struct_declaration_list.iter_mut() {
-						let mut member_vec = self.struct_declaration(decl);
+						let mut member_vec = self.struct_declaration(decl, span.clone());
 						let Some(mut member_vec) = member_vec else {
 							type_kind = Some(dtype::TypeKind::Poison);
 							continue;

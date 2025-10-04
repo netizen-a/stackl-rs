@@ -50,4 +50,5 @@ pub enum DiagKind {
 	DirectiveLineFilename,
 	DirectiveIncludeExtraTokens,
 	DirectivePragma,
+	StructNoNamedMembers,
 }

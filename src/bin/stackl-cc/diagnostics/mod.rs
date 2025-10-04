@@ -49,8 +49,8 @@ impl DiagnosticEngine {
 		self.file_map_ref.clone()
 	}
 	#[inline]
-	pub fn push(&mut self, diag: Diagnostic) {
-		self.list_other.push(diag)
+	pub fn push(&mut self, diagnostic: Diagnostic) {
+		self.list_other.push(diagnostic)
 	}
 	#[inline]
 	pub fn push_syntax_error(&mut self, diag: ParseError<usize, tok::Token, Diagnostic>) {
@@ -384,6 +384,10 @@ impl DiagnosticEngine {
 					file_path.display()
 				);
 				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::StructNoNamedMembers => {
+				let msg0 = "struct has no named members";
+				self.format_diagnostic(&diag, msg0, "")
 			}
 			kind => unimplemented!("{kind:?}"),
 		};

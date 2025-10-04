@@ -71,25 +71,28 @@ impl super::SemanticParser<'_> {
 	pub(super) fn struct_declaration(
 		&mut self,
 		struct_decl: &mut StructDeclaration,
+		struct_span: diag::Span,
 	) -> Option<Vec<dtype::MemberType>> {
 		let mut result = vec![];
 		let mut is_valid = true;
+		let mut member_is_named = false;
 		// only type-specifier and type-qualifier is syntactically allowed here.
 		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers);
 		for decl in struct_decl.struct_declaration_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
-			let span = match &decl.ident {
+			member_is_named &= name_opt.is_some();
+			let member_span = match &decl.ident {
 				Some(ident) => ident.to_span(),
 				None => struct_decl.specifiers.first_span.clone(),
 			};
 			let mut data_type =
-				self.unwrap_or_poison(ty_opt.clone(), name_opt.clone(), span.clone());
+				self.unwrap_or_poison(ty_opt.clone(), name_opt.clone(), member_span.clone());
 			if let dtype::TypeKind::Poison = data_type.kind {
 				continue;
 			}
 
 			is_valid &= self.declarator_list(
-				span.clone(),
+				member_span.clone(),
 				&mut decl.declarators,
 				&mut data_type,
 				false,
@@ -101,7 +104,7 @@ impl super::SemanticParser<'_> {
 			let bits = if let dtype::TypeKind::Scalar(scalar) = &data_type.kind {
 				if !scalar.is_integral() && decl.const_expr.is_some() {
 					let kind = diag::DiagKind::BitfieldNonIntegral(name_opt);
-					let diag = diag::Diagnostic::error(kind, span.clone());
+					let diag = diag::Diagnostic::error(kind, member_span.clone());
 					self.diagnostics.push(diag);
 					is_valid = false;
 					continue;
@@ -112,7 +115,7 @@ impl super::SemanticParser<'_> {
 							Some(value)
 						} else {
 							let kind = diag::DiagKind::BitfieldRange(name_opt);
-							let diag = diag::Diagnostic::error(kind, span.clone());
+							let diag = diag::Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 							continue;
@@ -123,7 +126,7 @@ impl super::SemanticParser<'_> {
 						is_valid &= self.expr(&mut expr);
 						if is_valid {
 							let kind = diag::DiagKind::NonConstExpr;
-							let diag = diag::Diagnostic::error(kind, span.clone());
+							let diag = diag::Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
@@ -131,7 +134,7 @@ impl super::SemanticParser<'_> {
 					}
 					Some(Err(ConversionError::OutOfRange)) => {
 						let kind = diag::DiagKind::BitfieldRange(name_opt);
-						let diag = diag::Diagnostic::error(kind, span.clone());
+						let diag = diag::Diagnostic::error(kind, member_span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
 						continue;
@@ -140,7 +143,7 @@ impl super::SemanticParser<'_> {
 				}
 			} else if decl.const_expr.is_some() {
 				let kind = diag::DiagKind::BitfieldNonIntegral(name_opt);
-				let diag = diag::Diagnostic::error(kind, span.clone());
+				let diag = diag::Diagnostic::error(kind, member_span.clone());
 				self.diagnostics.push(diag);
 				is_valid = false;
 				continue;
@@ -153,6 +156,12 @@ impl super::SemanticParser<'_> {
 				bits,
 			});
 		}
+
+		if !member_is_named {
+			let error = diag::Diagnostic::error(diag::DiagKind::StructNoNamedMembers, struct_span);
+			self.diagnostics.push(error);
+		}
+
 		match is_valid {
 			true => Some(result),
 			false => None,
