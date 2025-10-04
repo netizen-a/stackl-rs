@@ -106,6 +106,29 @@ impl Expr {
 					(true, _, Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
 						op.reduce_int(lhs_int, rhs_int)
 					}
+					(true, _, Expr::Paren(expr), Expr::Const(Integer(rhs_int))) => {
+						if let Expr::Const(Integer(lhs_int)) = expr.as_ref() {
+							op.reduce_int(lhs_int, rhs_int)
+						} else {
+							self.clone()
+						}
+					}
+					(true, _, Expr::Const(Integer(lhs_int)), Expr::Paren(expr)) => {
+						if let Expr::Const(Integer(rhs_int)) = expr.as_ref() {
+							op.reduce_int(lhs_int, rhs_int)
+						} else {
+							self.clone()
+						}
+					}
+					(_, _, Expr::Paren(lhs_expr), Expr::Paren(rhs_expr)) => {
+						if let (Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) =
+							(lhs_expr.as_ref(), rhs_expr.as_ref())
+						{
+							op.reduce_int(lhs_int, rhs_int)
+						} else {
+							self.clone()
+						}
+					}
 					(
 						_,
 						true,
