@@ -1,4 +1,4 @@
-use crate::analysis::{syn::*, tok::{Const, IntegerConstant}};
+use crate::{analysis::{syn::*, tok::{Const, IntegerConstant}}, diagnostics::ToSpan};
 use crate::data_types as dtype;
 
 impl super::SemanticParser {
@@ -11,8 +11,9 @@ impl super::SemanticParser {
 				is_valid &= self.expr(paren);
 				self.tree_builder.end_child();
 			},
-			Ident(_inner) => {
-				self.tree_builder.add_empty_child("identifier".to_string());
+			Ident(inner) => {
+				let span = inner.to_span();
+				self.tree_builder.add_empty_child(format!("identifier <{}:{}> {}", span.loc.0, span.loc.1, inner.name));
 				is_valid &= true
 			},
 			Const(inner) => is_valid &= self.expr_const(inner),
@@ -69,10 +70,4 @@ impl super::SemanticParser {
 		}
 		true
 	}
-	// pub(super) fn resolve_lvalue() -> dtype::DataType {
-	// 	todo!()
-	// }
-	// pub(super) fn resolve_rvalue() -> dtype::DataType {
-	// 	todo!()
-	// }
 }

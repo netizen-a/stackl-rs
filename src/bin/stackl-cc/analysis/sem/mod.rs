@@ -65,14 +65,18 @@ impl SemanticParser {
 		use ExternalDeclaration::*;
 		let mut is_valid = true;
 		for external_decl in unit.iter_mut() {
-			self.tree_builder.begin_child("external-declaration".to_string());
 			match external_decl {
 				FunctionDefinition(decl) => is_valid &= self.function_definition(decl),
 				Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Static),
-				Asm(stmt) => is_valid &= true,
-				Error => is_valid &= false,
+				Asm(stmt) => {
+					self.tree_builder.add_empty_child("asm".to_string());
+					is_valid &= true;
+				},
+				Error => {
+					self.tree_builder.add_empty_child("error".to_string());
+					is_valid &= false;
+				},
 			}
-			self.tree_builder.end_child();
 		}
 		match is_valid {
 			true => Some(unit),
