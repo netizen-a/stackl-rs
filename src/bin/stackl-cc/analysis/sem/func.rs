@@ -3,7 +3,7 @@ use crate::analysis::{sem::Linkage, syn};
 use crate::diagnostics::{self as diag, ToSpan};
 use crate::{cli::WarnLevel, data_types as dtype};
 
-impl super::SemanticParser<'_> {
+impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);

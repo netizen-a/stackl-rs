@@ -1,6 +1,6 @@
 use crate::analysis::syn::*;
 
-impl super::SemanticParser<'_> {
+impl super::SemanticParser {
 	pub(super) fn expr(&mut self, expr: &mut Expr) -> bool {
 		use Expr::*;
 		let mut is_valid = true;

@@ -3,7 +3,7 @@ use crate::diagnostics as diag;
 use crate::diagnostics::Span;
 use diag::ToSpan;
 
-impl super::SemanticParser<'_> {
+impl super::SemanticParser {
 	pub(super) fn unwrap_or_poison(
 		&mut self,
 		value: Option<DataType>,

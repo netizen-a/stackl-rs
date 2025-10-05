@@ -63,7 +63,7 @@ fn main() -> ExitCode {
 
 	let timer = time::Instant::now();
 	let tk_iter = syn::TokenIter::from(tokens.into_boxed_slice());
-	let unit = match syn::SyntaxParser::new().parse(&mut diag_engine, &args.opt_lvl, tk_iter) {
+	let mut unit = match syn::SyntaxParser::new().parse(&mut diag_engine, &args.opt_lvl, tk_iter) {
 		Ok(unit) => unit,
 		Err(error) => {
 			diag_engine.push_syntax_error(error);
@@ -74,21 +74,21 @@ fn main() -> ExitCode {
 	let duration = time::Instant::now().duration_since(timer);
 	since_array.push((duration, "syntax parser time"));
 
-	if args.ast {
-		println!("{unit:#?}");
-	}
-
 	let timer = time::Instant::now();
-	let _analysis_result = sem::SemanticParser::new(&mut diag_engine, &args).parse(unit);
+	let mut semantic_parser = sem::SemanticParser::new(diag_engine, &args);
+	semantic_parser.parse(unit);
 
 	let duration = time::Instant::now().duration_since(timer);
 	since_array.push((duration, "semantic parser time"));
 
-	let has_error = diag_engine.contains_error();
-	diag_engine.print_once();
+	let has_error = semantic_parser.contains_error();
+	semantic_parser.print_errors();
 	if has_error || args.check {
 		if args.is_timed {
 			print_time(since_array);
+		}
+		if args.ast {
+			ptree::print_tree(&semantic_parser.build_tree());
 		}
 		return match has_error {
 			true => ExitCode::FAILURE,
@@ -100,6 +100,9 @@ fn main() -> ExitCode {
 
 	if args.is_timed {
 		print_time(since_array);
+	}
+	if args.ast {
+		ptree::print_tree(&semantic_parser.build_tree());
 	}
 
 	ExitCode::SUCCESS

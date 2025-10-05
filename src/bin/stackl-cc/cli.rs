@@ -104,6 +104,6 @@ pub struct Args {
 	pub is_timed: bool,
 	#[arg(short = 'O', help = "Optimize", default_value_t = Default::default())]
 	pub opt_lvl: OptLevel,
-	#[arg(long, help = "prints ast")]
+	#[arg(long, group = "stdout", help = "prints ast")]
 	pub ast: bool,
 }

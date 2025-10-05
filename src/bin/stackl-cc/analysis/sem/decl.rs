@@ -11,7 +11,7 @@ use crate::data_types as dtype;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 
-impl super::SemanticParser<'_> {
+impl super::SemanticParser {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
 		let mut is_valid = true;
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);

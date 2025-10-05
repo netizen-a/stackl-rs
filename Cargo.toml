@@ -22,6 +22,7 @@ clap = { version = "^4.5", features = ["derive", "cargo"] }
 bimap = "^0.6"
 bitflags = "^2.9"
 chrono = "^0.4"
+ptree = "0.5"
 
 [lib]
 name = "stackl"

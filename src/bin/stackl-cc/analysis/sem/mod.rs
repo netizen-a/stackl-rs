@@ -40,20 +40,22 @@ enum DeclType {
 	Decl,
 }
 
-pub struct SemanticParser<'a> {
+pub struct SemanticParser {
 	symtab: SymbolTable<Namespace, SymbolTableEntry>,
-	diagnostics: &'a mut DiagnosticEngine,
+	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
+	tree_builder: ptree::TreeBuilder,
 }
 
-impl<'a> SemanticParser<'a> {
-	pub fn new(diagnostics: &'a mut DiagnosticEngine, args: &cli::Args) -> Self {
+impl SemanticParser {
+	pub fn new(diagnostics: DiagnosticEngine, args: &cli::Args) -> Self {
 		Self {
 			symtab: SymbolTable::new(),
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,
+			tree_builder: ptree::TreeBuilder::new("translation-unit".to_string()),
 		}
 	}
 	pub fn parse(
@@ -63,17 +65,22 @@ impl<'a> SemanticParser<'a> {
 		use ExternalDeclaration::*;
 		let mut is_valid = true;
 		for external_decl in unit.iter_mut() {
+			self.tree_builder.begin_child("external-declaration".to_string());
 			match external_decl {
 				FunctionDefinition(decl) => is_valid &= self.function_definition(decl),
 				Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Static),
 				Asm(stmt) => is_valid &= true,
 				Error => is_valid &= false,
 			}
+			self.tree_builder.end_child();
 		}
 		match is_valid {
 			true => Some(unit),
 			false => None,
 		}
+	}
+	pub fn build_tree(&mut self) -> ptree::item::StringItem {
+		self.tree_builder.build()
 	}
 	pub(self) fn decrease_scope(&mut self) {
 		if self.is_traced {
@@ -85,9 +92,15 @@ impl<'a> SemanticParser<'a> {
 		}
 		self.symtab.decrease_scope();
 	}
+	pub fn print_errors(&mut self) {
+		self.diagnostics.print_once();
+	}
+	pub fn contains_error(&self) -> bool {
+		self.diagnostics.contains_error()
+	}
 }
 
-impl Drop for SemanticParser<'_> {
+impl Drop for SemanticParser {
 	fn drop(&mut self) {
 		self.decrease_scope();
 	}

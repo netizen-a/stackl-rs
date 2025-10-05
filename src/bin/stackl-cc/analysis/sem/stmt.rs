@@ -1,7 +1,7 @@
 use crate::analysis::syn::*;
 use crate::diagnostics as diag;
 
-impl super::SemanticParser<'_> {
+impl super::SemanticParser {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
 		self.symtab.increase_scope();
 		for item in stmt.blocks.iter_mut() {
