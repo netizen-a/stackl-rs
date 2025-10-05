@@ -41,15 +41,19 @@ impl super::SemanticParser {
 	fn selection_stmt(&mut self, stmt: &mut SelectStmt) {
 		self.tree_builder.begin_child("selection-statement".to_string());
 		match stmt {
-			SelectStmt::If { stmt_cond, .. } => {
+			SelectStmt::If { stmt_cond, stmt_then, stmt_else } => {
 				self.stmt_if(stmt_cond);
+				self.stmt_then(stmt_then);
+				if let Some(stmt_else) = stmt_else {
+					self.stmt_else(stmt_else)
+				}
 			}
 			_ => {}
 		}
 		self.tree_builder.end_child();
 	}
 	fn stmt_if(&mut self, stmt_cond: &mut Expr) {
-		self.tree_builder.begin_child("if-statement".to_string());
+		self.tree_builder.begin_child("if ( expression )".to_string());
 		if let Expr::Binary(ExprBinary {
 			op: BinOp {
 				span,
@@ -65,6 +69,16 @@ impl super::SemanticParser {
 			self.diagnostics.push(diag);
 		}
 		self.expr(stmt_cond);
+		self.tree_builder.end_child();
+	}
+	fn stmt_then(&mut self, stmt_then: &mut Stmt) {
+		self.tree_builder.begin_child("then-statement".to_string());
+		self.statement(stmt_then);
+		self.tree_builder.end_child();
+	}
+	fn stmt_else(&mut self, stmt_then: &mut Stmt) {
+		self.tree_builder.begin_child("else-statement".to_string());
+		self.statement(stmt_then);
 		self.tree_builder.end_child();
 	}
 }
