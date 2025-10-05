@@ -21,7 +21,6 @@ impl super::SemanticParser {
 		specifiers: &mut syn::Specifiers,
 	) -> Option<syn::StorageClassSpecifier> {
 		let mut storage_class = None;
-		let mut is_valid = true;
 		for (i, storage_class_specifier) in specifiers.storage_classes.iter().enumerate() {
 			if i > 0 {
 				let diag = diag::Diagnostic::error(
@@ -30,7 +29,6 @@ impl super::SemanticParser {
 				);
 				self.diagnostics.push(diag);
 				storage_class = None;
-				is_valid = false;
 			} else {
 				storage_class = Some(storage_class_specifier.clone());
 			}
@@ -46,9 +44,10 @@ impl super::SemanticParser {
 				)
 			};
 			self.diagnostics.push(diag);
-			is_valid = false;
+			storage_class = None;
 		}
-		if is_valid {
+		if let Some(specifier) = &storage_class {
+			self.tree_builder.add_empty_child(format!("storage-class {}", specifier.kind));
 			storage_class
 		} else {
 			None

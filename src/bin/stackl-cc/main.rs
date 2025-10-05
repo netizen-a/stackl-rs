@@ -96,15 +96,12 @@ fn main() -> ExitCode {
 		};
 	}
 
-	//synthesis::parse(&analysis_result.unwrap());
-
 	if args.is_timed {
 		print_time(since_array);
 	}
 	if args.ast {
 		ptree::print_tree(&semantic_parser.build_tree());
 	}
-
 	ExitCode::SUCCESS
 }
 

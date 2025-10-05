@@ -5,8 +5,9 @@ use crate::{cli::WarnLevel, data_types as dtype};
 
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
-		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
+		self.tree_builder.begin_child("function-definition".to_string());
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
+		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 		let func_ident = &decl.ident;
 
 		let (storage, linkage) = match &maybe_sc {
@@ -23,6 +24,7 @@ impl super::SemanticParser {
 				let kind = diag::DiagKind::IllegalStorage(storage.kind);
 				let diag = diag::Diagnostic::error(kind, storage.to_span());
 				self.diagnostics.push(diag);
+				self.tree_builder.end_child();
 				return false;
 			}
 		};
@@ -101,6 +103,7 @@ impl super::SemanticParser {
 				let kind = diag::DiagKind::ArrayOfFunctions(decl.ident.name.clone());
 				let diag = diag::Diagnostic::error(kind, array.span.clone());
 				self.diagnostics.push(diag);
+				self.tree_builder.end_child();
 				return false;
 			}
 			None | Some(syn::Declarator::Pointer(_)) => {
@@ -122,11 +125,14 @@ impl super::SemanticParser {
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, syn::StorageClass::Auto);
 			}
+			self.tree_builder.begin_child("compound-stmt { }".to_string());
 			for item in decl.compound_stmt.blocks.iter_mut() {
 				self.block_item(item);
 			}
+			self.tree_builder.end_child();
 		}
 		self.decrease_scope();
+		self.tree_builder.end_child();
 		return true;
 	}
 

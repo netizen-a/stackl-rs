@@ -13,6 +13,7 @@ use crate::diagnostics::ToSpan;
 
 impl super::SemanticParser {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
+		self.tree_builder.begin_child("declaration".to_string());
 		let mut is_valid = true;
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
@@ -23,11 +24,15 @@ impl super::SemanticParser {
 		};
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
+			let ident = &init_decl.identifier;
+			{
+				let span = ident.to_span();
+				self.tree_builder.begin_child(format!("init-declarator <{}:{}> {}", span.loc.0, span.loc.1, ident.name));
+			}
 			let mut init_list_count = None;
 			if let Some(ref mut init) = init_decl.initializer {
 				self.initializer(init, &mut init_list_count);
 			}
-			let ident = &init_decl.identifier;
 			let data_type =
 				self.unwrap_or_poison(maybe_ty.clone(), Some(ident.name.clone()), ident.to_span());
 			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
@@ -45,9 +50,6 @@ impl super::SemanticParser {
 				Some(ident.name.clone()),
 				init_list_count,
 			);
-			if let dtype::TypeKind::Poison = var_dtype.kind {
-				return false;
-			}
 			let entry = SymbolTableEntry {
 				data_type: var_dtype,
 				linkage,
@@ -55,24 +57,27 @@ impl super::SemanticParser {
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
 			self.symtab.insert(key, entry).unwrap();
+			self.tree_builder.end_child();
 		}
+		self.tree_builder.end_child();
 		is_valid
 	}
 
 	fn enum_specifier(&mut self, _spec: &mut EnumSpecifier) {
 		todo!("enum-specifier")
 	}
-	fn enumerator(&mut self, enumerator: &mut Enumerator) {
-		if let Some(ref mut expr) = enumerator.constant_expr {
-			self.expr(expr);
-		}
-	}
+	// fn enumerator(&mut self, enumerator: &mut Enumerator) {
+	// 	if let Some(ref mut expr) = enumerator.constant_expr {
+	// 		self.expr(expr);
+	// 	}
+	// }
 
 	pub(super) fn struct_declaration(
 		&mut self,
 		struct_decl: &mut StructDeclaration,
 		member_is_named: &mut bool,
 	) -> Option<Vec<dtype::MemberType>> {
+		self.tree_builder.begin_child("struct-declarator".to_string());
 		let mut result = vec![];
 		let mut is_valid = true;
 		// only type-specifier and type-qualifier is syntactically allowed here.
@@ -166,6 +171,7 @@ impl super::SemanticParser {
 				bits,
 			});
 		}
+		self.tree_builder.end_child();
 
 		match is_valid {
 			true => Some(result),
@@ -176,9 +182,12 @@ impl super::SemanticParser {
 	fn initializer(&mut self, init: &mut Initializer, list_count: &mut Option<u32>) -> bool {
 		let mut is_valid = true;
 		match init {
-			Initializer::Expr(expr) => is_valid &= self.expr(expr),
+			Initializer::Expr(expr) => {
+				is_valid &= self.expr(expr)
+			},
 			Initializer::InitializerList(InitializerList(list)) => {
 				*list_count = Some(list.len().try_into().unwrap());
+				self.tree_builder.add_empty_child("initializer-list".to_string());
 			}
 		}
 		is_valid
@@ -346,28 +355,5 @@ impl super::SemanticParser {
 				}
 			};
 		}
-	}
-	fn type_qualifier(&mut self, qual: &mut TypeQualifier) {
-		match qual.kind {
-			TypeQualifierKind::Const => (),
-			TypeQualifierKind::Restrict => (),
-			TypeQualifierKind::Volatile => (),
-		}
-	}
-	fn designation(&mut self, desig: &mut Vec<Designator>) -> bool {
-		let mut is_valid = true;
-		for ref mut desig in desig.iter_mut() {
-			is_valid &= self.designator(desig)
-		}
-		is_valid
-	}
-	fn designator(&mut self, desig: &mut Designator) -> bool {
-		use Designator::*;
-		let mut is_valid = true;
-		match desig {
-			ConstExpr(expr) => is_valid &= self.expr(expr),
-			Dot(_) => (),
-		}
-		is_valid
 	}
 }
