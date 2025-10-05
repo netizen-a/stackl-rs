@@ -2,57 +2,62 @@ use crate::{analysis::{syn::*, tok::{Const, IntegerConstant}}, diagnostics::ToSp
 use crate::data_types as dtype;
 
 impl super::SemanticParser {
-	pub(super) fn expr(&mut self, expr: &mut Expr) -> Option<dtype::DataType> {
+	pub(super) fn expr(&mut self, expr: &mut Expr) -> dtype::DataType {
 		use Expr::*;
 		match expr {
-			Paren(paren) => {
+			Paren(inner) => {
 				self.tree_builder.begin_child("( expression )".to_string());
+				let result = self.expr(inner);
 				self.tree_builder.end_child();
-				None
+				result
 			},
 			Ident(inner) => {
-				let span = inner.to_span();
-				self.tree_builder.add_empty_child(format!("identifier <{}:{}> {}", span.loc.0, span.loc.1, inner.name));
-				None
+				self.tree_builder.add_empty_child(format!("identifier {}", inner.name));
+				dtype::DataType::POISON
 			},
-			Const(inner) => {
-				Some(self.expr_const(inner))
-			},
-			StrLit(_inner) => {None},
-			UnaryPrefix(unary) => {self.expr_prefix(unary); None},
-			UnaryPostfix(unary) => {self.expr_postfix(unary); None},
-			Binary(binary) => {self.expr_binary(binary); None},
-			Ternary(ternary) => {self.expr_ternary(ternary); None},
-			CompoundLiteral(_, _) => None,
-			Sizeof(_) => None,
+			Const(inner) => self.expr_const(inner),
+			StrLit(_inner) => dtype::DataType::POISON,
+			UnaryPrefix(unary) => self.expr_prefix(unary),
+			UnaryPostfix(unary) => self.expr_postfix(unary),
+			Binary(binary) => self.expr_binary(binary),
+			Ternary(ternary) => self.expr_ternary(ternary),
+			CompoundLiteral(_, _) => dtype::DataType::POISON,
+			Sizeof(_) => dtype::DataType::POISON,
 		}
 	}
-	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) -> Option<dtype::DataType> {
-		let mut result = None;
+	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) -> dtype::DataType {
+		let mut result = dtype::DataType::POISON;
 		match unary.op {
 			Prefix::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
-				let Some(inner_type) = self.expr(&mut *unary.expr) else {
-					return Some(dtype::DataType {
-						kind: dtype::TypeKind::Poison,
-						qual: Default::default(),
-					});
-				};
-				let kind = dtype::TypeKind::Pointer(dtype::PtrType(Box::new(inner_type)));
-				result = Some(dtype::DataType{
-					kind,
-					qual: Default::default()
-				})
+				let inner_type = self.expr(&mut *unary.expr);
+				if !inner_type.is_poisoned() {
+					let kind = dtype::TypeKind::Pointer(dtype::PtrType(Box::new(inner_type)));
+					result = dtype::DataType{
+						kind,
+						qual: Default::default()
+					}
+				}
 			},
 			_ => todo!()
 		}
 		self.tree_builder.end_child();
 		result
 	}
-	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix) {
+	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix) -> dtype::DataType {
+		let _ = match unary.op {
+			Postfix::Array(_) => self.tree_builder.begin_child("postfix `[ ]`".to_string()),
+			Postfix::ArgExprList(_) => self.tree_builder.begin_child("postfix `( )`".to_string()),
+			Postfix::Dot(_) => self.tree_builder.begin_child("postfix `.`".to_string()),
+			Postfix::Arrow(_) => self.tree_builder.begin_child("postifx `->`".to_string()),
+			Postfix::Inc => self.tree_builder.begin_child("postfix `++`".to_string()),
+			Postfix::Dec => self.tree_builder.begin_child("postfix `--`".to_string()),
+		};
 		self.expr(&mut *unary.expr);
+		self.tree_builder.end_child();
+		dtype::DataType::POISON
 	}
-	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary) {
+	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary) -> dtype::DataType {
 		let _ = match &binary.op.kind {
 			BinOpKind::Mul => self.tree_builder.begin_child("*".to_string()),
 			BinOpKind::Div => self.tree_builder.begin_child("/".to_string()),
@@ -88,23 +93,61 @@ impl super::SemanticParser {
 		self.expr(&mut *binary.left);
 		self.expr(&mut *binary.right);
 		self.tree_builder.end_child();
+		dtype::DataType::POISON
 	}
-	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) {
+	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) -> dtype::DataType {
+		self.tree_builder.begin_child("ternary `?:`".to_string());
 		self.expr(&mut *ternary.expr_cond);
 		self.expr(&mut *ternary.expr_then);
 		self.expr(&mut *ternary.expr_else);
+		self.tree_builder.end_child();
+		dtype::DataType::POISON
 	}
 	pub(super) fn expr_const(&mut self, constant: &mut Const) -> dtype::DataType {
 		match constant {
 			Const::Integer(IntegerConstant::I32(inner)) => {
-				self.tree_builder.add_empty_child(format!("integer-constant {inner}"));
-				let kind = dtype::TypeKind::Scalar(dtype::ScalarType::I32);
+				self.tree_builder.add_empty_child(format!("constant `{inner}` <signed int>"));
 				dtype::DataType {
-					kind,
+					kind: dtype::TypeKind::Scalar(dtype::ScalarType::I32),
 					qual: Default::default(),
 				}
-			}
-			_ => todo!()
+			},
+			Const::Integer(IntegerConstant::U32(inner)) => {
+				self.tree_builder.add_empty_child(format!("constant `{inner}` <unsigned int>"));
+				dtype::DataType {
+					kind: dtype::TypeKind::Scalar(dtype::ScalarType::U32),
+					qual: Default::default(),
+				}
+			},
+			Const::Integer(IntegerConstant::I64(inner)) => {
+				self.tree_builder.add_empty_child(format!("constant `{inner}` <signed long int>"));
+				dtype::DataType {
+					kind: dtype::TypeKind::Scalar(dtype::ScalarType::I64),
+					qual: Default::default(),
+				}
+			},
+			Const::Integer(IntegerConstant::U64(inner)) => {
+				self.tree_builder.add_empty_child(format!("constant `{inner}` <unsigned long int>"));
+				dtype::DataType {
+					kind: dtype::TypeKind::Scalar(dtype::ScalarType::U64),
+					qual: Default::default(),
+				}
+			},
+			Const::Integer(IntegerConstant::I128(inner)) => {
+				self.tree_builder.add_empty_child(format!("constant `{inner}` <signed long long int>"));
+				dtype::DataType {
+					kind: dtype::TypeKind::Scalar(dtype::ScalarType::I128),
+					qual: Default::default(),
+				}
+			},
+			Const::Integer(IntegerConstant::U128(inner)) => {
+				self.tree_builder.add_empty_child(format!("constant `{inner}` <unsigned long long int>"));
+				dtype::DataType {
+					kind: dtype::TypeKind::Scalar(dtype::ScalarType::U128),
+					qual: Default::default(),
+				}
+			},
+			other => dtype::DataType::POISON,
 		}
 	}
 }

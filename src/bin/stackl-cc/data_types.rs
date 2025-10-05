@@ -203,6 +203,17 @@ pub struct DataType {
 	pub qual: TypeQual,
 }
 
+impl DataType {
+	pub const POISON: DataType = DataType {
+		kind: TypeKind::Poison,
+		qual: TypeQual { is_const: false, is_volatile: false, is_restrict: false }
+	};
+	#[inline]
+	pub const fn is_poisoned(&self) -> bool {
+		matches!(self.kind, TypeKind::Poison)
+	}
+}
+
 impl fmt::Display for DataType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut qual_str = String::new();

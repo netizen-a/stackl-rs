@@ -135,7 +135,7 @@ impl super::SemanticParser {
 					}
 					Some(Err(ConversionError::Expr(mut expr))) => {
 						// collect errors from expression first
-						is_valid &= self.expr(&mut expr).is_some();
+						is_valid &= !self.expr(&mut expr).is_poisoned();
 						if is_valid {
 							let kind = diag::DiagKind::NonConstExpr;
 							let diag = diag::Diagnostic::error(kind, member_span.clone());
@@ -183,7 +183,7 @@ impl super::SemanticParser {
 		let mut is_valid = true;
 		match init {
 			Initializer::Expr(expr) => {
-				is_valid &= self.expr(expr).is_some()
+				is_valid &= !self.expr(expr).is_poisoned()
 			},
 			Initializer::InitializerList(InitializerList(list)) => {
 				*list_count = Some(list.len().try_into().unwrap());
