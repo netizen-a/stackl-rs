@@ -68,10 +68,6 @@ impl SemanticParser {
 			match external_decl {
 				FunctionDefinition(decl) => is_valid &= self.function_definition(decl),
 				Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Static),
-				Asm(stmt) => {
-					self.tree_builder.add_empty_child("asm".to_string());
-					is_valid &= true;
-				},
 				Error => {
 					self.tree_builder.add_empty_child("error".to_string());
 					is_valid &= false;
