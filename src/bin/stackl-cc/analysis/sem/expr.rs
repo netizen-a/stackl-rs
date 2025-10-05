@@ -27,7 +27,16 @@ impl super::SemanticParser {
 		is_valid
 	}
 	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) -> bool {
-		self.expr(&mut *unary.expr)
+		let mut is_valid = true;
+		match unary.op {
+			Prefix::Amp => {
+				self.tree_builder.begin_child("expr-prefix &".to_string());
+			},
+			_ => todo!()
+		}
+		is_valid &= self.expr(&mut *unary.expr);
+		self.tree_builder.end_child();
+		is_valid
 	}
 	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix) -> bool {
 		self.expr(&mut *unary.expr)

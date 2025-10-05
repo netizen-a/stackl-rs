@@ -3,6 +3,7 @@ static void select(int x) {
     if (x = 5) {
         y = 6;
     }
+    int * p = &y;
 }
 
 int my_expr = (5 + 5) * 30, my_var;

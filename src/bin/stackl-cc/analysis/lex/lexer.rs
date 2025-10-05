@@ -652,6 +652,22 @@ impl Iterator for Lexer {
 					span: self.to_span(),
 				}))
 			}
+			'&' => {
+				self.include_state = 0;
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '&') {
+					// case: `&&`
+					self.set_end(pos);
+					tok::Punct::AmpAmp
+				} else {
+					// case: `&`
+					tok::Punct::Amp
+				};
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
+			}
 			_ => todo!("{}", c as i32),
 		}
 	}
