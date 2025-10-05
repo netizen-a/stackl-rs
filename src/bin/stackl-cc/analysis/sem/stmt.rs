@@ -42,13 +42,13 @@ impl super::SemanticParser {
 		self.tree_builder.begin_child("selection-statement".to_string());
 		match stmt {
 			SelectStmt::If { stmt_cond, .. } => {
-				self.stmt_if(&*stmt_cond);
+				self.stmt_if(stmt_cond);
 			}
 			_ => {}
 		}
 		self.tree_builder.end_child();
 	}
-	fn stmt_if(&mut self, stmt_cond: &Expr) {
+	fn stmt_if(&mut self, stmt_cond: &mut Expr) {
 		self.tree_builder.begin_child("if-statement".to_string());
 		if let Expr::Binary(ExprBinary {
 			op: BinOp {
@@ -64,6 +64,7 @@ impl super::SemanticParser {
 			diag.push_note("use '==' to turn this assignment into an equality comparison");
 			self.diagnostics.push(diag);
 		}
+		self.expr(stmt_cond);
 		self.tree_builder.end_child();
 	}
 }

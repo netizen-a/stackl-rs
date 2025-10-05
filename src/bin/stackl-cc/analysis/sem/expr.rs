@@ -27,24 +27,63 @@ impl super::SemanticParser {
 			Sizeof(_) => None,
 		}
 	}
-	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) {
+	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) -> Option<dtype::DataType> {
+		let mut result = None;
 		match unary.op {
 			Prefix::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
+				let Some(inner_type) = self.expr(&mut *unary.expr) else {
+					return Some(dtype::DataType {
+						kind: dtype::TypeKind::Poison,
+						qual: Default::default(),
+					});
+				};
+				let kind = dtype::TypeKind::Pointer(dtype::PtrType(Box::new(inner_type)));
+				result = Some(dtype::DataType{
+					kind,
+					qual: Default::default()
+				})
 			},
 			_ => todo!()
 		}
-		self.expr(&mut *unary.expr);
 		self.tree_builder.end_child();
+		result
 	}
 	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix) {
 		self.expr(&mut *unary.expr);
 	}
 	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary) {
 		let _ = match &binary.op.kind {
-			BinOpKind::Add => self.tree_builder.begin_child("+".to_string()),
 			BinOpKind::Mul => self.tree_builder.begin_child("*".to_string()),
-			_ => todo!(),
+			BinOpKind::Div => self.tree_builder.begin_child("/".to_string()),
+			BinOpKind::Rem => self.tree_builder.begin_child("%".to_string()),
+			BinOpKind::Sub => self.tree_builder.begin_child("-".to_string()),
+			BinOpKind::Add => self.tree_builder.begin_child("+".to_string()),
+			BinOpKind::NotEqual => self.tree_builder.begin_child("!=".to_string()),
+			BinOpKind::Equal => self.tree_builder.begin_child("==".to_string()),
+			BinOpKind::And => self.tree_builder.begin_child("&".to_string()),
+			BinOpKind::XOr => self.tree_builder.begin_child("^".to_string()),
+			BinOpKind::Or => self.tree_builder.begin_child("|".to_string()),
+			BinOpKind::LogicalAnd => self.tree_builder.begin_child("&&".to_string()),
+			BinOpKind::LogicalOr => self.tree_builder.begin_child("||".to_string()),
+			BinOpKind::Assign => self.tree_builder.begin_child("=".to_string()),
+			BinOpKind::MulAssign => self.tree_builder.begin_child("*=".to_string()),
+			BinOpKind::DivAssign => self.tree_builder.begin_child("/=".to_string()),
+			BinOpKind::RemAssign => self.tree_builder.begin_child("%=".to_string()),
+			BinOpKind::AddAssign => self.tree_builder.begin_child("&=".to_string()),
+			BinOpKind::SubAssign => self.tree_builder.begin_child("-=".to_string()),
+			BinOpKind::LShiftAssign => self.tree_builder.begin_child("<<=".to_string()),
+			BinOpKind::RShiftAssign => self.tree_builder.begin_child(">>=".to_string()),
+			BinOpKind::AmpAssign => self.tree_builder.begin_child("&=".to_string()),
+			BinOpKind::XOrAssign => self.tree_builder.begin_child("^=".to_string()),
+			BinOpKind::OrAssign => self.tree_builder.begin_child("|=".to_string()),
+			BinOpKind::Comma => self.tree_builder.begin_child(",".to_string()),
+			BinOpKind::Shl => self.tree_builder.begin_child("<<".to_string()),
+			BinOpKind::Shr => self.tree_builder.begin_child(">>".to_string()),
+			BinOpKind::LessEqual => self.tree_builder.begin_child("<=".to_string()),
+			BinOpKind::GreatEqual => self.tree_builder.begin_child(">=".to_string()),
+			BinOpKind::Less => self.tree_builder.begin_child("<".to_string()),
+			BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 		};
 		self.expr(&mut *binary.left);
 		self.expr(&mut *binary.right);

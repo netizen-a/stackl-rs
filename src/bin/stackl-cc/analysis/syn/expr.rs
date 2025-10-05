@@ -265,7 +265,7 @@ pub enum BinOpKind {
 	Assign,
 	MulAssign,
 	DivAssign,
-	ModAssign,
+	RemAssign,
 	AddAssign,
 	SubAssign,
 	LShiftAssign,

@@ -263,7 +263,7 @@ AssignmentOperator: BinOp = {
 	<op:"=">   => BinOp{span: op.to_span(), kind: BinOpKind::Assign      },
 	<op:"*=">  => BinOp{span: op.to_span(), kind: BinOpKind::MulAssign   },
 	<op:"/=">  => BinOp{span: op.to_span(), kind: BinOpKind::DivAssign   },
-	<op:"%=">  => BinOp{span: op.to_span(), kind: BinOpKind::ModAssign   },
+	<op:"%=">  => BinOp{span: op.to_span(), kind: BinOpKind::RemAssign   },
 	<op:"+=">  => BinOp{span: op.to_span(), kind: BinOpKind::AddAssign   },
 	<op:"-=">  => BinOp{span: op.to_span(), kind: BinOpKind::SubAssign   },
 	<op:"<<="> => BinOp{span: op.to_span(), kind: BinOpKind::LShiftAssign},
