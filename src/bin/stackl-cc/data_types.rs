@@ -176,22 +176,23 @@ impl TypeKind {
 			}
 			qual_str.push_str("restrict");
 		}
+		let space = if qual_str.is_empty() { "" } else { " " };
 		match self {
 			Self::Void => format!("void{context}"),
-			Self::Scalar(ScalarType::Bool) => format!("{qual_str} _Bool{context}"),
-			Self::Scalar(ScalarType::U8) => format!("{qual_str} unsigned char{context}"),
-			Self::Scalar(ScalarType::I8) => format!("{qual_str} char{context}"),
-			Self::Scalar(ScalarType::U16) => format!("{qual_str} unsigned short{context}"),
-			Self::Scalar(ScalarType::I16) => format!("{qual_str} short{context}"),
-			Self::Scalar(ScalarType::U32) => format!("{qual_str} unsigned int{context}"),
-			Self::Scalar(ScalarType::I32) => format!("{qual_str} int{context}"),
-			Self::Scalar(ScalarType::U64) => format!("{qual_str} unsigned long int{context}"),
-			Self::Scalar(ScalarType::I64) => format!("{qual_str} long int{context}"),
-			Self::Scalar(ScalarType::U128) => format!("{qual_str} unsigned long long int{context}"),
-			Self::Scalar(ScalarType::I128) => format!("{qual_str} long long int{context}"),
-			Self::Scalar(ScalarType::Float) => format!("{qual_str} float{context}"),
-			Self::Scalar(ScalarType::Double) => format!("{qual_str} double{context}"),
-			Self::Scalar(ScalarType::LongDouble) => format!("{qual_str} long double{context}"),
+			Self::Scalar(ScalarType::Bool) => format!("{qual_str}{space}_Bool{context}"),
+			Self::Scalar(ScalarType::U8) => format!("{qual_str}{space}unsigned char{context}"),
+			Self::Scalar(ScalarType::I8) => format!("{qual_str}{space}char{context}"),
+			Self::Scalar(ScalarType::U16) => format!("{qual_str}{space}unsigned short{context}"),
+			Self::Scalar(ScalarType::I16) => format!("{qual_str}{space}short{context}"),
+			Self::Scalar(ScalarType::U32) => format!("{qual_str}{space}unsigned int{context}"),
+			Self::Scalar(ScalarType::I32) => format!("{qual_str}{space}int{context}"),
+			Self::Scalar(ScalarType::U64) => format!("{qual_str}{space}unsigned long int{context}"),
+			Self::Scalar(ScalarType::I64) => format!("{qual_str}{space}long int{context}"),
+			Self::Scalar(ScalarType::U128) => format!("{qual_str}{space}unsigned long long int{context}"),
+			Self::Scalar(ScalarType::I128) => format!("{qual_str}{space}long long int{context}"),
+			Self::Scalar(ScalarType::Float) => format!("{qual_str}{space}float{context}"),
+			Self::Scalar(ScalarType::Double) => format!("{qual_str}{space}double{context}"),
+			Self::Scalar(ScalarType::LongDouble) => format!("{qual_str}{space}long double{context}"),
 			Self::Pointer(inner) => {
 				let mut new_context = format!("*{qual_str}");
 				new_context.push_str(&context);

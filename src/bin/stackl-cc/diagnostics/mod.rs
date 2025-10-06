@@ -240,9 +240,14 @@ impl DiagnosticEngine {
 				let msg0 = format!("type defaults to 'int' in declaration of type name");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::ArrayOfFunctions(ident) => {
+			DiagKind::ArrayOfFunctions{name: Some(name), dtype} => {
 				let msg0 =
-					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
+					format!("'{name}' declared as array of functions of type '{dtype}'");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
+			DiagKind::ArrayOfFunctions{name: None, dtype} => {
+				let msg0 =
+					format!("type name declared as array of functions of type '{dtype}'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
 			DiagKind::UnrecognizedToken { token, expected } => {

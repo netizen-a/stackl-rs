@@ -7,6 +7,9 @@ use crate::analysis::syn;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::cli::WarnLevel;
+use crate::data_types::DataType;
+use crate::data_types::FuncType;
+use crate::data_types::TypeKind;
 use crate::data_types as dtype;
 use crate::diagnostics::*;
 use crate::symtab::SymbolTableError;
@@ -228,8 +231,9 @@ impl super::SemanticParser {
 		init_list_count: Option<u32>,
 	) {
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
+		let mut last_is_arr = false;
 		// first iteration is for type checking
-		for declarator in decl_list.iter() {
+		for declarator in decl_list.iter_mut() {
 			match declarator {
 				Declarator::Array(array) => {
 					if array.has_star && decl_type != DeclType::Proto {
@@ -246,27 +250,56 @@ impl super::SemanticParser {
 						}
 					}
 					last_is_ptr = false;
+					last_is_arr = true;
 				}
 				Declarator::Pointer(_) => {
 					last_is_ptr = true;
+					last_is_arr = false;
 				}
 				Declarator::IdentList(_) => {
-					if !last_is_ptr {
+					if last_is_arr {
+						let error_type = DataType {
+							kind: TypeKind::Function(FuncType { params: vec![], ret: Box::new(data_type.clone()), is_variadic: false, is_inline: false }),
+							qual: Default::default(),
+						};
+						let kind = DiagKind::ArrayOfFunctions{name: name.clone(), dtype: error_type};
+						let diag = Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+						data_type.kind = dtype::TypeKind::Poison;
+					} else if !last_is_ptr {
 						let kind = DiagKind::FnRetFn(name.clone());
 						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						data_type.kind = dtype::TypeKind::Poison;
 					}
 					last_is_ptr = false;
+					last_is_arr = false;
 				}
-				Declarator::ParamList(_) => {
-					if !last_is_ptr {
+				Declarator::ParamList(type_list) => {
+					if last_is_arr {
+						if DeclType::FnDef == decl_type && is_param {
+							decl_type = DeclType::Proto;
+						}
+						let Some(params) = self.param_list(type_list, decl_type) else {
+							data_type.kind = dtype::TypeKind::Poison;
+							return;
+						};
+						let error_type = DataType {
+							kind: TypeKind::Function(FuncType { params: vec![], ret: Box::new(data_type.clone()), is_variadic: false, is_inline: false }),
+							qual: Default::default(),
+						};
+						let kind = DiagKind::ArrayOfFunctions{name: name.clone(), dtype: error_type.clone()};
+						let diag = Diagnostic::error(kind, span.clone());
+						self.diagnostics.push(diag);
+						data_type.kind = dtype::TypeKind::Poison;
+					} else if !last_is_ptr {
 						let kind = DiagKind::FnRetFn(name.clone());
 						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						data_type.kind = dtype::TypeKind::Poison;
 					}
 					last_is_ptr = false;
+					last_is_arr = false;
 				}
 			};
 		}
