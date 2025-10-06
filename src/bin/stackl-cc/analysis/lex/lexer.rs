@@ -11,6 +11,7 @@ pub struct Lexer {
 	span: diag::Span,
 	leading_space: bool,
 	include_state: u8,
+	is_comment: bool,
 }
 
 impl ToSpan for Lexer {
@@ -33,6 +34,7 @@ impl Lexer {
 				name_id: file_id,
 				..Default::default()
 			},
+			is_comment: false,
 		}
 	}
 
@@ -265,6 +267,59 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
+	fn get_newline(&mut self, new_line: char) -> tok::PPToken {
+		let mut name = String::new();
+		self.span.line += 1;
+		name.push(new_line);
+		if new_line == '\r' {
+			if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '\n') {
+				self.set_end(pos);
+				name.push('\n');
+			}
+		}
+		self.include_state = 1;
+		let new_line = tok::NewLine {
+			name,
+			is_deleted: false,
+		};
+		tok::PPToken {
+			kind: tok::PPTokenKind::NewLine(new_line),
+			leading_space: self.leading_space,
+			span: self.to_span(),
+		}
+	}
+	fn seek_end_comment(
+		&mut self,
+		found_end: &mut bool,
+		last_c: &mut char,
+	) -> Option<tok::PPToken> {
+		for (_, c) in self.chars.by_ref() {
+			match (*last_c, c) {
+				('*', '/') => {
+					*found_end = true;
+					self.is_comment = false;
+					break;
+				}
+				(
+					new_line @ ('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}'
+					| '\u{2029}'),
+					_,
+				)
+				| (
+					_,
+					new_line @ ('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}'
+					| '\u{2029}'),
+				) => {
+					return Some(self.get_newline(new_line));
+				}
+				_ => {
+					// do nothing
+				}
+			}
+			*last_c = c;
+		}
+		None
+	}
 }
 
 impl Iterator for Lexer {
@@ -282,10 +337,22 @@ impl Iterator for Lexer {
 			}
 		}
 
-		let (pos, c) = self.chars.next()?;
+		let (mut pos, mut c) = self.chars.next()?;
 		self.set_start(pos);
 		self.set_end(pos);
 		let mut curr_pos = pos;
+
+		if self.is_comment
+			&& !matches!(
+				c,
+				'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}'
+			) {
+			let mut found_end = false;
+			if let Some(token) = self.seek_end_comment(&mut found_end, &mut c) {
+				return Some(Ok(token));
+			}
+			(pos, c) = self.chars.next()?;
+		}
 
 		if c == '"' {
 			if self.include_state == 3 {
@@ -304,26 +371,7 @@ impl Iterator for Lexer {
 		let mut name = String::new();
 		match c {
 			new_line @ ('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}'
-			| '\u{2029}') => {
-				self.span.line += 1;
-				name.push(new_line);
-				if c == '\r' {
-					if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '\n') {
-						self.set_end(pos);
-						name.push('\n');
-					}
-				}
-				self.include_state = 1;
-				let new_line = tok::NewLine {
-					name,
-					is_deleted: false,
-				};
-				Some(Ok(tok::PPToken {
-					kind: tok::PPTokenKind::NewLine(new_line),
-					leading_space: self.leading_space,
-					span: self.to_span(),
-				}))
-			}
+			| '\u{2029}') => Some(Ok(self.get_newline(new_line))),
 			// punctuators without trailing characters
 			'[' | ']' | '(' | ')' | '{' | '}' | '?' | ',' | '~' | ';' => {
 				self.include_state = 0;
@@ -375,7 +423,6 @@ impl Iterator for Lexer {
 			'.' => {
 				// case: `.`
 				self.include_state = 0;
-				name.push(c);
 				if self.chars.next_if(|&(_, c)| c == '.').is_some() {
 					// case: `..`
 					if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '.') {
@@ -439,7 +486,6 @@ impl Iterator for Lexer {
 				if self.include_state == 1 {
 					self.include_state = 2;
 				}
-				name.push(c);
 				if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '#') {
 					self.include_state = 0;
 					self.set_end(pos);
@@ -481,35 +527,30 @@ impl Iterator for Lexer {
 				self.include_state = 0;
 				let term = if self.chars.next_if(|&(_, c)| c == '/').is_some() {
 					// case: `//`
-					name.push_str("//");
-					while let Some((_, c)) = self.chars.next_if(|&(_, c)| c != '\n') {
-						name.push(c);
-					}
+					while let Some((_, c)) = self.chars.next_if(|&(_, c)| c != '\n') {}
 					return self.next();
 				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
 					// case: `/=`
 					self.set_end(pos);
 					tok::Punct::PlusEqual
 				} else if self.chars.next_if(|&(_, c)| c == '*').is_some() {
-					name.push_str("/*");
+					self.is_comment = true;
 					let Some((pos, mut last_c)) = self.chars.next() else {
 						return Some(Err(diag::Diagnostic::error(
 							diag::DiagKind::UnexpectedEof,
 							self.to_span(),
 						)));
 					};
-					self.set_end(pos);
-					name.push(last_c);
 					let mut found_end = false;
-					for (_, c) in self.chars.by_ref() {
-						name.push(c);
-						if last_c == '*' && c == '/' {
-							found_end = true;
-							break;
-						}
-						last_c = c;
+					// println!("multi comment");
+					if let Some(token) = self.seek_end_comment(&mut found_end, &mut last_c) {
+						return Some(Ok(token));
 					}
+					// println!("end multi comment");
+
+					self.set_end(pos);
 					if found_end {
+						self.is_comment = false;
 						return self.next();
 					} else {
 						return Some(Err(diag::Diagnostic::error(

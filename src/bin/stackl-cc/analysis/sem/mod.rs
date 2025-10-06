@@ -8,10 +8,10 @@ mod stmt;
 use crate::analysis::syn::{self, *};
 use crate::cli;
 use crate::data_types::DataType;
-use crate::diagnostics::DiagnosticEngine;
+use crate::diagnostics::*;
 use crate::symtab::SymbolTable;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Namespace {
 	Label(String),
 	Tag(String),
@@ -31,6 +31,7 @@ pub struct SymbolTableEntry {
 	pub data_type: DataType,
 	pub storage: StorageClass,
 	pub linkage: Linkage,
+	pub span: Span,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -71,7 +72,7 @@ impl SemanticParser {
 				Error => {
 					self.tree_builder.add_empty_child("error".to_string());
 					is_valid &= false;
-				},
+				}
 			}
 		}
 		match is_valid {

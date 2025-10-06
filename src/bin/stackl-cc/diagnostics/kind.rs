@@ -11,7 +11,10 @@ pub enum DiagKind {
 	ErrorDirective(String),
 	UnexpectedEof,
 	UnexpectedEscape,
-	UnrecognizedToken { expected: Vec<String> },
+	UnrecognizedToken {
+		token: String,
+		expected: Vec<String>,
+	},
 	InvalidToken,
 	ExtraToken,
 	//HeaderNameError,

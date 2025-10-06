@@ -27,7 +27,13 @@ impl super::SemanticParser {
 			let ident = &init_decl.identifier;
 			{
 				let span = ident.to_span();
-				self.tree_builder.begin_child(format!("init-declarator <{}:{}> {}", span.loc.0, span.loc.1, ident.name));
+				let (actual_line, reported_line, col) =
+					self.diagnostics.get_location(&span).unwrap();
+				let text = format!(
+					"init-declarator <line:{actual_line}:{reported_line}, col:{col}> {}",
+					ident.name
+				);
+				self.tree_builder.begin_child(text);
 			}
 			let mut init_list_count = None;
 			if let Some(ref mut init) = init_decl.initializer {
@@ -54,13 +60,16 @@ impl super::SemanticParser {
 				data_type: var_dtype,
 				linkage,
 				storage,
+				span: ident.to_span(),
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
-			match self.symtab.insert(key, entry) {
+			match self.symtab.insert(key.clone(), entry) {
 				Err(SymbolTableError::AlreadyExists) => {
-					// let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
-					// let error = Diagnostic::error(kind, ident.to_span());
-					// self.diagnostics.push(error);
+					// test warning
+					let entry = self.symtab.global_lookup(&key).unwrap();
+					let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
+					let error = Diagnostic::warn(kind, entry.span.clone());
+					self.diagnostics.push(error);
 				}
 				Err(SymbolTableError::InvalidScope) => {
 					// this should never happen
@@ -92,7 +101,8 @@ impl super::SemanticParser {
 		struct_decl: &mut StructDeclaration,
 		member_is_named: &mut bool,
 	) -> Option<Vec<dtype::MemberType>> {
-		self.tree_builder.begin_child("struct-declarator".to_string());
+		self.tree_builder
+			.begin_child("struct-declarator".to_string());
 		let mut result = vec![];
 		let mut is_valid = true;
 		// only type-specifier and type-qualifier is syntactically allowed here.
@@ -197,12 +207,11 @@ impl super::SemanticParser {
 	fn initializer(&mut self, init: &mut Initializer, list_count: &mut Option<u32>) -> bool {
 		let mut is_valid = true;
 		match init {
-			Initializer::Expr(expr) => {
-				is_valid &= !self.expr(expr).is_poisoned()
-			},
+			Initializer::Expr(expr) => is_valid &= !self.expr(expr).is_poisoned(),
 			Initializer::InitializerList(InitializerList(list)) => {
 				*list_count = Some(list.len().try_into().unwrap());
-				self.tree_builder.add_empty_child("initializer-list".to_string());
+				self.tree_builder
+					.add_empty_child("initializer-list".to_string());
 			}
 		}
 		is_valid
@@ -322,16 +331,14 @@ impl super::SemanticParser {
 						qual: type_qual,
 					}
 				}
-				Declarator::Pointer(pointer) => {
-					dtype::DataType {
-						kind: dtype::TypeKind::Pointer(Box::new(data_type.clone())),
-						qual: dtype::TypeQual {
-							is_const: pointer.is_const,
-							is_restrict: pointer.is_restrict,
-							is_volatile: pointer.is_volatile,
-						},
-					}
-				}
+				Declarator::Pointer(pointer) => dtype::DataType {
+					kind: dtype::TypeKind::Pointer(Box::new(data_type.clone())),
+					qual: dtype::TypeQual {
+						is_const: pointer.is_const,
+						is_restrict: pointer.is_restrict,
+						is_volatile: pointer.is_volatile,
+					},
+				},
 				Declarator::IdentList(ident_list) => {
 					// TODO: check if this error is valid
 					if ident_list.ident_list.len() > 0 {

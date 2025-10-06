@@ -183,7 +183,7 @@ impl TypeKind {
 				context.push_str("[]");
 				component.kind.get_render(context)
 			}
-			Self::Function(FuncType { params, ret, ..}) => {
+			Self::Function(FuncType { params, ret, .. }) => {
 				let mut new_context = String::new();
 				new_context.push_str(&ret.kind.get_render("".to_string()));
 				if !context.is_empty() {
@@ -201,7 +201,7 @@ impl TypeKind {
 				new_context.push(')');
 				new_context
 			}
-			_ => todo!()
+			_ => todo!(),
 		}
 	}
 }
@@ -259,7 +259,11 @@ pub struct DataType {
 impl DataType {
 	pub const POISON: DataType = DataType {
 		kind: TypeKind::Poison,
-		qual: TypeQual { is_const: false, is_volatile: false, is_restrict: false }
+		qual: TypeQual {
+			is_const: false,
+			is_volatile: false,
+			is_restrict: false,
+		},
 	};
 	#[inline]
 	pub const fn is_poisoned(&self) -> bool {

@@ -6,7 +6,8 @@ use crate::{cli::WarnLevel, data_types as dtype};
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
 		let func_ident = &decl.ident;
-		self.tree_builder.begin_child(format!("function-definition {}", func_ident.name.clone()));
+		self.tree_builder
+			.begin_child(format!("function-definition {}", func_ident.name.clone()));
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 
@@ -62,6 +63,7 @@ impl super::SemanticParser {
 					},
 					linkage,
 					storage,
+					span: decl.ident.to_span(),
 				};
 				let key = Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
@@ -87,7 +89,6 @@ impl super::SemanticParser {
 					is_variadic,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
-				// TODO: qualifiers
 				let entry = SymbolTableEntry {
 					data_type: dtype::DataType {
 						kind: dtype::TypeKind::Function(func_type),
@@ -95,6 +96,7 @@ impl super::SemanticParser {
 					},
 					linkage,
 					storage,
+					span: decl.ident.to_span(),
 				};
 				let key = Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
@@ -106,8 +108,9 @@ impl super::SemanticParser {
 				self.tree_builder.end_child();
 				return false;
 			}
-			None | Some(syn::Declarator::Pointer(_)) => {
+			token @ (None | Some(syn::Declarator::Pointer(_))) => {
 				let kind = diag::DiagKind::UnrecognizedToken {
+					token: format!("{token:?}"),
 					expected: vec![
 						"\"=\"".to_string(),
 						"\",\"".to_string(),
@@ -125,7 +128,8 @@ impl super::SemanticParser {
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, syn::StorageClass::Auto);
 			}
-			self.tree_builder.begin_child("compound-stmt { }".to_string());
+			self.tree_builder
+				.begin_child("compound-stmt { }".to_string());
 			for item in decl.compound_stmt.blocks.iter_mut() {
 				self.block_item(item);
 			}

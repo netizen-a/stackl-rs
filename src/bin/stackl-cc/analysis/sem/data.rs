@@ -10,6 +10,11 @@ pub enum CastScore {
 	FloatingToIntegral = 2,
 }
 
+pub enum ValueCategory {
+	RValue,
+	LValue,
+}
+
 impl super::SemanticParser {
 	pub(super) fn unwrap_or_poison(
 		&mut self,
@@ -29,7 +34,12 @@ impl super::SemanticParser {
 			}
 		}
 	}
-	pub(super) fn dtype_eq(&mut self, lhs: &DataType, rhs: &DataType, callee_span: Span) -> Result<bool, DataType> {
+	pub(super) fn dtype_eq(
+		&mut self,
+		lhs: &DataType,
+		rhs: &DataType,
+		callee_span: Span,
+	) -> Result<bool, DataType> {
 		match (&lhs.kind, &rhs.kind) {
 			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => Ok(l_scalar == r_scalar),
 			(TypeKind::Pointer(l_ptr), TypeKind::Pointer(r_ptr)) => {
@@ -71,7 +81,6 @@ impl super::SemanticParser {
 			(_, _) => todo!(),
 		}
 	}
-	// (int)(5)
 
 	// code gen here
 	pub fn try_convert(&mut self, from: &Expr, to: DataType) -> Option<(CastScore, Expr)> {

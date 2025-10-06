@@ -80,10 +80,16 @@ impl DiagnosticEngine {
 			.get_by_right::<Path>(name.as_ref())
 			.map(|p| *p)
 	}
-	pub fn get_file_data(&self, id: usize) -> Option<&String> {
-		self.source_map.get(&id)
+	pub fn get_file_data(&self, id: usize) -> Option<&str> {
+		self.source_map.get(&id).map(|x| x.as_str())
 	}
-	pub fn insert_file_info<P>(&mut self, id: usize, full_path: P) -> io::Result<&String>
+	/// This function returns (actual line, reported line, column)
+	pub fn get_location(&self, span: &Span) -> Option<(usize, usize, usize)> {
+		let source = self.get_file_data(span.file_id)?;
+		let (line, col) = span.get_location(source)?;
+		Some((line, span.line, col))
+	}
+	pub fn insert_file_info<P>(&mut self, id: usize, full_path: P) -> io::Result<&str>
 	where
 		P: AsRef<Path>,
 	{
@@ -117,10 +123,11 @@ impl DiagnosticEngine {
 		self.syntax_errors.clear();
 		self.list_other.clear();
 	}
-	fn print_parse_errors<T>(&self, level: DiagLevel, error: &ParseError<usize, T, Diagnostic>)
-	where
-		T: ToSpan,
-	{
+	fn print_parse_errors(
+		&self,
+		level: DiagLevel,
+		error: &ParseError<usize, tok::Token, Diagnostic>,
+	) {
 		match &error {
 			ParseError::ExtraToken { token } => {
 				let span = token.1.to_span();
@@ -178,7 +185,10 @@ impl DiagnosticEngine {
 
 				let diag = Diagnostic {
 					level,
-					kind: DiagKind::UnrecognizedToken { expected: pruned },
+					kind: DiagKind::UnrecognizedToken {
+						token: format!("{:?}", token.1.kind),
+						expected: pruned,
+					},
 					span: Some(token.1.to_span()),
 					notes: vec![],
 				};
@@ -235,8 +245,8 @@ impl DiagnosticEngine {
 					format!("'{ident}' declared as array of functions of type '<NOT IMPLEMENTED>'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
-			DiagKind::UnrecognizedToken { expected } => {
-				let msg0 = "unrecognized token";
+			DiagKind::UnrecognizedToken { token, expected } => {
+				let msg0 = format!("unrecognized token {token}");
 				let mut msg1 = String::from("expected ");
 				for (i, elem) in expected.iter().enumerate() {
 					if i != 0 {
@@ -257,7 +267,7 @@ impl DiagnosticEngine {
 						elem_str => msg1.push_str(elem_str),
 					}
 				}
-				self.format_diagnostic(&diag, msg0, &msg1)
+				self.format_diagnostic(&diag, msg0.as_str(), &msg1)
 			}
 			DiagKind::FnRetFn(Some(name)) => {
 				let msg0 = format!("'{name}' declared as function returning function");
@@ -450,8 +460,8 @@ impl DiagnosticEngine {
 			"{color_bold_white}{}{color_default}\n",
 			msg0.as_ref()
 		));
-		let mut line = span.line;
-		let col = span.column(source.as_ref()).unwrap();
+		let (_actual_line, reported_line, col) = self.get_location(&span).unwrap();
+		let mut line = reported_line;
 		let mut hi_line = line;
 		let source_triple = span.to_vec(source.as_ref());
 		let triple_len = source_triple.len();

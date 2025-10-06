@@ -13,6 +13,7 @@ pub struct Diagnostic {
 	pub kind: kind::DiagKind,
 	pub span: Option<Span>,
 	pub(super) notes: Vec<String>,
+	// pub(super)
 }
 
 impl Diagnostic {

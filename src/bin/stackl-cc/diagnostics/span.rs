@@ -19,20 +19,21 @@ impl ToSpan for Span {
 }
 
 impl Span {
-	pub fn column(&self, source: &str) -> Option<usize> {
-		let mut column = 0;
+	pub fn get_location(&self, source: &str) -> Option<(usize, usize)> {
+		let (mut line, mut column) = (1, 0);
 		let mut last_byte = 1;
 		for byte in source.as_bytes().get(0..=self.loc.0)? {
 			if last_byte == b'\n' {
 				column = 0;
+				line += 1;
 			}
 			column += 1;
 			last_byte = *byte;
 		}
-		Some(column)
+		Some((line, column))
 	}
 	pub fn to_vec(&self, source: &str) -> Vec<(usize, String, usize)> {
-		let column = self.column(source).unwrap();
+		let (_, column) = self.get_location(source).unwrap();
 		let mut length = self.loc.1 - self.loc.0;
 		let line_min = source[..self.loc.0].chars().filter(|x| *x == '\n').count();
 		let line_max = source[..self.loc.1].chars().filter(|x| *x == '\n').count();

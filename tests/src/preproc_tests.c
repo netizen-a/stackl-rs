@@ -6,8 +6,8 @@
 // #define __DATE__
 // #define __FILE__
 // #define __LINE__
-#include "random header"
-#define __STDC__
+// #include "random header"
+// #define __STDC__
 
 // #undef FOO bar baz 128 "so many extra tokens"
 // #include <foo.h> and even more 128 right here ???
@@ -18,7 +18,13 @@
 
 // unsigned struct Bar {} bar;
 
-#line 8 "different source" "invalid string"
+#line 8 "different source"
+
+/*
+   this is a 
+   multiline comment
+   
+*/
 
 signed struct Baz {} baz;
 

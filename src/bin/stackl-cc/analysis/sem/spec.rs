@@ -47,7 +47,8 @@ impl super::SemanticParser {
 			storage_class = None;
 		}
 		if let Some(specifier) = &storage_class {
-			self.tree_builder.add_empty_child(format!("storage-class {}", specifier.kind));
+			self.tree_builder
+				.add_empty_child(format!("storage-class {}", specifier.kind));
 			storage_class
 		} else {
 			None
@@ -334,14 +335,17 @@ impl super::SemanticParser {
 						Some(dtype::TypeKind::Scalar(_) | dtype::TypeKind::Poison) | None => {
 							// do nothing
 						}
-						Some(_) => {
+						Some(token) => {
 							let expected = vec![
 								"identifier".to_string(),
 								"\";\"".to_string(),
 								"\"(\"".to_string(),
 							];
 							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::UnrecognizedToken { expected },
+								diag::DiagKind::UnrecognizedToken {
+									token: format!("{token:?}"),
+									expected,
+								},
 								span.clone(),
 							));
 							type_kind = Some(dtype::TypeKind::Poison);
@@ -393,14 +397,17 @@ impl super::SemanticParser {
 						Some(dtype::TypeKind::Scalar(_) | dtype::TypeKind::Poison) | None => {
 							// do nothing
 						}
-						Some(_) => {
+						Some(token) => {
 							let expected = vec![
 								"identifier".to_string(),
 								"\";\"".to_string(),
 								"\"(\"".to_string(),
 							];
 							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::UnrecognizedToken { expected },
+								diag::DiagKind::UnrecognizedToken {
+									token: format!("{token:?}"),
+									expected,
+								},
 								span.clone(),
 							));
 							type_kind = Some(dtype::TypeKind::Poison);

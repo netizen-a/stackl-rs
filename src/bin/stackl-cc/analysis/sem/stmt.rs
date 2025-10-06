@@ -3,7 +3,8 @@ use crate::diagnostics as diag;
 
 impl super::SemanticParser {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
-		self.tree_builder.begin_child("compund-statement { }".to_string());
+		self.tree_builder
+			.begin_child("compund-statement { }".to_string());
 		self.symtab.increase_scope();
 		for item in stmt.blocks.iter_mut() {
 			self.block_item(item);
@@ -31,7 +32,7 @@ impl super::SemanticParser {
 				if let Some(expr) = &mut expr_stmt.0 {
 					is_valid &= !self.expr(expr).is_poisoned();
 				}
-			},
+			}
 			Stmt::Select(stmt) => {
 				self.selection_stmt(stmt);
 			}
@@ -43,9 +44,14 @@ impl super::SemanticParser {
 		is_valid
 	}
 	fn selection_stmt(&mut self, stmt: &mut SelectStmt) {
-		self.tree_builder.begin_child("selection-statement".to_string());
+		self.tree_builder
+			.begin_child("selection-statement".to_string());
 		match stmt {
-			SelectStmt::If { stmt_cond, stmt_then, stmt_else } => {
+			SelectStmt::If {
+				stmt_cond,
+				stmt_then,
+				stmt_else,
+			} => {
 				self.stmt_if(stmt_cond);
 				self.stmt_then(stmt_then);
 				if let Some(stmt_else) = stmt_else {
@@ -57,7 +63,8 @@ impl super::SemanticParser {
 		self.tree_builder.end_child();
 	}
 	fn stmt_if(&mut self, stmt_cond: &mut Expr) {
-		self.tree_builder.begin_child("if ( expression )".to_string());
+		self.tree_builder
+			.begin_child("if ( expression )".to_string());
 		if let Expr::Binary(ExprBinary {
 			op: BinOp {
 				span,

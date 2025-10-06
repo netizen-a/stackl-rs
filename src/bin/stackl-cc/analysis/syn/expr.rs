@@ -3,8 +3,8 @@ use std::f32;
 use super::decl;
 use super::Identifier;
 use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
-use crate::diagnostics::ToSpan;
 use crate::diagnostics as diag;
+use crate::diagnostics::ToSpan;
 
 pub enum ConversionError {
 	OutOfRange,
