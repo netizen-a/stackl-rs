@@ -8,8 +8,17 @@ void foo(void) {
             y;
 }
 
-int foo();
+struct Foo {
+    int x;
+    int **y;
+};
+
+
+
 int main() {
-    int (*bar)() = foo;
+    struct Foo { int x; } k;
+    int (*bar)() = k;
     foo = bar;
 }
+
+

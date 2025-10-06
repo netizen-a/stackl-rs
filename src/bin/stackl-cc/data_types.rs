@@ -159,21 +159,21 @@ pub enum TypeKind {
 impl TypeKind {
 	fn get_render(&self, mut context: String) -> String {
 		match self {
-			Self::Void => format!("void {context}"),
-			Self::Scalar(ScalarType::Bool) => format!("_Bool {context}"),
-			Self::Scalar(ScalarType::U8) => format!("unsigned char {context}"),
-			Self::Scalar(ScalarType::I8) => format!("char {context}"),
-			Self::Scalar(ScalarType::U16) => format!("unsigned short {context}"),
-			Self::Scalar(ScalarType::I16) => format!("short {context}"),
-			Self::Scalar(ScalarType::U32) => format!("unsigned int {context}"),
-			Self::Scalar(ScalarType::I32) => format!("int {context}"),
-			Self::Scalar(ScalarType::U64) => format!("unsigned long int {context}"),
-			Self::Scalar(ScalarType::I64) => format!("long int {context}"),
-			Self::Scalar(ScalarType::U128) => format!("unsigned long long int {context}"),
-			Self::Scalar(ScalarType::I128) => format!("long long int {context}"),
-			Self::Scalar(ScalarType::Float) => format!("float {context}"),
-			Self::Scalar(ScalarType::Double) => format!("double {context}"),
-			Self::Scalar(ScalarType::LongDouble) => format!("long double {context}"),
+			Self::Void => format!("void{context}"),
+			Self::Scalar(ScalarType::Bool) => format!("_Bool{context}"),
+			Self::Scalar(ScalarType::U8) => format!("unsigned char{context}"),
+			Self::Scalar(ScalarType::I8) => format!("char{context}"),
+			Self::Scalar(ScalarType::U16) => format!("unsigned short{context}"),
+			Self::Scalar(ScalarType::I16) => format!("short{context}"),
+			Self::Scalar(ScalarType::U32) => format!("unsigned int{context}"),
+			Self::Scalar(ScalarType::I32) => format!("int{context}"),
+			Self::Scalar(ScalarType::U64) => format!("unsigned long int{context}"),
+			Self::Scalar(ScalarType::I64) => format!("long int{context}"),
+			Self::Scalar(ScalarType::U128) => format!("unsigned long long int{context}"),
+			Self::Scalar(ScalarType::I128) => format!("long long int{context}"),
+			Self::Scalar(ScalarType::Float) => format!("float{context}"),
+			Self::Scalar(ScalarType::Double) => format!("double{context}"),
+			Self::Scalar(ScalarType::LongDouble) => format!("long double{context}"),
 			Self::Pointer(inner) => {
 				let mut new_context = String::from("*");
 				new_context.push_str(&context);
@@ -185,7 +185,7 @@ impl TypeKind {
 			}
 			Self::Function(FuncType { params, ret, .. }) => {
 				let mut new_context = String::new();
-				new_context.push_str(&ret.kind.get_render("".to_string()));
+				new_context.push_str(&ret.kind.get_render(" ".to_string()));
 				if !context.is_empty() {
 					new_context.push('(');
 					new_context.push_str(&context);
@@ -201,6 +201,21 @@ impl TypeKind {
 				new_context.push(')');
 				new_context
 			}
+			Self::Struct(StructType {
+				members,
+				is_incomplete,
+			}) => {
+				if *is_incomplete {
+					String::from("struct")
+				} else {
+					let mut s = String::from("struct {");
+					for mem in members {
+						s.push_str(&format!("{mem}"));
+					}
+					s.push_str("}");
+					s
+				}
+			}
 			_ => todo!(),
 		}
 	}
@@ -208,45 +223,7 @@ impl TypeKind {
 
 impl fmt::Display for TypeKind {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match self {
-			Self::Void => write!(f, "void"),
-			Self::Scalar(ScalarType::Bool) => write!(f, "_Bool"),
-			Self::Scalar(ScalarType::U8) => write!(f, "unsigned char"),
-			Self::Scalar(ScalarType::I8) => write!(f, "char"),
-			Self::Scalar(ScalarType::U16) => write!(f, "unsigned short"),
-			Self::Scalar(ScalarType::I16) => write!(f, "short"),
-			Self::Scalar(ScalarType::U32) => write!(f, "unsigned int"),
-			Self::Scalar(ScalarType::I32) => write!(f, "int"),
-			Self::Scalar(ScalarType::U64) => write!(f, "unsigned long int"),
-			Self::Scalar(ScalarType::I64) => write!(f, "long int"),
-			Self::Scalar(ScalarType::U128) => write!(f, "unsigned long long int"),
-			Self::Scalar(ScalarType::I128) => write!(f, "long long int"),
-			Self::Scalar(ScalarType::Float) => write!(f, "float"),
-			Self::Scalar(ScalarType::Double) => write!(f, "double"),
-			Self::Scalar(ScalarType::LongDouble) => write!(f, "long double"),
-			Self::Struct(StructType {
-				members,
-				is_incomplete,
-			}) => {
-				if *is_incomplete {
-					write!(f, "struct")
-				} else {
-					let mut s = String::from("struct {{\n");
-					for mem in members {
-						s.push_str(&format!("    {mem}"));
-					}
-					s.push_str("}}");
-					write!(f, "{s}")
-				}
-			}
-			Self::Function(_) => {
-				write!(f, "{}", self.get_render("".to_string()))
-			}
-			Self::Pointer(_) => {
-				write!(f, "{}", self.get_render("".to_string()))
-			}
-			_ => todo!("{:?}", self),
-		}
+		write!(f, "{}", self.get_render(String::new()))
 	}
 }
 
