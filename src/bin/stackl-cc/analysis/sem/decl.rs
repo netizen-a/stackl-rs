@@ -285,7 +285,7 @@ impl super::SemanticParser {
 							return;
 						};
 						let error_type = DataType {
-							kind: TypeKind::Function(FuncType { params: vec![], ret: Box::new(data_type.clone()), is_variadic: false, is_inline: false }),
+							kind: TypeKind::Function(FuncType { params, ret: Box::new(data_type.clone()), is_variadic: false, is_inline: false }),
 							qual: Default::default(),
 						};
 						let kind = DiagKind::ArrayOfFunctions{name: name.clone(), dtype: error_type.clone()};

@@ -12,7 +12,7 @@ void bar(int a1[]);
 
 void baz(int a2[]) {}
 
-int arr_func[]();
+int arr_func[](int x, long y);
 
 
 
