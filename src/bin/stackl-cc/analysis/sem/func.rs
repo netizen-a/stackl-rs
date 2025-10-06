@@ -45,7 +45,7 @@ impl super::SemanticParser {
 				false,
 				DeclType::FnDef,
 				Some(decl.ident.name.clone()),
-				None,
+				vec![],
 			);
 		}
 		match decl.declarators.first_mut() {
@@ -260,7 +260,7 @@ impl super::SemanticParser {
 				true,
 				decl_type,
 				name_opt,
-				None,
+				vec![],
 			);
 			if let dtype::TypeKind::Poison = param_type.kind {
 				return None;

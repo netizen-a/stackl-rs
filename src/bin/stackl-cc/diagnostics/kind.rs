@@ -60,4 +60,7 @@ pub enum DiagKind {
 	StructNoNamedMembers,
 	ArrayArgTooSmall,
 	SymbolAlreadyExists(String),
+	ArrayDeclIncomplete,
+	ArrayExcessElements,
+	VlaInitList,
 }

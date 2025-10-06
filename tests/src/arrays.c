@@ -14,6 +14,11 @@ void baz(int a2[]) {}
 
 int arr_func[](int x, long y);
 
+int t[1][1] = {{0}, 0};
 
+int foo() {
+    int y = 5;
+    int x[y] = {1,2,3,4,5};
+}
 
 

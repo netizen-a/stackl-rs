@@ -708,7 +708,7 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 
 Initializer: Initializer = {
 	AssignmentExpr => Initializer::Expr(<>),
-	"{" <init_list:InitializerList> ","? "}" => Initializer::InitializerList(init_list),
+	<lsqr:"{"> <init_list:InitializerList> ","? "}" => Initializer::InitializerList(lsqr.to_span(), init_list),
 };
 
 InitializerList: InitializerList = {

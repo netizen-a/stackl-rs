@@ -4,6 +4,7 @@ use std::{collections::VecDeque, fmt};
 
 use super::expr;
 use super::Identifier;
+use crate::diagnostics::Span;
 use crate::{
 	analysis::tok,
 	diagnostics::{self as diag, ToSpan},
@@ -244,7 +245,7 @@ pub struct StructDeclarator {
 #[derive(Debug, Clone)]
 pub enum Initializer {
 	Expr(expr::Expr),
-	InitializerList(InitializerList),
+	InitializerList(Span, InitializerList),
 }
 
 #[derive(Debug, Clone)]

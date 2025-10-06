@@ -418,6 +418,18 @@ impl DiagnosticEngine {
 				let msg0 = format!("redefinition of '{name}'");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
+			DiagKind::ArrayDeclIncomplete => {
+				let msg0 = "definition of variable with array type needs an explicit size or an initializer";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::ArrayExcessElements => {
+				let msg0 = "excess elements in array initializer";
+				self.format_diagnostic(&diag, msg0, "")
+			}
+			DiagKind::VlaInitList => {
+				let msg0 = "variable-sized object may not be initialized";
+				self.format_diagnostic(&diag, msg0, "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
