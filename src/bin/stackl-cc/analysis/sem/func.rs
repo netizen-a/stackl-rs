@@ -5,10 +5,10 @@ use crate::{cli::WarnLevel, data_types as dtype};
 
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
-		self.tree_builder.begin_child("function-definition".to_string());
+		let func_ident = &decl.ident;
+		self.tree_builder.begin_child(format!("function-definition {}", func_ident.name.clone()));
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
-		let func_ident = &decl.ident;
 
 		let (storage, linkage) = match &maybe_sc {
 			None

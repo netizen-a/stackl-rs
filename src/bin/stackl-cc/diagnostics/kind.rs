@@ -53,4 +53,5 @@ pub enum DiagKind {
 	DirectivePragma,
 	StructNoNamedMembers,
 	ArrayArgTooSmall,
+	SymbolAlreadyExists(String),
 }

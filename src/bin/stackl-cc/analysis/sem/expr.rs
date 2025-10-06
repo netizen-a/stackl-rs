@@ -12,7 +12,13 @@ impl super::SemanticParser {
 				result
 			},
 			Ident(inner) => {
-				self.tree_builder.add_empty_child(format!("identifier {}", inner.name));
+				let maybe = self.symtab.global_lookup(&crate::analysis::sem::Namespace::Ordinary(inner.name.clone()));
+				if let Some(entry) = maybe {
+					self.tree_builder.add_empty_child(format!("identifier `{}` '{}'", inner.name, entry.data_type));
+				} else {
+					self.tree_builder.add_empty_child(format!("identifier `{}` '<unknown>'", inner.name));
+				}
+
 				dtype::DataType::POISON
 			},
 			Const(inner) => self.expr_const(inner),
@@ -32,7 +38,7 @@ impl super::SemanticParser {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
 				let inner_type = self.expr(&mut *unary.expr);
 				if !inner_type.is_poisoned() {
-					let kind = dtype::TypeKind::Pointer(dtype::PtrType(Box::new(inner_type)));
+					let kind = dtype::TypeKind::Pointer(Box::new(inner_type));
 					result = dtype::DataType{
 						kind,
 						qual: Default::default()
@@ -119,42 +125,42 @@ impl super::SemanticParser {
 	pub(super) fn expr_const(&mut self, constant: &mut Const) -> dtype::DataType {
 		match constant {
 			Const::Integer(IntegerConstant::I32(inner)) => {
-				self.tree_builder.add_empty_child(format!("constant `{inner}` <signed int>"));
+				self.tree_builder.add_empty_child(format!("constant `{inner}` 'signed int'"));
 				dtype::DataType {
 					kind: dtype::TypeKind::Scalar(dtype::ScalarType::I32),
 					qual: Default::default(),
 				}
 			},
 			Const::Integer(IntegerConstant::U32(inner)) => {
-				self.tree_builder.add_empty_child(format!("constant `{inner}` <unsigned int>"));
+				self.tree_builder.add_empty_child(format!("constant `{inner}` 'unsigned int'"));
 				dtype::DataType {
 					kind: dtype::TypeKind::Scalar(dtype::ScalarType::U32),
 					qual: Default::default(),
 				}
 			},
 			Const::Integer(IntegerConstant::I64(inner)) => {
-				self.tree_builder.add_empty_child(format!("constant `{inner}` <signed long int>"));
+				self.tree_builder.add_empty_child(format!("constant `{inner}` 'signed long int'"));
 				dtype::DataType {
 					kind: dtype::TypeKind::Scalar(dtype::ScalarType::I64),
 					qual: Default::default(),
 				}
 			},
 			Const::Integer(IntegerConstant::U64(inner)) => {
-				self.tree_builder.add_empty_child(format!("constant `{inner}` <unsigned long int>"));
+				self.tree_builder.add_empty_child(format!("constant `{inner}` 'unsigned long int'"));
 				dtype::DataType {
 					kind: dtype::TypeKind::Scalar(dtype::ScalarType::U64),
 					qual: Default::default(),
 				}
 			},
 			Const::Integer(IntegerConstant::I128(inner)) => {
-				self.tree_builder.add_empty_child(format!("constant `{inner}` <signed long long int>"));
+				self.tree_builder.add_empty_child(format!("constant `{inner}` 'signed long long int'"));
 				dtype::DataType {
 					kind: dtype::TypeKind::Scalar(dtype::ScalarType::I128),
 					qual: Default::default(),
 				}
 			},
 			Const::Integer(IntegerConstant::U128(inner)) => {
-				self.tree_builder.add_empty_child(format!("constant `{inner}` <unsigned long long int>"));
+				self.tree_builder.add_empty_child(format!("constant `{inner}` 'unsigned long long int'"));
 				dtype::DataType {
 					kind: dtype::TypeKind::Scalar(dtype::ScalarType::U128),
 					qual: Default::default(),

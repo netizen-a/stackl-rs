@@ -8,8 +8,8 @@ use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::cli::WarnLevel;
 use crate::data_types as dtype;
-use crate::diagnostics as diag;
-use crate::diagnostics::ToSpan;
+use crate::diagnostics::*;
+use crate::symtab::SymbolTableError;
 
 impl super::SemanticParser {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
@@ -37,7 +37,7 @@ impl super::SemanticParser {
 				self.unwrap_or_poison(maybe_ty.clone(), Some(ident.name.clone()), ident.to_span());
 			if init_decl.declarator.len() > 12 && self.warn_lvl == WarnLevel::All {
 				// 5.2.4.1 translation limit
-				let diag = diag::Diagnostic::warn(diag::DiagKind::DeclaratorLimit, ident.to_span());
+				let diag = Diagnostic::warn(DiagKind::DeclaratorLimit, ident.to_span());
 				self.diagnostics.push(diag);
 			}
 			let mut var_dtype = data_type.clone();
@@ -56,7 +56,22 @@ impl super::SemanticParser {
 				storage,
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
-			self.symtab.insert(key, entry).unwrap();
+			match self.symtab.insert(key, entry) {
+				Err(SymbolTableError::AlreadyExists) => {
+					// let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
+					// let error = Diagnostic::error(kind, ident.to_span());
+					// self.diagnostics.push(error);
+				}
+				Err(SymbolTableError::InvalidScope) => {
+					// this should never happen
+					let kind = DiagKind::Internal("symbol table has invalid scope".to_string());
+					let error = Diagnostic::fatal(kind, Some(ident.to_span()));
+					self.diagnostics.push_and_exit(error);
+				}
+				Ok(_) => {
+					// all good :)
+				}
+			}
 			self.tree_builder.end_child();
 		}
 		self.tree_builder.end_child();
@@ -113,8 +128,8 @@ impl super::SemanticParser {
 
 			let bits = if let dtype::TypeKind::Scalar(scalar) = &data_type.kind {
 				if !scalar.is_integral() && decl.const_expr.is_some() {
-					let kind = diag::DiagKind::BitfieldNonIntegral(name_opt);
-					let diag = diag::Diagnostic::error(kind, member_span.clone());
+					let kind = DiagKind::BitfieldNonIntegral(name_opt);
+					let diag = Diagnostic::error(kind, member_span.clone());
 					self.diagnostics.push(diag);
 					is_valid = false;
 					data_type.kind = dtype::TypeKind::Poison;
@@ -125,8 +140,8 @@ impl super::SemanticParser {
 						if value <= scalar.bits() {
 							Some(value)
 						} else {
-							let kind = diag::DiagKind::BitfieldRange(name_opt);
-							let diag = diag::Diagnostic::error(kind, member_span.clone());
+							let kind = DiagKind::BitfieldRange(name_opt);
+							let diag = Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 							data_type.kind = dtype::TypeKind::Poison;
@@ -137,8 +152,8 @@ impl super::SemanticParser {
 						// collect errors from expression first
 						is_valid &= !self.expr(&mut expr).is_poisoned();
 						if is_valid {
-							let kind = diag::DiagKind::NonConstExpr;
-							let diag = diag::Diagnostic::error(kind, member_span.clone());
+							let kind = DiagKind::NonConstExpr;
+							let diag = Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 							data_type.kind = dtype::TypeKind::Poison;
@@ -146,8 +161,8 @@ impl super::SemanticParser {
 						continue;
 					}
 					Some(Err(ConversionError::OutOfRange)) => {
-						let kind = diag::DiagKind::BitfieldRange(name_opt);
-						let diag = diag::Diagnostic::error(kind, member_span.clone());
+						let kind = DiagKind::BitfieldRange(name_opt);
+						let diag = Diagnostic::error(kind, member_span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
 						data_type.kind = dtype::TypeKind::Poison;
@@ -156,8 +171,8 @@ impl super::SemanticParser {
 					None => None,
 				}
 			} else if decl.const_expr.is_some() {
-				let kind = diag::DiagKind::BitfieldNonIntegral(name_opt);
-				let diag = diag::Diagnostic::error(kind, member_span.clone());
+				let kind = DiagKind::BitfieldNonIntegral(name_opt);
+				let diag = Diagnostic::error(kind, member_span.clone());
 				self.diagnostics.push(diag);
 				is_valid = false;
 				data_type.kind = dtype::TypeKind::Poison;
@@ -195,7 +210,7 @@ impl super::SemanticParser {
 
 	pub(super) fn declarator_list(
 		&mut self,
-		span: diag::Span,
+		span: Span,
 		decl_list: &mut [Declarator],
 		data_type: &mut dtype::DataType,
 		is_param: bool,
@@ -210,13 +225,13 @@ impl super::SemanticParser {
 				Declarator::Array(array) => {
 					if array.has_star && decl_type != DeclType::Proto {
 						if is_param && decl_type == DeclType::FnDef {
-							let kind = diag::DiagKind::UnboundVLA;
-							let diag = diag::Diagnostic::error(kind, span.clone());
+							let kind = DiagKind::UnboundVLA;
+							let diag = Diagnostic::error(kind, span.clone());
 							self.diagnostics.push(diag);
 							data_type.kind = dtype::TypeKind::Poison;
 						} else if !is_param {
-							let kind = diag::DiagKind::InvalidStar;
-							let diag = diag::Diagnostic::error(kind, array.span.clone());
+							let kind = DiagKind::InvalidStar;
+							let diag = Diagnostic::error(kind, array.span.clone());
 							self.diagnostics.push(diag);
 							data_type.kind = dtype::TypeKind::Poison;
 						}
@@ -228,8 +243,8 @@ impl super::SemanticParser {
 				}
 				Declarator::IdentList(_) => {
 					if !last_is_ptr {
-						let kind = diag::DiagKind::FnRetFn(name.clone());
-						let diag = diag::Diagnostic::error(kind, span.clone());
+						let kind = DiagKind::FnRetFn(name.clone());
+						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						data_type.kind = dtype::TypeKind::Poison;
 					}
@@ -237,8 +252,8 @@ impl super::SemanticParser {
 				}
 				Declarator::ParamList(_) => {
 					if !last_is_ptr {
-						let kind = diag::DiagKind::FnRetFn(name.clone());
-						let diag = diag::Diagnostic::error(kind, span.clone());
+						let kind = DiagKind::FnRetFn(name.clone());
+						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						data_type.kind = dtype::TypeKind::Poison;
 					}
@@ -268,8 +283,8 @@ impl super::SemanticParser {
 						match assign_expr.to_u32() {
 							Ok(val) => {
 								if val == 0 {
-									let kind = diag::DiagKind::ArrayMinRange;
-									let diag = diag::Diagnostic::error(kind, span.clone());
+									let kind = DiagKind::ArrayMinRange;
+									let diag = Diagnostic::error(kind, span.clone());
 									self.diagnostics.push(diag);
 									data_type.kind = dtype::TypeKind::Poison;
 									continue;
@@ -278,8 +293,8 @@ impl super::SemanticParser {
 								}
 							}
 							Err(ConversionError::OutOfRange) => {
-								let kind = diag::DiagKind::ArrayMaxRange;
-								let diag = diag::Diagnostic::error(kind, span.clone());
+								let kind = DiagKind::ArrayMaxRange;
+								let diag = Diagnostic::error(kind, span.clone());
 								self.diagnostics.push(diag);
 								data_type.kind = dtype::TypeKind::Poison;
 								continue;
@@ -308,9 +323,8 @@ impl super::SemanticParser {
 					}
 				}
 				Declarator::Pointer(pointer) => {
-					let ptr_type = dtype::PtrType(Box::new(data_type.clone()));
 					dtype::DataType {
-						kind: dtype::TypeKind::Pointer(ptr_type),
+						kind: dtype::TypeKind::Pointer(Box::new(data_type.clone())),
 						qual: dtype::TypeQual {
 							is_const: pointer.is_const,
 							is_restrict: pointer.is_restrict,
@@ -321,8 +335,8 @@ impl super::SemanticParser {
 				Declarator::IdentList(ident_list) => {
 					// TODO: check if this error is valid
 					if ident_list.ident_list.len() > 0 {
-						let kind = diag::DiagKind::DeclIdentList;
-						let diag = diag::Diagnostic::error(kind, ident_list.span.clone());
+						let kind = DiagKind::DeclIdentList;
+						let diag = Diagnostic::error(kind, ident_list.span.clone());
 						self.diagnostics.push(diag);
 					}
 					let func_type = dtype::FuncType {

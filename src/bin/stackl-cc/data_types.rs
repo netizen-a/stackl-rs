@@ -98,9 +98,6 @@ pub struct ArrayType {
 	pub has_static: bool,
 }
 
-#[derive(Debug, Clone)]
-pub struct PtrType(pub Box<DataType>);
-
 #[derive(Debug, Clone, Default)]
 pub struct TypeQual {
 	pub is_const: bool,
@@ -155,8 +152,58 @@ pub enum TypeKind {
 	Union(UnionType),
 	Enum(String),
 	Function(FuncType),
-	Pointer(PtrType),
+	Pointer(Box<DataType>),
 	Array(ArrayType),
+}
+
+impl TypeKind {
+	fn get_render(&self, mut context: String) -> String {
+		match self {
+			Self::Void => format!("void {context}"),
+			Self::Scalar(ScalarType::Bool) => format!("_Bool {context}"),
+			Self::Scalar(ScalarType::U8) => format!("unsigned char {context}"),
+			Self::Scalar(ScalarType::I8) => format!("char {context}"),
+			Self::Scalar(ScalarType::U16) => format!("unsigned short {context}"),
+			Self::Scalar(ScalarType::I16) => format!("short {context}"),
+			Self::Scalar(ScalarType::U32) => format!("unsigned int {context}"),
+			Self::Scalar(ScalarType::I32) => format!("int {context}"),
+			Self::Scalar(ScalarType::U64) => format!("unsigned long int {context}"),
+			Self::Scalar(ScalarType::I64) => format!("long int {context}"),
+			Self::Scalar(ScalarType::U128) => format!("unsigned long long int {context}"),
+			Self::Scalar(ScalarType::I128) => format!("long long int {context}"),
+			Self::Scalar(ScalarType::Float) => format!("float {context}"),
+			Self::Scalar(ScalarType::Double) => format!("double {context}"),
+			Self::Scalar(ScalarType::LongDouble) => format!("long double {context}"),
+			Self::Pointer(inner) => {
+				let mut new_context = String::from("*");
+				new_context.push_str(&context);
+				inner.kind.get_render(new_context)
+			}
+			Self::Array(ArrayType { component, .. }) => {
+				context.push_str("[]");
+				component.kind.get_render(context)
+			}
+			Self::Function(FuncType { params, ret, ..}) => {
+				let mut new_context = String::new();
+				new_context.push_str(&ret.kind.get_render("".to_string()));
+				if !context.is_empty() {
+					new_context.push('(');
+					new_context.push_str(&context);
+					new_context.push(')');
+				}
+				new_context.push('(');
+				for (index, param) in params.iter().enumerate() {
+					if index != 0 {
+						new_context.push_str(", ");
+					}
+					new_context.push_str(&param.kind.get_render("".to_string()));
+				}
+				new_context.push(')');
+				new_context
+			}
+			_ => todo!()
+		}
+	}
 }
 
 impl fmt::Display for TypeKind {
@@ -191,6 +238,12 @@ impl fmt::Display for TypeKind {
 					s.push_str("}}");
 					write!(f, "{s}")
 				}
+			}
+			Self::Function(_) => {
+				write!(f, "{}", self.get_render("".to_string()))
+			}
+			Self::Pointer(_) => {
+				write!(f, "{}", self.get_render("".to_string()))
 			}
 			_ => todo!("{:?}", self),
 		}

@@ -33,7 +33,7 @@ impl super::SemanticParser {
 		match (&lhs.kind, &rhs.kind) {
 			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => Ok(l_scalar == r_scalar),
 			(TypeKind::Pointer(l_ptr), TypeKind::Pointer(r_ptr)) => {
-				self.dtype_eq(&l_ptr.0, &r_ptr.0, callee_span)
+				self.dtype_eq(&l_ptr, &r_ptr, callee_span)
 			}
 			(TypeKind::Pointer(ptr), TypeKind::Array(array)) => {
 				if !array.is_decayed {
@@ -44,7 +44,7 @@ impl super::SemanticParser {
 					let warning = diag::Diagnostic::warn(kind, callee_span.to_span());
 					self.diagnostics.push(warning);
 				}
-				self.dtype_eq(&ptr.0, &array.component, callee_span)
+				self.dtype_eq(&ptr, &array.component, callee_span)
 			}
 			(TypeKind::Array(array), TypeKind::Pointer(ptr)) => {
 				if !array.is_decayed {
@@ -55,7 +55,7 @@ impl super::SemanticParser {
 					let warning = diag::Diagnostic::warn(kind, callee_span.to_span());
 					self.diagnostics.push(warning);
 				}
-				self.dtype_eq(&array.component, &ptr.0, callee_span)
+				self.dtype_eq(&array.component, &ptr, callee_span)
 			}
 			(TypeKind::Array(l_array), TypeKind::Array(r_array)) => {
 				if let (ArrayLength::Fixed(l_size), ArrayLength::Fixed(r_size)) =

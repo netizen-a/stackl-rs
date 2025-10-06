@@ -399,6 +399,10 @@ impl DiagnosticEngine {
 				let msg0 = format!("internal compiler error: {err_msg}");
 				self.format_diagnostic(&diag, msg0.as_str(), "")
 			}
+			DiagKind::SymbolAlreadyExists(name) => {
+				let msg0 = format!("redefinition of '{name}'");
+				self.format_diagnostic(&diag, msg0.as_str(), "")
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
