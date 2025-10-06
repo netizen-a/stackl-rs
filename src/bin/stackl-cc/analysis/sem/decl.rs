@@ -319,9 +319,12 @@ impl super::SemanticParser {
 					}
 				}
 				Declarator::IdentList(ident_list) => {
-					let kind = diag::DiagKind::DeclIdentList;
-					let diag = diag::Diagnostic::error(kind, ident_list.span.clone());
-					self.diagnostics.push(diag);
+					// TODO: check if this error is valid
+					if ident_list.ident_list.len() > 0 {
+						let kind = diag::DiagKind::DeclIdentList;
+						let diag = diag::Diagnostic::error(kind, ident_list.span.clone());
+						self.diagnostics.push(diag);
+					}
 					let func_type = dtype::FuncType {
 						params: vec![],
 						ret: Box::new(data_type.clone()),

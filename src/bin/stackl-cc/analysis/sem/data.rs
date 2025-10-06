@@ -1,7 +1,14 @@
+use crate::analysis::syn::Expr;
 use crate::data_types::*;
 use crate::diagnostics as diag;
 use crate::diagnostics::Span;
 use diag::ToSpan;
+
+pub enum CastScore {
+	NoOperation = 0,
+	IntegralToFloating = 1,
+	FloatingToIntegral = 2,
+}
 
 impl super::SemanticParser {
 	pub(super) fn unwrap_or_poison(
@@ -22,15 +29,15 @@ impl super::SemanticParser {
 			}
 		}
 	}
-	pub(super) fn dtype_eq(&mut self, lhs: &DataType, rhs: &DataType, callee_span: Span) -> bool {
+	pub(super) fn dtype_eq(&mut self, lhs: &DataType, rhs: &DataType, callee_span: Span) -> Result<bool, DataType> {
 		match (&lhs.kind, &rhs.kind) {
-			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => l_scalar == r_scalar,
+			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => Ok(l_scalar == r_scalar),
 			(TypeKind::Pointer(l_ptr), TypeKind::Pointer(r_ptr)) => {
 				self.dtype_eq(&l_ptr.0, &r_ptr.0, callee_span)
 			}
 			(TypeKind::Pointer(ptr), TypeKind::Array(array)) => {
 				if !array.is_decayed {
-					return false;
+					return Ok(false);
 				}
 				if let (true, ArrayLength::Fixed(0 | 2..)) = (array.has_static, &array.length) {
 					let kind = diag::DiagKind::ArrayArgTooSmall;
@@ -41,7 +48,7 @@ impl super::SemanticParser {
 			}
 			(TypeKind::Array(array), TypeKind::Pointer(ptr)) => {
 				if !array.is_decayed {
-					return false;
+					return Ok(false);
 				}
 				if let (true, ArrayLength::Fixed(0 | 2..)) = (array.has_static, &array.length) {
 					let kind = diag::DiagKind::ArrayArgTooSmall;
@@ -55,17 +62,19 @@ impl super::SemanticParser {
 					(&l_array.length, &r_array.length)
 				{
 					if *l_size != *r_size {
-						return false;
+						return Ok(false);
 					}
 				}
 				self.dtype_eq(&l_array.component, &r_array.component, callee_span)
 			}
-			(TypeKind::Poison, _) | (_, TypeKind::Poison) => {
-				let kind = diag::DiagKind::Internal("compared poison data types!".to_string());
-				let error = diag::Diagnostic::fatal(kind, None);
-				self.diagnostics.push_and_exit(error);
-			}
+			(TypeKind::Poison, _) | (_, TypeKind::Poison) => Err(DataType::POISON),
 			(_, _) => todo!(),
 		}
+	}
+	// (int)(5)
+
+	// code gen here
+	pub fn try_convert(&mut self, from: &Expr, to: DataType) -> Option<(CastScore, Expr)> {
+		todo!()
 	}
 }

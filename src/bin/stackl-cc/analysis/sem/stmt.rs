@@ -22,12 +22,16 @@ impl super::SemanticParser {
 		is_valid
 	}
 	pub(super) fn statement(&mut self, stmt: &mut Stmt) -> bool {
-		let is_valid = true;
+		let mut is_valid = true;
 		self.tree_builder.begin_child("statement".to_string());
 		match stmt {
 			Stmt::Label(_labeled_stmt) => (),
 			Stmt::Compound(inner) => self.compound_stmt(inner),
-			Stmt::Expr(_expr_stmt) => (),
+			Stmt::Expr(expr_stmt) => {
+				if let Some(expr) = &mut expr_stmt.0 {
+					is_valid &= !self.expr(expr).is_poisoned();
+				}
+			},
 			Stmt::Select(stmt) => {
 				self.selection_stmt(stmt);
 			}

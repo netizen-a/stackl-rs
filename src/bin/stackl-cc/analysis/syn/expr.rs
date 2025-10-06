@@ -3,6 +3,7 @@ use std::f32;
 use super::decl;
 use super::Identifier;
 use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
+use crate::diagnostics::ToSpan;
 use crate::diagnostics as diag;
 
 pub enum ConversionError {
@@ -286,6 +287,12 @@ pub enum BinOpKind {
 pub struct BinOp {
 	pub span: diag::Span,
 	pub kind: BinOpKind,
+}
+
+impl ToSpan for BinOp {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
 }
 
 impl BinOp {

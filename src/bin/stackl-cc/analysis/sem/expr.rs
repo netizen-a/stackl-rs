@@ -90,10 +90,23 @@ impl super::SemanticParser {
 			BinOpKind::Less => self.tree_builder.begin_child("<".to_string()),
 			BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 		};
-		self.expr(&mut *binary.left);
-		self.expr(&mut *binary.right);
+		let l_type = self.expr(&mut *binary.left);
+		let r_type = self.expr(&mut *binary.right);
 		self.tree_builder.end_child();
-		dtype::DataType::POISON
+		match self.dtype_eq(&l_type, &r_type, binary.op.to_span()) {
+			Ok(cond) => if cond {
+				l_type
+			} else {
+				let Some((_,_)) = self.try_convert(&binary.left, r_type) else {
+					return dtype::DataType::POISON;
+				};
+				let Some((_,_)) = self.try_convert(&binary.right, l_type) else {
+					return dtype::DataType::POISON;
+				};
+				todo!()
+			}
+			Err(poison) => poison
+		}
 	}
 	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) -> dtype::DataType {
 		self.tree_builder.begin_child("ternary `?:`".to_string());
