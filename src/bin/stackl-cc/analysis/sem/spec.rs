@@ -162,11 +162,7 @@ impl super::SemanticParser {
 						type_kind = Some(TypeKind::Poison);
 					}
 					match &mut type_kind {
-						Some(
-							TypeKind::Struct(_)
-							| TypeKind::Union(_)
-							| TypeKind::Enum(_),
-						) => {
+						Some(TypeKind::Struct(_) | TypeKind::Union(_) | TypeKind::Enum(_)) => {
 							self.diagnostics.push(diag::Diagnostic::error(
 								diag::DiagKind::MultipleTypes,
 								span.clone(),
@@ -275,9 +271,7 @@ impl super::SemanticParser {
 							));
 							type_kind = Some(TypeKind::Poison);
 						}
-						None => {
-							type_kind = Some(TypeKind::Scalar(ScalarType::Double))
-						}
+						None => type_kind = Some(TypeKind::Scalar(ScalarType::Double)),
 					}
 					if long_count > 1 {
 						self.diagnostics.push(diag::Diagnostic::error(
@@ -511,6 +505,7 @@ impl super::SemanticParser {
 						}
 						syn::StructOrUnionKind::Union => {
 							let union_type = UnionType {
+								name: ident.clone().map(|v| v.name),
 								members,
 								is_incomplete: *is_incomplete,
 							};

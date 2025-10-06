@@ -2,7 +2,10 @@
 
 use std::path;
 
-use crate::{analysis::{syn::StorageClass, tok}, data_types::DataType};
+use crate::{
+	analysis::{syn::StorageClass, tok},
+	data_types::DataType,
+};
 
 #[derive(Debug, Clone)]
 pub enum DiagKind {
@@ -26,7 +29,7 @@ pub enum DiagKind {
 	MultipleTypes,
 	TooLong,
 	ImplicitInt(Option<String>),
-	ArrayOfFunctions{
+	ArrayOfFunctions {
 		name: Option<String>,
 		dtype: DataType,
 	},

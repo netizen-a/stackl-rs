@@ -140,6 +140,7 @@ pub struct StructType {
 
 #[derive(Debug, Clone)]
 pub struct UnionType {
+	pub name: Option<String>,
 	pub members: Vec<MemberType>,
 	pub is_incomplete: bool,
 }
@@ -188,11 +189,15 @@ impl TypeKind {
 			Self::Scalar(ScalarType::I32) => format!("{qual_str}{space}int{context}"),
 			Self::Scalar(ScalarType::U64) => format!("{qual_str}{space}unsigned long int{context}"),
 			Self::Scalar(ScalarType::I64) => format!("{qual_str}{space}long int{context}"),
-			Self::Scalar(ScalarType::U128) => format!("{qual_str}{space}unsigned long long int{context}"),
+			Self::Scalar(ScalarType::U128) => {
+				format!("{qual_str}{space}unsigned long long int{context}")
+			}
 			Self::Scalar(ScalarType::I128) => format!("{qual_str}{space}long long int{context}"),
 			Self::Scalar(ScalarType::Float) => format!("{qual_str}{space}float{context}"),
 			Self::Scalar(ScalarType::Double) => format!("{qual_str}{space}double{context}"),
-			Self::Scalar(ScalarType::LongDouble) => format!("{qual_str}{space}long double{context}"),
+			Self::Scalar(ScalarType::LongDouble) => {
+				format!("{qual_str}{space}long double{context}")
+			}
 			Self::Pointer(inner) => {
 				let mut new_context = format!("*{qual_str}");
 				new_context.push_str(&context);
@@ -200,7 +205,9 @@ impl TypeKind {
 			}
 			Self::Array(ArrayType { component, .. }) => {
 				context.push_str("[]");
-				component.kind.get_render(context, Some(component.qual.clone()))
+				component
+					.kind
+					.get_render(context, Some(component.qual.clone()))
 			}
 			Self::Function(FuncType { params, ret, .. }) => {
 				let mut new_context = String::new();
@@ -215,18 +222,24 @@ impl TypeKind {
 					if index != 0 {
 						new_context.push_str(", ");
 					}
-					new_context.push_str(&param.kind.get_render(String::new(), Some(param.qual.clone())));
+					new_context.push_str(
+						&param
+							.kind
+							.get_render(String::new(), Some(param.qual.clone())),
+					);
 				}
 				new_context.push(')');
 				new_context
 			}
-			Self::Struct(StructType {
-				name,
-				members,
-				is_incomplete,
-			}) => {
+			Self::Struct(StructType { name, .. }) => {
 				format!(
 					"{qual_str} struct {}",
+					name.clone().unwrap_or("<anonymous>".to_string())
+				)
+			}
+			Self::Union(UnionType { name, .. }) => {
+				format!(
+					"{qual_str} union {}",
 					name.clone().unwrap_or("<anonymous>".to_string())
 				)
 			}
@@ -264,6 +277,10 @@ impl DataType {
 
 impl fmt::Display for DataType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.kind.get_render(String::new(), Some(self.qual.clone())))
+		write!(
+			f,
+			"{}",
+			self.kind.get_render(String::new(), Some(self.qual.clone()))
+		)
 	}
 }

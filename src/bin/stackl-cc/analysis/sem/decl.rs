@@ -204,12 +204,12 @@ impl super::SemanticParser {
 		}
 	}
 
-	fn initializer(&mut self, init: &mut Initializer, list_count: &mut Vec<(Span,u32)>) -> bool {
+	fn initializer(&mut self, init: &mut Initializer, list_count: &mut Vec<(Span, u32)>) -> bool {
 		let mut is_valid = true;
 		match init {
 			Initializer::Expr(expr) => is_valid &= !self.expr(expr).is_poisoned(),
 			Initializer::InitializerList(span, InitializerList(list)) => {
-				list_count.push((span.clone(),list.len().try_into().unwrap()));
+				list_count.push((span.clone(), list.len().try_into().unwrap()));
 				self.tree_builder
 					.begin_child("initializer-list".to_string());
 				for (desig_list, init) in list.iter_mut() {
@@ -229,7 +229,7 @@ impl super::SemanticParser {
 		is_param: bool,
 		mut decl_type: DeclType,
 		name: Option<String>,
-		mut init_list_vec: Vec<(Span,u32)>,
+		mut init_list_vec: Vec<(Span, u32)>,
 	) {
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		let mut last_is_arr = false;
@@ -260,10 +260,18 @@ impl super::SemanticParser {
 				Declarator::IdentList(_) => {
 					if last_is_arr {
 						let error_type = DataType {
-							kind: TypeKind::Function(FuncType { params: vec![], ret: Box::new(data_type.clone()), is_variadic: false, is_inline: false }),
+							kind: TypeKind::Function(FuncType {
+								params: vec![],
+								ret: Box::new(data_type.clone()),
+								is_variadic: false,
+								is_inline: false,
+							}),
 							qual: Default::default(),
 						};
-						let kind = DiagKind::ArrayOfFunctions{name: name.clone(), dtype: error_type};
+						let kind = DiagKind::ArrayOfFunctions {
+							name: name.clone(),
+							dtype: error_type,
+						};
 						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						data_type.kind = TypeKind::Poison;
@@ -286,10 +294,18 @@ impl super::SemanticParser {
 							return;
 						};
 						let error_type = DataType {
-							kind: TypeKind::Function(FuncType { params, ret: Box::new(data_type.clone()), is_variadic: false, is_inline: false }),
+							kind: TypeKind::Function(FuncType {
+								params,
+								ret: Box::new(data_type.clone()),
+								is_variadic: false,
+								is_inline: false,
+							}),
 							qual: Default::default(),
 						};
-						let kind = DiagKind::ArrayOfFunctions{name: name.clone(), dtype: error_type.clone()};
+						let kind = DiagKind::ArrayOfFunctions {
+							name: name.clone(),
+							dtype: error_type.clone(),
+						};
 						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						data_type.kind = TypeKind::Poison;
@@ -332,7 +348,7 @@ impl super::SemanticParser {
 									self.diagnostics.push(diag);
 									data_type.kind = TypeKind::Poison;
 									continue;
-								} else if let Some((span,init_size)) = init_list {
+								} else if let Some((span, init_size)) = init_list {
 									if init_size > val {
 										let kind = DiagKind::ArrayExcessElements;
 										let error = Diagnostic::error(kind, span.clone());
@@ -354,7 +370,7 @@ impl super::SemanticParser {
 								continue;
 							}
 							Err(ConversionError::Expr(expr)) => {
-								if let Some((span,_)) = init_list {
+								if let Some((span, _)) = init_list {
 									let kind = DiagKind::VlaInitList;
 									let diag = Diagnostic::error(kind, span.clone());
 									self.diagnostics.push(diag);
@@ -367,7 +383,7 @@ impl super::SemanticParser {
 						}
 					} else if array.has_star {
 						ArrayLength::VLA(VlaLength::Star)
-					} else if let (Some((_,count)), true) = (init_list_vec.pop(), !is_param) {
+					} else if let (Some((_, count)), true) = (init_list_vec.pop(), !is_param) {
 						ArrayLength::Fixed(count)
 					} else {
 						ArrayLength::Incomplete

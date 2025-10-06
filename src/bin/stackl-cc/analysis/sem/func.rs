@@ -102,7 +102,7 @@ impl super::SemanticParser {
 				self.symtab.insert(key, entry);
 			}
 			Some(syn::Declarator::Array(array)) => {
-				let kind = diag::DiagKind::ArrayOfFunctions{
+				let kind = diag::DiagKind::ArrayOfFunctions {
 					name: Some(decl.ident.name.clone()),
 					dtype: data_type,
 				};
