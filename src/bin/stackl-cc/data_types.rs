@@ -133,6 +133,7 @@ impl fmt::Display for MemberType {
 
 #[derive(Debug, Clone)]
 pub struct StructType {
+	pub name: Option<String>,
 	pub members: Vec<MemberType>,
 	pub is_incomplete: bool,
 }
@@ -157,35 +158,52 @@ pub enum TypeKind {
 }
 
 impl TypeKind {
-	fn get_render(&self, mut context: String) -> String {
+	fn get_render(&self, mut context: String, qual: Option<TypeQual>) -> String {
+		let qual = qual.unwrap_or_default();
+		let mut qual_str = String::new();
+		if qual.is_const {
+			qual_str.push_str("const");
+		}
+		if qual.is_volatile {
+			if qual.is_const {
+				qual_str.push(' ');
+			}
+			qual_str.push_str("volatile");
+		}
+		if qual.is_restrict {
+			if qual.is_const || qual.is_volatile {
+				qual_str.push(' ');
+			}
+			qual_str.push_str("restrict");
+		}
 		match self {
 			Self::Void => format!("void{context}"),
-			Self::Scalar(ScalarType::Bool) => format!("_Bool{context}"),
-			Self::Scalar(ScalarType::U8) => format!("unsigned char{context}"),
-			Self::Scalar(ScalarType::I8) => format!("char{context}"),
-			Self::Scalar(ScalarType::U16) => format!("unsigned short{context}"),
-			Self::Scalar(ScalarType::I16) => format!("short{context}"),
-			Self::Scalar(ScalarType::U32) => format!("unsigned int{context}"),
-			Self::Scalar(ScalarType::I32) => format!("int{context}"),
-			Self::Scalar(ScalarType::U64) => format!("unsigned long int{context}"),
-			Self::Scalar(ScalarType::I64) => format!("long int{context}"),
-			Self::Scalar(ScalarType::U128) => format!("unsigned long long int{context}"),
-			Self::Scalar(ScalarType::I128) => format!("long long int{context}"),
-			Self::Scalar(ScalarType::Float) => format!("float{context}"),
-			Self::Scalar(ScalarType::Double) => format!("double{context}"),
-			Self::Scalar(ScalarType::LongDouble) => format!("long double{context}"),
+			Self::Scalar(ScalarType::Bool) => format!("{qual_str} _Bool{context}"),
+			Self::Scalar(ScalarType::U8) => format!("{qual_str} unsigned char{context}"),
+			Self::Scalar(ScalarType::I8) => format!("{qual_str} char{context}"),
+			Self::Scalar(ScalarType::U16) => format!("{qual_str} unsigned short{context}"),
+			Self::Scalar(ScalarType::I16) => format!("{qual_str} short{context}"),
+			Self::Scalar(ScalarType::U32) => format!("{qual_str} unsigned int{context}"),
+			Self::Scalar(ScalarType::I32) => format!("{qual_str} int{context}"),
+			Self::Scalar(ScalarType::U64) => format!("{qual_str} unsigned long int{context}"),
+			Self::Scalar(ScalarType::I64) => format!("{qual_str} long int{context}"),
+			Self::Scalar(ScalarType::U128) => format!("{qual_str} unsigned long long int{context}"),
+			Self::Scalar(ScalarType::I128) => format!("{qual_str} long long int{context}"),
+			Self::Scalar(ScalarType::Float) => format!("{qual_str} float{context}"),
+			Self::Scalar(ScalarType::Double) => format!("{qual_str} double{context}"),
+			Self::Scalar(ScalarType::LongDouble) => format!("{qual_str} long double{context}"),
 			Self::Pointer(inner) => {
-				let mut new_context = String::from("*");
+				let mut new_context = format!("*{qual_str}");
 				new_context.push_str(&context);
-				inner.kind.get_render(new_context)
+				inner.kind.get_render(new_context, Some(inner.qual.clone()))
 			}
 			Self::Array(ArrayType { component, .. }) => {
 				context.push_str("[]");
-				component.kind.get_render(context)
+				component.kind.get_render(context, Some(component.qual.clone()))
 			}
 			Self::Function(FuncType { params, ret, .. }) => {
 				let mut new_context = String::new();
-				new_context.push_str(&ret.kind.get_render(" ".to_string()));
+				new_context.push_str(&ret.kind.get_render(String::new(), Some(ret.qual.clone())));
 				if !context.is_empty() {
 					new_context.push('(');
 					new_context.push_str(&context);
@@ -196,25 +214,20 @@ impl TypeKind {
 					if index != 0 {
 						new_context.push_str(", ");
 					}
-					new_context.push_str(&param.kind.get_render("".to_string()));
+					new_context.push_str(&param.kind.get_render(String::new(), Some(param.qual.clone())));
 				}
 				new_context.push(')');
 				new_context
 			}
 			Self::Struct(StructType {
+				name,
 				members,
 				is_incomplete,
 			}) => {
-				if *is_incomplete {
-					String::from("struct")
-				} else {
-					let mut s = String::from("struct {");
-					for mem in members {
-						s.push_str(&format!("{mem}"));
-					}
-					s.push_str("}");
-					s
-				}
+				format!(
+					"{qual_str} struct {}",
+					name.clone().unwrap_or("<anonymous>".to_string())
+				)
 			}
 			_ => todo!(),
 		}
@@ -223,7 +236,7 @@ impl TypeKind {
 
 impl fmt::Display for TypeKind {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.get_render(String::new()))
+		write!(f, "{}", self.get_render(String::new(), None))
 	}
 }
 
@@ -250,16 +263,6 @@ impl DataType {
 
 impl fmt::Display for DataType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let mut qual_str = String::new();
-		if self.qual.is_const {
-			qual_str.push_str("const ");
-		}
-		if self.qual.is_volatile {
-			qual_str.push_str("volatile ");
-		}
-		if self.qual.is_restrict {
-			qual_str.push_str("restrict ");
-		}
-		write!(f, "{qual_str}{}", self.kind)
+		write!(f, "{}", self.kind.get_render(String::new(), Some(self.qual.clone())))
 	}
 }

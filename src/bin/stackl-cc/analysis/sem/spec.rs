@@ -503,6 +503,7 @@ impl super::SemanticParser {
 					match struct_or_union.kind {
 						syn::StructOrUnionKind::Struct => {
 							let struct_type = dtype::StructType {
+								name: ident.clone().map(|v| v.name),
 								members,
 								is_incomplete: *is_incomplete,
 							};

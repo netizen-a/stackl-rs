@@ -16,9 +16,12 @@ struct Foo {
 
 
 int main() {
-    struct Foo { int x; } k;
-    int (*bar)() = k;
+    const struct Foo { int x; } k;
+    int (*const volatile bar)() = k;
     foo = bar;
+    // int **ptr0;
+    // const int *const *const ptr1;
+    // ptr1 = ptr0;
 }
 
 
