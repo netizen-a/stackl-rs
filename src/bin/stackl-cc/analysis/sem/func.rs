@@ -50,127 +50,130 @@ impl super::SemanticParser {
 				vec![],
 			);
 		}
-		match decl.declarators.first_mut() {
-			Some(syn::Declarator::IdentList(ident_list)) => {
-				let func_type = FuncType {
-					params: vec![],
-					ret: Box::new(data_type),
-					is_variadic: false,
-					is_inline: !decl.specifiers.inline_list.is_empty(),
-				};
-				let new_entry = sym::SymbolTableEntry {
-					data_type: DataType {
-						kind: TypeKind::Function(func_type),
-						qual: TypeQual::default(),
-					},
-					linkage,
-					storage,
-					span: decl.ident.to_span(),
-					is_decl: false,
-				};
-				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
-				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.symtab.insert(key.clone(), new_entry.clone())
-				{
-					let kind = DiagKind::SymbolAlreadyExists(
-						decl.ident.name.clone(),
-						prev_entry.data_type.clone(),
-					);
-					let mut error = Diagnostic::error(kind, prev_entry.to_span());
-					error.push_span(
-						new_entry.span,
-						&format!("`{}` redefined here", decl.ident.name.clone()),
-					);
-					if prev_entry.is_decl == false && new_entry.is_decl == false {
-						// redefinition. don't even need to check types
-						self.diagnostics.push(error);
-					} else {
-						// TODO: further type checking is required.
-					}
-				}
-			}
-			Some(syn::Declarator::ParamList(param_list)) => {
-				if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
-					// 5.2.4.1 translation limit
-					let diag = Diagnostic::warn(DiagKind::ParameterLimit, decl.ident.to_span());
-					self.diagnostics.push(diag);
-				}
-				let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
-					// failed to get param types
-					return false;
-				};
-
-				let is_variadic = param_list.is_variadic;
-				let func_type = FuncType {
-					params,
-					ret: Box::new(data_type),
-					is_variadic,
-					is_inline: !decl.specifiers.inline_list.is_empty(),
-				};
-				let new_entry = sym::SymbolTableEntry {
-					data_type: DataType {
-						kind: TypeKind::Function(func_type),
-						qual: TypeQual::default(),
-					},
-					linkage,
-					storage,
-					span: func_ident.to_span(),
-					is_decl: false,
-				};
-				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
-				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.symtab.insert(key.clone(), new_entry.clone())
-				{
-					let kind = DiagKind::SymbolAlreadyExists(
-						decl.ident.name.clone(),
-						prev_entry.data_type.clone(),
-					);
-					let mut error = Diagnostic::error(kind, prev_entry.to_span());
-					error.push_span(
-						new_entry.span,
-						&format!("`{}` redefined here", func_ident.name.clone()),
-					);
-					if prev_entry.is_decl == false {
-						error.push_note(&format!("`{}` must be defined only once in the ordinary namespace of this translation unit", func_ident.name.clone()));
-						// redefinition. don't even need to check types
-						self.diagnostics.push(error);
-					} else {
-						let callee_span = prev_entry.to_span();
-						if let Ok(false) =
-							self.dtype_eq(&prev_entry.data_type, &new_entry.data_type, callee_span)
-						{
+		self.symtab.increase_scope();
+		{
+			match decl.declarators.first_mut() {
+				Some(syn::Declarator::IdentList(ident_list)) => {
+					let func_type = FuncType {
+						params: vec![],
+						ret: Box::new(data_type),
+						is_variadic: false,
+						is_inline: !decl.specifiers.inline_list.is_empty(),
+					};
+					let new_entry = sym::SymbolTableEntry {
+						data_type: DataType {
+							kind: TypeKind::Function(func_type),
+							qual: TypeQual::default(),
+						},
+						linkage,
+						storage,
+						span: decl.ident.to_span(),
+						is_decl: false,
+					};
+					let key = sym::Namespace::Ordinary(decl.ident.name.clone());
+					if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+						self.symtab.insert(key.clone(), new_entry.clone())
+					{
+						let kind = DiagKind::SymbolAlreadyExists(
+							decl.ident.name.clone(),
+							prev_entry.data_type.clone(),
+						);
+						let mut error = Diagnostic::error(kind, prev_entry.to_span());
+						error.push_span(
+							new_entry.span,
+							&format!("`{}` redefined here", decl.ident.name.clone()),
+						);
+						if prev_entry.is_decl == false && new_entry.is_decl == false {
+							// redefinition. don't even need to check types
 							self.diagnostics.push(error);
+						} else {
+							// TODO: further type checking is required.
 						}
 					}
 				}
+				Some(syn::Declarator::ParamList(param_list)) => {
+					if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
+						// 5.2.4.1 translation limit
+						let diag = Diagnostic::warn(DiagKind::ParameterLimit, decl.ident.to_span());
+						self.diagnostics.push(diag);
+					}
+					let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
+						// failed to get param types
+						return false;
+					};
+
+					let is_variadic = param_list.is_variadic;
+					let func_type = FuncType {
+						params,
+						ret: Box::new(data_type),
+						is_variadic,
+						is_inline: !decl.specifiers.inline_list.is_empty(),
+					};
+					let new_entry = sym::SymbolTableEntry {
+						data_type: DataType {
+							kind: TypeKind::Function(func_type),
+							qual: TypeQual::default(),
+						},
+						linkage,
+						storage,
+						span: func_ident.to_span(),
+						is_decl: false,
+					};
+					let key = sym::Namespace::Ordinary(decl.ident.name.clone());
+					if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+						self.symtab.insert(key.clone(), new_entry.clone())
+					{
+						let kind = DiagKind::SymbolAlreadyExists(
+							decl.ident.name.clone(),
+							prev_entry.data_type.clone(),
+						);
+						let mut error = Diagnostic::error(kind, prev_entry.to_span());
+						error.push_span(
+							new_entry.span,
+							&format!("`{}` redefined here", func_ident.name.clone()),
+						);
+						if prev_entry.is_decl == false {
+							error.push_note(&format!("`{}` must be defined only once in the ordinary namespace of this translation unit", func_ident.name.clone()));
+							// redefinition. don't even need to check types
+							self.diagnostics.push(error);
+						} else {
+							let callee_span = prev_entry.to_span();
+							if let Ok(false) = self.dtype_eq(
+								&prev_entry.data_type,
+								&new_entry.data_type,
+								callee_span,
+							) {
+								self.diagnostics.push(error);
+							}
+						}
+					}
+				}
+				Some(syn::Declarator::Array(array)) => {
+					let kind = DiagKind::ArrayOfFunctions {
+						name: Some(decl.ident.name.clone()),
+						dtype: data_type,
+					};
+					let diag = Diagnostic::error(kind, array.span.clone());
+					self.diagnostics.push(diag);
+					self.tree_builder.end_child();
+					return false;
+				}
+				token @ (None | Some(syn::Declarator::Pointer(_))) => {
+					let kind = DiagKind::UnrecognizedToken {
+						token: format!("{token:?}"),
+						expected: vec![
+							"\"=\"".to_string(),
+							"\",\"".to_string(),
+							"\";\"".to_string(),
+							"\"asm\"".to_string(),
+						],
+					};
+					let diag = Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
+					self.diagnostics.push(diag);
+					return false;
+				}
 			}
-			Some(syn::Declarator::Array(array)) => {
-				let kind = DiagKind::ArrayOfFunctions {
-					name: Some(decl.ident.name.clone()),
-					dtype: data_type,
-				};
-				let diag = Diagnostic::error(kind, array.span.clone());
-				self.diagnostics.push(diag);
-				self.tree_builder.end_child();
-				return false;
-			}
-			token @ (None | Some(syn::Declarator::Pointer(_))) => {
-				let kind = DiagKind::UnrecognizedToken {
-					token: format!("{token:?}"),
-					expected: vec![
-						"\"=\"".to_string(),
-						"\",\"".to_string(),
-						"\";\"".to_string(),
-						"\"asm\"".to_string(),
-					],
-				};
-				let diag = Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
-				self.diagnostics.push(diag);
-				return false;
-			}
-		}
-		self.symtab.increase_scope();
-		{
+
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, syn::StorageClass::Auto);
 			}
