@@ -3,6 +3,8 @@ use std::{
 	hash::Hash,
 };
 
+use crate::{analysis::syn, data_types::DataType, diagnostics::Span};
+
 #[derive(Debug)]
 pub enum SymbolTableError<V: Clone> {
 	InvalidScope,
@@ -10,8 +12,31 @@ pub enum SymbolTableError<V: Clone> {
 	// DoesNotExist,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Namespace {
+	Label(String),
+	Tag(String),
+	Member { tag: String, member: String },
+	Ordinary(String),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Linkage {
+	None,
+	External,
+	Internal,
+}
+
+#[derive(Debug, Clone)]
+pub struct SymbolTableEntry {
+	pub data_type: DataType,
+	pub storage: syn::StorageClass,
+	pub linkage: Linkage,
+	pub span: Span,
+}
+
 #[derive(Debug)]
-pub struct SymbolTable<K, V> {
+pub struct SymbolTable<K = Namespace, V = SymbolTableEntry> {
 	table: Vec<HashMap<K, V>>,
 }
 

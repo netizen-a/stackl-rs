@@ -1,7 +1,9 @@
-use crate::analysis::sem::{DeclType, Namespace, SymbolTableEntry};
-use crate::analysis::{sem::Linkage, syn};
+use crate::analysis::sem::DeclType;
+use crate::analysis::syn;
+use crate::cli::WarnLevel;
+use crate::data_types::*;
 use crate::diagnostics::{self as diag, ToSpan};
-use crate::{cli::WarnLevel, data_types as dtype};
+use crate::symtab as sym;
 
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
@@ -16,11 +18,11 @@ impl super::SemanticParser {
 			| Some(syn::StorageClassSpecifier {
 				kind: syn::StorageClass::Extern,
 				..
-			}) => (syn::StorageClass::Extern, Linkage::External),
+			}) => (syn::StorageClass::Extern, sym::Linkage::External),
 			Some(syn::StorageClassSpecifier {
 				kind: syn::StorageClass::Static,
 				..
-			}) => (syn::StorageClass::Static, Linkage::Internal),
+			}) => (syn::StorageClass::Static, sym::Linkage::Internal),
 			Some(storage) => {
 				let kind = diag::DiagKind::IllegalStorage(storage.kind);
 				let diag = diag::Diagnostic::error(kind, storage.to_span());
@@ -50,22 +52,22 @@ impl super::SemanticParser {
 		}
 		match decl.declarators.first_mut() {
 			Some(syn::Declarator::IdentList(ident_list)) => {
-				let func_type = dtype::FuncType {
+				let func_type = FuncType {
 					params: vec![],
 					ret: Box::new(data_type),
 					is_variadic: false,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
-				let entry = SymbolTableEntry {
-					data_type: dtype::DataType {
-						kind: dtype::TypeKind::Function(func_type),
-						qual: dtype::TypeQual::default(),
+				let entry = sym::SymbolTableEntry {
+					data_type: DataType {
+						kind: TypeKind::Function(func_type),
+						qual: TypeQual::default(),
 					},
 					linkage,
 					storage,
 					span: decl.ident.to_span(),
 				};
-				let key = Namespace::Ordinary(decl.ident.name.clone());
+				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
 			}
 			Some(syn::Declarator::ParamList(param_list)) => {
@@ -83,22 +85,22 @@ impl super::SemanticParser {
 				};
 
 				let is_variadic = param_list.is_variadic;
-				let func_type = dtype::FuncType {
+				let func_type = FuncType {
 					params,
 					ret: Box::new(data_type),
 					is_variadic,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
-				let entry = SymbolTableEntry {
-					data_type: dtype::DataType {
-						kind: dtype::TypeKind::Function(func_type),
-						qual: dtype::TypeQual::default(),
+				let entry = sym::SymbolTableEntry {
+					data_type: DataType {
+						kind: TypeKind::Function(func_type),
+						qual: TypeQual::default(),
 					},
 					linkage,
 					storage,
 					span: decl.ident.to_span(),
 				};
-				let key = Namespace::Ordinary(decl.ident.name.clone());
+				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
 				self.symtab.insert(key, entry);
 			}
 			Some(syn::Declarator::Array(array)) => {
@@ -147,7 +149,7 @@ impl super::SemanticParser {
 		&mut self,
 		param_list: &mut syn::ParamList,
 		decl_type: DeclType,
-	) -> Option<Vec<dtype::DataType>> {
+	) -> Option<Vec<DataType>> {
 		let param_count = param_list.param_list.len();
 		let mut result = vec![];
 		let mut is_valid = true;
@@ -159,11 +161,11 @@ impl super::SemanticParser {
 			};
 			let maybe_type = self.specifiers_dtype(&mut param.specifiers);
 			let data_type = self.unwrap_or_poison(maybe_type, name_opt.clone(), param_span.clone());
-			if let dtype::TypeKind::Poison = data_type.kind {
+			if let TypeKind::Poison = data_type.kind {
 				continue;
 			}
 			match (param.ident.as_ref(), data_type.kind) {
-				(None, dtype::TypeKind::Void) => match param.declarators.front() {
+				(None, TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
 						let kind = diag::DiagKind::ArrayOfVoid(None);
 						let diag = diag::Diagnostic::error(kind, span.clone());
@@ -211,7 +213,7 @@ impl super::SemanticParser {
 						}
 					}
 				},
-				(Some(ident), dtype::TypeKind::Void) => match param.declarators.front() {
+				(Some(ident), TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
 						let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
 						let diag = diag::Diagnostic::error(kind, ident.to_span());
@@ -262,7 +264,7 @@ impl super::SemanticParser {
 				name_opt,
 				vec![],
 			);
-			if let dtype::TypeKind::Poison = param_type.kind {
+			if let TypeKind::Poison = param_type.kind {
 				return None;
 			}
 

@@ -1,15 +1,11 @@
 use crate::analysis::sem::DeclType;
-use crate::analysis::sem::Linkage;
-use crate::analysis::sem::Namespace;
-use crate::analysis::sem::StorageClass;
-use crate::analysis::sem::SymbolTableEntry;
 use crate::analysis::syn;
 use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::cli::WarnLevel;
 use crate::data_types::*;
 use crate::diagnostics::*;
-use crate::symtab::SymbolTableError;
+use crate::symtab as sym;
 
 impl super::SemanticParser {
 	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
@@ -18,9 +14,9 @@ impl super::SemanticParser {
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let (storage, linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
-			StorageClass::Extern => (StorageClass::Extern, Linkage::External),
-			StorageClass::Static => (StorageClass::Static, Linkage::Internal),
-			storage => (storage, Linkage::None),
+			StorageClass::Extern => (StorageClass::Extern, sym::Linkage::External),
+			StorageClass::Static => (StorageClass::Static, sym::Linkage::Internal),
+			storage => (storage, sym::Linkage::None),
 		};
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
@@ -56,22 +52,22 @@ impl super::SemanticParser {
 				Some(ident.name.clone()),
 				init_list_count,
 			);
-			let entry = SymbolTableEntry {
+			let new_entry = sym::SymbolTableEntry {
 				data_type: var_dtype,
 				linkage,
 				storage,
 				span: ident.to_span(),
 			};
-			let key = Namespace::Ordinary(ident.name.clone());
-			match self.symtab.insert(key.clone(), entry.clone()) {
-				Err(SymbolTableError::AlreadyExists(prev_entry)) => {
+			let key = sym::Namespace::Ordinary(ident.name.clone());
+			match self.symtab.insert(key.clone(), new_entry.clone()) {
+				Err(sym::SymbolTableError::AlreadyExists(prev_entry)) => {
 					// test warning
 					let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
 					let mut error = Diagnostic::warn(kind, prev_entry.span.clone());
-					error.push_span(entry.span, "");
+					error.push_span(new_entry.span, "");
 					self.diagnostics.push(error);
 				}
-				Err(SymbolTableError::InvalidScope) => {
+				Err(sym::SymbolTableError::InvalidScope) => {
 					// this should never happen
 					let kind = DiagKind::Internal("symbol table has invalid scope".to_string());
 					let error = Diagnostic::fatal(kind, Some(ident.to_span()));

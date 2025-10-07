@@ -77,6 +77,9 @@ impl super::SemanticParser {
 				}
 				self.dtype_eq(&l_array.component, &r_array.component, callee_span)
 			}
+			(TypeKind::Function(l_func), TypeKind::Function(r_func)) => {
+				todo!()
+			}
 			(TypeKind::Poison, _) | (_, TypeKind::Poison) => Err(DataType::POISON),
 			(_, _) => todo!(),
 		}

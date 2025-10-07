@@ -5,34 +5,11 @@ mod func;
 mod spec;
 mod stmt;
 
-use crate::analysis::syn::{self, *};
+use crate::analysis::syn;
 use crate::cli;
 use crate::data_types::DataType;
 use crate::diagnostics::*;
-use crate::symtab::SymbolTable;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum Namespace {
-	Label(String),
-	Tag(String),
-	Member { tag: String, member: String },
-	Ordinary(String),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Linkage {
-	None,
-	External,
-	Internal,
-}
-
-#[derive(Debug, Clone)]
-pub struct SymbolTableEntry {
-	pub data_type: DataType,
-	pub storage: StorageClass,
-	pub linkage: Linkage,
-	pub span: Span,
-}
+use crate::symtab as sym;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DeclType {
@@ -42,7 +19,7 @@ enum DeclType {
 }
 
 pub struct SemanticParser {
-	symtab: SymbolTable<Namespace, SymbolTableEntry>,
+	symtab: sym::SymbolTable,
 	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
@@ -52,7 +29,7 @@ pub struct SemanticParser {
 impl SemanticParser {
 	pub fn new(diagnostics: DiagnosticEngine, args: &cli::Args) -> Self {
 		Self {
-			symtab: SymbolTable::new(),
+			symtab: sym::SymbolTable::new(),
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,
@@ -61,14 +38,14 @@ impl SemanticParser {
 	}
 	pub fn parse(
 		&mut self,
-		mut unit: Vec<ExternalDeclaration>,
-	) -> Option<Vec<ExternalDeclaration>> {
-		use ExternalDeclaration::*;
+		mut unit: Vec<syn::ExternalDeclaration>,
+	) -> Option<Vec<syn::ExternalDeclaration>> {
+		use syn::ExternalDeclaration::*;
 		let mut is_valid = true;
 		for external_decl in unit.iter_mut() {
 			match external_decl {
 				FunctionDefinition(decl) => is_valid &= self.function_definition(decl),
-				Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Static),
+				Declaration(decl) => is_valid &= self.declaration(decl, syn::StorageClass::Static),
 				Error => {
 					self.tree_builder.add_empty_child("error".to_string());
 					is_valid &= false;
