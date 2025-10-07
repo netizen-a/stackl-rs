@@ -41,6 +41,7 @@ impl super::SemanticParser {
 		callee_span: Span,
 	) -> Result<bool, DataType> {
 		match (&lhs.kind, &rhs.kind) {
+			(TypeKind::Void, TypeKind::Void) => Ok(true),
 			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => Ok(l_scalar == r_scalar),
 			(TypeKind::Pointer(l_ptr), TypeKind::Pointer(r_ptr)) => {
 				self.dtype_eq(&l_ptr, &r_ptr, callee_span)
@@ -78,10 +79,25 @@ impl super::SemanticParser {
 				self.dtype_eq(&l_array.component, &r_array.component, callee_span)
 			}
 			(TypeKind::Function(l_func), TypeKind::Function(r_func)) => {
-				todo!()
+				let (l_params, r_params) = (&l_func.params, &r_func.params);
+				let is_params_unchecked = l_params.is_empty() || r_params.is_empty();
+				if !is_params_unchecked {
+					if l_params.len() != r_params.len() || l_func.is_variadic != r_func.is_variadic
+					{
+						return Ok(false);
+					} else {
+						for (l_param, r_param) in l_params.iter().zip(r_params) {
+							if let Ok(false) = self.dtype_eq(l_param, r_param, callee_span.clone())
+							{
+								return Ok(false);
+							}
+						}
+					}
+				}
+				self.dtype_eq(&l_func.ret, &r_func.ret, callee_span)
 			}
 			(TypeKind::Poison, _) | (_, TypeKind::Poison) => Err(DataType::POISON),
-			(_, _) => todo!(),
+			(_, _) => Ok(false),
 		}
 	}
 
