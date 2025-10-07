@@ -1,9 +1,10 @@
 use crate::analysis::sem::DeclType;
 use crate::analysis::syn;
 use crate::cli::WarnLevel;
-use crate::data_types::*;
+use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symtab as sym;
+use crate::symbol_table::StorageClass;
+use crate::symbol_table as sym;
 
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
@@ -30,6 +31,14 @@ impl super::SemanticParser {
 				self.tree_builder.end_child();
 				return false;
 			}
+		};
+		// convert C storage class to symbol storage class
+		let storage: StorageClass = match storage {
+			syn::StorageClass::Auto => panic!(),
+			syn::StorageClass::Register => panic!(),
+			syn::StorageClass::Extern => StorageClass::Function,
+			syn::StorageClass::Static => StorageClass::Function,
+			syn::StorageClass::Typedef => StorageClass::Typedef,
 		};
 		let mut data_type = self.unwrap_or_poison(
 			maybe_ty,

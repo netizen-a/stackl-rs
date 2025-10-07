@@ -3,9 +3,9 @@
 
 mod analysis;
 mod cli;
-mod data_types;
+mod data_type;
 mod diagnostics;
-mod symtab;
+mod symbol_table;
 mod synthesis;
 
 use clap::Parser;

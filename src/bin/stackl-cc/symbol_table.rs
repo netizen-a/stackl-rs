@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
 	analysis::syn,
-	data_types::DataType,
+	data_type::{DataType, TypeKind},
 	diagnostics::{Span, ToSpan},
 };
 
@@ -13,7 +13,6 @@ use crate::{
 pub enum SymbolTableError<V: Clone> {
 	InvalidScope,
 	AlreadyExists(V),
-	// DoesNotExist,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -32,14 +31,31 @@ pub enum Linkage {
 }
 
 #[derive(Debug, Clone)]
+pub enum StorageClass {
+	Function,
+	Automatic,
+	Static,
+	Typedef,
+	Constant,
+	Register,
+}
+
+#[derive(Debug, Clone)]
 pub struct SymbolTableEntry {
 	pub data_type: DataType,
-	pub storage: syn::StorageClass,
+	pub storage: StorageClass,
 	pub linkage: Linkage,
 	pub span: Span,
 	/// This distinguishes between function definition, or a declaration (which may be a prototype).
 	/// If function definition then false, otherwise true.
 	pub is_decl: bool,
+}
+
+impl SymbolTableEntry {
+	/// checks if type is a compile-time constant
+	pub fn is_constant(&self) -> bool {
+		matches!(self.storage, StorageClass::Constant)
+	}
 }
 
 impl ToSpan for SymbolTableEntry {

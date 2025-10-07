@@ -7,9 +7,9 @@ mod stmt;
 
 use crate::analysis::syn;
 use crate::cli;
-use crate::data_types::DataType;
+use crate::data_type::DataType;
 use crate::diagnostics::*;
-use crate::symtab as sym;
+use crate::symbol_table as sym;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DeclType {

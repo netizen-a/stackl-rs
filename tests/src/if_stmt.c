@@ -8,8 +8,8 @@ void foo(void) {
             x;
         else
             y;
+    int z = 5;
+    int k = z + 4;
 }
-int z = 5;
-int k = z + 4;
 
 

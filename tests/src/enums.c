@@ -8,3 +8,11 @@ enum FooBar {
     WORLD = 1,
     FOOBAR,
 };
+
+enum Baz {
+    X,
+    Y,
+    Z,
+};
+
+int X = Y + Z;

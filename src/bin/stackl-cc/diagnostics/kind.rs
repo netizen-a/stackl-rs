@@ -4,7 +4,7 @@ use std::path;
 
 use crate::{
 	analysis::{syn::StorageClass, tok},
-	data_types::DataType,
+	data_type::DataType,
 };
 
 #[derive(Debug, Clone)]

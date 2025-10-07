@@ -152,7 +152,7 @@ pub enum TypeKind {
 	Scalar(ScalarType),
 	Struct(StructType),
 	Union(UnionType),
-	Enum(String),
+	Enum(Option<String>),
 	Function(FuncType),
 	Pointer(Box<DataType>),
 	Array(ArrayType),
@@ -238,6 +238,12 @@ impl TypeKind {
 				)
 			}
 			Self::Union(UnionType { name, .. }) => {
+				format!(
+					"{qual_str} union {}",
+					name.clone().unwrap_or("<anonymous>".to_string())
+				)
+			}
+			Self::Enum(name) => {
 				format!(
 					"{qual_str} union {}",
 					name.clone().unwrap_or("<anonymous>".to_string())

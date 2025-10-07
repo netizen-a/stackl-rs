@@ -1,5 +1,5 @@
 use crate::analysis::syn::Expr;
-use crate::data_types::*;
+use crate::data_type::*;
 use crate::diagnostics as diag;
 use crate::diagnostics::Span;
 use diag::ToSpan;

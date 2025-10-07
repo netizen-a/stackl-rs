@@ -1,11 +1,11 @@
 use crate::diagnostics::*;
-use crate::symtab as sym;
+use crate::symbol_table as sym;
 use crate::{
 	analysis::{
 		syn::*,
 		tok::{Const, IntegerConstant},
 	},
-	data_types::*,
+	data_type::*,
 };
 
 impl super::SemanticParser {
@@ -40,7 +40,8 @@ impl super::SemanticParser {
 				"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",
 				ident.name, entry.data_type
 			));
-			if !in_func {
+			if !in_func && !entry.is_constant() {
+				// TODO: check if identifier is const
 				let kind = DiagKind::InitializerNotConst;
 				let error = Diagnostic::error(kind, span);
 				self.diagnostics.push(error);

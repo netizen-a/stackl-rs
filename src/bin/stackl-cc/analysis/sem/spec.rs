@@ -1,7 +1,9 @@
 use crate::analysis::syn;
-use crate::data_types::*;
+use crate::data_type::*;
+use crate::diagnostics::{DiagKind, Diagnostic};
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
+use crate::symbol_table as sym;
 
 const SIGNED_STR: &str = "signed";
 const UNSIGNED_STR: &str = "unsigned";
@@ -60,7 +62,6 @@ impl super::SemanticParser {
 		in_func: bool,
 	) -> Option<DataType> {
 		let mut type_kind: Option<TypeKind> = None;
-
 		let mut is_signed: Option<bool> = None;
 		let mut long_count = 0;
 		for type_spec in specifiers.type_specifiers.iter_mut() {
@@ -544,7 +545,7 @@ impl super::SemanticParser {
 				syn::TypeSpecifier::EnumSpecifier(syn::EnumSpecifier {
 					tag_span,
 					enumerator_list,
-					..
+					identifier,
 				}) => {
 					let span = tag_span.clone();
 					match type_kind {
@@ -571,25 +572,48 @@ impl super::SemanticParser {
 						type_kind = Some(TypeKind::Poison);
 					}
 					for enumerator in enumerator_list {
+						let enumerator_name = enumerator.enumeration_constant.clone();
 						match enumerator.constant_expr.as_mut().map(|v| v.to_i32()) {
 							Some(Err(syn::ConversionError::OutOfRange)) => {
 								self.diagnostics.push(diag::Diagnostic::error(
 									diag::DiagKind::EnumRange,
-									enumerator.enumeration_constant.to_span(),
+									enumerator_name.to_span(),
 								));
 								type_kind = Some(TypeKind::Poison);
 							}
 							Some(Err(syn::ConversionError::Expr(_))) => {
 								self.diagnostics.push(diag::Diagnostic::error(
 									diag::DiagKind::EnumNonIntegral(
-										enumerator.enumeration_constant.name.clone(),
+										enumerator_name.name.clone(),
 									),
-									enumerator.enumeration_constant.to_span(),
+									enumerator_name.to_span(),
 								));
 								type_kind = Some(TypeKind::Poison);
 							}
 							_ => {
-								// do nothing
+								let new_entry = sym::SymbolTableEntry {
+									data_type: DataType {
+										kind: TypeKind::Enum(identifier.clone().map(|v|v.name)),
+										qual: Default::default(),
+									},
+									linkage: sym::Linkage::None,
+									storage: sym::StorageClass::Constant,
+									span: enumerator_name.to_span(),
+									is_decl: true,
+								};
+								let key = sym::Namespace::Ordinary(enumerator_name.name.clone());
+								if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+									self.symtab.insert(key.clone(), new_entry.clone())
+								{
+									let kind =
+										DiagKind::SymbolAlreadyExists(enumerator_name.name.clone(), prev_entry.data_type.clone());
+									let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+									error.push_span(
+										new_entry.span,
+										&format!("`{}` redefined here", enumerator_name.name.clone()),
+									);
+									self.diagnostics.push(error);
+								}
 							}
 						}
 					}

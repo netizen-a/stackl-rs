@@ -2,9 +2,10 @@ use crate::analysis::sem::DeclType;
 use crate::analysis::syn;
 use crate::analysis::tok;
 use crate::cli::WarnLevel;
-use crate::data_types::*;
+use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symtab as sym;
+use crate::symbol_table::StorageClass;
+use crate::symbol_table as sym;
 
 impl super::SemanticParser {
 	pub(super) fn declaration(
@@ -56,6 +57,14 @@ impl super::SemanticParser {
 				Some(ident.name.clone()),
 				init_list_count,
 			);
+			// convert C storage class to symbol storage class
+			let storage: StorageClass = match storage {
+				syn::StorageClass::Auto => StorageClass::Automatic,
+				syn::StorageClass::Extern => StorageClass::Static,
+				syn::StorageClass::Register => StorageClass::Register,
+				syn::StorageClass::Static => StorageClass::Static,
+				syn::StorageClass::Typedef => StorageClass::Typedef,
+			};
 			let new_entry = sym::SymbolTableEntry {
 				data_type: var_dtype,
 				linkage,
@@ -67,14 +76,14 @@ impl super::SemanticParser {
 			if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
 				self.symtab.insert(key.clone(), new_entry.clone())
 			{
-				// let kind =
-				// 	DiagKind::SymbolAlreadyExists(ident.name.clone(), prev_entry.data_type.clone());
-				// let mut error = Diagnostic::error(kind, prev_entry.span.clone());
-				// error.push_span(
-				// 	new_entry.span,
-				// 	&format!("`{}` redefined here", ident.name.clone()),
-				// );
-				// self.diagnostics.push(error);
+				let kind =
+					DiagKind::SymbolAlreadyExists(ident.name.clone(), prev_entry.data_type.clone());
+				let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+				error.push_span(
+					new_entry.span,
+					&format!("`{}` redefined here", ident.name.clone()),
+				);
+				self.diagnostics.push(error);
 			}
 			self.tree_builder.end_child();
 		}

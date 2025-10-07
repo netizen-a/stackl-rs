@@ -1,5 +1,5 @@
 use crate::analysis::tok;
-use crate::symtab::SymbolTable;
+use crate::symbol_table::SymbolTable;
 
 #[derive(Default)]
 pub struct TokenIter {
