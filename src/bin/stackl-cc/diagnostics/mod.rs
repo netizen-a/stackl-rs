@@ -536,7 +536,7 @@ impl DiagnosticEngine {
 					"^".repeat(1 + hi - lo),
 				));
 				if triple_index == triple_len - 1 {
-					result.push_str(&format!("{color_bold_red} {}{color_default}\n", msg1));
+					result.push_str(&format!("{level_color} {}{color_default}\n", msg1));
 				} else {
 					result.push('\n');
 				}
