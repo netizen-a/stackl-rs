@@ -63,15 +63,14 @@ impl super::SemanticParser {
 			if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
 				self.symtab.insert(key.clone(), new_entry.clone())
 			{
-				let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
-				let mut error = Diagnostic::error(kind, prev_entry.span.clone());
-				error.push_span(new_entry.span, &format!("`{}` redefined here", ident.name.clone()));
-				if prev_entry.is_decl == false && new_entry.is_decl == false {
-					// redefinition. don't even need to check types
-					self.diagnostics.push(error);
-				} else {
-					// TODO: further type checking is required.
-				}
+				// let kind =
+				// 	DiagKind::SymbolAlreadyExists(ident.name.clone(), prev_entry.data_type.clone());
+				// let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+				// error.push_span(
+				// 	new_entry.span,
+				// 	&format!("`{}` redefined here", ident.name.clone()),
+				// );
+				// self.diagnostics.push(error);
 			}
 			self.tree_builder.end_child();
 		}

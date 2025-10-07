@@ -62,7 +62,7 @@ pub enum DiagKind {
 	DirectivePragma,
 	StructNoNamedMembers,
 	ArrayArgTooSmall,
-	SymbolAlreadyExists(String),
+	SymbolAlreadyExists(String, DataType),
 	ArrayDeclIncomplete,
 	ArrayExcessElements,
 	VlaInitList,

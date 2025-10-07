@@ -424,9 +424,11 @@ impl DiagnosticEngine {
 				let msg0 = format!("internal compiler error: {err_msg}");
 				self.format_diagnostic(&diag, msg0.as_str())
 			}
-			DiagKind::SymbolAlreadyExists(name) => {
+			DiagKind::SymbolAlreadyExists(name, dtype) => {
 				let msg0 = format!("redefinition of '{name}'");
-				diag.pop_first_msg(&format!("previous definition of the symbol `{name}` here"));
+				diag.pop_first_msg(&format!(
+					"previous definition of `{name}` with type '{dtype}'"
+				));
 				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ArrayDeclIncomplete => {
