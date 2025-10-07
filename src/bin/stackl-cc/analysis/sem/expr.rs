@@ -40,6 +40,11 @@ impl super::SemanticParser {
 				"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",
 				ident.name, entry.data_type
 			));
+			if !in_func {
+				let kind = DiagKind::InitializerNotConst;
+				let error = Diagnostic::error(kind, span);
+				self.diagnostics.push(error);
+			}
 		} else {
 			let kind = DiagKind::SymbolUndeclared {
 				name: ident.name.clone(),
@@ -50,7 +55,6 @@ impl super::SemanticParser {
 			self.tree_builder
 				.add_empty_child(format!("identifier `{}` '<unknown>'", ident.name));
 		}
-
 		DataType::POISON
 	}
 	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix, in_func: bool) -> DataType {

@@ -158,7 +158,7 @@ impl super::SemanticParser {
 						// collect errors from expression first
 						is_valid &= !self.expr(&mut expr, in_func).is_poisoned();
 						if is_valid {
-							let kind = DiagKind::NonConstExpr;
+							let kind = DiagKind::NonIntConstExpr;
 							let diag = Diagnostic::error(kind, member_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;

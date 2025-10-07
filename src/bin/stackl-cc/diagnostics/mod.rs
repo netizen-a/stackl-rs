@@ -344,8 +344,12 @@ impl DiagnosticEngine {
 				let msg0 = format!("anonymous bit-field has non-integral type");
 				self.format_diagnostic(&diag, msg0.as_str())
 			}
-			DiagKind::NonConstExpr => {
+			DiagKind::NonIntConstExpr => {
 				let msg0 = "expression is not an integer constant expression";
+				self.format_diagnostic(&diag, msg0)
+			}
+			DiagKind::InitializerNotConst => {
+				let msg0 = "initializer element is not constant";
 				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::EnumNonIntegral(name) => {
