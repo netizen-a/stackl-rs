@@ -2,7 +2,7 @@ use crate::analysis::sem::DeclType;
 use crate::analysis::syn;
 use crate::cli::WarnLevel;
 use crate::data_types::*;
-use crate::diagnostics::{self as diag, ToSpan};
+use crate::diagnostics::*;
 use crate::symtab as sym;
 
 impl super::SemanticParser {
@@ -24,8 +24,8 @@ impl super::SemanticParser {
 				..
 			}) => (syn::StorageClass::Static, sym::Linkage::Internal),
 			Some(storage) => {
-				let kind = diag::DiagKind::IllegalStorage(storage.kind);
-				let diag = diag::Diagnostic::error(kind, storage.to_span());
+				let kind = DiagKind::IllegalStorage(storage.kind);
+				let diag = Diagnostic::error(kind, storage.to_span());
 				self.diagnostics.push(diag);
 				self.tree_builder.end_child();
 				return false;
@@ -58,7 +58,7 @@ impl super::SemanticParser {
 					is_variadic: false,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
-				let entry = sym::SymbolTableEntry {
+				let new_entry = sym::SymbolTableEntry {
 					data_type: DataType {
 						kind: TypeKind::Function(func_type),
 						qual: TypeQual::default(),
@@ -66,17 +66,27 @@ impl super::SemanticParser {
 					linkage,
 					storage,
 					span: decl.ident.to_span(),
+					is_decl: false,
 				};
 				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
-				self.symtab.insert(key, entry);
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.symtab.insert(key.clone(), new_entry.clone())
+				{
+					let kind = DiagKind::SymbolAlreadyExists(decl.ident.name.clone());
+					let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+					error.push_span(new_entry.span, &format!("`{}` redefined here", decl.ident.name.clone()));
+					if prev_entry.is_decl == false && new_entry.is_decl == false {
+						// redefinition. don't even need to check types
+						self.diagnostics.push(error);
+					} else {
+						// TODO: further type checking is required.
+					}
+				}
 			}
 			Some(syn::Declarator::ParamList(param_list)) => {
 				if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
 					// 5.2.4.1 translation limit
-					let diag = diag::Diagnostic::warn(
-						diag::DiagKind::ParameterLimit,
-						decl.ident.to_span(),
-					);
+					let diag = Diagnostic::warn(DiagKind::ParameterLimit, decl.ident.to_span());
 					self.diagnostics.push(diag);
 				}
 				let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
@@ -91,7 +101,7 @@ impl super::SemanticParser {
 					is_variadic,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
-				let entry = sym::SymbolTableEntry {
+				let new_entry = sym::SymbolTableEntry {
 					data_type: DataType {
 						kind: TypeKind::Function(func_type),
 						qual: TypeQual::default(),
@@ -99,22 +109,35 @@ impl super::SemanticParser {
 					linkage,
 					storage,
 					span: decl.ident.to_span(),
+					is_decl: false,
 				};
 				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
-				self.symtab.insert(key, entry);
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.symtab.insert(key.clone(), new_entry.clone())
+				{
+					let kind = DiagKind::SymbolAlreadyExists(decl.ident.name.clone());
+					let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+					error.push_span(new_entry.span, &format!("`{}` redefined here", decl.ident.name.clone()));
+					if prev_entry.is_decl == false && new_entry.is_decl == false {
+						// redefinition. don't even need to check types
+						self.diagnostics.push(error);
+					} else {
+						// TODO: further type checking is required.
+					}
+				}
 			}
 			Some(syn::Declarator::Array(array)) => {
-				let kind = diag::DiagKind::ArrayOfFunctions {
+				let kind = DiagKind::ArrayOfFunctions {
 					name: Some(decl.ident.name.clone()),
 					dtype: data_type,
 				};
-				let diag = diag::Diagnostic::error(kind, array.span.clone());
+				let diag = Diagnostic::error(kind, array.span.clone());
 				self.diagnostics.push(diag);
 				self.tree_builder.end_child();
 				return false;
 			}
 			token @ (None | Some(syn::Declarator::Pointer(_))) => {
-				let kind = diag::DiagKind::UnrecognizedToken {
+				let kind = DiagKind::UnrecognizedToken {
 					token: format!("{token:?}"),
 					expected: vec![
 						"\"=\"".to_string(),
@@ -123,7 +146,7 @@ impl super::SemanticParser {
 						"\"asm\"".to_string(),
 					],
 				};
-				let diag = diag::Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
+				let diag = Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
 				self.diagnostics.push(diag);
 				return false;
 			}
@@ -167,25 +190,23 @@ impl super::SemanticParser {
 			match (param.ident.as_ref(), data_type.kind) {
 				(None, TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
-						let kind = diag::DiagKind::ArrayOfVoid(None);
-						let diag = diag::Diagnostic::error(kind, span.clone());
+						let kind = DiagKind::ArrayOfVoid(None);
+						let diag = Diagnostic::error(kind, span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
 					Some(syn::Declarator::Pointer(_)) => {
 						if decl_type == DeclType::FnDef {
-							let kind = diag::DiagKind::OmittedParamName;
-							let diag =
-								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							let kind = DiagKind::OmittedParamName;
+							let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
 					}
 					Some(syn::Declarator::ParamList(_)) => {
 						if decl_type == DeclType::FnDef {
-							let kind = diag::DiagKind::OmittedParamName;
-							let diag =
-								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							let kind = DiagKind::OmittedParamName;
+							let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
@@ -197,17 +218,15 @@ impl super::SemanticParser {
 						param.declarators.push_front(implicit);
 					}
 					Some(syn::Declarator::IdentList(_)) => {
-						let kind = diag::DiagKind::DeclIdentList;
-						let diag =
-							diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+						let kind = DiagKind::DeclIdentList;
+						let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
 					None => {
 						if param_count > 1 {
-							let kind = diag::DiagKind::OnlyVoid;
-							let diag =
-								diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+							let kind = DiagKind::OnlyVoid;
+							let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
@@ -215,14 +234,14 @@ impl super::SemanticParser {
 				},
 				(Some(ident), TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
-						let kind = diag::DiagKind::ArrayOfVoid(Some(ident.name.clone()));
-						let diag = diag::Diagnostic::error(kind, ident.to_span());
+						let kind = DiagKind::ArrayOfVoid(Some(ident.name.clone()));
+						let diag = Diagnostic::error(kind, ident.to_span());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
 					Some(syn::Declarator::IdentList(_)) => {
-						let kind = diag::DiagKind::DeclIdentList;
-						let diag = diag::Diagnostic::error(kind, ident.to_span());
+						let kind = DiagKind::DeclIdentList;
+						let diag = Diagnostic::error(kind, ident.to_span());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
@@ -236,17 +255,16 @@ impl super::SemanticParser {
 					}
 					Some(syn::Declarator::Pointer(_)) => {}
 					None => {
-						let kind = diag::DiagKind::OnlyVoid;
-						let diag = diag::Diagnostic::error(kind, ident.to_span());
+						let kind = DiagKind::OnlyVoid;
+						let diag = Diagnostic::error(kind, ident.to_span());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
 				},
 				(None, _) => {
 					if decl_type == DeclType::FnDef {
-						let kind = diag::DiagKind::OmittedParamName;
-						let diag =
-							diag::Diagnostic::error(kind, param.specifiers.first_span.clone());
+						let kind = DiagKind::OmittedParamName;
+						let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}

@@ -246,6 +246,9 @@ impl TypeKind {
 			_ => todo!(),
 		}
 	}
+	pub fn is_function(&self) -> bool {
+		matches!(self, TypeKind::Function(_))
+	}
 }
 
 impl fmt::Display for TypeKind {

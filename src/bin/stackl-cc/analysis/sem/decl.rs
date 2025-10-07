@@ -57,24 +57,20 @@ impl super::SemanticParser {
 				linkage,
 				storage,
 				span: ident.to_span(),
+				is_decl: true,
 			};
 			let key = sym::Namespace::Ordinary(ident.name.clone());
-			match self.symtab.insert(key.clone(), new_entry.clone()) {
-				Err(sym::SymbolTableError::AlreadyExists(prev_entry)) => {
-					// test warning
-					let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
-					let mut error = Diagnostic::warn(kind, prev_entry.span.clone());
-					error.push_span(new_entry.span, "");
+			if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+				self.symtab.insert(key.clone(), new_entry.clone())
+			{
+				let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
+				let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+				error.push_span(new_entry.span, &format!("`{}` redefined here", ident.name.clone()));
+				if prev_entry.is_decl == false && new_entry.is_decl == false {
+					// redefinition. don't even need to check types
 					self.diagnostics.push(error);
-				}
-				Err(sym::SymbolTableError::InvalidScope) => {
-					// this should never happen
-					let kind = DiagKind::Internal("symbol table has invalid scope".to_string());
-					let error = Diagnostic::fatal(kind, Some(ident.to_span()));
-					self.diagnostics.push_and_exit(error);
-				}
-				Ok(_) => {
-					// all good :)
+				} else {
+					// TODO: further type checking is required.
 				}
 			}
 			self.tree_builder.end_child();

@@ -426,6 +426,7 @@ impl DiagnosticEngine {
 			}
 			DiagKind::SymbolAlreadyExists(name) => {
 				let msg0 = format!("redefinition of '{name}'");
+				diag.pop_first_msg(&format!("previous definition of the symbol `{name}` here"));
 				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ArrayDeclIncomplete => {

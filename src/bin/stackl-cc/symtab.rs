@@ -3,7 +3,11 @@ use std::{
 	hash::Hash,
 };
 
-use crate::{analysis::syn, data_types::DataType, diagnostics::Span};
+use crate::{
+	analysis::syn,
+	data_types::DataType,
+	diagnostics::{Span, ToSpan},
+};
 
 #[derive(Debug)]
 pub enum SymbolTableError<V: Clone> {
@@ -33,6 +37,15 @@ pub struct SymbolTableEntry {
 	pub storage: syn::StorageClass,
 	pub linkage: Linkage,
 	pub span: Span,
+	/// This distinguishes between function definition, or a declaration (which may be a prototype).
+	/// If function definition then false, otherwise true.
+	pub is_decl: bool,
+}
+
+impl ToSpan for SymbolTableEntry {
+	fn to_span(&self) -> Span {
+		self.span.clone()
+	}
 }
 
 #[derive(Debug)]
