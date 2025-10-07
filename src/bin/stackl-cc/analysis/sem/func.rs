@@ -11,7 +11,7 @@ impl super::SemanticParser {
 		self.tree_builder
 			.begin_child(format!("function-definition {}", func_ident.name.clone()));
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
-		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
+		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers, false);
 
 		let (storage, linkage) = match &maybe_sc {
 			None
@@ -175,7 +175,7 @@ impl super::SemanticParser {
 			}
 
 			for declaration in decl.declaration_list.iter_mut() {
-				self.declaration(declaration, syn::StorageClass::Auto);
+				self.declaration(declaration, syn::StorageClass::Auto, true);
 			}
 			self.tree_builder
 				.begin_child("compound-stmt { }".to_string());
@@ -203,12 +203,13 @@ impl super::SemanticParser {
 				Some(ident) => ident.to_span(),
 				None => param.specifiers.first_span.clone(),
 			};
-			let maybe_type = self.specifiers_dtype(&mut param.specifiers);
-			let data_type = self.unwrap_or_poison(maybe_type, name_opt.clone(), param_span.clone());
-			if let TypeKind::Poison = data_type.kind {
+			let maybe_type = self.specifiers_dtype(&mut param.specifiers, true);
+			let mut param_type =
+				self.unwrap_or_poison(maybe_type, name_opt.clone(), param_span.clone());
+			if let TypeKind::Poison = param_type.kind {
 				continue;
 			}
-			match (param.ident.as_ref(), data_type.kind) {
+			match (param.ident.as_ref(), &param_type.kind) {
 				(None, TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
 						let kind = DiagKind::ArrayOfVoid(None);
@@ -292,8 +293,8 @@ impl super::SemanticParser {
 				}
 				(Some(ident), _) => {}
 			}
-			let param_type = self.specifiers_dtype(&mut param.specifiers);
-			let mut param_type = param_type.unwrap();
+			// let param_type = self.specifiers_dtype(&mut param.specifiers, true);
+			// let mut param_type = param_type.unwrap();
 			self.declarator_list(
 				param_span,
 				param.declarators.make_contiguous(),

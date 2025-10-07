@@ -443,6 +443,18 @@ impl DiagnosticEngine {
 				let msg0 = "variable-sized object may not be initialized";
 				self.format_diagnostic(&diag, msg0)
 			}
+			DiagKind::SymbolUndeclared { name, in_func } => {
+				let context = if *in_func {
+					"first use in this function"
+				} else {
+					"not in a function"
+				};
+				let msg0 = format!("'{name}' undeclared ({context})");
+				if *in_func {
+					diag.push_note("each undeclared identifier is reported only once for each function it appears in");
+				}
+				self.format_diagnostic(&diag, msg0)
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

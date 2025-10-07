@@ -16,7 +16,7 @@ impl super::SemanticParser {
 		use BlockItem::*;
 		let mut is_valid = true;
 		match item {
-			Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Auto),
+			Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Auto, true),
 			Statement(stmt) => is_valid &= self.statement(stmt),
 			Error => is_valid &= false,
 		}
@@ -30,7 +30,7 @@ impl super::SemanticParser {
 			Stmt::Compound(inner) => self.compound_stmt(inner),
 			Stmt::Expr(expr_stmt) => {
 				if let Some(expr) = &mut expr_stmt.0 {
-					is_valid &= !self.expr(expr).is_poisoned();
+					is_valid &= !self.expr(expr, true).is_poisoned();
 				}
 			}
 			Stmt::Select(stmt) => {
@@ -79,7 +79,7 @@ impl super::SemanticParser {
 			diag.push_note("use '==' to turn this assignment into an equality comparison");
 			self.diagnostics.push(diag);
 		}
-		self.expr(stmt_cond);
+		self.expr(stmt_cond, true);
 		self.tree_builder.end_child();
 	}
 	fn stmt_then(&mut self, stmt_then: &mut Stmt) {

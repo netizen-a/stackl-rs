@@ -9,5 +9,6 @@ void foo(void) {
         else
             y;
 }
+int k = z + 4;
 
 

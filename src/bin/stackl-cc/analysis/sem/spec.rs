@@ -57,6 +57,7 @@ impl super::SemanticParser {
 	pub(super) fn specifiers_dtype(
 		&mut self,
 		specifiers: &mut syn::Specifiers,
+		in_func: bool,
 	) -> Option<DataType> {
 		let mut type_kind: Option<TypeKind> = None;
 
@@ -480,7 +481,8 @@ impl super::SemanticParser {
 					let mut members = vec![];
 					let mut member_is_named = false;
 					for decl in struct_declaration_list.iter_mut() {
-						let member_vec = self.struct_declaration(decl, &mut member_is_named);
+						let member_vec =
+							self.struct_declaration(decl, &mut member_is_named, in_func);
 						let Some(mut member_vec) = member_vec else {
 							type_kind = Some(TypeKind::Poison);
 							continue;

@@ -66,4 +66,8 @@ pub enum DiagKind {
 	ArrayDeclIncomplete,
 	ArrayExcessElements,
 	VlaInitList,
+	SymbolUndeclared {
+		name: String,
+		in_func: bool,
+	},
 }

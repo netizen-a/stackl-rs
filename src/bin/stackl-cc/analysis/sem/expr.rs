@@ -1,3 +1,4 @@
+use crate::diagnostics::*;
 use crate::symtab as sym;
 use crate::{
 	analysis::{
@@ -5,54 +6,59 @@ use crate::{
 		tok::{Const, IntegerConstant},
 	},
 	data_types::*,
-	diagnostics::ToSpan,
 };
 
 impl super::SemanticParser {
-	pub(super) fn expr(&mut self, expr: &mut Expr) -> DataType {
+	pub(super) fn expr(&mut self, expr: &mut Expr, in_func: bool) -> DataType {
 		use Expr::*;
 		match expr {
 			Paren(inner) => {
 				self.tree_builder.begin_child("( expression )".to_string());
-				let result = self.expr(inner);
+				let result = self.expr(inner, in_func);
 				self.tree_builder.end_child();
 				result
 			}
-			Ident(inner) => {
-				let span = inner.to_span();
-				let (actual_line, reported_line, col) =
-					self.diagnostics.get_location(&span).unwrap();
-				let maybe = self
-					.symtab
-					.global_lookup(&sym::Namespace::Ordinary(inner.name.clone()));
-				if let Some(entry) = maybe {
-					self.tree_builder.add_empty_child(format!(
-						"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",
-						inner.name, entry.data_type
-					));
-				} else {
-					self.tree_builder
-						.add_empty_child(format!("identifier `{}` '<unknown>'", inner.name));
-				}
-
-				DataType::POISON
-			}
+			Ident(inner) => self.expr_identifier(inner, in_func),
 			Const(inner) => self.expr_const(inner),
 			StrLit(_inner) => DataType::POISON,
-			UnaryPrefix(unary) => self.expr_prefix(unary),
-			UnaryPostfix(unary) => self.expr_postfix(unary),
-			Binary(binary) => self.expr_binary(binary),
-			Ternary(ternary) => self.expr_ternary(ternary),
+			UnaryPrefix(unary) => self.expr_prefix(unary, in_func),
+			UnaryPostfix(unary) => self.expr_postfix(unary, in_func),
+			Binary(binary) => self.expr_binary(binary, in_func),
+			Ternary(ternary) => self.expr_ternary(ternary, in_func),
 			CompoundLiteral(_, _) => DataType::POISON,
 			Sizeof(_) => DataType::POISON,
 		}
 	}
-	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix) -> DataType {
+	fn expr_identifier(&mut self, ident: &mut Identifier, in_func: bool) -> DataType {
+		let span = ident.to_span();
+		let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
+		let maybe = self
+			.symtab
+			.global_lookup(&sym::Namespace::Ordinary(ident.name.clone()));
+		if let Some(entry) = maybe {
+			self.tree_builder.add_empty_child(format!(
+				"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",
+				ident.name, entry.data_type
+			));
+		} else {
+			let kind = DiagKind::SymbolUndeclared {
+				name: ident.name.clone(),
+				in_func,
+			};
+			let error = Diagnostic::error(kind, span);
+			self.diagnostics.push(error);
+			self.tree_builder
+				.add_empty_child(format!("identifier `{}` '<unknown>'", ident.name));
+		}
+
+		DataType::POISON
+	}
+	pub(super) fn expr_prefix(&mut self, unary: &mut UnaryPrefix, in_func: bool) -> DataType {
 		let mut result = DataType::POISON;
 		match unary.op {
 			Prefix::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
-				let inner_type = self.expr(&mut *unary.expr);
+				let inner_type = self.expr(&mut *unary.expr, in_func);
 				if !inner_type.is_poisoned() {
 					let kind = TypeKind::Pointer(Box::new(inner_type));
 					result = DataType {
@@ -66,7 +72,7 @@ impl super::SemanticParser {
 		self.tree_builder.end_child();
 		result
 	}
-	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix) -> DataType {
+	pub(super) fn expr_postfix(&mut self, unary: &mut UnaryPostfix, in_func: bool) -> DataType {
 		let _ = match unary.op {
 			Postfix::Array(_) => self.tree_builder.begin_child("postfix `[ ]`".to_string()),
 			Postfix::ArgExprList(_) => self.tree_builder.begin_child("postfix `( )`".to_string()),
@@ -75,11 +81,11 @@ impl super::SemanticParser {
 			Postfix::Inc => self.tree_builder.begin_child("postfix `++`".to_string()),
 			Postfix::Dec => self.tree_builder.begin_child("postfix `--`".to_string()),
 		};
-		self.expr(&mut *unary.expr);
+		self.expr(&mut *unary.expr, in_func);
 		self.tree_builder.end_child();
 		DataType::POISON
 	}
-	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary) -> DataType {
+	pub(super) fn expr_binary(&mut self, binary: &mut ExprBinary, in_func: bool) -> DataType {
 		let _ = match &binary.op.kind {
 			BinOpKind::Mul => self.tree_builder.begin_child("*".to_string()),
 			BinOpKind::Div => self.tree_builder.begin_child("/".to_string()),
@@ -112,8 +118,8 @@ impl super::SemanticParser {
 			BinOpKind::Less => self.tree_builder.begin_child("<".to_string()),
 			BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 		};
-		let l_type = self.expr(&mut *binary.left);
-		let r_type = self.expr(&mut *binary.right);
+		let l_type = self.expr(&mut *binary.left, in_func);
+		let r_type = self.expr(&mut *binary.right, in_func);
 		self.tree_builder.end_child();
 		match self.dtype_eq(&l_type, &r_type, binary.op.to_span()) {
 			Ok(cond) => {
@@ -132,11 +138,11 @@ impl super::SemanticParser {
 			Err(poison) => poison,
 		}
 	}
-	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary) -> DataType {
+	pub(super) fn expr_ternary(&mut self, ternary: &mut ExprTernary, in_func: bool) -> DataType {
 		self.tree_builder.begin_child("ternary `?:`".to_string());
-		self.expr(&mut *ternary.expr_cond);
-		self.expr(&mut *ternary.expr_then);
-		self.expr(&mut *ternary.expr_else);
+		self.expr(&mut *ternary.expr_cond, in_func);
+		self.expr(&mut *ternary.expr_then, in_func);
+		self.expr(&mut *ternary.expr_else, in_func);
 		self.tree_builder.end_child();
 		DataType::POISON
 	}

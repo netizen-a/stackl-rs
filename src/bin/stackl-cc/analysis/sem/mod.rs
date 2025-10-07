@@ -45,7 +45,9 @@ impl SemanticParser {
 		for external_decl in unit.iter_mut() {
 			match external_decl {
 				FunctionDefinition(decl) => is_valid &= self.function_definition(decl),
-				Declaration(decl) => is_valid &= self.declaration(decl, syn::StorageClass::Static),
+				Declaration(decl) => {
+					is_valid &= self.declaration(decl, syn::StorageClass::Static, false)
+				}
 				Error => {
 					self.tree_builder.add_empty_child("error".to_string());
 					is_valid &= false;

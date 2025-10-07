@@ -1,6 +1,5 @@
 use crate::analysis::sem::DeclType;
 use crate::analysis::syn;
-use crate::analysis::syn::*;
 use crate::analysis::tok;
 use crate::cli::WarnLevel;
 use crate::data_types::*;
@@ -8,14 +7,19 @@ use crate::diagnostics::*;
 use crate::symtab as sym;
 
 impl super::SemanticParser {
-	pub(super) fn declaration(&mut self, decl: &mut Declaration, default_sc: StorageClass) -> bool {
+	pub(super) fn declaration(
+		&mut self,
+		decl: &mut syn::Declaration,
+		default_sc: syn::StorageClass,
+		in_func: bool,
+	) -> bool {
 		self.tree_builder.begin_child("declaration".to_string());
 		let mut is_valid = true;
-		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers);
+		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers, in_func);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let (storage, linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
-			StorageClass::Extern => (StorageClass::Extern, sym::Linkage::External),
-			StorageClass::Static => (StorageClass::Static, sym::Linkage::Internal),
+			syn::StorageClass::Extern => (syn::StorageClass::Extern, sym::Linkage::External),
+			syn::StorageClass::Static => (syn::StorageClass::Static, sym::Linkage::Internal),
 			storage => (storage, sym::Linkage::None),
 		};
 
@@ -33,7 +37,7 @@ impl super::SemanticParser {
 			}
 			let mut init_list_count = vec![];
 			if let Some(ref mut init) = init_decl.initializer {
-				self.initializer(init, &mut init_list_count);
+				self.initializer(init, &mut init_list_count, in_func);
 			}
 			let data_type =
 				self.unwrap_or_poison(maybe_ty.clone(), Some(ident.name.clone()), ident.to_span());
@@ -78,7 +82,7 @@ impl super::SemanticParser {
 		is_valid
 	}
 
-	fn enum_specifier(&mut self, _spec: &mut EnumSpecifier) {
+	fn enum_specifier(&mut self, _spec: &mut syn::EnumSpecifier) {
 		todo!("enum-specifier")
 	}
 	// fn enumerator(&mut self, enumerator: &mut Enumerator) {
@@ -89,15 +93,16 @@ impl super::SemanticParser {
 
 	pub(super) fn struct_declaration(
 		&mut self,
-		struct_decl: &mut StructDeclaration,
+		struct_decl: &mut syn::StructDeclaration,
 		member_is_named: &mut bool,
+		in_func: bool,
 	) -> Option<Vec<MemberType>> {
 		self.tree_builder
 			.begin_child("struct-declarator".to_string());
 		let mut result = vec![];
 		let mut is_valid = true;
 		// only type-specifier and type-qualifier is syntactically allowed here.
-		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers);
+		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers, in_func);
 		for decl in struct_decl.struct_declarator_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
 			*member_is_named |= name_opt.is_some();
@@ -149,9 +154,9 @@ impl super::SemanticParser {
 							continue;
 						}
 					}
-					Some(Err(ConversionError::Expr(mut expr))) => {
+					Some(Err(syn::ConversionError::Expr(mut expr))) => {
 						// collect errors from expression first
-						is_valid &= !self.expr(&mut expr).is_poisoned();
+						is_valid &= !self.expr(&mut expr, in_func).is_poisoned();
 						if is_valid {
 							let kind = DiagKind::NonConstExpr;
 							let diag = Diagnostic::error(kind, member_span.clone());
@@ -161,7 +166,7 @@ impl super::SemanticParser {
 						}
 						continue;
 					}
-					Some(Err(ConversionError::OutOfRange)) => {
+					Some(Err(syn::ConversionError::OutOfRange)) => {
 						let kind = DiagKind::BitfieldRange(name_opt);
 						let diag = Diagnostic::error(kind, member_span.clone());
 						self.diagnostics.push(diag);
@@ -195,16 +200,21 @@ impl super::SemanticParser {
 		}
 	}
 
-	fn initializer(&mut self, init: &mut Initializer, list_count: &mut Vec<(Span, u32)>) -> bool {
+	fn initializer(
+		&mut self,
+		init: &mut syn::Initializer,
+		list_count: &mut Vec<(Span, u32)>,
+		in_func: bool,
+	) -> bool {
 		let mut is_valid = true;
 		match init {
-			Initializer::Expr(expr) => is_valid &= !self.expr(expr).is_poisoned(),
-			Initializer::InitializerList(span, InitializerList(list)) => {
+			syn::Initializer::Expr(expr) => is_valid &= !self.expr(expr, in_func).is_poisoned(),
+			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
 				list_count.push((span.clone(), list.len().try_into().unwrap()));
 				self.tree_builder
 					.begin_child("initializer-list".to_string());
 				for (desig_list, init) in list.iter_mut() {
-					self.initializer(init, list_count);
+					self.initializer(init, list_count, in_func);
 				}
 				self.tree_builder.end_child();
 			}
@@ -215,7 +225,7 @@ impl super::SemanticParser {
 	pub(super) fn declarator_list(
 		&mut self,
 		span: Span,
-		decl_list: &mut [Declarator],
+		decl_list: &mut [syn::Declarator],
 		data_type: &mut DataType,
 		is_param: bool,
 		mut decl_type: DeclType,
@@ -227,7 +237,7 @@ impl super::SemanticParser {
 		// first iteration is for type checking
 		for declarator in decl_list.iter_mut() {
 			match declarator {
-				Declarator::Array(array) => {
+				syn::Declarator::Array(array) => {
 					if array.has_star && decl_type != DeclType::Proto {
 						if is_param && decl_type == DeclType::FnDef {
 							let kind = DiagKind::UnboundVLA;
@@ -244,11 +254,11 @@ impl super::SemanticParser {
 					last_is_ptr = false;
 					last_is_arr = true;
 				}
-				Declarator::Pointer(_) => {
+				syn::Declarator::Pointer(_) => {
 					last_is_ptr = true;
 					last_is_arr = false;
 				}
-				Declarator::IdentList(_) => {
+				syn::Declarator::IdentList(_) => {
 					if last_is_arr {
 						let error_type = DataType {
 							kind: TypeKind::Function(FuncType {
@@ -275,7 +285,7 @@ impl super::SemanticParser {
 					last_is_ptr = false;
 					last_is_arr = false;
 				}
-				Declarator::ParamList(type_list) => {
+				syn::Declarator::ParamList(type_list) => {
 					if last_is_arr {
 						if DeclType::FnDef == decl_type && is_param {
 							decl_type = DeclType::Proto;
@@ -320,13 +330,13 @@ impl super::SemanticParser {
 		// data type at the end
 		for declarator in decl_list.iter_mut().rev() {
 			*data_type = match declarator {
-				Declarator::Array(array) => {
+				syn::Declarator::Array(array) => {
 					let mut type_qual = TypeQual::default();
 					for syn::TypeQualifier { kind, .. } in array.type_qualifiers.iter() {
 						match kind {
-							TypeQualifierKind::Const => type_qual.is_const = true,
-							TypeQualifierKind::Restrict => type_qual.is_restrict = true,
-							TypeQualifierKind::Volatile => type_qual.is_volatile = true,
+							syn::TypeQualifierKind::Const => type_qual.is_const = true,
+							syn::TypeQualifierKind::Restrict => type_qual.is_restrict = true,
+							syn::TypeQualifierKind::Volatile => type_qual.is_volatile = true,
 						}
 					}
 					let array_length = if let Some(assign_expr) = &mut array.assignment_expr {
@@ -353,14 +363,14 @@ impl super::SemanticParser {
 									ArrayLength::Fixed(val)
 								}
 							}
-							Err(ConversionError::OutOfRange) => {
+							Err(syn::ConversionError::OutOfRange) => {
 								let kind = DiagKind::ArrayMaxRange;
 								let diag = Diagnostic::error(kind, span.clone());
 								self.diagnostics.push(diag);
 								data_type.kind = TypeKind::Poison;
 								continue;
 							}
-							Err(ConversionError::Expr(expr)) => {
+							Err(syn::ConversionError::Expr(expr)) => {
 								if let Some((span, _)) = init_list {
 									let kind = DiagKind::VlaInitList;
 									let diag = Diagnostic::error(kind, span.clone());
@@ -397,7 +407,7 @@ impl super::SemanticParser {
 						}
 					}
 				}
-				Declarator::Pointer(pointer) => DataType {
+				syn::Declarator::Pointer(pointer) => DataType {
 					kind: TypeKind::Pointer(Box::new(data_type.clone())),
 					qual: TypeQual {
 						is_const: pointer.is_const,
@@ -405,7 +415,7 @@ impl super::SemanticParser {
 						is_volatile: pointer.is_volatile,
 					},
 				},
-				Declarator::IdentList(ident_list) => {
+				syn::Declarator::IdentList(ident_list) => {
 					// TODO: check if this error is valid
 					if ident_list.ident_list.len() > 0 {
 						let kind = DiagKind::DeclIdentList;
@@ -423,7 +433,7 @@ impl super::SemanticParser {
 						qual: TypeQual::default(),
 					}
 				}
-				Declarator::ParamList(type_list) => {
+				syn::Declarator::ParamList(type_list) => {
 					if DeclType::FnDef == decl_type && is_param {
 						decl_type = DeclType::Proto;
 					}
