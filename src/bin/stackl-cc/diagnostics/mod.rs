@@ -114,30 +114,30 @@ impl DiagnosticEngine {
 	}
 	/// consume and print the errors
 	pub fn print_once(&mut self) {
-		for diag in self.syntax_errors.iter() {
-			self.print_parse_errors(DiagLevel::Error, diag)
+		let parse_err_vec: Vec<_> = self.syntax_errors.drain(..).collect();
+		let other_err_vec: Vec<_> = self.list_other.drain(..).collect();
+		for mut diag in parse_err_vec {
+			self.print_parse_errors(DiagLevel::Error, &mut diag)
 		}
-		for diag in self.list_other.iter() {
-			self.stderr_diagnostic(diag)
+		for mut diag in other_err_vec {
+			self.stderr_diagnostic(&mut diag)
 		}
-		self.syntax_errors.clear();
-		self.list_other.clear();
 	}
 	fn print_parse_errors(
 		&self,
 		level: DiagLevel,
-		error: &ParseError<usize, tok::Token, Diagnostic>,
+		error: &mut ParseError<usize, tok::Token, Diagnostic>,
 	) {
-		match &error {
+		match error {
 			ParseError::ExtraToken { token } => {
 				let span = token.1.to_span();
-				let diag = Diagnostic {
+				let mut diag = Diagnostic {
 					level,
 					kind: DiagKind::ExtraToken,
-					span: Some(span),
 					notes: vec![],
+					span_list: vec![(span, String::new())],
 				};
-				self.stderr_diagnostic(&diag);
+				self.stderr_diagnostic(&mut diag);
 			}
 			ParseError::InvalidToken { .. } => unreachable!("invalid token"),
 			ParseError::UnrecognizedEof { location, expected } => {
@@ -151,11 +151,15 @@ impl DiagnosticEngine {
 				let mut file = fs::File::open(file_path).unwrap();
 				let mut source = String::new();
 				let _ = file.read_to_string(&mut source);
-				let diag = Diagnostic {
+				let mut diag = Diagnostic {
 					level,
 					kind: DiagKind::UnexpectedEof,
-					span: self.eof_span.clone(),
 					notes: vec![],
+					span_list: self
+						.eof_span
+						.clone()
+						.map(|span| vec![(span, String::new())])
+						.unwrap_or_default(),
 				};
 				let msg0 = "unexpected EOF";
 				let mut msg1 = String::from("expected ");
@@ -170,7 +174,8 @@ impl DiagnosticEngine {
 						msg1.push_str(&format!(" {elem}"));
 					}
 				}
-				let str_diag = self.format_diagnostic(&diag, msg0, &msg1);
+				diag.pop_first_msg(&msg1);
+				let str_diag = self.format_diagnostic(&diag, msg0);
 				eprint!("{str_diag}");
 			}
 			ParseError::UnrecognizedToken { token, expected } => {
@@ -183,29 +188,30 @@ impl DiagnosticEngine {
 					is_first
 				});
 
-				let diag = Diagnostic {
+				let mut diag = Diagnostic {
 					level,
 					kind: DiagKind::UnrecognizedToken {
 						token: format!("{:?}", token.1.kind),
 						expected: pruned,
 					},
-					span: Some(token.1.to_span()),
 					notes: vec![],
+					span_list: vec![(token.1.to_span(), String::new())],
 				};
-				self.stderr_diagnostic(&diag);
+				self.stderr_diagnostic(&mut diag);
 			}
 			ParseError::User { error } => self.stderr_diagnostic(error),
 		}
 	}
-	fn stderr_diagnostic(&self, diag: &Diagnostic) {
+	fn stderr_diagnostic(&self, diag: &mut Diagnostic) {
 		let str_diag = match &diag.kind {
 			DiagKind::InvalidToken => {
 				let msg0 = "invalid token";
-				self.format_diagnostic(&diag, msg0, "consider don't ...")
+				diag.pop_first_msg("consider don't ...");
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::InvalidRestrict => {
 				let msg0 = "restrict requires a pointer or reference";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			// DiagKind::TypeError { found, expected } => {
 			// 	let msg0 = "mismatched types";
@@ -214,42 +220,42 @@ impl DiagnosticEngine {
 			// }
 			DiagKind::MultStorageClasses => {
 				let msg0 = "multiple storage classes in declaration specifiers";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DuplicateSpecifier(name) => {
 				let msg0 = format!("duplicate '{name}' declaration specifier");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::BothSpecifiers(name0, name1) => {
 				let msg0 = format!("both '{name0}' and '{name1}' in declaration specifier");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::MultipleTypes => {
 				let msg0 = "two or more data types in declaration specifiers";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::TooLong => {
 				let msg0 = "'long long long' is too long for stackl-cc";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ImplicitInt(Some(ident)) => {
 				let msg0 = format!("type defaults to 'int' in declaration of {ident}");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ImplicitInt(None) => {
 				let msg0 = format!("type defaults to 'int' in declaration of type name");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ArrayOfFunctions {
 				name: Some(name),
 				dtype,
 			} => {
 				let msg0 = format!("'{name}' declared as array of functions of type '{dtype}'");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ArrayOfFunctions { name: None, dtype } => {
 				let msg0 = format!("type name declared as array of functions of type '{dtype}'");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::UnrecognizedToken { token, expected } => {
 				let msg0 = format!("unrecognized token {token}");
@@ -273,169 +279,172 @@ impl DiagnosticEngine {
 						elem_str => msg1.push_str(elem_str),
 					}
 				}
-				self.format_diagnostic(&diag, msg0.as_str(), &msg1)
+				diag.pop_first_msg(&msg1);
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::FnRetFn(Some(name)) => {
 				let msg0 = format!("'{name}' declared as function returning function");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::FnRetFn(None) => {
 				let msg0 = format!("type name declared as function returning function");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::OmittedParamName => {
 				let msg0 = "parameter name omitted";
 				let msg1 = "ISO C does not support omitting parameter names in function definitions before C23";
-				self.format_diagnostic(&diag, msg0, msg1)
+				diag.pop_first_msg(msg1);
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DeclIdentList => {
 				let msg0 = "parameter names (without types) in function declaration";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::InvalidStar => {
 				let msg0 = "star modifier used outside of function prototype";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::UnboundVLA => {
 				let msg0 = "variable length array must be bound in function definition";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::IfAssign => {
 				let msg0 = "using the result of an assignment as a condition without parenthesis";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::OnlyVoid => {
 				let msg0 = "'void' must be the only parameter and unnamed";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ArrayOfVoid(None) => {
 				let msg0 = "declaration of type name as array of voids";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ArrayOfVoid(Some(name)) => {
 				let msg0 = format!("declaration of '{name}' as array of voids");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::IllegalStorage(kind) => {
 				let msg0 = format!("function definition declared '{kind}'");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::BitfieldRange(Some(name)) => {
 				let msg0 = format!("width of bit-field '{name}' exceeds width of its type");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::BitfieldRange(None) => {
 				let msg0 = format!("width of anonymous bit-field exceeds width of its type");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::BitfieldNonIntegral(Some(name)) => {
 				let msg0 = format!("bit-field '{name}' has non-integral type");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::BitfieldNonIntegral(None) => {
 				let msg0 = format!("anonymous bit-field has non-integral type");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::NonConstExpr => {
 				let msg0 = "expression is not an integer constant expression";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::EnumNonIntegral(name) => {
 				let msg0 =
 					format!("enumerator value for '{name}' is not an integer constant expression");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::EnumRange => {
 				let msg0 = "enumerator value is out of range";
 				let msg1 = "ISO C restricts enumerator values to range of 'int' before C23";
-				self.format_diagnostic(&diag, msg0, msg1)
+				diag.pop_first_msg(msg1);
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ErrorDirective(err_msg) => {
 				let msg0 = format!("{err_msg}");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ArrayMaxRange => {
 				// array range is 2 ^ 32 - 1 = 4,294,967,295
 				let msg0 = "size of array exceeds maximum object size '4294967295'";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ArrayMinRange => {
 				let msg0 = "ISO C forbids zero-size array";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DeclaratorLimit => {
 				let msg0 =
 					"declarators modifying a type in a declaration exceeds translation limit '12'";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ParameterLimit => {
 				let msg0 = "parameters in function definition exceeds translation limit '127'";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::UndefPredef => {
 				let msg0 = "undefining builtin macro";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::RedefPredef => {
 				let msg0 = "redefining builtin macro";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DirectiveLineNotSimple => {
 				let msg0 = "#line directive requires a simple digit sequence";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DirectiveLineMinRange => {
 				let msg0 = "ISO C forbids #line directive with zero argument";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DirectiveLineMaxRange => {
 				let msg0 = "#line directive requires a positive integer argument";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DirectiveLineFilename => {
 				let msg0 = "invalid filename for #line directive";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::DirectiveExtraTokens(directive) => {
 				let msg0 = format!("extra tokens at end of {directive} directive");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::FileNotFound(file_path) => {
 				let msg0 = format!(
 					"cannot find {}: no such file or directory",
 					file_path.display()
 				);
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::StructNoNamedMembers => {
 				let msg0 = "struct has no named members";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::Internal(err_msg) => {
 				let msg0 = format!("internal compiler error: {err_msg}");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::SymbolAlreadyExists(name) => {
 				let msg0 = format!("redefinition of '{name}'");
-				self.format_diagnostic(&diag, msg0.as_str(), "")
+				self.format_diagnostic(&diag, msg0.as_str())
 			}
 			DiagKind::ArrayDeclIncomplete => {
 				let msg0 = "definition of variable with array type needs an explicit size or an initializer";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::ArrayExcessElements => {
 				let msg0 = "excess elements in array initializer";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::VlaInitList => {
 				let msg0 = "variable-sized object may not be initialized";
-				self.format_diagnostic(&diag, msg0, "")
+				self.format_diagnostic(&diag, msg0)
 			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
 	}
-	fn format_diagnostic<S>(&self, diag: &Diagnostic, msg0: S, msg1: S) -> String
+	fn format_diagnostic<S>(&self, diag: &Diagnostic, msg0: S) -> String
 	where
 		S: AsRef<str>,
 	{
@@ -462,7 +471,7 @@ impl DiagnosticEngine {
 			}
 		};
 
-		let Some(span) = diag.span.clone() else {
+		if diag.span_list.is_empty() {
 			result.push_str(&format!(
 				"{color_bold_white}{}{color_default}\n",
 				msg0.as_ref()
@@ -470,53 +479,64 @@ impl DiagnosticEngine {
 			return result;
 		};
 
-		let file_path = self.get_file_path(span.file_id).unwrap();
-		let file_name = self.get_file_path(span.name_id).unwrap();
-		let source = self.get_file_data(span.file_id).unwrap();
+		let mut highest_len = 0;
+		for (span, msg) in diag.span_list.iter() {
+			let (_, mut reported_line, _) = self.get_location(&span).unwrap();
+			let source = self.get_file_data(span.file_id).unwrap();
+			let source_triple = span.to_vec(source.as_ref());
+			reported_line += 1 - source_triple.len();
+			let line_len = reported_line.to_string().len();
+			highest_len = std::cmp::max(highest_len, line_len);
+		}
 
 		result.push_str(&format!(
 			"{color_bold_white}{}{color_default}\n",
 			msg0.as_ref()
 		));
-		let (_actual_line, reported_line, col) = self.get_location(&span).unwrap();
-		let mut line = reported_line;
-		let mut hi_line = line;
-		let source_triple = span.to_vec(source.as_ref());
-		let triple_len = source_triple.len();
-		hi_line += 1 - source_triple.len();
 
-		let line_len = hi_line.to_string().len();
-		let mut line_space = " ".repeat(line_len);
+		let mut line_space = " ".repeat(highest_len);
+		let mut last_line = 1;
+		for (span_index, (span, msg1)) in diag.span_list.iter().enumerate() {
+			let file_name = self.get_file_path(span.name_id).unwrap();
+			let source = self.get_file_data(span.file_id).unwrap();
 
-		result.push_str(&format!(
-			"{line_space}{color_blue}-->{color_default} {}:{line}:{col}\n",
-			file_name.display()
-		));
-		line_space.push(' ');
-		result.push_str(&format!("{line_space}{color_blue}|{color_default}\n"));
-		for (index, (lo, source_line, hi)) in source_triple.into_iter().enumerate() {
-			for _ in 0..(line_len - line.to_string().len()) {
-				result.push(' ');
-			}
-			result.push_str(&format!(
-				"{color_blue}{line} |{color_default} {source_line}\n"
-			));
-			line += 1;
-			if hi < lo {
-				continue;
-			}
-			result.push_str(&format!(
-				"{line_space}{color_blue}|{color_default} {}{level_color}{}{color_default}",
-				" ".repeat(lo),
-				"^".repeat(1 + hi - lo),
-			));
-			if index == triple_len - 1 {
+			let (_, mut line, col) = self.get_location(&span).unwrap();
+			let source_triple = span.to_vec(source.as_ref());
+			let triple_len = source_triple.len();
+			let line_len = highest_len;
+
+			if span_index == 0 {
 				result.push_str(&format!(
-					"{color_bold_red} {}{color_default}\n",
-					msg1.as_ref()
+					"{line_space}{color_blue}-->{color_default} {}:{line}:{col}\n",
+					file_name.display()
 				));
-			} else {
-				result.push('\n');
+				line_space.push(' ');
+				result.push_str(&format!("{line_space}{color_blue}|{color_default}\n"));
+				last_line = line;
+			} else if last_line + 1 != line {
+				result.push_str(&format!("{color_blue}...{color_default}\n"));
+			}
+			for (triple_index, (lo, source_line, hi)) in source_triple.into_iter().enumerate() {
+				for _ in 0..(line_len - line.to_string().len()) {
+					result.push(' ');
+				}
+				result.push_str(&format!(
+					"{color_blue}{line} |{color_default} {source_line}\n"
+				));
+				line += 1;
+				if hi < lo {
+					continue;
+				}
+				result.push_str(&format!(
+					"{line_space}{color_blue}|{color_default} {}{level_color}{}{color_default}",
+					" ".repeat(lo),
+					"^".repeat(1 + hi - lo),
+				));
+				if triple_index == triple_len - 1 {
+					result.push_str(&format!("{color_bold_red} {}{color_default}\n", msg1));
+				} else {
+					result.push('\n');
+				}
 			}
 		}
 		for note in diag.notes.iter() {

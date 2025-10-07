@@ -26,7 +26,7 @@ pub enum Linkage {
 	Internal,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SymbolTableEntry {
 	pub data_type: DataType,
 	pub storage: StorageClass,

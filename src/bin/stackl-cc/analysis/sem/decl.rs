@@ -63,12 +63,12 @@ impl super::SemanticParser {
 				span: ident.to_span(),
 			};
 			let key = Namespace::Ordinary(ident.name.clone());
-			match self.symtab.insert(key.clone(), entry) {
-				Err(SymbolTableError::AlreadyExists) => {
+			match self.symtab.insert(key.clone(), entry.clone()) {
+				Err(SymbolTableError::AlreadyExists(prev_entry)) => {
 					// test warning
-					let entry = self.symtab.global_lookup(&key).unwrap();
 					let kind = DiagKind::SymbolAlreadyExists(ident.name.clone());
-					let error = Diagnostic::warn(kind, entry.span.clone());
+					let mut error = Diagnostic::warn(kind, prev_entry.span.clone());
+					error.push_span(entry.span, "");
 					self.diagnostics.push(error);
 				}
 				Err(SymbolTableError::InvalidScope) => {

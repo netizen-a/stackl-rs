@@ -4,9 +4,9 @@ use std::{
 };
 
 #[derive(Debug)]
-pub enum SymbolTableError {
+pub enum SymbolTableError<V: Clone> {
 	InvalidScope,
-	AlreadyExists,
+	AlreadyExists(V),
 	// DoesNotExist,
 }
 
@@ -15,13 +15,13 @@ pub struct SymbolTable<K, V> {
 	table: Vec<HashMap<K, V>>,
 }
 
-impl<K: Eq + Hash, V> Default for SymbolTable<K, V> {
+impl<K: Eq + Hash, V: Clone> Default for SymbolTable<K, V> {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-impl<K: Eq + Hash, V> SymbolTable<K, V> {
+impl<K: Eq + Hash, V: Clone> SymbolTable<K, V> {
 	pub fn new() -> Self {
 		Self {
 			table: vec![HashMap::new()],
@@ -48,13 +48,17 @@ impl<K: Eq + Hash, V> SymbolTable<K, V> {
 		&mut self,
 		key: impl Into<K>,
 		value: impl Into<V>,
-	) -> Result<(), SymbolTableError> {
+	) -> Result<(), SymbolTableError<V>> {
+		let key = key.into();
 		let Some(table) = self.table.last_mut() else {
 			return Err(SymbolTableError::InvalidScope);
 		};
-		match table.insert(key.into(), value.into()) {
-			Some(_) => Err(SymbolTableError::AlreadyExists),
-			None => Ok(()),
+		match table.get(&key) {
+			Some(value) => Err(SymbolTableError::AlreadyExists(value.clone())),
+			None => {
+				table.insert(key, value.into());
+				Ok(())
+			}
 		}
 	}
 	pub fn iter_current_scope(&self) -> Option<hash_map::Iter<K, V>> {

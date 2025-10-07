@@ -126,5 +126,7 @@ int (*const h[3])(unsigned int, ...);
 // typedef void bap(void) {}
 // register void rap(void) {}
 
+int far(int) {}
+
 
 
