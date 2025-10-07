@@ -596,7 +596,7 @@ impl super::SemanticParser {
 										kind: TypeKind::Enum(identifier.clone().map(|v|v.name)),
 										qual: Default::default(),
 									},
-									linkage: sym::Linkage::None,
+									linkage: sym::Linkage::Internal,
 									storage: sym::StorageClass::Constant,
 									span: enumerator_name.to_span(),
 									is_decl: true,

@@ -25,7 +25,6 @@ pub enum Namespace {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Linkage {
-	None,
 	External,
 	Internal,
 }

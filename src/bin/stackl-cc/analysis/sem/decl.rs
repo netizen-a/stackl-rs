@@ -21,7 +21,7 @@ impl super::SemanticParser {
 		let (storage, linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
 			syn::StorageClass::Extern => (syn::StorageClass::Extern, sym::Linkage::External),
 			syn::StorageClass::Static => (syn::StorageClass::Static, sym::Linkage::Internal),
-			storage => (storage, sym::Linkage::None),
+			storage => (storage, sym::Linkage::Internal),
 		};
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
