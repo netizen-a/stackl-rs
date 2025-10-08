@@ -1,5 +1,5 @@
 static void select(int x) {
-    int y = 0;
+    int y = 0, x = 0;
     if (x = 5) {
         y = 6;
     }

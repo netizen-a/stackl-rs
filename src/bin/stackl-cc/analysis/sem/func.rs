@@ -219,9 +219,9 @@ impl super::SemanticParser {
 				name_opt.clone().unwrap_or("<anonymous>".to_string()),
 				param_type
 			));
-			if let TypeKind::Poison = param_type.kind {
-				continue;
-			}
+			// if let TypeKind::Poison = param_type.kind {
+			// 	continue;
+			// }
 			match (param.ident.as_ref(), &param_type.kind) {
 				(None, TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
@@ -309,14 +309,42 @@ impl super::SemanticParser {
 			// let param_type = self.specifiers_dtype(&mut param.specifiers, true);
 			// let mut param_type = param_type.unwrap();
 			self.declarator_list(
-				param_span,
+				param_span.to_span(),
 				param.declarators.make_contiguous(),
 				&mut param_type,
 				true,
 				decl_type,
-				name_opt,
+				name_opt.clone(),
 				vec![],
 			);
+
+			if let (Some(name), DeclType::FnDef) = (name_opt, decl_type) {
+				let new_entry = sym::SymbolTableEntry {
+					data_type: param_type.clone(),
+					linkage: sym::Linkage::Internal,
+					storage: sym::StorageClass::Automatic,
+					span: param_span.to_span(),
+					is_decl: false,
+				};
+				let key = sym::Namespace::Ordinary(name.clone());
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.symtab.insert(key.clone(), new_entry.clone())
+				{
+					let kind =
+						DiagKind::SymbolAlreadyExists(name.clone(), prev_entry.data_type.clone());
+					let mut error = Diagnostic::error(kind, prev_entry.to_span());
+					error.push_span(
+						new_entry.span,
+						&format!("`{}` redefined here", name.clone()),
+					);
+					if prev_entry.is_decl == false && new_entry.is_decl == false {
+						// redefinition. don't even need to check types
+						self.diagnostics.push(error);
+					} else {
+						// TODO: further type checking is required.
+					}
+				}
+			}
 			result.push(param_type)
 		}
 		self.tree_builder.end_child();
