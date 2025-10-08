@@ -35,7 +35,7 @@ impl super::SemanticParser {
 				let (actual_line, reported_line, col) =
 					self.diagnostics.get_location(&span).unwrap();
 				let text = format!(
-					"init-declarator <line:{actual_line}:{reported_line}, col:{col}> {}",
+					"init-declarator <line:{actual_line}:{reported_line}, col:{col}> `{}`",
 					ident.name
 				);
 				self.tree_builder.begin_child(text);
@@ -86,15 +86,6 @@ impl super::SemanticParser {
 		self.tree_builder.end_child();
 		is_valid
 	}
-
-	fn enum_specifier(&mut self, _spec: &mut syn::EnumSpecifier) {
-		todo!("enum-specifier")
-	}
-	// fn enumerator(&mut self, enumerator: &mut Enumerator) {
-	// 	if let Some(ref mut expr) = enumerator.constant_expr {
-	// 		self.expr(expr);
-	// 	}
-	// }
 
 	pub(super) fn struct_declaration(
 		&mut self,

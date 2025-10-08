@@ -55,6 +55,8 @@ impl super::SemanticParser {
 		{
 			match decl.declarators.first_mut() {
 				Some(syn::Declarator::IdentList(ident_list)) => {
+					self.tree_builder
+						.begin_child("identifier-list ( )".to_string());
 					let func_type = FuncType {
 						params: vec![],
 						ret: Box::new(data_type),
@@ -91,6 +93,7 @@ impl super::SemanticParser {
 							// TODO: further type checking is required.
 						}
 					}
+					self.tree_builder.end_child();
 				}
 				Some(syn::Declarator::ParamList(param_list)) => {
 					if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
@@ -175,9 +178,12 @@ impl super::SemanticParser {
 				}
 			}
 
+			self.tree_builder
+				.begin_child("declaration-list".to_string());
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, syn::StorageClass::Auto, true);
 			}
+			self.tree_builder.end_child();
 			self.tree_builder
 				.begin_child("compound-stmt { }".to_string());
 			for item in decl.compound_stmt.blocks.iter_mut() {
@@ -195,6 +201,7 @@ impl super::SemanticParser {
 		param_list: &mut syn::ParamList,
 		decl_type: DeclType,
 	) -> Option<Vec<DataType>> {
+		self.tree_builder.begin_child("param-list ( )".to_string());
 		let param_count = param_list.param_list.len();
 		let mut result = vec![];
 		let mut is_valid = true;
@@ -207,6 +214,11 @@ impl super::SemanticParser {
 			let maybe_type = self.specifiers_dtype(&mut param.specifiers, true);
 			let mut param_type =
 				self.unwrap_or_poison(maybe_type, name_opt.clone(), param_span.clone());
+			self.tree_builder.add_empty_child(format!(
+				"`{}` '{}'",
+				name_opt.clone().unwrap_or("<anonymous>".to_string()),
+				param_type
+			));
 			if let TypeKind::Poison = param_type.kind {
 				continue;
 			}
@@ -305,12 +317,9 @@ impl super::SemanticParser {
 				name_opt,
 				vec![],
 			);
-			if let TypeKind::Poison = param_type.kind {
-				return None;
-			}
-
 			result.push(param_type)
 		}
+		self.tree_builder.end_child();
 		match is_valid {
 			true => Some(result),
 			false => None,

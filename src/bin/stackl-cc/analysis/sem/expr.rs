@@ -41,7 +41,6 @@ impl super::SemanticParser {
 				ident.name, entry.data_type
 			));
 			if !in_func && !entry.is_constant() {
-				// TODO: check if identifier is const
 				let kind = DiagKind::InitializerNotConst;
 				let error = Diagnostic::error(kind, span);
 				self.diagnostics.push(error);
@@ -155,7 +154,7 @@ impl super::SemanticParser {
 		match constant {
 			Const::Integer(IntegerConstant::I32(inner)) => {
 				self.tree_builder
-					.add_empty_child(format!("constant `{inner}` 'signed int'"));
+					.add_empty_child(format!("constant `{inner}` 'int'"));
 				DataType {
 					kind: TypeKind::Scalar(ScalarType::I32),
 					qual: Default::default(),
@@ -171,7 +170,7 @@ impl super::SemanticParser {
 			}
 			Const::Integer(IntegerConstant::I64(inner)) => {
 				self.tree_builder
-					.add_empty_child(format!("constant `{inner}` 'signed long int'"));
+					.add_empty_child(format!("constant `{inner}` 'long'"));
 				DataType {
 					kind: TypeKind::Scalar(ScalarType::I64),
 					qual: Default::default(),
@@ -179,7 +178,7 @@ impl super::SemanticParser {
 			}
 			Const::Integer(IntegerConstant::U64(inner)) => {
 				self.tree_builder
-					.add_empty_child(format!("constant `{inner}` 'unsigned long int'"));
+					.add_empty_child(format!("constant `{inner}` 'unsigned long'"));
 				DataType {
 					kind: TypeKind::Scalar(ScalarType::U64),
 					qual: Default::default(),
@@ -187,7 +186,7 @@ impl super::SemanticParser {
 			}
 			Const::Integer(IntegerConstant::I128(inner)) => {
 				self.tree_builder
-					.add_empty_child(format!("constant `{inner}` 'signed long long int'"));
+					.add_empty_child(format!("constant `{inner}` 'long long'"));
 				DataType {
 					kind: TypeKind::Scalar(ScalarType::I128),
 					qual: Default::default(),
@@ -195,7 +194,7 @@ impl super::SemanticParser {
 			}
 			Const::Integer(IntegerConstant::U128(inner)) => {
 				self.tree_builder
-					.add_empty_child(format!("constant `{inner}` 'unsigned long long int'"));
+					.add_empty_child(format!("constant `{inner}` 'unsigned long long'"));
 				DataType {
 					kind: TypeKind::Scalar(ScalarType::U128),
 					qual: Default::default(),
