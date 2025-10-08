@@ -179,7 +179,8 @@ impl TypeKind {
 		}
 		let space = if qual_str.is_empty() { "" } else { " " };
 		match self {
-			Self::Void => format!("void{context}"),
+			Self::Poison => format!("{qual_str}{space}<poisoned>{context}"),
+			Self::Void => format!("{qual_str}{space}void{context}"),
 			Self::Scalar(ScalarType::Bool) => format!("{qual_str}{space}_Bool{context}"),
 			Self::Scalar(ScalarType::U8) => format!("{qual_str}{space}unsigned char{context}"),
 			Self::Scalar(ScalarType::I8) => format!("{qual_str}{space}char{context}"),
