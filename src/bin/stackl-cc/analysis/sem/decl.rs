@@ -286,13 +286,13 @@ impl super::SemanticParser {
 						if DeclType::FnDef == decl_type && is_param {
 							decl_type = DeclType::Proto;
 						}
-						let Some(params) = self.param_list(type_list, decl_type) else {
+						let Some(symbol_list) = self.param_list(type_list, decl_type) else {
 							data_type.kind = TypeKind::Poison;
 							return;
 						};
 						let error_type = DataType {
 							kind: TypeKind::Function(FuncType {
-								params,
+								params: symbol_list.iter().map(|s| s.1.clone()).collect(),
 								ret: Box::new(data_type.clone()),
 								is_variadic: false,
 								is_inline: false,
@@ -433,13 +433,13 @@ impl super::SemanticParser {
 					if DeclType::FnDef == decl_type && is_param {
 						decl_type = DeclType::Proto;
 					}
-					let Some(params) = self.param_list(type_list, decl_type) else {
+					let Some(symbol_list) = self.param_list(type_list, decl_type) else {
 						data_type.kind = TypeKind::Poison;
 						return;
 					};
 
 					let func_type = FuncType {
-						params,
+						params: symbol_list.iter().map(|s| s.1.clone()).collect(),
 						ret: Box::new(data_type.clone()),
 						is_variadic: type_list.is_variadic,
 						is_inline: false,

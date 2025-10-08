@@ -51,130 +51,166 @@ impl super::SemanticParser {
 				vec![],
 			);
 		}
+
+		let mut declaration_list = vec![];
+
+		match decl.declarators.first_mut() {
+			Some(syn::Declarator::IdentList(ident_list)) => {
+				self.tree_builder
+					.begin_child("identifier-list ( )".to_string());
+				let func_type = FuncType {
+					params: vec![],
+					ret: Box::new(data_type),
+					is_variadic: false,
+					is_inline: !decl.specifiers.inline_list.is_empty(),
+				};
+				let new_entry = sym::SymbolTableEntry {
+					data_type: DataType {
+						kind: TypeKind::Function(func_type),
+						qual: TypeQual::default(),
+					},
+					linkage,
+					storage,
+					span: decl.ident.to_span(),
+					is_decl: false,
+				};
+				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.symtab.insert(key.clone(), new_entry.clone())
+				{
+					let kind = DiagKind::SymbolAlreadyExists(
+						decl.ident.name.clone(),
+						prev_entry.data_type.clone(),
+					);
+					let mut error = Diagnostic::error(kind, prev_entry.to_span());
+					error.push_span(
+						new_entry.span,
+						&format!("`{}` redefined here", decl.ident.name.clone()),
+					);
+					if prev_entry.is_decl == false && new_entry.is_decl == false {
+						// redefinition. don't even need to check types
+						self.diagnostics.push(error);
+					} else {
+						// TODO: further type checking is required.
+					}
+				}
+				self.tree_builder.end_child();
+			}
+			Some(syn::Declarator::ParamList(param_list)) => {
+				if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
+					// 5.2.4.1 translation limit
+					let diag = Diagnostic::warn(DiagKind::ParameterLimit, decl.ident.to_span());
+					self.diagnostics.push(diag);
+				}
+				let Some(symbol_list) = self.param_list(param_list, DeclType::FnDef) else {
+					// failed to get param types
+					return false;
+				};
+
+				declaration_list = symbol_list;
+
+				let func_type = FuncType {
+					params: declaration_list.iter().map(|s| s.1.clone()).collect(),
+					ret: Box::new(data_type),
+					is_variadic: param_list.is_variadic,
+					is_inline: !decl.specifiers.inline_list.is_empty(),
+				};
+				let new_entry = sym::SymbolTableEntry {
+					data_type: DataType {
+						kind: TypeKind::Function(func_type),
+						qual: TypeQual::default(),
+					},
+					linkage,
+					storage,
+					span: func_ident.to_span(),
+					is_decl: false,
+				};
+				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.symtab.insert(key.clone(), new_entry.clone())
+				{
+					let kind = DiagKind::SymbolAlreadyExists(
+						decl.ident.name.clone(),
+						prev_entry.data_type.clone(),
+					);
+					let mut error = Diagnostic::error(kind, prev_entry.to_span());
+					error.push_span(
+						new_entry.span,
+						&format!("`{}` redefined here", func_ident.name.clone()),
+					);
+					if prev_entry.is_decl == false {
+						error.push_note(&format!("`{}` must be defined only once in the ordinary namespace of this translation unit", func_ident.name.clone()));
+						// redefinition. don't even need to check types
+						self.diagnostics.push(error);
+					} else {
+						let callee_span = prev_entry.to_span();
+						if let Ok(false) =
+							self.dtype_eq(&prev_entry.data_type, &new_entry.data_type, callee_span)
+						{
+							self.diagnostics.push(error);
+						}
+					}
+				}
+			}
+			Some(syn::Declarator::Array(array)) => {
+				let kind = DiagKind::ArrayOfFunctions {
+					name: Some(decl.ident.name.clone()),
+					dtype: data_type,
+				};
+				let diag = Diagnostic::error(kind, array.span.clone());
+				self.diagnostics.push(diag);
+				self.tree_builder.end_child();
+				return false;
+			}
+			token @ (None | Some(syn::Declarator::Pointer(_))) => {
+				let kind = DiagKind::UnrecognizedToken {
+					token: format!("{token:?}"),
+					expected: vec![
+						"\"=\"".to_string(),
+						"\",\"".to_string(),
+						"\";\"".to_string(),
+						"\"asm\"".to_string(),
+					],
+				};
+				let diag = Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
+				self.diagnostics.push(diag);
+				return false;
+			}
+		}
+
 		self.symtab.increase_scope();
 		{
-			match decl.declarators.first_mut() {
-				Some(syn::Declarator::IdentList(ident_list)) => {
-					self.tree_builder
-						.begin_child("identifier-list ( )".to_string());
-					let func_type = FuncType {
-						params: vec![],
-						ret: Box::new(data_type),
-						is_variadic: false,
-						is_inline: !decl.specifiers.inline_list.is_empty(),
-					};
-					let new_entry = sym::SymbolTableEntry {
-						data_type: DataType {
-							kind: TypeKind::Function(func_type),
-							qual: TypeQual::default(),
-						},
-						linkage,
-						storage,
-						span: decl.ident.to_span(),
-						is_decl: false,
-					};
-					let key = sym::Namespace::Ordinary(decl.ident.name.clone());
-					if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-						self.symtab.insert(key.clone(), new_entry.clone())
-					{
-						let kind = DiagKind::SymbolAlreadyExists(
-							decl.ident.name.clone(),
-							prev_entry.data_type.clone(),
-						);
-						let mut error = Diagnostic::error(kind, prev_entry.to_span());
-						error.push_span(
-							new_entry.span,
-							&format!("`{}` redefined here", decl.ident.name.clone()),
-						);
-						if prev_entry.is_decl == false && new_entry.is_decl == false {
-							// redefinition. don't even need to check types
-							self.diagnostics.push(error);
-						} else {
-							// TODO: further type checking is required.
-						}
-					}
-					self.tree_builder.end_child();
-				}
-				Some(syn::Declarator::ParamList(param_list)) => {
-					if param_list.param_list.len() > 127 && self.warn_lvl == WarnLevel::All {
-						// 5.2.4.1 translation limit
-						let diag = Diagnostic::warn(DiagKind::ParameterLimit, decl.ident.to_span());
-						self.diagnostics.push(diag);
-					}
-					let Some(mut params) = self.param_list(param_list, DeclType::FnDef) else {
-						// failed to get param types
-						return false;
-					};
-
-					let is_variadic = param_list.is_variadic;
-					let func_type = FuncType {
-						params,
-						ret: Box::new(data_type),
-						is_variadic,
-						is_inline: !decl.specifiers.inline_list.is_empty(),
-					};
-					let new_entry = sym::SymbolTableEntry {
-						data_type: DataType {
-							kind: TypeKind::Function(func_type),
-							qual: TypeQual::default(),
-						},
-						linkage,
-						storage,
-						span: func_ident.to_span(),
-						is_decl: false,
-					};
-					let key = sym::Namespace::Ordinary(decl.ident.name.clone());
-					if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-						self.symtab.insert(key.clone(), new_entry.clone())
-					{
-						let kind = DiagKind::SymbolAlreadyExists(
-							decl.ident.name.clone(),
-							prev_entry.data_type.clone(),
-						);
-						let mut error = Diagnostic::error(kind, prev_entry.to_span());
-						error.push_span(
-							new_entry.span,
-							&format!("`{}` redefined here", func_ident.name.clone()),
-						);
-						if prev_entry.is_decl == false {
-							error.push_note(&format!("`{}` must be defined only once in the ordinary namespace of this translation unit", func_ident.name.clone()));
-							// redefinition. don't even need to check types
-							self.diagnostics.push(error);
-						} else {
-							let callee_span = prev_entry.to_span();
-							if let Ok(false) = self.dtype_eq(
-								&prev_entry.data_type,
-								&new_entry.data_type,
-								callee_span,
-							) {
-								self.diagnostics.push(error);
-							}
-						}
-					}
-				}
-				Some(syn::Declarator::Array(array)) => {
-					let kind = DiagKind::ArrayOfFunctions {
-						name: Some(decl.ident.name.clone()),
-						dtype: data_type,
-					};
-					let diag = Diagnostic::error(kind, array.span.clone());
-					self.diagnostics.push(diag);
-					self.tree_builder.end_child();
+			for (decl_maybe, decl_type) in declaration_list.iter() {
+				let Some(decl_ident) = decl_maybe else {
+					// missing parameter name
 					return false;
-				}
-				token @ (None | Some(syn::Declarator::Pointer(_))) => {
-					let kind = DiagKind::UnrecognizedToken {
-						token: format!("{token:?}"),
-						expected: vec![
-							"\"=\"".to_string(),
-							"\",\"".to_string(),
-							"\";\"".to_string(),
-							"\"asm\"".to_string(),
-						],
-					};
-					let diag = Diagnostic::error(kind, decl.compound_stmt.lcurly.clone());
-					self.diagnostics.push(diag);
-					return false;
+				};
+				let new_entry = sym::SymbolTableEntry {
+					data_type: decl_type.clone(),
+					linkage: sym::Linkage::Internal,
+					storage: sym::StorageClass::Automatic,
+					span: decl_ident.to_span(),
+					is_decl: false,
+				};
+				let key = sym::Namespace::Ordinary(decl_ident.name.clone());
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.symtab.insert(key.clone(), new_entry.clone())
+				{
+					let kind = DiagKind::SymbolAlreadyExists(
+						decl_ident.name.clone(),
+						prev_entry.data_type.clone(),
+					);
+					let mut error = Diagnostic::error(kind, prev_entry.to_span());
+					error.push_span(
+						new_entry.span,
+						&format!("`{}` redefined here", decl_ident.name.clone()),
+					);
+					if prev_entry.is_decl == false && new_entry.is_decl == false {
+						// redefinition. don't even need to check types
+						self.diagnostics.push(error);
+					} else {
+						// TODO: further type checking is required.
+					}
 				}
 			}
 
@@ -200,7 +236,7 @@ impl super::SemanticParser {
 		&mut self,
 		param_list: &mut syn::ParamList,
 		decl_type: DeclType,
-	) -> Option<Vec<DataType>> {
+	) -> Option<Vec<(Option<syn::Identifier>, DataType)>> {
 		self.tree_builder.begin_child("param-list ( )".to_string());
 		let param_count = param_list.param_list.len();
 		let mut result = vec![];
@@ -219,9 +255,9 @@ impl super::SemanticParser {
 				name_opt.clone().unwrap_or("<anonymous>".to_string()),
 				param_type
 			));
-			// if let TypeKind::Poison = param_type.kind {
-			// 	continue;
-			// }
+			if let TypeKind::Poison = param_type.kind {
+				continue;
+			}
 			match (param.ident.as_ref(), &param_type.kind) {
 				(None, TypeKind::Void) => match param.declarators.front() {
 					Some(syn::Declarator::Array(syn::ArrayDecl { span, .. })) => {
@@ -317,35 +353,7 @@ impl super::SemanticParser {
 				name_opt.clone(),
 				vec![],
 			);
-
-			if let (Some(name), DeclType::FnDef) = (name_opt, decl_type) {
-				let new_entry = sym::SymbolTableEntry {
-					data_type: param_type.clone(),
-					linkage: sym::Linkage::Internal,
-					storage: sym::StorageClass::Automatic,
-					span: param_span.to_span(),
-					is_decl: false,
-				};
-				let key = sym::Namespace::Ordinary(name.clone());
-				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.symtab.insert(key.clone(), new_entry.clone())
-				{
-					let kind =
-						DiagKind::SymbolAlreadyExists(name.clone(), prev_entry.data_type.clone());
-					let mut error = Diagnostic::error(kind, prev_entry.to_span());
-					error.push_span(
-						new_entry.span,
-						&format!("`{}` redefined here", name.clone()),
-					);
-					if prev_entry.is_decl == false && new_entry.is_decl == false {
-						// redefinition. don't even need to check types
-						self.diagnostics.push(error);
-					} else {
-						// TODO: further type checking is required.
-					}
-				}
-			}
-			result.push(param_type)
+			result.push((param.ident.clone(), param_type))
 		}
 		self.tree_builder.end_child();
 		match is_valid {
