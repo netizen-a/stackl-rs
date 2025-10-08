@@ -4,7 +4,6 @@ use crate::analysis::tok;
 use crate::cli::WarnLevel;
 use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symbol_table::StorageClass;
 use crate::symbol_table as sym;
 
 impl super::SemanticParser {
@@ -18,10 +17,12 @@ impl super::SemanticParser {
 		let mut is_valid = true;
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers, in_func);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
-		let (storage, linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
-			syn::StorageClass::Extern => (syn::StorageClass::Extern, sym::Linkage::External),
-			syn::StorageClass::Static => (syn::StorageClass::Static, sym::Linkage::Internal),
-			storage => (storage, sym::Linkage::Internal),
+		let (storage, linkage): (sym::StorageClass, sym::Linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
+			syn::StorageClass::Auto => (sym::StorageClass::Automatic, sym::Linkage::Internal),
+			syn::StorageClass::Extern => (sym::StorageClass::Static, sym::Linkage::External),
+			syn::StorageClass::Register => (sym::StorageClass::Register, sym::Linkage::Internal),
+			syn::StorageClass::Static => (sym::StorageClass::Static, sym::Linkage::Internal),
+			syn::StorageClass::Typedef => (sym::StorageClass::Typedef, sym::Linkage::Internal),
 		};
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
@@ -57,18 +58,10 @@ impl super::SemanticParser {
 				Some(ident.name.clone()),
 				init_list_count,
 			);
-			// convert C storage class to symbol storage class
-			let storage: StorageClass = match storage {
-				syn::StorageClass::Auto => StorageClass::Automatic,
-				syn::StorageClass::Extern => StorageClass::Static,
-				syn::StorageClass::Register => StorageClass::Register,
-				syn::StorageClass::Static => StorageClass::Static,
-				syn::StorageClass::Typedef => StorageClass::Typedef,
-			};
 			let new_entry = sym::SymbolTableEntry {
 				data_type: var_dtype,
 				linkage,
-				storage,
+				storage: storage.clone(),
 				span: ident.to_span(),
 				is_decl: true,
 			};

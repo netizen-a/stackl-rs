@@ -14,16 +14,16 @@ impl super::SemanticParser {
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers, false);
 
-		let (storage, linkage) = match &maybe_sc {
+		let (storage, linkage): (StorageClass, sym::Linkage) = match &maybe_sc {
 			None
 			| Some(syn::StorageClassSpecifier {
 				kind: syn::StorageClass::Extern,
 				..
-			}) => (syn::StorageClass::Extern, sym::Linkage::External),
+			}) => (StorageClass::Function, sym::Linkage::External),
 			Some(syn::StorageClassSpecifier {
 				kind: syn::StorageClass::Static,
 				..
-			}) => (syn::StorageClass::Static, sym::Linkage::Internal),
+			}) => (StorageClass::Function, sym::Linkage::Internal),
 			Some(storage) => {
 				let kind = DiagKind::IllegalStorage(storage.kind);
 				let diag = Diagnostic::error(kind, storage.to_span());
@@ -31,14 +31,6 @@ impl super::SemanticParser {
 				self.tree_builder.end_child();
 				return false;
 			}
-		};
-		// convert C storage class to symbol storage class
-		let storage: StorageClass = match storage {
-			syn::StorageClass::Auto => panic!(),
-			syn::StorageClass::Register => panic!(),
-			syn::StorageClass::Extern => StorageClass::Function,
-			syn::StorageClass::Static => StorageClass::Function,
-			syn::StorageClass::Typedef => StorageClass::Typedef,
 		};
 		let mut data_type = self.unwrap_or_poison(
 			maybe_ty,
