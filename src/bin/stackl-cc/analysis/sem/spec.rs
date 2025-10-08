@@ -56,6 +56,7 @@ impl super::SemanticParser {
 			None
 		}
 	}
+
 	pub(super) fn specifiers_dtype(
 		&mut self,
 		specifiers: &mut syn::Specifiers,
@@ -67,398 +68,40 @@ impl super::SemanticParser {
 		for type_spec in specifiers.type_specifiers.iter_mut() {
 			match type_spec {
 				syn::TypeSpecifier::Void(span) => {
-					match type_kind {
-						None => type_kind = Some(TypeKind::Void),
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-					}
-					if long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								VOID_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
+					self.specifier_void(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
 				syn::TypeSpecifier::Char(span) => {
-					match type_kind {
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => type_kind = Some(TypeKind::Scalar(ScalarType::I8)),
-					}
-					if long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								CHAR_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
+					self.specifier_char(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
 				syn::TypeSpecifier::Short(span) => {
-					match type_kind {
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => type_kind = Some(TypeKind::Scalar(ScalarType::I16)),
-					}
-					if long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								SHORT_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
+					self.specifier_short(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
-				syn::TypeSpecifier::Int(span) => match type_kind {
-					Some(TypeKind::Poison) => {
-						// do nothing
-					}
-					Some(_) => {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
-					None => type_kind = Some(TypeKind::Scalar(ScalarType::I32)),
-				},
+				syn::TypeSpecifier::Int(span) => {
+					self.specifier_int(span.to_span(), &mut type_kind, is_signed, long_count)
+				}
 				syn::TypeSpecifier::Long(span) => {
-					long_count += 1;
-					if long_count > 2 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::TooLong,
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
-					match &mut type_kind {
-						Some(TypeKind::Struct(_) | TypeKind::Union(_) | TypeKind::Enum(_)) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(type_kind) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									LONG_STR.to_owned(),
-									type_kind.to_string(),
-								),
-								span.clone(),
-							));
-							*type_kind = TypeKind::Poison;
-						}
-						None | Some(TypeKind::Scalar(ScalarType::I32)) => {
-							// do nothing
-						}
-					}
+					self.specifier_long(span.to_span(), &mut type_kind, is_signed, &mut long_count)
 				}
 				syn::TypeSpecifier::Float(span) => {
-					match is_signed {
-						Some(true) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									FLOAT_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(false) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									UNSIGNED_STR.to_owned(),
-									FLOAT_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => {
-							// do nothing
-						}
-					}
-					match type_kind {
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => type_kind = Some(TypeKind::Scalar(ScalarType::Float)),
-					}
-					if long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								FLOAT_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
+					self.specifier_float(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
 				syn::TypeSpecifier::Double(span) => {
-					match is_signed {
-						Some(true) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									DOUBLE_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(false) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									UNSIGNED_STR.to_owned(),
-									DOUBLE_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => {
-							// do nothing
-						}
-					}
-					match type_kind {
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => type_kind = Some(TypeKind::Scalar(ScalarType::Double)),
-					}
-					if long_count > 1 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_LONG_STR.to_owned(),
-								DOUBLE_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
+					self.specifier_double(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
-				syn::TypeSpecifier::Signed(span) => {
-					match is_signed {
-						Some(true) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(false) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									UNSIGNED_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => is_signed = Some(true),
-					}
-					match &type_kind {
-						Some(TypeKind::Scalar(ScalarType::Double)) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									DOUBLE_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(TypeKind::Scalar(ScalarType::Float)) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									FLOAT_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(TypeKind::Scalar(_) | TypeKind::Poison) | None => {
-							// do nothing
-						}
-						Some(token) => {
-							let expected = vec![
-								"identifier".to_string(),
-								"\";\"".to_string(),
-								"\"(\"".to_string(),
-							];
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::UnrecognizedToken {
-									token: format!("{token:?}"),
-									expected,
-								},
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-					}
-				}
-				syn::TypeSpecifier::Unsigned(span) => {
-					match is_signed {
-						Some(true) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									UNSIGNED_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(false) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => is_signed = Some(false),
-					}
-					match &type_kind {
-						Some(TypeKind::Scalar(ScalarType::Double)) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									UNSIGNED_STR.to_owned(),
-									DOUBLE_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(TypeKind::Scalar(ScalarType::Float)) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									UNSIGNED_STR.to_owned(),
-									FLOAT_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(TypeKind::Scalar(_) | TypeKind::Poison) | None => {
-							// do nothing
-						}
-						Some(token) => {
-							let expected = vec![
-								"identifier".to_string(),
-								"\";\"".to_string(),
-								"\"(\"".to_string(),
-							];
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::UnrecognizedToken {
-									token: format!("{token:?}"),
-									expected,
-								},
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-					}
-				}
+				syn::TypeSpecifier::Signed(span) => self.specifier_signed(
+					span.to_span(),
+					&mut type_kind,
+					&mut is_signed,
+					long_count,
+				),
+				syn::TypeSpecifier::Unsigned(span) => self.specifier_unsigned(
+					span.to_span(),
+					&mut type_kind,
+					&mut is_signed,
+					long_count,
+				),
 				syn::TypeSpecifier::Bool(span) => {
-					match type_kind {
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => type_kind = Some(TypeKind::Scalar(ScalarType::Bool)),
-					}
-					if long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								BOOL_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
-					match is_signed {
-						Some(true) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									BOOL_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(false) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									UNSIGNED_STR.to_owned(),
-									BOOL_STR.to_owned(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => {
-							// do nothing
-						}
-					}
+					self.specifier_bool(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
 				syn::TypeSpecifier::StructOrUnionSpecifier(syn::StructOrUnionSpecifier {
 					struct_or_union,
@@ -497,23 +140,26 @@ impl super::SemanticParser {
 						);
 						self.diagnostics.push(error);
 					}
-					match struct_or_union.kind {
-						syn::StructOrUnionKind::Struct => {
-							let struct_type = StructType {
-								name: ident.clone().map(|v| v.name),
-								members,
-								is_incomplete: *is_incomplete,
-							};
-							type_kind = Some(TypeKind::Struct(struct_type));
+
+					if !*is_incomplete {
+						match struct_or_union.kind {
+							syn::StructOrUnionKind::Struct => {
+								let struct_type = StructType {
+									name: ident.clone().map(|v| v.name),
+									members,
+								};
+								type_kind = Some(TypeKind::Struct(struct_type));
+							}
+							syn::StructOrUnionKind::Union => {
+								let union_type = UnionType {
+									name: ident.clone().map(|v| v.name),
+									members,
+								};
+								type_kind = Some(TypeKind::Union(union_type));
+							}
 						}
-						syn::StructOrUnionKind::Union => {
-							let union_type = UnionType {
-								name: ident.clone().map(|v| v.name),
-								members,
-								is_incomplete: *is_incomplete,
-							};
-							type_kind = Some(TypeKind::Union(union_type));
-						}
+					} else {
+						// ???
 					}
 
 					match is_signed {
@@ -659,6 +305,408 @@ impl super::SemanticParser {
 			})
 		} else {
 			None
+		}
+	}
+	fn specifier_void(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match type_kind {
+			None => *type_kind = Some(TypeKind::Void),
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+		}
+		if long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), VOID_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+	}
+	fn specifier_char(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::I8)),
+		}
+		if long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), CHAR_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+	}
+
+	fn specifier_short(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::I16)),
+		}
+		if long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), SHORT_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+	}
+
+	fn specifier_int(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::I32)),
+		}
+	}
+
+	fn specifier_long(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: &mut i32,
+	) {
+		*long_count += 1;
+		if *long_count > 2 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::TooLong,
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+		match type_kind {
+			Some(TypeKind::Struct(_) | TypeKind::Union(_) | TypeKind::Enum(_)) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(type_kind) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), type_kind.to_string()),
+					span.clone(),
+				));
+				*type_kind = TypeKind::Poison;
+			}
+			None | Some(TypeKind::Scalar(ScalarType::I32)) => {
+				// do nothing
+			}
+		}
+	}
+	fn specifier_float(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match is_signed {
+			Some(true) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), FLOAT_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(false) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(UNSIGNED_STR.to_owned(), FLOAT_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => {
+				// do nothing
+			}
+		}
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::Float)),
+		}
+		if long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), FLOAT_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+	}
+	fn specifier_double(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match is_signed {
+			Some(true) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), DOUBLE_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(false) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(UNSIGNED_STR.to_owned(), DOUBLE_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => {
+				// do nothing
+			}
+		}
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::Double)),
+		}
+		if long_count > 1 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_LONG_STR.to_owned(), DOUBLE_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+	}
+	fn specifier_signed(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: &mut Option<bool>,
+		long_count: i32,
+	) {
+		match is_signed {
+			Some(true) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::DuplicateSpecifier(SIGNED_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(false) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), UNSIGNED_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *is_signed = Some(true),
+		}
+		match &type_kind {
+			Some(TypeKind::Scalar(ScalarType::Double)) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), DOUBLE_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(TypeKind::Scalar(ScalarType::Float)) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), FLOAT_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(TypeKind::Scalar(_) | TypeKind::Poison) | None => {
+				// do nothing
+			}
+			Some(token) => {
+				let expected = vec![
+					"identifier".to_string(),
+					"\";\"".to_string(),
+					"\"(\"".to_string(),
+				];
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::UnrecognizedToken {
+						token: format!("{token:?}"),
+						expected,
+					},
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+		}
+	}
+	fn specifier_unsigned(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: &mut Option<bool>,
+		long_count: i32,
+	) {
+		match is_signed {
+			Some(true) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), UNSIGNED_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(false) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::DuplicateSpecifier(UNSIGNED_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *is_signed = Some(false),
+		}
+		match type_kind {
+			Some(TypeKind::Scalar(ScalarType::Double)) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(UNSIGNED_STR.to_owned(), DOUBLE_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(TypeKind::Scalar(ScalarType::Float)) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(UNSIGNED_STR.to_owned(), FLOAT_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(TypeKind::Scalar(_) | TypeKind::Poison) | None => {
+				// do nothing
+			}
+			Some(token) => {
+				let expected = vec![
+					"identifier".to_string(),
+					"\";\"".to_string(),
+					"\"(\"".to_string(),
+				];
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::UnrecognizedToken {
+						token: format!("{token:?}"),
+						expected,
+					},
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+		}
+	}
+	fn specifier_bool(
+		&mut self,
+		span: diag::Span,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+	) {
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::Bool)),
+		}
+		if long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), BOOL_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+		match is_signed {
+			Some(true) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(SIGNED_STR.to_owned(), BOOL_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(false) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(UNSIGNED_STR.to_owned(), BOOL_STR.to_owned()),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => {
+				// do nothing
+			}
 		}
 	}
 }

@@ -135,14 +135,18 @@ impl fmt::Display for MemberType {
 pub struct StructType {
 	pub name: Option<String>,
 	pub members: Vec<MemberType>,
-	pub is_incomplete: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct UnionType {
 	pub name: Option<String>,
 	pub members: Vec<MemberType>,
-	pub is_incomplete: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct EnumType {
+	pub name: Option<String>,
+	pub value: Option<i32>,
 }
 
 #[derive(Debug, Clone)]
