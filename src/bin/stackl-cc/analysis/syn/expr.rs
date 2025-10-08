@@ -57,7 +57,7 @@ impl Expr {
 			right: Box::new(right),
 		});
 		if contract_int || contract_float {
-			result.reduce(contract_int, contract_float)
+			result.constant_fold(contract_int, contract_float)
 		} else {
 			result
 		}
@@ -71,12 +71,12 @@ impl Expr {
 		})
 	}
 
-	fn reduce(&self, contract_int: bool, contract_float: bool) -> Expr {
+	fn constant_fold(&self, contract_int: bool, contract_float: bool) -> Expr {
 		use tok::Const::{Floating, Integer};
 		match self {
 			Self::UnaryPrefix(unary) => {
 				let op = &unary.op;
-				let expr = unary.expr.reduce(contract_int, contract_float);
+				let expr = unary.expr.constant_fold(contract_int, contract_float);
 				match &expr {
 					Expr::Const(Integer(rhs_int)) => op.reduce_int(rhs_int),
 					_ => Self::UnaryPrefix(UnaryPrefix {
@@ -87,7 +87,7 @@ impl Expr {
 			}
 			Self::UnaryPostfix(unary) => {
 				let op = &unary.op;
-				let expr = unary.expr.reduce(contract_int, contract_float);
+				let expr = unary.expr.constant_fold(contract_int, contract_float);
 				match &expr {
 					Expr::Const(Integer(rhs_int)) => {
 						//op.reduce_int(rhs_int)
@@ -100,23 +100,23 @@ impl Expr {
 				}
 			}
 			Self::Binary(binary) => {
-				let left = binary.left.reduce(contract_int, contract_float);
-				let right = binary.right.reduce(contract_int, contract_float);
+				let left = binary.left.constant_fold(contract_int, contract_float);
+				let right = binary.right.constant_fold(contract_int, contract_float);
 				let op = binary.op.clone();
 				match (contract_int, contract_float, &left, &right) {
 					(true, _, Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
-						op.reduce_int(lhs_int, rhs_int)
+						op.constant_fold_int(lhs_int, rhs_int)
 					}
 					(true, _, Expr::Paren(expr), Expr::Const(Integer(rhs_int))) => {
 						if let Expr::Const(Integer(lhs_int)) = expr.as_ref() {
-							op.reduce_int(lhs_int, rhs_int)
+							op.constant_fold_int(lhs_int, rhs_int)
 						} else {
 							self.clone()
 						}
 					}
 					(true, _, Expr::Const(Integer(lhs_int)), Expr::Paren(expr)) => {
 						if let Expr::Const(Integer(rhs_int)) = expr.as_ref() {
-							op.reduce_int(lhs_int, rhs_int)
+							op.constant_fold_int(lhs_int, rhs_int)
 						} else {
 							self.clone()
 						}
@@ -125,7 +125,7 @@ impl Expr {
 						if let (Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) =
 							(lhs_expr.as_ref(), rhs_expr.as_ref())
 						{
-							op.reduce_int(lhs_int, rhs_int)
+							op.constant_fold_int(lhs_int, rhs_int)
 						} else {
 							self.clone()
 						}
@@ -135,7 +135,7 @@ impl Expr {
 						true,
 						Expr::Const(Floating(lhs_float)),
 						Expr::Const(Floating(rhs_float)),
-					) => op.reduce_float(lhs_float, rhs_float),
+					) => op.constant_fold_float(lhs_float, rhs_float),
 					_ => Self::Binary(ExprBinary {
 						op: op.clone(),
 						left: Box::new(left.clone()),
@@ -157,7 +157,7 @@ impl Expr {
 		const I64_CAP: i64 = u32::MAX as i64;
 		const U128_CAP: u128 = u32::MAX as u128;
 		const I128_CAP: i128 = u32::MAX as i128;
-		*self = self.reduce(true, false);
+		*self = self.constant_fold(true, false);
 		match self {
 			Self::Const(tok::Const::Integer(int_const)) => match int_const {
 				IntegerConstant::U32(val) => Ok(*val),
@@ -191,7 +191,7 @@ impl Expr {
 		const I64_CAP: i64 = i32::MAX as i64;
 		const U128_CAP: u128 = i32::MAX as u128;
 		const I128_CAP: i128 = i32::MAX as i128;
-		*self = self.reduce(true, false);
+		*self = self.constant_fold(true, false);
 		match self {
 			Self::Const(tok::Const::Integer(int_const)) => match int_const {
 				IntegerConstant::U32(val) => match val {
@@ -296,7 +296,7 @@ impl ToSpan for BinOp {
 }
 
 impl BinOp {
-	fn reduce_int(&self, lhs: &IntegerConstant, rhs: &IntegerConstant) -> Expr {
+	fn constant_fold_int(&self, lhs: &IntegerConstant, rhs: &IntegerConstant) -> Expr {
 		let int_const = match (self.kind, lhs, rhs) {
 			(BinOpKind::Mul, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
 				IntegerConstant::U32(lval.wrapping_mul(*rval))
@@ -417,7 +417,7 @@ impl BinOp {
 		};
 		Expr::Const(tok::Const::Integer(int_const))
 	}
-	fn reduce_float(&self, lhs: &FloatingConstant, rhs: &FloatingConstant) -> Expr {
+	fn constant_fold_float(&self, lhs: &FloatingConstant, rhs: &FloatingConstant) -> Expr {
 		// TODO
 		return Expr::Binary(ExprBinary {
 			op: self.clone(),

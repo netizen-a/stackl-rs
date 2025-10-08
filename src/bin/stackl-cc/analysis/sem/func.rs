@@ -74,9 +74,9 @@ impl super::SemanticParser {
 					span: decl.ident.to_span(),
 					is_decl: false,
 				};
-				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
+				let key = decl.ident.name.clone();
 				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.symtab.insert(key.clone(), new_entry.clone())
+					self.ordinary_table.insert(key.clone(), new_entry.clone())
 				{
 					let kind = DiagKind::SymbolAlreadyExists(
 						decl.ident.name.clone(),
@@ -125,9 +125,9 @@ impl super::SemanticParser {
 					span: func_ident.to_span(),
 					is_decl: false,
 				};
-				let key = sym::Namespace::Ordinary(decl.ident.name.clone());
+				let key = decl.ident.name.clone();
 				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.symtab.insert(key.clone(), new_entry.clone())
+					self.ordinary_table.insert(key.clone(), new_entry.clone())
 				{
 					let kind = DiagKind::SymbolAlreadyExists(
 						decl.ident.name.clone(),
@@ -178,9 +178,9 @@ impl super::SemanticParser {
 			}
 		}
 
-		self.symtab.increase_scope();
+		self.increase_scope();
 		{
-			for (decl_maybe, decl_type) in declaration_list.iter() {
+			for (decl_maybe, decl_type, type_span) in declaration_list.iter() {
 				let Some(decl_ident) = decl_maybe else {
 					// missing parameter name
 					return false;
@@ -192,9 +192,9 @@ impl super::SemanticParser {
 					span: decl_ident.to_span(),
 					is_decl: false,
 				};
-				let key = sym::Namespace::Ordinary(decl_ident.name.clone());
+				let key = decl_ident.name.clone();
 				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.symtab.insert(key.clone(), new_entry.clone())
+					self.ordinary_table.insert(key.clone(), new_entry.clone())
 				{
 					let kind = DiagKind::SymbolAlreadyExists(
 						decl_ident.name.clone(),
@@ -212,6 +212,8 @@ impl super::SemanticParser {
 						// TODO: further type checking is required.
 					}
 				}
+
+				self.declare_tag(decl_type, type_span.clone());
 			}
 
 			self.tree_builder
@@ -236,7 +238,7 @@ impl super::SemanticParser {
 		&mut self,
 		param_list: &mut syn::ParamList,
 		decl_type: DeclType,
-	) -> Option<Vec<(Option<syn::Identifier>, DataType)>> {
+	) -> Option<Vec<(Option<syn::Identifier>, DataType, Span)>> {
 		self.tree_builder.begin_child("param-list ( )".to_string());
 		let param_count = param_list.param_list.len();
 		let mut result = vec![];
@@ -353,7 +355,11 @@ impl super::SemanticParser {
 				name_opt.clone(),
 				vec![],
 			);
-			result.push((param.ident.clone(), param_type))
+			result.push((
+				param.ident.clone(),
+				param_type,
+				param.specifiers.first_span.clone(),
+			))
 		}
 		self.tree_builder.end_child();
 		match is_valid {

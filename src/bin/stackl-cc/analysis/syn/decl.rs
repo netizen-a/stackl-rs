@@ -200,7 +200,6 @@ pub struct StructOrUnionSpecifier {
 	pub ident: Option<Identifier>,
 	/// (6.7.2.1) struct-declaration-list
 	pub struct_declaration_list: Vec<StructDeclaration>,
-	pub is_incomplete: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -57,7 +57,6 @@ pub enum FloatingConstant {
 pub enum Const {
 	Integer(IntegerConstant),
 	Floating(FloatingConstant),
-	Enumeration,
 	CharConst(CharConst),
 }
 

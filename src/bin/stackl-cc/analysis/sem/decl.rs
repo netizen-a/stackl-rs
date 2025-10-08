@@ -25,8 +25,12 @@ impl super::SemanticParser {
 			syn::StorageClass::Extern => (sym::StorageClass::Static, sym::Linkage::External),
 			syn::StorageClass::Register => (sym::StorageClass::Register, sym::Linkage::Internal),
 			syn::StorageClass::Static => (sym::StorageClass::Static, sym::Linkage::Internal),
-			syn::StorageClass::Typedef => (sym::StorageClass::Typedef, sym::Linkage::Internal),
+			syn::StorageClass::Typedef => (sym::StorageClass::Typename, sym::Linkage::Internal),
 		};
+
+		if let Some(data_type) = &maybe_ty {
+			self.declare_tag(data_type, decl.specifiers.first_span.clone());
+		}
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
 			let ident = &init_decl.identifier;
@@ -68,9 +72,9 @@ impl super::SemanticParser {
 				span: ident.to_span(),
 				is_decl: true,
 			};
-			let key = sym::Namespace::Ordinary(ident.name.clone());
+			let key = ident.name.clone();
 			if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-				self.symtab.insert(key.clone(), new_entry.clone())
+				self.ordinary_table.insert(key.clone(), new_entry.clone())
 			{
 				let kind =
 					DiagKind::SymbolAlreadyExists(ident.name.clone(), prev_entry.data_type.clone());

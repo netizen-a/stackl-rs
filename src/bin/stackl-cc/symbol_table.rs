@@ -15,14 +15,6 @@ pub enum SymbolTableError<V: Clone> {
 	AlreadyExists(V),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Namespace {
-	Label(String),
-	Tag(String),
-	Member { tag: String, member: String },
-	Ordinary(String),
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum Linkage {
 	External,
@@ -34,7 +26,7 @@ pub enum StorageClass {
 	Function,
 	Automatic,
 	Static,
-	Typedef,
+	Typename,
 	Constant,
 	Register,
 }
@@ -64,7 +56,7 @@ impl ToSpan for SymbolTableEntry {
 }
 
 #[derive(Debug)]
-pub struct SymbolTable<K = Namespace, V = SymbolTableEntry> {
+pub struct SymbolTable<K = String, V = SymbolTableEntry> {
 	table: Vec<HashMap<K, V>>,
 }
 
@@ -97,6 +89,7 @@ impl<K: Eq + Hash, V: Clone> SymbolTable<K, V> {
 	pub fn decrease_scope(&mut self) -> bool {
 		self.table.pop().is_some()
 	}
+	// insert new entry, otherwise return existing
 	pub fn insert(
 		&mut self,
 		key: impl Into<K>,
@@ -113,6 +106,19 @@ impl<K: Eq + Hash, V: Clone> SymbolTable<K, V> {
 				Ok(())
 			}
 		}
+	}
+	// insert new entry, otherwise replace existing entry
+	pub fn update(
+		&mut self,
+		key: impl Into<K>,
+		value: impl Into<V>,
+	) -> Result<(), SymbolTableError<V>> {
+		let key = key.into();
+		let Some(table) = self.table.last_mut() else {
+			return Err(SymbolTableError::InvalidScope);
+		};
+		table.insert(key, value.into());
+		Ok(())
 	}
 	pub fn iter_current_scope(&self) -> Option<hash_map::Iter<K, V>> {
 		self.table.last().and_then(|map| Some(map.iter()))

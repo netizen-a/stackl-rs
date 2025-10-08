@@ -132,21 +132,22 @@ impl fmt::Display for MemberType {
 }
 
 #[derive(Debug, Clone)]
-pub struct StructType {
-	pub name: Option<String>,
-	pub members: Vec<MemberType>,
+pub struct EnumConst {
+	tag_name: String,
+	value: i32,
 }
 
 #[derive(Debug, Clone)]
-pub struct UnionType {
-	pub name: Option<String>,
-	pub members: Vec<MemberType>,
-}
-
-#[derive(Debug, Clone)]
-pub struct EnumType {
-	pub name: Option<String>,
-	pub value: Option<i32>,
+pub enum TagKind {
+	StubStruct(String),
+	StubUnion(String),
+	StubEnum(String),
+	AnonStruct(Vec<MemberType>),
+	AnonUnion(Vec<MemberType>),
+	AnonEnum(Vec<(String, i32)>),
+	DeclStruct(String, Vec<MemberType>),
+	DeclUnion(String, Vec<MemberType>),
+	DeclEnum(String, Vec<(String, i32)>),
 }
 
 #[derive(Debug, Clone)]
@@ -154,15 +155,20 @@ pub enum TypeKind {
 	Poison,
 	Void,
 	Scalar(ScalarType),
-	Struct(StructType),
-	Union(UnionType),
-	Enum(Option<String>),
+	Tag(TagKind),
 	Function(FuncType),
 	Pointer(Box<DataType>),
 	Array(ArrayType),
+	EnumConst(EnumConst),
 }
 
 impl TypeKind {
+	pub fn is_incomplete(&self) -> bool {
+		matches!(
+			self,
+			Self::Tag(TagKind::StubEnum(_) | TagKind::StubStruct(_) | TagKind::StubUnion(_))
+		)
+	}
 	fn get_render(&self, mut context: String, qual: Option<TypeQual>) -> String {
 		let qual = qual.unwrap_or_default();
 		let mut qual_str = String::new();
@@ -236,23 +242,19 @@ impl TypeKind {
 				new_context.push(')');
 				new_context
 			}
-			Self::Struct(StructType { name, .. }) => {
-				format!(
-					"{qual_str}{space}struct {}",
-					name.clone().unwrap_or("<anonymous>".to_string())
-				)
-			}
-			Self::Union(UnionType { name, .. }) => {
-				format!(
-					"{qual_str}{space}union {}",
-					name.clone().unwrap_or("<anonymous>".to_string())
-				)
-			}
-			Self::Enum(name) => {
-				format!(
-					"{qual_str}{space}enum {}",
-					name.clone().unwrap_or("<anonymous>".to_string())
-				)
+			Self::Tag(kind) => {
+				let stub = match kind {
+					TagKind::StubStruct(tag_name) => format!("struct {tag_name}"),
+					TagKind::StubUnion(tag_name) => format!("union {tag_name}"),
+					TagKind::StubEnum(tag_name) => format!("enum {tag_name}"),
+					TagKind::AnonStruct(_) => String::from("struct <anonymous>"),
+					TagKind::AnonUnion(_) => String::from("union <anonymous>"),
+					TagKind::AnonEnum(_) => String::from("enum <anonymous>"),
+					TagKind::DeclStruct(tag_name, _) => format!("struct {tag_name}"),
+					TagKind::DeclUnion(tag_name, _) => format!("union {tag_name}"),
+					TagKind::DeclEnum(tag_name, _) => format!("enum {tag_name}"),
+				};
+				format!("{qual_str}{space}{stub}")
 			}
 			_ => todo!(),
 		}

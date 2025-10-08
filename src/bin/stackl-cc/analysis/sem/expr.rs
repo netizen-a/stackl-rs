@@ -10,31 +10,28 @@ use crate::{
 
 impl super::SemanticParser {
 	pub(super) fn expr(&mut self, expr: &mut Expr, in_func: bool) -> DataType {
-		use Expr::*;
 		match expr {
-			Paren(inner) => {
+			Expr::Paren(inner) => {
 				self.tree_builder.begin_child("( expression )".to_string());
 				let result = self.expr(inner, in_func);
 				self.tree_builder.end_child();
 				result
 			}
-			Ident(inner) => self.expr_identifier(inner, in_func),
-			Const(inner) => self.expr_const(inner),
-			StrLit(_inner) => DataType::POISON,
-			UnaryPrefix(unary) => self.expr_prefix(unary, in_func),
-			UnaryPostfix(unary) => self.expr_postfix(unary, in_func),
-			Binary(binary) => self.expr_binary(binary, in_func),
-			Ternary(ternary) => self.expr_ternary(ternary, in_func),
-			CompoundLiteral(_, _) => DataType::POISON,
-			Sizeof(_) => DataType::POISON,
+			Expr::Ident(inner) => self.expr_identifier(inner, in_func),
+			Expr::Const(inner) => self.expr_const(inner),
+			Expr::StrLit(_inner) => DataType::POISON,
+			Expr::UnaryPrefix(unary) => self.expr_prefix(unary, in_func),
+			Expr::UnaryPostfix(unary) => self.expr_postfix(unary, in_func),
+			Expr::Binary(binary) => self.expr_binary(binary, in_func),
+			Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func),
+			Expr::CompoundLiteral(_, _) => DataType::POISON,
+			Expr::Sizeof(_) => DataType::POISON,
 		}
 	}
 	fn expr_identifier(&mut self, ident: &mut Identifier, in_func: bool) -> DataType {
 		let span = ident.to_span();
 		let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
-		let maybe = self
-			.symtab
-			.global_lookup(&sym::Namespace::Ordinary(ident.name.clone()));
+		let maybe = self.ordinary_table.global_lookup(&ident.name);
 		if let Some(entry) = maybe {
 			self.tree_builder.add_empty_child(format!(
 				"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",

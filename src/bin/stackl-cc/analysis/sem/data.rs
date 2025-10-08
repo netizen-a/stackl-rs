@@ -1,8 +1,8 @@
 use crate::analysis::syn::Expr;
+use crate::analysis::tok::Const;
 use crate::data_type::*;
-use crate::diagnostics as diag;
-use crate::diagnostics::Span;
-use diag::ToSpan;
+use crate::diagnostics::*;
+use crate::symbol_table as sym;
 
 pub enum CastScore {
 	NoOperation = 0,
@@ -16,16 +16,53 @@ pub enum ValueCategory {
 }
 
 impl super::SemanticParser {
+	// TODO: change name to `declare_tag`
+	pub(super) fn declare_tag(&mut self, data_type: &DataType, span: Span) {
+		let (name, tag_kind) = match &data_type.kind {
+			TypeKind::Tag(tag_kind @ TagKind::DeclStruct(name, _)) => (name, tag_kind),
+			TypeKind::Tag(tag_kind @ TagKind::DeclUnion(name, _)) => (name, tag_kind),
+			TypeKind::Tag(tag_kind @ TagKind::DeclEnum(name, _)) => (name, tag_kind),
+			TypeKind::Pointer(inner) => {
+				self.declare_tag(inner, span);
+				return;
+			}
+			other => {
+				return;
+			}
+		};
+
+		let new_entry = sym::SymbolTableEntry {
+			data_type: data_type.clone(),
+			is_decl: true,
+			linkage: sym::Linkage::Internal,
+			span,
+			storage: sym::StorageClass::Typename,
+		};
+
+		if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+			self.tag_table.insert(name.clone(), new_entry.clone())
+		{
+			let kind = DiagKind::SymbolAlreadyExists(name.clone(), prev_entry.data_type.clone());
+			let mut error = Diagnostic::error(kind, prev_entry.to_span());
+			error.push_span(new_entry.span, &format!("`{name}` redefined here"));
+			if prev_entry.is_decl == false && new_entry.is_decl == false {
+				if prev_entry.data_type.kind.is_incomplete() {}
+				self.diagnostics.push(error);
+			} else {
+				// TODO: further type checking is required.
+			}
+		}
+	}
 	pub(super) fn unwrap_or_poison(
 		&mut self,
 		value: Option<DataType>,
 		name: Option<String>,
-		span: diag::Span,
+		span: Span,
 	) -> DataType {
 		match value {
 			Some(ty) => ty.clone(),
 			None => {
-				let diag = diag::Diagnostic::error(diag::DiagKind::ImplicitInt(name), span);
+				let diag = Diagnostic::error(DiagKind::ImplicitInt(name), span);
 				self.diagnostics.push(diag);
 				DataType {
 					kind: TypeKind::Poison,
@@ -51,8 +88,8 @@ impl super::SemanticParser {
 					return Ok(false);
 				}
 				if let (true, ArrayLength::Fixed(0 | 2..)) = (array.has_static, &array.length) {
-					let kind = diag::DiagKind::ArrayArgTooSmall;
-					let warning = diag::Diagnostic::warn(kind, callee_span.to_span());
+					let kind = DiagKind::ArrayArgTooSmall;
+					let warning = Diagnostic::warn(kind, callee_span.to_span());
 					self.diagnostics.push(warning);
 				}
 				self.dtype_eq(&ptr, &array.component, callee_span)
@@ -62,8 +99,8 @@ impl super::SemanticParser {
 					return Ok(false);
 				}
 				if let (true, ArrayLength::Fixed(0 | 2..)) = (array.has_static, &array.length) {
-					let kind = diag::DiagKind::ArrayArgTooSmall;
-					let warning = diag::Diagnostic::warn(kind, callee_span.to_span());
+					let kind = DiagKind::ArrayArgTooSmall;
+					let warning = Diagnostic::warn(kind, callee_span.to_span());
 					self.diagnostics.push(warning);
 				}
 				self.dtype_eq(&array.component, &ptr, callee_span)

@@ -30,7 +30,8 @@ impl Iterator for TokenIter {
 			tok::TokenKind::Keyword(tok::Keyword::Typedef) => {
 				self.is_typedef = true;
 			}
-			tok::TokenKind::Punct(tok::Punct::SemiColon) => {
+			tok::TokenKind::Punct(tok::Punct::SemiColon)
+			| tok::TokenKind::Punct(tok::Punct::Equal) => {
 				self.is_typedef = false;
 			}
 			tok::TokenKind::Punct(tok::Punct::LCurly) => {

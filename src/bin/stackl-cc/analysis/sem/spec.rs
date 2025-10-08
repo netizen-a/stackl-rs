@@ -103,170 +103,16 @@ impl super::SemanticParser {
 				syn::TypeSpecifier::Bool(span) => {
 					self.specifier_bool(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
-				syn::TypeSpecifier::StructOrUnionSpecifier(syn::StructOrUnionSpecifier {
-					struct_or_union,
-					struct_declaration_list,
-					is_incomplete,
-					ident,
-					..
-				}) => {
-					let span = match ident {
-						Some(ident) => ident.to_span(),
-						None => struct_or_union.span.clone(),
-					};
-					if type_kind.is_some() || long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::MultipleTypes,
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-						break;
-					}
-					let mut members = vec![];
-					let mut member_is_named = false;
-					for decl in struct_declaration_list.iter_mut() {
-						let member_vec =
-							self.struct_declaration(decl, &mut member_is_named, in_func);
-						let Some(mut member_vec) = member_vec else {
-							type_kind = Some(TypeKind::Poison);
-							continue;
-						};
-						members.append(&mut member_vec);
-					}
-					if !member_is_named {
-						let error = diag::Diagnostic::error(
-							diag::DiagKind::StructNoNamedMembers,
-							span.clone(),
-						);
-						self.diagnostics.push(error);
-					}
-
-					if !*is_incomplete {
-						match struct_or_union.kind {
-							syn::StructOrUnionKind::Struct => {
-								let struct_type = StructType {
-									name: ident.clone().map(|v| v.name),
-									members,
-								};
-								type_kind = Some(TypeKind::Struct(struct_type));
-							}
-							syn::StructOrUnionKind::Union => {
-								let union_type = UnionType {
-									name: ident.clone().map(|v| v.name),
-									members,
-								};
-								type_kind = Some(TypeKind::Union(union_type));
-							}
-						}
-					} else {
-						// ???
-					}
-
-					match is_signed {
-						Some(true) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									SIGNED_STR.to_owned(),
-									struct_or_union.kind.to_string(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						Some(false) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::BothSpecifiers(
-									UNSIGNED_STR.to_owned(),
-									struct_or_union.kind.to_string(),
-								),
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => {
-							// do nothing
-						}
-					}
-				}
-				syn::TypeSpecifier::EnumSpecifier(syn::EnumSpecifier {
-					tag_span,
-					enumerator_list,
-					identifier,
-				}) => {
-					let span = tag_span.clone();
-					match type_kind {
-						Some(TypeKind::Poison) => {
-							// do nothing
-						}
-						Some(_) => {
-							self.diagnostics.push(diag::Diagnostic::error(
-								diag::DiagKind::MultipleTypes,
-								span.clone(),
-							));
-							type_kind = Some(TypeKind::Poison);
-						}
-						None => type_kind = Some(TypeKind::Scalar(ScalarType::I32)),
-					}
-					if long_count > 0 {
-						self.diagnostics.push(diag::Diagnostic::error(
-							diag::DiagKind::BothSpecifiers(
-								LONG_STR.to_owned(),
-								CHAR_STR.to_owned(),
-							),
-							span.clone(),
-						));
-						type_kind = Some(TypeKind::Poison);
-					}
-					for enumerator in enumerator_list {
-						let enumerator_name = enumerator.enumeration_constant.clone();
-						match enumerator.constant_expr.as_mut().map(|v| v.to_i32()) {
-							Some(Err(syn::ConversionError::OutOfRange)) => {
-								self.diagnostics.push(diag::Diagnostic::error(
-									diag::DiagKind::EnumRange,
-									enumerator_name.to_span(),
-								));
-								type_kind = Some(TypeKind::Poison);
-							}
-							Some(Err(syn::ConversionError::Expr(_))) => {
-								self.diagnostics.push(diag::Diagnostic::error(
-									diag::DiagKind::EnumNonIntegral(enumerator_name.name.clone()),
-									enumerator_name.to_span(),
-								));
-								type_kind = Some(TypeKind::Poison);
-							}
-							_ => {
-								let new_entry = sym::SymbolTableEntry {
-									data_type: DataType {
-										kind: TypeKind::Enum(identifier.clone().map(|v| v.name)),
-										qual: Default::default(),
-									},
-									linkage: sym::Linkage::Internal,
-									storage: sym::StorageClass::Constant,
-									span: enumerator_name.to_span(),
-									is_decl: true,
-								};
-								let key = sym::Namespace::Ordinary(enumerator_name.name.clone());
-								if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-									self.symtab.insert(key.clone(), new_entry.clone())
-								{
-									let kind = DiagKind::SymbolAlreadyExists(
-										enumerator_name.name.clone(),
-										prev_entry.data_type.clone(),
-									);
-									let mut error =
-										Diagnostic::error(kind, prev_entry.span.clone());
-									error.push_span(
-										new_entry.span,
-										&format!(
-											"`{}` redefined here",
-											enumerator_name.name.clone()
-										),
-									);
-									self.diagnostics.push(error);
-								}
-							}
-						}
-					}
+				syn::TypeSpecifier::StructOrUnionSpecifier(specifier) => self
+					.specifier_struct_or_union(
+						specifier,
+						&mut type_kind,
+						is_signed,
+						long_count,
+						in_func,
+					),
+				syn::TypeSpecifier::EnumSpecifier(specifier) => {
+					self.specifier_enum(specifier, &mut type_kind, is_signed, long_count, in_func)
 				}
 				syn::TypeSpecifier::TypedefName { .. } => todo!("typedef"),
 			}
@@ -299,10 +145,11 @@ impl super::SemanticParser {
 				is_restrict: !specifiers.restrict_list.is_empty(),
 				is_volatile: specifiers.is_volatile,
 			};
-			Some(DataType {
+			let data_type = DataType {
 				kind: type_kind,
 				qual: type_qual,
-			})
+			};
+			Some(data_type)
 		} else {
 			None
 		}
@@ -431,7 +278,7 @@ impl super::SemanticParser {
 			*type_kind = Some(TypeKind::Poison);
 		}
 		match type_kind {
-			Some(TypeKind::Struct(_) | TypeKind::Union(_) | TypeKind::Enum(_)) => {
+			Some(TypeKind::Tag(_)) => {
 				self.diagnostics.push(diag::Diagnostic::error(
 					diag::DiagKind::MultipleTypes,
 					span.clone(),
@@ -708,5 +555,191 @@ impl super::SemanticParser {
 				// do nothing
 			}
 		}
+	}
+	fn specifier_struct_or_union(
+		&mut self,
+		spec: &mut syn::StructOrUnionSpecifier,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+		in_func: bool,
+	) {
+		let span = match &spec.ident {
+			Some(ident) => ident.to_span(),
+			None => spec.struct_or_union.span.clone(),
+		};
+		if type_kind.is_some() || long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::MultipleTypes,
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+			return;
+		}
+		let mut members = vec![];
+		let mut member_is_named = false;
+		for decl in spec.struct_declaration_list.iter_mut() {
+			let member_vec = self.struct_declaration(decl, &mut member_is_named, in_func);
+			let Some(mut member_vec) = member_vec else {
+				*type_kind = Some(TypeKind::Poison);
+				return;
+			};
+			members.append(&mut member_vec);
+		}
+		let is_incomplete = spec.struct_declaration_list.is_empty();
+		if !member_is_named && !is_incomplete {
+			let error = diag::Diagnostic::error(diag::DiagKind::StructNoNamedMembers, span.clone());
+			self.diagnostics.push(error);
+			*type_kind = Some(TypeKind::Poison);
+			return;
+		}
+
+		let tmp_type_kind: TypeKind;
+		match spec.struct_or_union.kind {
+			syn::StructOrUnionKind::Struct => match (&spec.ident, is_incomplete) {
+				(Some(ident), false) => {
+					tmp_type_kind = TypeKind::Tag(TagKind::DeclStruct(ident.name.clone(), members))
+				}
+				(Some(ident), true) => {
+					tmp_type_kind = TypeKind::Tag(TagKind::StubStruct(ident.name.clone()))
+				}
+				(None, false) => tmp_type_kind = TypeKind::Tag(TagKind::AnonStruct(members)),
+				(None, true) => unreachable!("syntactically impossible struct"),
+			},
+			syn::StructOrUnionKind::Union => match (&spec.ident, is_incomplete) {
+				(Some(ident), false) => {
+					tmp_type_kind = TypeKind::Tag(TagKind::DeclUnion(ident.name.clone(), members))
+				}
+				(Some(ident), true) => {
+					tmp_type_kind = TypeKind::Tag(TagKind::StubUnion(ident.name.clone()))
+				}
+				(None, false) => tmp_type_kind = TypeKind::Tag(TagKind::AnonUnion(members)),
+				(None, true) => unreachable!("syntactically impossible union"),
+			},
+		}
+
+		if let Some(ident) = &spec.ident {
+			if let Some(entry) = self.tag_table.global_lookup(&ident.name.clone()) {
+				if is_incomplete {
+					// check if same type
+					println!("is incomplete!");
+				} else {
+					let kind =
+						DiagKind::SymbolAlreadyExists(ident.name.clone(), entry.data_type.clone());
+					let mut error = Diagnostic::error(kind, entry.span.clone());
+					error.push_span(
+						span.clone(),
+						&format!("`{}` redefined here", ident.name.clone()),
+					);
+					self.diagnostics.push(error);
+				}
+			} else {
+				*type_kind = Some(tmp_type_kind);
+			}
+		} else if is_incomplete {
+			// error
+		} else {
+			*type_kind = Some(tmp_type_kind);
+		}
+
+		match is_signed {
+			Some(true) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(
+						SIGNED_STR.to_owned(),
+						spec.struct_or_union.kind.to_string(),
+					),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			Some(false) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::BothSpecifiers(
+						UNSIGNED_STR.to_owned(),
+						spec.struct_or_union.kind.to_string(),
+					),
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => {
+				// do nothing
+			}
+		}
+	}
+	fn specifier_enum(
+		&mut self,
+		spec: &mut syn::EnumSpecifier,
+		type_kind: &mut Option<TypeKind>,
+		is_signed: Option<bool>,
+		long_count: i32,
+		in_func: bool,
+	) {
+		let span = spec.tag_span.clone();
+		match type_kind {
+			Some(TypeKind::Poison) => {
+				// do nothing
+			}
+			Some(_) => {
+				self.diagnostics.push(diag::Diagnostic::error(
+					diag::DiagKind::MultipleTypes,
+					span.clone(),
+				));
+				*type_kind = Some(TypeKind::Poison);
+			}
+			None => *type_kind = Some(TypeKind::Scalar(ScalarType::I32)),
+		}
+		if long_count > 0 {
+			self.diagnostics.push(diag::Diagnostic::error(
+				diag::DiagKind::BothSpecifiers(LONG_STR.to_owned(), CHAR_STR.to_owned()),
+				span.clone(),
+			));
+			*type_kind = Some(TypeKind::Poison);
+		}
+		let is_incomplete = spec.enumerator_list.is_empty();
+
+		let mut enumerator_list = vec![];
+		let mut index: i32 = 0;
+		for enumerator in spec.enumerator_list.iter_mut() {
+			let enumerator_name = enumerator.enumeration_constant.clone();
+			match enumerator.constant_expr.as_mut().map(|v| v.to_i32()) {
+				Some(Err(syn::ConversionError::OutOfRange)) => {
+					self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::EnumRange,
+						enumerator_name.to_span(),
+					));
+					*type_kind = Some(TypeKind::Poison);
+				}
+				Some(Err(syn::ConversionError::Expr(_))) => {
+					self.diagnostics.push(diag::Diagnostic::error(
+						diag::DiagKind::EnumNonIntegral(enumerator_name.name.clone()),
+						enumerator_name.to_span(),
+					));
+					*type_kind = Some(TypeKind::Poison);
+				}
+				Some(Ok(value)) => {
+					enumerator_list.push((enumerator_name.name.clone(), value));
+					index = value;
+				}
+				None => {
+					enumerator_list.push((enumerator_name.name.clone(), index));
+				}
+			}
+			index += 1;
+		}
+		let tmp_type_kind: TypeKind;
+		match (&spec.identifier, is_incomplete) {
+			(Some(ident), false) => {
+				tmp_type_kind =
+					TypeKind::Tag(TagKind::DeclEnum(ident.name.clone(), enumerator_list))
+			}
+			(Some(ident), true) => {
+				tmp_type_kind = TypeKind::Tag(TagKind::StubEnum(ident.name.clone()))
+			}
+			(None, false) => tmp_type_kind = TypeKind::Tag(TagKind::AnonEnum(enumerator_list)),
+			(None, true) => unreachable!("syntactically impossible struct"),
+		}
+		*type_kind = Some(tmp_type_kind);
 	}
 }

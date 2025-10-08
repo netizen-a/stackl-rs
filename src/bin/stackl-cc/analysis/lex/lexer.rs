@@ -190,7 +190,7 @@ impl Lexer {
 		todo!("punctuator")
 	}
 
-	fn escape_sequence(&mut self) -> diag::Result<char> {
+	fn escape_sequence(&mut self) -> Result<char, diag::Diagnostic> {
 		let Some((curr_pos, term)) = self.chars.next() else {
 			return Err(diag::Diagnostic::error(
 				diag::DiagKind::UnexpectedEscape,
@@ -227,7 +227,7 @@ impl Lexer {
 		}
 	}
 
-	fn s_char_sequence(&mut self) -> diag::Result<String> {
+	fn s_char_sequence(&mut self) -> Result<String, diag::Diagnostic> {
 		let mut seq = String::new();
 		while let Some((pos, c)) = self.chars.next_if(|&(_, c)| c != '"' && c != '\n') {
 			self.set_end(pos);
@@ -240,7 +240,7 @@ impl Lexer {
 		}
 		Ok(seq)
 	}
-	fn c_char_sequence(&mut self) -> diag::Result<String> {
+	fn c_char_sequence(&mut self) -> Result<String, diag::Diagnostic> {
 		let mut seq = String::new();
 		while let Some((pos, c)) = self.chars.next_if(|&(_, c)| c != '\'' && c != '\n') {
 			self.set_end(pos);

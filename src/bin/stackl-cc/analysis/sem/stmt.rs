@@ -5,7 +5,7 @@ impl super::SemanticParser {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
 		self.tree_builder
 			.begin_child("compund-statement { }".to_string());
-		self.symtab.increase_scope();
+		self.increase_scope();
 		for item in stmt.blocks.iter_mut() {
 			self.block_item(item);
 		}

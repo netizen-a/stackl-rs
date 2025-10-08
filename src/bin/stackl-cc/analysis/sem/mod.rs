@@ -19,7 +19,10 @@ enum DeclType {
 }
 
 pub struct SemanticParser {
-	symtab: sym::SymbolTable,
+	label_table: sym::SymbolTable,
+	tag_table: sym::SymbolTable,
+	member_table: sym::SymbolTable<Vec<String>>,
+	ordinary_table: sym::SymbolTable,
 	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
@@ -29,7 +32,10 @@ pub struct SemanticParser {
 impl SemanticParser {
 	pub fn new(diagnostics: DiagnosticEngine, args: &cli::Args) -> Self {
 		Self {
-			symtab: sym::SymbolTable::new(),
+			label_table: sym::SymbolTable::new(),
+			tag_table: sym::SymbolTable::new(),
+			member_table: sym::SymbolTable::new(),
+			ordinary_table: sym::SymbolTable::new(),
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,
@@ -62,15 +68,25 @@ impl SemanticParser {
 	pub fn build_tree(&mut self) -> ptree::item::StringItem {
 		self.tree_builder.build()
 	}
+	pub(self) fn increase_scope(&mut self) {
+		self.label_table.increase_scope();
+		self.tag_table.increase_scope();
+		self.member_table.increase_scope();
+		self.ordinary_table.increase_scope();
+	}
 	pub(self) fn decrease_scope(&mut self) {
 		if self.is_traced {
-			let iter = self.symtab.iter_current_scope().unwrap();
-			let layer = self.symtab.scope_count();
+			let iter = self.ordinary_table.iter_current_scope().unwrap();
+			let layer = self.ordinary_table.scope_count();
 			for (name, symbol) in iter {
-				eprintln!("[TRACE] symbol table({layer}): {name:?} => {symbol:#?}");
+				eprintln!("[TRACE] ordinary table({layer}): {name:?} => {symbol:#?}");
 			}
 		}
-		self.symtab.decrease_scope();
+		// TODO: check if any types are incomplete
+		self.label_table.decrease_scope();
+		self.tag_table.decrease_scope();
+		self.member_table.decrease_scope();
+		self.ordinary_table.decrease_scope();
 	}
 	pub fn print_errors(&mut self) {
 		self.diagnostics.print_once();

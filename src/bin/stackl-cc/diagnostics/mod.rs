@@ -22,7 +22,6 @@ pub use kind::*;
 pub use span::*;
 
 pub type ResultTriple<Tok, Loc> = result::Result<(Loc, Tok, Loc), Diagnostic>;
-pub type Result<T> = result::Result<T, Diagnostic>;
 
 #[derive(Default)]
 pub struct DiagnosticEngine {
