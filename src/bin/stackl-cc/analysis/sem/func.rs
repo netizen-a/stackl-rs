@@ -3,8 +3,8 @@ use crate::analysis::syn;
 use crate::cli::WarnLevel;
 use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symbol_table::StorageClass;
 use crate::symbol_table as sym;
+use crate::symbol_table::StorageClass;
 
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {

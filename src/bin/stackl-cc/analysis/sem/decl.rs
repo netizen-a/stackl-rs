@@ -17,7 +17,10 @@ impl super::SemanticParser {
 		let mut is_valid = true;
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers, in_func);
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
-		let (storage, linkage): (sym::StorageClass, sym::Linkage) = match maybe_sc.map(|v| v.kind).unwrap_or(default_sc) {
+		let (storage, linkage): (sym::StorageClass, sym::Linkage) = match maybe_sc
+			.map(|v| v.kind)
+			.unwrap_or(default_sc)
+		{
 			syn::StorageClass::Auto => (sym::StorageClass::Automatic, sym::Linkage::Internal),
 			syn::StorageClass::Extern => (sym::StorageClass::Static, sym::Linkage::External),
 			syn::StorageClass::Register => (sym::StorageClass::Register, sym::Linkage::Internal),

@@ -1,8 +1,8 @@
 use crate::analysis::syn;
 use crate::data_type::*;
-use crate::diagnostics::{DiagKind, Diagnostic};
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
+use crate::diagnostics::{DiagKind, Diagnostic};
 use crate::symbol_table as sym;
 
 const SIGNED_STR: &str = "signed";
@@ -583,9 +583,7 @@ impl super::SemanticParser {
 							}
 							Some(Err(syn::ConversionError::Expr(_))) => {
 								self.diagnostics.push(diag::Diagnostic::error(
-									diag::DiagKind::EnumNonIntegral(
-										enumerator_name.name.clone(),
-									),
+									diag::DiagKind::EnumNonIntegral(enumerator_name.name.clone()),
 									enumerator_name.to_span(),
 								));
 								type_kind = Some(TypeKind::Poison);
@@ -593,7 +591,7 @@ impl super::SemanticParser {
 							_ => {
 								let new_entry = sym::SymbolTableEntry {
 									data_type: DataType {
-										kind: TypeKind::Enum(identifier.clone().map(|v|v.name)),
+										kind: TypeKind::Enum(identifier.clone().map(|v| v.name)),
 										qual: Default::default(),
 									},
 									linkage: sym::Linkage::Internal,
@@ -605,12 +603,18 @@ impl super::SemanticParser {
 								if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
 									self.symtab.insert(key.clone(), new_entry.clone())
 								{
-									let kind =
-										DiagKind::SymbolAlreadyExists(enumerator_name.name.clone(), prev_entry.data_type.clone());
-									let mut error = Diagnostic::error(kind, prev_entry.span.clone());
+									let kind = DiagKind::SymbolAlreadyExists(
+										enumerator_name.name.clone(),
+										prev_entry.data_type.clone(),
+									);
+									let mut error =
+										Diagnostic::error(kind, prev_entry.span.clone());
 									error.push_span(
 										new_entry.span,
-										&format!("`{}` redefined here", enumerator_name.name.clone()),
+										&format!(
+											"`{}` redefined here",
+											enumerator_name.name.clone()
+										),
 									);
 									self.diagnostics.push(error);
 								}

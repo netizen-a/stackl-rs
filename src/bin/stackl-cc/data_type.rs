@@ -233,19 +233,19 @@ impl TypeKind {
 			}
 			Self::Struct(StructType { name, .. }) => {
 				format!(
-					"{qual_str} struct {}",
+					"{qual_str}{space}struct {}",
 					name.clone().unwrap_or("<anonymous>".to_string())
 				)
 			}
 			Self::Union(UnionType { name, .. }) => {
 				format!(
-					"{qual_str} union {}",
+					"{qual_str}{space}union {}",
 					name.clone().unwrap_or("<anonymous>".to_string())
 				)
 			}
 			Self::Enum(name) => {
 				format!(
-					"{qual_str} union {}",
+					"{qual_str}{space}enum {}",
 					name.clone().unwrap_or("<anonymous>".to_string())
 				)
 			}
