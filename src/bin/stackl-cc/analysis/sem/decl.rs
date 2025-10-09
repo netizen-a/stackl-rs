@@ -187,7 +187,7 @@ impl super::SemanticParser {
 				None
 			};
 			result.push(MemberType {
-				name: name_opt,
+				ident: decl.ident.clone(),
 				dtype: Box::new(data_type),
 				bits,
 			});

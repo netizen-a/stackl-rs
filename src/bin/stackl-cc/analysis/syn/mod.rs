@@ -17,7 +17,7 @@ lalrpop_mod!(pub grammar, "/bin/stackl-cc/analysis/syn/grammar.rs");
 #[derive(Debug, Clone)]
 pub struct Identifier {
 	pub name: String,
-	span: diag::Span,
+	pub span: diag::Span,
 }
 
 impl Identifier {

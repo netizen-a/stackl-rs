@@ -14,3 +14,11 @@ struct StructB;
 struct StructB {
     int y;
 };
+
+struct Foo {
+    int x;
+    struct bar {
+        int y;
+        int y;
+    } x;
+} i, j, k;

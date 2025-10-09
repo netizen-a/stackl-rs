@@ -1,4 +1,4 @@
-use crate::analysis::syn::Expr;
+use crate::analysis::syn;
 use crate::analysis::tok::Const;
 use crate::data_type::*;
 use crate::diagnostics::*;
@@ -73,7 +73,7 @@ impl super::SemanticParser {
 			data_type: data_type.clone(),
 			is_decl: true,
 			linkage: sym::Linkage::Internal,
-			span,
+			span: span.clone(),
 			storage: sym::StorageClass::Typename,
 		};
 
@@ -90,7 +90,63 @@ impl super::SemanticParser {
 				// TODO: further type checking is required.
 			}
 		}
+		let identifier = syn::Identifier {
+			name: name.to_string(),
+			span,
+		};
+		self.declare_members(vec![identifier.clone()], data_type);
 	}
+
+	pub fn declare_members(&mut self, decl_ident: Vec<syn::Identifier>, decl_type: &DataType) {
+		if let TypeKind::Tag(tag_kind) = &decl_type.kind {
+			let member_type_list: &Vec<MemberType> = match tag_kind {
+				TagKind::AnonStruct(inner) => inner,
+				TagKind::AnonUnion(inner) => inner,
+				TagKind::DeclStruct(_, inner) => inner,
+				TagKind::DeclUnion(_, inner) => inner,
+				_ => {
+					// don't care
+					return;
+				}
+			};
+			for member_type in member_type_list.iter() {
+				let Some(member_ident) = &member_type.ident else {
+					continue;
+				};
+				println!("tag member: {}", member_ident.name);
+
+				let mut ident_list = decl_ident.clone();
+				ident_list.push(member_ident.clone());
+
+				let key: Vec<String> = ident_list.iter().map(|ident| ident.name.clone()).collect();
+
+				let new_entry = sym::SymbolTableEntry {
+					data_type: *member_type.dtype.clone(),
+					is_decl: true,
+					linkage: sym::Linkage::Internal,
+					span: member_ident.to_span(),
+					storage: sym::StorageClass::Typename,
+				};
+
+				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+					self.member_table.insert(key, new_entry.clone())
+				{
+					let kind = DiagKind::SymbolAlreadyExists(
+						member_ident.name.clone(),
+						prev_entry.data_type.clone(),
+					);
+					let mut error = Diagnostic::error(kind, prev_entry.to_span());
+					error.push_span(
+						new_entry.span,
+						&format!("`{}` redefined here", member_ident.name),
+					);
+					self.diagnostics.push(error);
+				}
+				self.declare_members(ident_list, &member_type.dtype);
+			}
+		}
+	}
+
 	pub(super) fn unwrap_or_poison(
 		&mut self,
 		value: Option<DataType>,
@@ -177,7 +233,11 @@ impl super::SemanticParser {
 	}
 
 	// code gen here
-	pub fn try_convert(&mut self, from: &Expr, to: DataType) -> Option<(CastScore, Expr)> {
+	pub fn try_convert(
+		&mut self,
+		from: &syn::Expr,
+		to: DataType,
+	) -> Option<(CastScore, syn::Expr)> {
 		todo!()
 	}
 }

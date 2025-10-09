@@ -19,7 +19,7 @@ enum DeclType {
 }
 
 pub struct SemanticParser {
-	label_table: sym::SymbolTable,
+	label_table: sym::SymbolTable<String, Span>,
 	tag_table: sym::SymbolTable,
 	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
