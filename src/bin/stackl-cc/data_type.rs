@@ -46,8 +46,8 @@ impl ScalarType {
 			Self::I128 => 128,
 			Self::U128 => 128,
 			Self::Float => 32,
-			Self::Double => 64,
-			Self::LongDouble => 64,
+			Self::Double => 32,
+			Self::LongDouble => 32,
 		}
 	}
 	pub fn set_signedness(&mut self, is_signed: bool) {

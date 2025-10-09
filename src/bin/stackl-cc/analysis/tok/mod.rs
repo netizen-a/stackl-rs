@@ -48,9 +48,8 @@ pub enum IntegerConstant {
 #[derive(Debug, Clone)]
 pub enum FloatingConstant {
 	Float(f32),
-	Double(f64),
-	// same as Double, but higher rank
-	Long(f64),
+	Double(f32),
+	Long(f32),
 }
 
 #[derive(Debug, Clone)]
@@ -148,13 +147,13 @@ impl PPNumber {
 					FloatingConstant::Float(data)
 				}
 				Some('l' | 'L') => {
-					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data * 10f64.powi(exponent);
+					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
+					let data = data * 10f32.powi(exponent);
 					FloatingConstant::Long(data)
 				}
 				None => {
-					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data * 10f64.powi(exponent);
+					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
+					let data = data * 10f32.powi(exponent);
 					FloatingConstant::Double(data)
 				}
 				_ => unreachable!(),

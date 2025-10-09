@@ -16,3 +16,13 @@ enum Baz {
 };
 
 int X = Y + Z;
+
+void foo0(enum Baz k) {
+    enum Bark {
+        A,
+        B,
+        C,
+    };
+}
+
+enum Bark k = A;
