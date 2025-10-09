@@ -16,17 +16,55 @@ pub enum ValueCategory {
 }
 
 impl super::SemanticParser {
-	// TODO: change name to `declare_tag`
 	pub(super) fn declare_tag(&mut self, data_type: &DataType, span: Span) {
-		let (name, tag_kind) = match &data_type.kind {
-			TypeKind::Tag(tag_kind @ TagKind::DeclStruct(name, _)) => (name, tag_kind),
-			TypeKind::Tag(tag_kind @ TagKind::DeclUnion(name, _)) => (name, tag_kind),
-			TypeKind::Tag(tag_kind @ TagKind::DeclEnum(name, _)) => (name, tag_kind),
+		let name = match &data_type.kind {
+			TypeKind::Tag(TagKind::DeclStruct(name, _)) => name,
+			TypeKind::Tag(TagKind::DeclUnion(name, _)) => name,
+			TypeKind::Tag(TagKind::DeclEnum(name, enumerator_list)) => {
+				for (const_ident, const_val) in enumerator_list.iter() {
+					let const_type = DataType {
+						kind: TypeKind::EnumConst(EnumConst {
+							tag_name: name.clone(),
+							value: *const_val,
+						}),
+						qual: TypeQual::default(),
+					};
+					let new_entry = sym::SymbolTableEntry {
+						data_type: const_type,
+						is_decl: true,
+						linkage: sym::Linkage::Internal,
+						span: const_ident.to_span(),
+						storage: sym::StorageClass::Constant,
+					};
+
+					if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) = self
+						.ordinary_table
+						.insert(const_ident.name.clone(), new_entry.clone())
+					{
+						let kind = DiagKind::SymbolAlreadyExists(
+							const_ident.name.clone(),
+							prev_entry.data_type.clone(),
+						);
+						let mut error = Diagnostic::error(kind, prev_entry.to_span());
+						error.push_span(
+							new_entry.span,
+							&format!("`{}` redefined here", const_ident.name),
+						);
+						if prev_entry.is_decl == false && new_entry.is_decl == false {
+							if prev_entry.data_type.kind.is_incomplete() {}
+							self.diagnostics.push(error);
+						} else {
+							// TODO: further type checking is required.
+						}
+					}
+				}
+				name
+			}
 			TypeKind::Pointer(inner) => {
 				self.declare_tag(inner, span);
 				return;
 			}
-			other => {
+			_ => {
 				return;
 			}
 		};

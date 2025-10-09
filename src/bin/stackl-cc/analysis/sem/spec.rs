@@ -699,7 +699,7 @@ impl super::SemanticParser {
 		}
 		let is_incomplete = spec.enumerator_list.is_empty();
 
-		let mut enumerator_list = vec![];
+		let mut enumerator_list: Vec<(syn::Identifier, i32)> = vec![];
 		let mut index: i32 = 0;
 		for enumerator in spec.enumerator_list.iter_mut() {
 			let enumerator_name = enumerator.enumeration_constant.clone();
@@ -719,11 +719,11 @@ impl super::SemanticParser {
 					*type_kind = Some(TypeKind::Poison);
 				}
 				Some(Ok(value)) => {
-					enumerator_list.push((enumerator_name.name.clone(), value));
+					enumerator_list.push((enumerator_name.clone(), value));
 					index = value;
 				}
 				None => {
-					enumerator_list.push((enumerator_name.name.clone(), index));
+					enumerator_list.push((enumerator_name.clone(), index));
 				}
 			}
 			index += 1;

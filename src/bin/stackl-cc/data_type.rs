@@ -116,6 +116,7 @@ pub struct FuncType {
 // TODO: add optional bitfields
 #[derive(Debug, Clone)]
 pub struct MemberType {
+	// todo: replace String with syn::Identifier
 	pub name: Option<String>,
 	pub dtype: Box<DataType>,
 	pub bits: Option<u32>,
@@ -133,8 +134,8 @@ impl fmt::Display for MemberType {
 
 #[derive(Debug, Clone)]
 pub struct EnumConst {
-	tag_name: String,
-	value: i32,
+	pub tag_name: String,
+	pub value: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -144,10 +145,10 @@ pub enum TagKind {
 	StubEnum(String),
 	AnonStruct(Vec<MemberType>),
 	AnonUnion(Vec<MemberType>),
-	AnonEnum(Vec<(String, i32)>),
+	AnonEnum(Vec<(syn::Identifier, i32)>),
 	DeclStruct(String, Vec<MemberType>),
 	DeclUnion(String, Vec<MemberType>),
-	DeclEnum(String, Vec<(String, i32)>),
+	DeclEnum(String, Vec<(syn::Identifier, i32)>),
 }
 
 #[derive(Debug, Clone)]
@@ -256,7 +257,10 @@ impl TypeKind {
 				};
 				format!("{qual_str}{space}{stub}")
 			}
-			_ => todo!(),
+			Self::EnumConst(EnumConst { tag_name, .. }) => {
+				format!("{qual_str}{space}enum {tag_name}")
+			}
+			other => todo!("{other:?}"),
 		}
 	}
 }
