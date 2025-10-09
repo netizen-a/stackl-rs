@@ -15,6 +15,8 @@ use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 use crate::tok;
 
+
+
 pub struct TokensParser<'a> {
 	diag_engine: &'a mut diag::DiagnosticEngine,
 	iter: PPTokenIter,
@@ -132,13 +134,13 @@ impl<'a> TokensParser<'a> {
 		tokens: Vec<PPToken>,
 		span: diag::Span,
 	) -> Option<diag::Diagnostic> {
-		todo!("pragma")
 		// TODO:
 		// #pragma STDC FP_CONTRACT on-off-switch
 		// #pragma STDC FENV_ACCESS on-off-switch
 		// #pragma STDC CX_LIMITED_RANGE on-off-switch
 		// #pragma STACKL STACK_SIZE integer-constant
 		// #pragma STACKL FEATURE identifier
+		None
 	}
 	fn directive_error(
 		&mut self,
