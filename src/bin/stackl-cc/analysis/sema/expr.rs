@@ -29,6 +29,18 @@ impl super::SemanticParser {
 		}
 	}
 
+	pub(super) fn is_l_value(&mut self, expr: &mut Expr) -> bool {
+		match expr {
+			Expr::Paren(inner) => self.is_l_value(inner),
+			Expr::Ident(inner) => {
+				todo!()
+			}
+			Expr::StrLit(_) => true,
+			Expr::UnaryPrefix(unary) => matches!(unary.op, Prefix::Star),
+			_ => false
+		}
+	}
+
 	fn expr_identifier(&mut self, ident: &mut Identifier, in_func: bool) -> DataType {
 		let span = ident.to_span();
 		let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();

@@ -768,6 +768,11 @@ SimpleStatement: Stmt = {
 	ExprStatement => Stmt::Expr(<>),
 	JumpStatement => Stmt::Jump(<>),
 	AsmStatement => Stmt::Asm(<>),
+	<ident:Identifier> ":" Declaration => {
+		let error = diag::Diagnostic::error(diag::DiagKind::LabeledDeclaration, ident.to_span());
+		diagnostics.push(error);
+		Stmt::Label(LabeledStmt::Error)
+	},
 };
 
 

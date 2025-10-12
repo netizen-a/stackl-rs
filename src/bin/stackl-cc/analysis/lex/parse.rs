@@ -15,8 +15,6 @@ use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 use crate::tok;
 
-
-
 pub struct TokensParser<'a> {
 	diag_engine: &'a mut diag::DiagnosticEngine,
 	iter: PPTokenIter,

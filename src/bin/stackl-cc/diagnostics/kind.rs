@@ -71,4 +71,5 @@ pub enum DiagKind {
 		name: String,
 		in_func: bool,
 	},
+	LabeledDeclaration,
 }
