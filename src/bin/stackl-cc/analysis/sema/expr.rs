@@ -28,6 +28,7 @@ impl super::SemanticParser {
 			Expr::Sizeof(_) => DataType::POISON,
 		}
 	}
+
 	fn expr_identifier(&mut self, ident: &mut Identifier, in_func: bool) -> DataType {
 		let span = ident.to_span();
 		let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();

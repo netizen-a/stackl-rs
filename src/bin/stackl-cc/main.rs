@@ -15,7 +15,7 @@ use std::process::ExitCode;
 use std::time;
 use std::time::Duration;
 
-use analysis::{lex, sem, syn, tok};
+use analysis::{lex, sema, syn, tok};
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
@@ -75,7 +75,7 @@ fn main() -> ExitCode {
 	since_array.push((duration, "syntax parser time"));
 
 	let timer = time::Instant::now();
-	let mut semantic_parser = sem::SemanticParser::new(diag_engine, &args);
+	let mut semantic_parser = sema::SemanticParser::new(diag_engine, &args);
 	semantic_parser.parse(unit);
 
 	let duration = time::Instant::now().duration_since(timer);

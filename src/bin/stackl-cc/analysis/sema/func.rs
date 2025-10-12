@@ -1,4 +1,4 @@
-use crate::analysis::sem::DeclType;
+use crate::analysis::sema::DeclType;
 use crate::analysis::syn;
 use crate::cli::WarnLevel;
 use crate::data_type::*;

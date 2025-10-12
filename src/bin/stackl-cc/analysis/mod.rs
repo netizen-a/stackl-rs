@@ -1,4 +1,4 @@
 pub mod lex;
-pub mod sem;
+pub mod sema;
 pub mod syn;
 pub mod tok;
