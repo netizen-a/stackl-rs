@@ -459,7 +459,12 @@ impl DiagnosticEngine {
 				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::LabeledDeclaration => {
-				let msg0 = "a label can only be part of a statement and a declaration is not a statement";
+				let msg0 =
+					"a label can only be part of a statement and a declaration is not a statement";
+				self.format_diagnostic(&diag, msg0)
+			}
+			DiagKind::LabeledCompoundEnd => {
+				let msg0 = "label at end of compound statement";
 				self.format_diagnostic(&diag, msg0)
 			}
 			kind => unimplemented!("{kind:?}"),

@@ -760,7 +760,6 @@ Matched: Stmt = {
 		stmt: Box::new(stmt),
 	}),
 	MatchedLabeledStatement => Stmt::Label(<>),
-	CompoundStatement => Stmt::Compound(<>),
 	MatchedIterationStatement => Stmt::Iter(<>),
 };
 
@@ -768,10 +767,11 @@ SimpleStatement: Stmt = {
 	ExprStatement => Stmt::Expr(<>),
 	JumpStatement => Stmt::Jump(<>),
 	AsmStatement => Stmt::Asm(<>),
+	CompoundStatement => Stmt::Compound(<>),
 	<ident:Identifier> ":" Declaration => {
 		let error = diag::Diagnostic::error(diag::DiagKind::LabeledDeclaration, ident.to_span());
 		diagnostics.push(error);
-		Stmt::Label(LabeledStmt::Error)
+		Stmt::Error
 	},
 };
 
@@ -794,6 +794,15 @@ CompoundStatement: CompoundStmt = {
 		lcurly,
 		blocks,
 		rcurly,
+	},
+	<lcurly:LeftCurly> <blocks:BlockItem*> <ident:Identifier> ":" <rcurly:RightCurly> => {
+		let error = diag::Diagnostic::error(diag::DiagKind::LabeledCompoundEnd, ident.to_span());
+		diagnostics.push(error);
+		CompoundStmt{
+			lcurly,
+			blocks,
+			rcurly,
+		}
 	},
 };
 

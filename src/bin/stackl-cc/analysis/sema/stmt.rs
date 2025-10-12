@@ -39,6 +39,7 @@ impl super::SemanticParser {
 			Stmt::Iter(_iter_stmt) => (),
 			Stmt::Jump(_jmp_stmt) => (),
 			Stmt::Asm(_asm_stmt) => (),
+			Stmt::Error => {}
 		}
 		self.tree_builder.end_child();
 		is_valid

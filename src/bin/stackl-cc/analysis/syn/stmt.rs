@@ -29,6 +29,7 @@ pub enum Stmt {
 	Iter(IterStmt),
 	Jump(JumpStmt),
 	Asm(AsmStmt),
+	Error,
 }
 
 #[derive(Debug)]
@@ -67,7 +68,6 @@ pub enum LabeledStmt {
 	Label(Identifier, Box<Stmt>),
 	Case(expr::Expr, Box<Stmt>),
 	Default(Box<Stmt>),
-	Error,
 }
 
 /// (6.8.3) expression-statement

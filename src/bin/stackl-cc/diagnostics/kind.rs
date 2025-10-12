@@ -72,4 +72,5 @@ pub enum DiagKind {
 		in_func: bool,
 	},
 	LabeledDeclaration,
+	LabeledCompoundEnd,
 }

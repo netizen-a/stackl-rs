@@ -37,7 +37,7 @@ impl super::SemanticParser {
 			}
 			Expr::StrLit(_) => true,
 			Expr::UnaryPrefix(unary) => matches!(unary.op, Prefix::Star),
-			_ => false
+			_ => false,
 		}
 	}
 
