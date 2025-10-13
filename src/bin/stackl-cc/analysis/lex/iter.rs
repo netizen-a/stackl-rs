@@ -294,7 +294,7 @@ impl PPTokenStack {
 			return Some(Ok(triple));
 		}
 
-		// This prevents predefined macros from expanding in define and undef directives.
+		// Prevents predef'd macros from expanding at the start of define and undef directives.
 		if matches!(
 			self.last_token_kind,
 			Some(PPTokenKind::Directive(Directive::Define | Directive::Undef))

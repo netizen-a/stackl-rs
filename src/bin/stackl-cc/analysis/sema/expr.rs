@@ -36,7 +36,7 @@ impl super::SemanticParser {
 				if let Some(entry) = self.ordinary_table.global_lookup(&inner.name) {
 					!matches!(entry.storage, sym::StorageClass::Constant)
 				} else {
-					todo!("is_l_value: undeclared variable")
+					todo!("is_l_value: undeclared identifier")
 				}
 			}
 			syn::Expr::StrLit(_) => true,

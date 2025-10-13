@@ -137,7 +137,10 @@ impl<'a> TokensParser<'a> {
 		// #pragma STDC FENV_ACCESS on-off-switch
 		// #pragma STDC CX_LIMITED_RANGE on-off-switch
 		// #pragma STACKL STACK_SIZE integer-constant
-		// #pragma STACKL FEATURE identifier
+		// #pragma STACKL FEATURE identifier on-off-switch
+		// #pragma STACKL SECTION string-literal
+		// #pragma STACKL TRACE on-off-switch
+		// #pragma STACKL VERSION integer-constant
 		None
 	}
 	fn directive_error(
