@@ -32,6 +32,9 @@ impl ScalarType {
 				| Self::I128 | Self::U128
 		)
 	}
+	pub const fn is_floating(&self) -> bool {
+		matches!(self, Self::Float | Self::Double | Self::LongDouble)
+	}
 	pub const fn bits(&self) -> u32 {
 		match self {
 			Self::Bool => 1,
@@ -168,6 +171,20 @@ impl TypeKind {
 			self,
 			Self::Tag(TagKind::StubEnum(_) | TagKind::StubStruct(_) | TagKind::StubUnion(_))
 		)
+	}
+	pub const fn is_integral(&self) -> bool {
+		if let TypeKind::Scalar(scalar) = self {
+			scalar.is_integral()
+		} else {
+			false
+		}
+	}
+	pub const fn is_floating(&self) -> bool {
+		if let TypeKind::Scalar(scalar) = self {
+			scalar.is_floating()
+		} else {
+			false
+		}
 	}
 	fn get_render(&self, mut context: String, qual: Option<TypeQual>) -> String {
 		let qual = qual.unwrap_or_default();

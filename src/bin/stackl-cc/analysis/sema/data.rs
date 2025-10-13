@@ -6,8 +6,9 @@ use crate::symbol_table as sym;
 
 pub enum CastScore {
 	NoOperation = 0,
-	IntegralToFloating = 1,
-	FloatingToIntegral = 2,
+	TruncateIntegral = 1,
+	IntegralToFloating = 2,
+	FloatingToIntegral = 3,
 }
 
 pub enum ValueCategory {

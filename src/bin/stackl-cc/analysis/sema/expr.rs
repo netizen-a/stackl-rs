@@ -29,15 +29,12 @@ impl super::SemanticParser {
 		}
 	}
 
-	pub(super) fn is_l_value(&mut self, expr: &mut syn::Expr) -> bool {
+	pub(super) fn is_l_value(&self, expr: &syn::Expr) -> bool {
 		match expr {
 			syn::Expr::Paren(inner) => self.is_l_value(inner),
 			syn::Expr::Ident(inner) => {
 				if let Some(entry) = self.ordinary_table.global_lookup(&inner.name) {
-					!matches!(
-						entry.storage,
-						sym::StorageClass::Register | sym::StorageClass::Function
-					)
+					!matches!(entry.storage, sym::StorageClass::Constant)
 				} else {
 					todo!("is_l_value: undeclared variable")
 				}
