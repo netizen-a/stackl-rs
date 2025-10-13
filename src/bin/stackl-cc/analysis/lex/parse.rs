@@ -3,6 +3,7 @@ use std::io;
 use std::io::Read;
 use std::iter::Peekable;
 use std::path::PathBuf;
+use std::vec;
 
 use super::PPTokenIter;
 use crate::analysis::lex::lexer::Lexer;
@@ -19,6 +20,7 @@ pub struct TokensParser<'a> {
 	diag_engine: &'a mut diag::DiagnosticEngine,
 	iter: PPTokenIter,
 	stdout_preproc: bool,
+	triple_list: Vec<TokenTriple>,
 }
 
 impl<'a> TokensParser<'a> {
@@ -31,10 +33,10 @@ impl<'a> TokensParser<'a> {
 			diag_engine,
 			iter,
 			stdout_preproc,
+			triple_list: vec![],
 		}
 	}
 	pub fn parse(&mut self) -> Vec<tok::TokenTriple> {
-		let mut triple_list = vec![];
 		while let Some(result) = self.iter.next() {
 			match result {
 				Ok(pp_token) => match pp_token.kind {
@@ -43,7 +45,7 @@ impl<'a> TokensParser<'a> {
 							self.exec_directive(directive, pp_token.to_span())
 						{
 							// fatal error was encountered.
-							return triple_list;
+							break;
 						}
 					}
 					PPTokenKind::NewLine(_) => {
@@ -56,14 +58,14 @@ impl<'a> TokensParser<'a> {
 					}
 					_ => {
 						if let Some(triple) = self.convert_token(pp_token) {
-							triple_list.push(triple);
+							self.triple_list.push(triple);
 						}
 					}
 				},
 				Err(error) => self.diag_engine.push(error),
 			}
 		}
-		triple_list
+		self.triple_list.drain(..).collect()
 	}
 	fn convert_token(&mut self, pp_token: PPToken) -> Option<TokenTriple> {
 		if self.stdout_preproc {
@@ -132,16 +134,40 @@ impl<'a> TokensParser<'a> {
 		tokens: Vec<PPToken>,
 		span: diag::Span,
 	) -> Option<diag::Diagnostic> {
+		let mut iter = tokens.into_iter();
+		let Some(namespace_token) = iter.next() else {
+			// empty pragmas are ignored
+			return None;
+		};
+		let PPTokenKind::Ident(tok::Ident {
+			name: namespace, ..
+		}) = namespace_token.kind
+		else {
+			// non-identifier pragmas are ignored
+			return None;
+		};
+		match namespace.as_str() {
+			"STDC" => self.pragma_stdc(iter),
+			"STACKL" => self.pragma_stackl(iter),
+			// unrecognized pragmas are ignored
+			_ => None,
+		}
+	}
+	fn pragma_stdc(&mut self, iter: vec::IntoIter<PPToken>) -> Option<diag::Diagnostic> {
 		// TODO:
 		// #pragma STDC FP_CONTRACT on-off-switch
 		// #pragma STDC FENV_ACCESS on-off-switch
 		// #pragma STDC CX_LIMITED_RANGE on-off-switch
+		todo!()
+	}
+	fn pragma_stackl(&mut self, iter: vec::IntoIter<PPToken>) -> Option<diag::Diagnostic> {
+		// TODO:
 		// #pragma STACKL STACK_SIZE integer-constant
 		// #pragma STACKL FEATURE identifier on-off-switch
 		// #pragma STACKL SECTION string-literal
 		// #pragma STACKL TRACE on-off-switch
 		// #pragma STACKL VERSION integer-constant
-		None
+		todo!()
 	}
 	fn directive_error(
 		&mut self,
