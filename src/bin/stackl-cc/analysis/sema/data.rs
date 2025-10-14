@@ -4,12 +4,7 @@ use crate::data_type::*;
 use crate::diagnostics::*;
 use crate::symbol_table as sym;
 
-pub enum CastScore {
-	NoOperation = 0,
-	TruncateIntegral = 1,
-	IntegralToFloating = 2,
-	FloatingToIntegral = 3,
-}
+type CastScore = usize;
 
 pub enum ValueCategory {
 	RValue,

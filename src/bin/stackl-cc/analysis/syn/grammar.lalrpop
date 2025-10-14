@@ -80,7 +80,7 @@ UnaryOperator: Prefix = {
 
 CastExpr: Expr = {
 	UnaryExpr,
-	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::with_prefix(Prefix::Cast(ty),expr),
+	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::Cast(CastKind::Explicit(ty), Box::new(expr)),
 };
 
 MultiplicativeExpr: Expr = {

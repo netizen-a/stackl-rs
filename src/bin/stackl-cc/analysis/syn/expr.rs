@@ -11,6 +11,24 @@ pub enum ConversionError {
 	Expr(Expr),
 }
 
+#[derive(Debug, Clone)]
+pub enum CastKind {
+	NoOp,
+	Explicit(decl::TypeName),
+	LValueToRValue,
+	RValueToLValue,
+	Truncate,
+	ZeroExtend,
+	SignExtend,
+	FnToPtr,
+	/// int-to-ptr can affect pointer provenance
+	IntToPtr,
+	PtrToInt,
+	FpExtend,
+	FpTrunc,
+	BitCast,
+}
+
 /// (6.5.17) expression
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -25,6 +43,8 @@ pub enum Expr {
 	Ternary(ExprTernary),
 	CompoundLiteral(decl::TypeName, decl::InitializerList),
 	Sizeof(decl::TypeName),
+	/// ( type-name ) expression
+	Cast(CastKind, Box<Expr>),
 }
 
 impl Expr {
@@ -71,7 +91,7 @@ impl Expr {
 		})
 	}
 
-	fn constant_fold(&self, contract_int: bool, contract_float: bool) -> Expr {
+	pub fn constant_fold(&self, contract_int: bool, contract_float: bool) -> Expr {
 		use tok::Const::{Floating, Integer};
 		match self {
 			Self::UnaryPrefix(unary) => {
@@ -442,13 +462,11 @@ pub enum Prefix {
 	Comp,
 	/// `!`
 	Neg,
-	/// ( type-name )
-	Cast(decl::TypeName),
-	/// ++
+	/// `++`
 	Inc,
-	/// --
+	/// `--`
 	Dec,
-	/// sizeof
+	/// `sizeof`
 	Sizeof,
 }
 

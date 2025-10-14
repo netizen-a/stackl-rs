@@ -26,6 +26,7 @@ impl super::SemanticParser {
 			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func),
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
+			syn::Expr::Cast(_,_) => todo!(),
 		}
 	}
 

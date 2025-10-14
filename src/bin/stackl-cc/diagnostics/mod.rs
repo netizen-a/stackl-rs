@@ -474,7 +474,7 @@ impl DiagnosticEngine {
 				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::PragmaIgnored => {
-				let msg0 = "ignoring pragma";
+				let msg0 = "unrecognized pragma is ignored";
 				self.format_diagnostic(&diag, msg0)
 			}
 			kind => unimplemented!("{kind:?}"),

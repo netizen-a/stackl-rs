@@ -140,7 +140,6 @@ impl<'a> TokensParser<'a> {
 	) -> Option<diag::Diagnostic> {
 		let mut iter = tokens.into_iter();
 		let Some(pragma_namespace_token) = iter.next() else {
-			// unrecognized pragmas are ignored
 			if let cli::WarnLevel::All = self.warn_lvl {
 				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
 				self.diag_engine.push(warning);
@@ -153,7 +152,6 @@ impl<'a> TokensParser<'a> {
 			..
 		}) = pragma_namespace_token.kind
 		else {
-			// unrecognized pragmas are ignored
 			if let cli::WarnLevel::All = self.warn_lvl {
 				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span.to_span());
 				self.diag_engine.push(warning);
@@ -163,7 +161,6 @@ impl<'a> TokensParser<'a> {
 		match pragma_namespace.as_str() {
 			"STDC" => self.pragma_stdc(iter, span),
 			"STACKL" => self.pragma_stackl(iter),
-			// unrecognized pragmas are ignored
 			_ => {
 				if let cli::WarnLevel::All = self.warn_lvl {
 					let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
@@ -183,7 +180,6 @@ impl<'a> TokensParser<'a> {
 		// #pragma STDC FENV_ACCESS on-off-switch
 		// #pragma STDC CX_LIMITED_RANGE on-off-switch
 		let Some(pragma_kind_token) = iter.next() else {
-			// unrecognized pragmas are ignored
 			if let cli::WarnLevel::All = self.warn_lvl {
 				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
 				self.diag_engine.push(warning);
@@ -195,7 +191,6 @@ impl<'a> TokensParser<'a> {
 			name: pragma_kind, ..
 		}) = pragma_kind_token.kind
 		else {
-			// unrecognized pragmas are ignored
 			if let cli::WarnLevel::All = self.warn_lvl {
 				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
 				self.diag_engine.push(warning);
