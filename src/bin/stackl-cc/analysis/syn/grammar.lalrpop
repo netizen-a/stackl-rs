@@ -13,6 +13,8 @@ grammar<'a>(
 );
 
 
+Pragma: tok::Pragma = <pragma:PRAGMA> ";" => pragma.kind.unwrap_pragma();
+
 // A.1.3 Identifiers
 
 Identifier: Identifier = IDENTIFIER => Identifier::new(<>);
@@ -818,6 +820,7 @@ RightCurly: diag::Span = <lo:@L> <rcurly:"}"> <hi:@R> => {
 BlockItem: BlockItem = {
 	Declaration => BlockItem::Declaration(<>),
 	Statement => BlockItem::Statement(<>),
+	Pragma => BlockItem::Pragma(<>),
 	! => { diagnostics.push_syntax_error(<>.error); BlockItem::Error },
 };
 
@@ -861,6 +864,7 @@ pub Syntax: TranslationUnit = ExternalDeclaration+;
 ExternalDeclaration: ExternalDeclaration = {
 	FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
 	Declaration => ExternalDeclaration::Declaration(<>),
+	Pragma => ExternalDeclaration::Pragma(<>),
 	! => { diagnostics.push_syntax_error(<>.error); ExternalDeclaration::Error },
 };
 
@@ -885,6 +889,7 @@ extern {
 		TYPE_NAME => tok::Token{kind: tok::TokenKind::Ident(tok::Ident{is_type:true, ..}), ..},
 		CONSTANT => tok::Token{kind: tok::TokenKind::Const(_), ..},
 		STRING_LITERAL => tok::Token{kind: tok::TokenKind::StrLit(_), ..},
+		PRAGMA => tok::Token{kind: tok::TokenKind::Pragma(_), ..},
 
 		"typedef" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Typedef), ..},
 		"extern" => tok::Token{kind: tok::TokenKind::Keyword(tok::Keyword::Extern), ..},

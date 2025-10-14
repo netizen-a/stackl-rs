@@ -14,6 +14,12 @@
 // #line 5 "hello world!"
 // unsigned struct Foo {} foo;
 
+
+#pragma STDC CX_LIMITED_RANGE ON
+#pragma
+
+#pragma "hello world"
+
 // #line 5 "hello world!"
 
 // unsigned struct Bar {} bar;

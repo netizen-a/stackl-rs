@@ -18,6 +18,7 @@ impl super::SemanticParser {
 		match item {
 			Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Auto, true),
 			Statement(stmt) => is_valid &= self.statement(stmt),
+			Pragma(_) => {}
 			Error => is_valid &= false,
 		}
 		is_valid

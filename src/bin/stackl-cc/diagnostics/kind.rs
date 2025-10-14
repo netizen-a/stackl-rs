@@ -73,4 +73,6 @@ pub enum DiagKind {
 	},
 	LabeledDeclaration,
 	LabeledCompoundEnd,
+	PragmaCxLimitedRange,
+	PragmaIgnored,
 }

@@ -39,8 +39,13 @@ fn main() -> ExitCode {
 	let timer = time::Instant::now();
 	let lexer = lex::lexer::Lexer::new(text.to_string(), 0);
 	let pp_iter = lex::PPTokenIter::new(lexer, diag_engine.get_file_map());
-	let tokens: Vec<tok::TokenTriple> =
-		lex::TokensParser::new(&mut diag_engine, pp_iter, args.stdout_preproc).parse();
+	let tokens: Vec<tok::TokenTriple> = lex::TokensParser::new(
+		&mut diag_engine,
+		pp_iter,
+		args.stdout_preproc,
+		args.warn_lvl.clone(),
+	)
+	.parse();
 
 	let duration = time::Instant::now().duration_since(timer);
 	since_array.push((duration, "preprocessor time"));

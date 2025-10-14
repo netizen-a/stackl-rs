@@ -12,6 +12,7 @@ use crate::analysis::tok::PPToken;
 use crate::analysis::tok::PPTokenKind;
 use crate::analysis::tok::Token;
 use crate::analysis::tok::TokenTriple;
+use crate::cli;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 use crate::tok;
@@ -21,6 +22,7 @@ pub struct TokensParser<'a> {
 	iter: PPTokenIter,
 	stdout_preproc: bool,
 	triple_list: Vec<TokenTriple>,
+	warn_lvl: cli::WarnLevel,
 }
 
 impl<'a> TokensParser<'a> {
@@ -28,12 +30,14 @@ impl<'a> TokensParser<'a> {
 		diag_engine: &'a mut diag::DiagnosticEngine,
 		iter: PPTokenIter,
 		stdout_preproc: bool,
+		warn_lvl: cli::WarnLevel,
 	) -> Self {
 		Self {
 			diag_engine,
 			iter,
 			stdout_preproc,
 			triple_list: vec![],
+			warn_lvl,
 		}
 	}
 	pub fn parse(&mut self) -> Vec<tok::TokenTriple> {
@@ -135,39 +139,130 @@ impl<'a> TokensParser<'a> {
 		span: diag::Span,
 	) -> Option<diag::Diagnostic> {
 		let mut iter = tokens.into_iter();
-		let Some(namespace_token) = iter.next() else {
-			// empty pragmas are ignored
+		let Some(pragma_namespace_token) = iter.next() else {
+			// unrecognized pragmas are ignored
+			if let cli::WarnLevel::All = self.warn_lvl {
+				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
+				self.diag_engine.push(warning);
+			}
 			return None;
 		};
+		let span = pragma_namespace_token.to_span();
 		let PPTokenKind::Ident(tok::Ident {
-			name: namespace, ..
-		}) = namespace_token.kind
+			name: pragma_namespace,
+			..
+		}) = pragma_namespace_token.kind
 		else {
-			// non-identifier pragmas are ignored
+			// unrecognized pragmas are ignored
+			if let cli::WarnLevel::All = self.warn_lvl {
+				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span.to_span());
+				self.diag_engine.push(warning);
+			}
 			return None;
 		};
-		match namespace.as_str() {
-			"STDC" => self.pragma_stdc(iter),
+		match pragma_namespace.as_str() {
+			"STDC" => self.pragma_stdc(iter, span),
 			"STACKL" => self.pragma_stackl(iter),
 			// unrecognized pragmas are ignored
-			_ => None,
+			_ => {
+				if let cli::WarnLevel::All = self.warn_lvl {
+					let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
+					self.diag_engine.push(warning);
+				}
+				None
+			}
 		}
 	}
-	fn pragma_stdc(&mut self, iter: vec::IntoIter<PPToken>) -> Option<diag::Diagnostic> {
+	fn pragma_stdc(
+		&mut self,
+		mut iter: vec::IntoIter<PPToken>,
+		span: diag::Span,
+	) -> Option<diag::Diagnostic> {
 		// TODO:
 		// #pragma STDC FP_CONTRACT on-off-switch
 		// #pragma STDC FENV_ACCESS on-off-switch
 		// #pragma STDC CX_LIMITED_RANGE on-off-switch
-		todo!()
+		let Some(pragma_kind_token) = iter.next() else {
+			// unrecognized pragmas are ignored
+			if let cli::WarnLevel::All = self.warn_lvl {
+				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
+				self.diag_engine.push(warning);
+			}
+			return None;
+		};
+		let span = pragma_kind_token.to_span();
+		let PPTokenKind::Ident(tok::Ident {
+			name: pragma_kind, ..
+		}) = pragma_kind_token.kind
+		else {
+			// unrecognized pragmas are ignored
+			if let cli::WarnLevel::All = self.warn_lvl {
+				let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
+				self.diag_engine.push(warning);
+			}
+			return None;
+		};
+		match pragma_kind.as_str() {
+			"FP_CONTRACT" => {
+				todo!("FP_CONTRACT")
+			}
+			"FENV_ACCESS" => {
+				todo!("FENV_ACCESS")
+			}
+			"CX_LIMITED_RANGE" => {
+				if let cli::WarnLevel::All = self.warn_lvl {
+					let warning =
+						diag::Diagnostic::warn(diag::DiagKind::PragmaCxLimitedRange, span);
+					self.diag_engine.push(warning);
+				}
+				None
+			}
+			// unrecognized pragmas are ignored
+			_ => {
+				if let cli::WarnLevel::All = self.warn_lvl {
+					let warning = diag::Diagnostic::warn(diag::DiagKind::PragmaIgnored, span);
+					self.diag_engine.push(warning);
+				}
+				None
+			}
+		}
 	}
-	fn pragma_stackl(&mut self, iter: vec::IntoIter<PPToken>) -> Option<diag::Diagnostic> {
+	fn pragma_stackl(&mut self, mut iter: vec::IntoIter<PPToken>) -> Option<diag::Diagnostic> {
 		// TODO:
 		// #pragma STACKL STACK_SIZE integer-constant
 		// #pragma STACKL FEATURE identifier on-off-switch
 		// #pragma STACKL SECTION string-literal
 		// #pragma STACKL TRACE on-off-switch
 		// #pragma STACKL VERSION integer-constant
-		todo!()
+		let Some(pragma_kind_token) = iter.next() else {
+			// unrecognized pragmas are ignored
+			return None;
+		};
+		let PPTokenKind::Ident(tok::Ident {
+			name: pragma_kind, ..
+		}) = pragma_kind_token.kind
+		else {
+			// unrecognized pragmas are ignored
+			return None;
+		};
+		match pragma_kind.as_str() {
+			"STACK_SIZE" => {
+				todo!("STACK_SIZE")
+			}
+			"FEATURE" => {
+				todo!("FEATURE")
+			}
+			"SECTION" => {
+				todo!("SECTION")
+			}
+			"TRACE" => {
+				todo!("TRACE")
+			}
+			"VERSION" => {
+				todo!("VERSION")
+			}
+			_ => None,
+		}
 	}
 	fn directive_error(
 		&mut self,

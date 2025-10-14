@@ -16,6 +16,7 @@ pub struct CompoundStmt {
 pub enum BlockItem {
 	Declaration(decl::Declaration),
 	Statement(Stmt),
+	Pragma(tok::Pragma),
 	Error,
 }
 

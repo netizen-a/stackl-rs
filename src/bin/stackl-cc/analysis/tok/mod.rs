@@ -271,12 +271,25 @@ impl fmt::Display for NewLine {
 }
 
 #[derive(Debug, Clone)]
+pub enum Pragma {
+	StdcFpContract(bool),
+	StdcFenvAccess(bool),
+	StdcCxLimitedRange(bool),
+	StacklStackSize(u32),
+	StacklFeature(String, bool),
+	StacklSection(String),
+	StacklTrace(bool),
+	StacklVersion(u32),
+}
+
+#[derive(Debug, Clone)]
 pub enum TokenKind {
 	Keyword(Keyword),
 	Ident(Ident),
 	Const(Const),
 	StrLit(StrLit),
 	Punct(Punct),
+	Pragma(Pragma),
 }
 
 impl TokenKind {
@@ -289,6 +302,12 @@ impl TokenKind {
 	pub fn unwrap_str_lit(self) -> StrLit {
 		match self {
 			Self::StrLit(token) => token,
+			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
+		}
+	}
+	pub fn unwrap_pragma(self) -> Pragma {
+		match self {
+			Self::Pragma(token) => token,
 			other => panic!("called `Token::unwrap_string_literal` on an `{other:?}` value"),
 		}
 	}

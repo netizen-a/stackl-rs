@@ -54,6 +54,7 @@ impl SemanticParser {
 				Declaration(decl) => {
 					is_valid &= self.declaration(decl, syn::StorageClass::Static, false)
 				}
+				Pragma(_) => {}
 				Error => {
 					self.tree_builder.add_empty_child("error".to_string());
 					is_valid &= false;

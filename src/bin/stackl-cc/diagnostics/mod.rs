@@ -467,6 +467,14 @@ impl DiagnosticEngine {
 				let msg0 = "label at end of compound statement";
 				self.format_diagnostic(&diag, msg0)
 			}
+			DiagKind::PragmaCxLimitedRange => {
+				let msg0 = "pragma 'CX_LIMITED_RANGE' is unsupported";
+				self.format_diagnostic(&diag, msg0)
+			}
+			DiagKind::PragmaIgnored => {
+				let msg0 = "ignoring pragma";
+				self.format_diagnostic(&diag, msg0)
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
