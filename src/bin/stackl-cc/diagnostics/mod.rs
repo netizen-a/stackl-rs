@@ -309,6 +309,8 @@ impl DiagnosticEngine {
 			}
 			DiagKind::IfAssign => {
 				let msg0 = "using the result of an assignment as a condition without parenthesis";
+				diag.push_note("place parentheses around the assignment to silence this warning");
+				diag.push_note("use '==' to turn this assignment into an equality comparison");
 				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::OnlyVoid => {
