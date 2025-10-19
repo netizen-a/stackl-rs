@@ -6,11 +6,6 @@ use crate::symbol_table as sym;
 
 type CastScore = usize;
 
-pub enum ValueCategory {
-	RValue,
-	LValue,
-}
-
 impl super::SemanticParser {
 	pub(super) fn declare_tag(&mut self, data_type: &DataType, span: Span) {
 		let name = match &data_type.kind {
@@ -228,12 +223,17 @@ impl super::SemanticParser {
 		}
 	}
 
-	// code gen here
 	pub fn try_convert(
 		&mut self,
 		from: &syn::Expr,
 		to: DataType,
 	) -> Option<(CastScore, syn::Expr)> {
-		todo!()
+		let mut result_expr = from.clone();
+		let mut result_score = 0;
+		if self.is_l_value(from) {
+			result_expr = syn::Expr::Cast(syn::CastKind::LValueToRValue, Box::new(result_expr));
+			result_score += 1;
+		}
+		Some((result_score, result_expr))
 	}
 }
