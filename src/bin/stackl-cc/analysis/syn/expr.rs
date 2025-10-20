@@ -13,20 +13,36 @@ pub enum ConversionError {
 
 #[derive(Debug, Clone)]
 pub enum CastKind {
-	NoOp,
-	Explicit(decl::TypeName),
-	LValueToRValue,
-	RValueToLValue,
-	Truncate,
-	ZeroExtend,
-	SignExtend,
-	FnToPtr,
-	/// int-to-ptr can affect pointer provenance
-	IntToPtr,
-	PtrToInt,
-	FpExtend,
-	FpTrunc,
+	/// Cost: 0
 	BitCast,
+	/// Cost: 1
+	FnToPtr,
+	/// Cost: 1
+	Trunc,
+	/// Cost: 1
+	ZExt,
+	/// Cost: 1
+	SExt,
+	/// Cost: 1
+	FpTrunc,
+	/// Cost: 1
+	FpExt,
+	/// Cost: 1
+	PtrToInt,
+	/// Cost: 1
+	IntToPtr,
+	/// Cost: 1
+	LValueToRValue,
+	/// Cost: 2
+	UIToFP,
+	/// Cost: 2
+	SIToFP,
+	/// Cost: 3
+	FPToUI,
+	/// Cost: 3
+	FPToSI,
+	/// Cost: N/A
+	Explicit(decl::TypeName),
 }
 
 /// (6.5.17) expression
