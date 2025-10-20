@@ -116,7 +116,6 @@ pub struct FuncType {
 	pub is_inline: bool,
 }
 
-// TODO: add optional bitfields
 #[derive(Debug, Clone)]
 pub struct MemberType {
 	pub ident: Option<syn::Identifier>,
@@ -186,6 +185,8 @@ impl TypeKind {
 			false
 		}
 	}
+	/// Recursively constructs a C type.
+	/// The `context` parameter must be an empty `String`.
 	fn get_render(&self, mut context: String, qual: Option<TypeQual>) -> String {
 		let qual = qual.unwrap_or_default();
 		let mut qual_str = String::new();
