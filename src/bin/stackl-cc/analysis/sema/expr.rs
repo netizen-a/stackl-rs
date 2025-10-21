@@ -151,10 +151,10 @@ impl super::SemanticParser {
 				if cond {
 					l_type
 				} else {
-					let Some((_, _)) = self.try_convert(&binary.left, r_type) else {
+					let Some((_, _)) = self.try_convert(&binary.left, l_type.clone(), r_type.clone(),) else {
 						return DataType::POISON;
 					};
-					let Some((_, _)) = self.try_convert(&binary.right, l_type) else {
+					let Some((_, _)) = self.try_convert(&binary.right, r_type, l_type) else {
 						return DataType::POISON;
 					};
 					todo!()
