@@ -149,23 +149,12 @@ impl super::SemanticParser {
 		let l_type = self.expr(&mut *binary.left, in_func);
 		let r_type = self.expr(&mut *binary.right, in_func);
 		self.tree_builder.end_child();
-		match self.dtype_eq(&l_type, &r_type, binary.op.to_span()) {
-			Ok(cond) => {
-				if cond {
-					l_type
-				} else {
-					let Some((_, _)) =
-						self.try_convert(&binary.left, l_type.clone(), r_type.clone())
-					else {
-						return DataType::POISON;
-					};
-					let Some((_, _)) = self.try_convert(&binary.right, r_type, l_type) else {
-						return DataType::POISON;
-					};
-					todo!()
-				}
-			}
-			Err(poison) => poison,
+		let l_score = self.convert(&mut binary.left, &l_type, &r_type, binary.op.to_span());
+		let r_score = self.convert(&mut binary.right, &r_type, &l_type, binary.op.to_span());
+		if l_score <= r_score {
+			l_type
+		} else {
+			r_type
 		}
 	}
 	pub(super) fn expr_ternary(

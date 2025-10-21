@@ -223,24 +223,32 @@ impl super::SemanticParser {
 		}
 	}
 
-	pub fn try_convert(
+	pub fn convert(
 		&mut self,
-		from_expr: &syn::Expr,
-		from_type: DataType,
-		to_type: DataType,
-	) -> Option<(CastScore, syn::Expr)> {
-		let mut result_expr = from_expr.clone();
+		expr: &mut syn::Expr,
+		from_type: &DataType,
+		to_type: &DataType,
+		callee_span: Span,
+	) -> CastScore {
 		let mut result_score = 0;
 
 		if to_type.is_poisoned() {
-			return Some((result_score, result_expr));
+			return result_score;
 		}
 
-		if self.is_l_value(from_expr) {
-			result_expr = syn::Expr::Cast(syn::CastKind::LValueToRValue, Box::new(result_expr));
+		if self.is_l_value(expr) {
+			*expr = syn::Expr::Cast(syn::CastKind::LValueToRValue, Box::new(expr.clone()));
 			result_score += 1;
 		}
 
-		Some((result_score, result_expr))
+		match self.dtype_eq(from_type, to_type, callee_span) {
+			Ok(true) => return result_score,
+			Err(_) => return 0,
+			Ok(false) => {
+				// do nothing
+			}
+		}
+
+		result_score
 	}
 }
