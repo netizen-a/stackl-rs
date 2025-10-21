@@ -31,7 +31,7 @@ impl super::SemanticParser {
 			Stmt::Compound(inner) => self.compound_stmt(inner),
 			Stmt::Expr(expr_stmt) => {
 				if let Some(expr) = &mut expr_stmt.0 {
-					is_valid &= !self.expr(expr, true).is_poisoned();
+					is_valid &= !self.expr(expr, true, self.print_ast).is_poisoned();
 				}
 			}
 			Stmt::Select(stmt) => {
@@ -79,7 +79,7 @@ impl super::SemanticParser {
 			let mut diag = diag::Diagnostic::warn(diag::DiagKind::IfAssign, span.clone());
 			self.diagnostics.push(diag);
 		}
-		self.expr(stmt_cond, true);
+		self.expr(stmt_cond, true, self.print_ast);
 		self.tree_builder.end_child();
 	}
 	fn stmt_then(&mut self, stmt_then: &mut Stmt) {

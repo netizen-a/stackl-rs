@@ -26,6 +26,7 @@ pub struct SemanticParser {
 	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
+	print_ast: bool,
 	tree_builder: ptree::TreeBuilder,
 }
 
@@ -39,6 +40,7 @@ impl SemanticParser {
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,
+			print_ast: args.ast,
 			tree_builder: ptree::TreeBuilder::new("translation-unit".to_string()),
 		}
 	}
