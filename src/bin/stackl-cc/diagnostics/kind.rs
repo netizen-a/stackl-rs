@@ -3,7 +3,10 @@
 use std::path;
 
 use crate::{
-	analysis::{syn::StorageClass, tok},
+	analysis::{
+		syn::StorageClass,
+		tok,
+	},
 	data_type::DataType,
 };
 

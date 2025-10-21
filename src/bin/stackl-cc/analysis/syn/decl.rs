@@ -1,13 +1,19 @@
 //! Declarations
 
-use std::{collections::VecDeque, fmt};
+use std::{
+	collections::VecDeque,
+	fmt,
+};
 
 use super::expr;
 use super::Identifier;
 use crate::diagnostics::Span;
 use crate::{
 	analysis::tok,
-	diagnostics::{self as diag, ToSpan},
+	diagnostics::{
+		self as diag,
+		ToSpan,
+	},
 };
 
 /// (6.9.1) declaration-list

@@ -1,7 +1,15 @@
-use std::{collections::HashMap, error::Error};
+use std::{
+	collections::HashMap,
+	error::Error,
+};
 
 use crate::sym;
-use stackl::{ast::*, op, StacklFlags, StacklFormatV2};
+use stackl::{
+	ast::*,
+	op,
+	StacklFlags,
+	StacklFormatV2,
+};
 
 pub fn ast_to_fmt2(ast: Vec<Stmt>) -> Result<StacklFormatV2, Box<dyn Error>> {
 	let symtab: HashMap<String, usize> = sym::build_symtab(&ast).unwrap();

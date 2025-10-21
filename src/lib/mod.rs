@@ -1,4 +1,7 @@
-use std::{fmt, str::SplitTerminator};
+use std::{
+	fmt,
+	str::SplitTerminator,
+};
 
 use bitflags::bitflags;
 

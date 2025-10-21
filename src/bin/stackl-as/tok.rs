@@ -1,4 +1,7 @@
-use logos::{Lexer, Logos};
+use logos::{
+	Lexer,
+	Logos,
+};
 use std::fmt;
 use std::num::ParseIntError;
 

@@ -6,7 +6,10 @@ use std::path;
 use std::process::ExitCode;
 
 use crate::grammar::ProgramParser;
-use tok::{LexicalError, Token};
+use tok::{
+	LexicalError,
+	Token,
+};
 
 mod code_gen;
 mod error;

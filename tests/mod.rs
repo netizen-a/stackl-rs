@@ -1,7 +1,10 @@
 use std::{
 	env,
 	path::PathBuf,
-	process::{self, ExitCode},
+	process::{
+		self,
+		ExitCode,
+	},
 };
 
 fn to_exitcode(cond: bool) -> ExitCode {

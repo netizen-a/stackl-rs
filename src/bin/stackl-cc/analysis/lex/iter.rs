@@ -1,14 +1,28 @@
-use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, time};
+use std::{
+	cell::RefCell,
+	collections::HashMap,
+	path::PathBuf,
+	rc::Rc,
+	time,
+};
 
 use crate::{
-	analysis::tok::{self, Directive, PPToken, PPTokenKind},
+	analysis::tok::{
+		self,
+		Directive,
+		PPToken,
+		PPTokenKind,
+	},
 	diagnostics::DiagnosticEngine,
 };
 
 use super::lexer::Lexer;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
-use chrono::{Datelike, Timelike};
+use chrono::{
+	Datelike,
+	Timelike,
+};
 use lalrpop_util as lalr;
 
 pub enum StackKind {

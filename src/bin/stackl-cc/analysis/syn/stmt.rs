@@ -1,5 +1,8 @@
 use super::Identifier;
-use super::{decl, expr};
+use super::{
+	decl,
+	expr,
+};
 use crate::analysis::tok;
 use crate::diagnostics as diag;
 

@@ -1,6 +1,9 @@
 use crate::io;
 use crate::machine::*;
-use stackl::{StacklFormatV1, StacklFormatV2};
+use stackl::{
+	StacklFormatV1,
+	StacklFormatV2,
+};
 use std::fs;
 use std::str::FromStr;
 use std::sync::mpsc::Receiver;

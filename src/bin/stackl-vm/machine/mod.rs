@@ -1,9 +1,18 @@
 use std::ffi;
 use std::sync::mpsc::Sender;
 
-use flag::{MachineCheck, MachineFlags, MetaFlags, Status};
+use flag::{
+	MachineCheck,
+	MachineFlags,
+	MetaFlags,
+	Status,
+};
 use memory::MachineMemory;
-use stackl::{op, StacklFlags, StacklFormatV2};
+use stackl::{
+	op,
+	StacklFlags,
+	StacklFormatV2,
+};
 
 pub mod flag;
 mod interrupt;

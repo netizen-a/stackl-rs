@@ -15,7 +15,12 @@ use std::process::ExitCode;
 use std::time;
 use std::time::Duration;
 
-use analysis::{lex, sema, syn, tok};
+use analysis::{
+	lex,
+	sema,
+	syn,
+	tok,
+};
 
 fn main() -> ExitCode {
 	let args = cli::Args::parse();

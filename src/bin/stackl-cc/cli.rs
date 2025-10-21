@@ -1,4 +1,7 @@
-use std::{fmt, path::PathBuf};
+use std::{
+	fmt,
+	path::PathBuf,
+};
 
 use clap::Parser;
 

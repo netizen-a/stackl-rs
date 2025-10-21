@@ -2,7 +2,11 @@ use std::f32;
 
 use super::decl;
 use super::Identifier;
-use crate::analysis::tok::{self, FloatingConstant, IntegerConstant};
+use crate::analysis::tok::{
+	self,
+	FloatingConstant,
+	IntegerConstant,
+};
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 
@@ -86,7 +90,10 @@ impl Expr {
 		contract_int: bool,
 		contract_float: bool,
 	) -> Self {
-		use tok::Const::{Floating, Integer};
+		use tok::Const::{
+			Floating,
+			Integer,
+		};
 		let result = Self::Binary(ExprBinary {
 			op,
 			left: Box::new(left),
@@ -108,7 +115,10 @@ impl Expr {
 	}
 
 	pub fn constant_fold(&self, contract_int: bool, contract_float: bool) -> Expr {
-		use tok::Const::{Floating, Integer};
+		use tok::Const::{
+			Floating,
+			Integer,
+		};
 		match self {
 			Self::UnaryPrefix(unary) => {
 				let op = &unary.op;

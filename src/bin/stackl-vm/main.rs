@@ -1,12 +1,27 @@
 use std::process::ExitCode;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{
+	channel,
+	Sender,
+};
 use std::sync::RwLock;
-use std::{fs, path, sync, thread};
+use std::{
+	fs,
+	path,
+	sync,
+	thread,
+};
 
 use clap::Parser;
-use machine::flag::{IntVec, Status};
+use machine::flag::{
+	IntVec,
+	Status,
+};
 use machine::MachineState;
-use stackl::{StacklFlags, StacklFormatV1, StacklFormatV2};
+use stackl::{
+	StacklFlags,
+	StacklFormatV1,
+	StacklFormatV2,
+};
 
 mod device;
 mod io;

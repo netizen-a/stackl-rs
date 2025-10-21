@@ -1,5 +1,8 @@
 use super::flag::MachineCheck;
-use std::ops::{Bound, RangeBounds};
+use std::ops::{
+	Bound,
+	RangeBounds,
+};
 
 #[derive(Debug)]
 pub struct MachineMemory {

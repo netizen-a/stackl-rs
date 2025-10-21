@@ -3,13 +3,26 @@ mod kind;
 pub mod lex;
 mod span;
 
-use crate::analysis::{syn, tok};
+use crate::analysis::{
+	syn,
+	tok,
+};
 use std::{
 	cell::RefCell,
-	collections::{HashMap, HashSet},
+	collections::{
+		HashMap,
+		HashSet,
+	},
 	fs,
-	io::{self, BufReader, Read},
-	path::{Path, PathBuf},
+	io::{
+		self,
+		BufReader,
+		Read,
+	},
+	path::{
+		Path,
+		PathBuf,
+	},
 	process::exit,
 	rc::Rc,
 	result,

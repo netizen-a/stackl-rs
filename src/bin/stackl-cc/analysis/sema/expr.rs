@@ -3,7 +3,10 @@ use crate::symbol_table as sym;
 use crate::{
 	analysis::{
 		syn,
-		tok::{Const, IntegerConstant},
+		tok::{
+			Const,
+			IntegerConstant,
+		},
 	},
 	data_type::*,
 };
@@ -26,7 +29,7 @@ impl super::SemanticParser {
 			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func),
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
-			syn::Expr::Cast(_,_) => todo!(),
+			syn::Expr::Cast(_, _) => todo!(),
 		}
 	}
 
@@ -151,7 +154,9 @@ impl super::SemanticParser {
 				if cond {
 					l_type
 				} else {
-					let Some((_, _)) = self.try_convert(&binary.left, l_type.clone(), r_type.clone(),) else {
+					let Some((_, _)) =
+						self.try_convert(&binary.left, l_type.clone(), r_type.clone())
+					else {
 						return DataType::POISON;
 					};
 					let Some((_, _)) = self.try_convert(&binary.right, r_type, l_type) else {

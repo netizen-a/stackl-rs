@@ -1,9 +1,16 @@
 use std::fmt::Debug;
-use std::iter::{Enumerate, Peekable};
+use std::iter::{
+	Enumerate,
+	Peekable,
+};
 use std::vec::IntoIter;
 
 use crate::analysis::tok;
-use crate::diagnostics::{self as diag, lex, ToSpan};
+use crate::diagnostics::{
+	self as diag,
+	lex,
+	ToSpan,
+};
 
 #[derive(Debug)]
 pub struct Lexer {

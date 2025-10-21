@@ -1,7 +1,13 @@
 use std::path::Path;
 
-use crate::tok::{LexicalError, Token};
-use lalrpop_util::{ErrorRecovery, ParseError};
+use crate::tok::{
+	LexicalError,
+	Token,
+};
+use lalrpop_util::{
+	ErrorRecovery,
+	ParseError,
+};
 
 pub fn print_errors(
 	filename: &Path,

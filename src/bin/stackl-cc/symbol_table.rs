@@ -1,12 +1,21 @@
 use std::{
-	collections::{hash_map, HashMap},
+	collections::{
+		hash_map,
+		HashMap,
+	},
 	hash::Hash,
 };
 
 use crate::{
 	analysis::syn,
-	data_type::{DataType, TypeKind},
-	diagnostics::{Span, ToSpan},
+	data_type::{
+		DataType,
+		TypeKind,
+	},
+	diagnostics::{
+		Span,
+		ToSpan,
+	},
 };
 
 #[derive(Debug)]

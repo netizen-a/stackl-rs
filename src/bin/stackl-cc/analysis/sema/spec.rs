@@ -2,7 +2,10 @@ use crate::analysis::syn;
 use crate::data_type::*;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
-use crate::diagnostics::{DiagKind, Diagnostic};
+use crate::diagnostics::{
+	DiagKind,
+	Diagnostic,
+};
 use crate::symbol_table as sym;
 
 const SIGNED_STR: &str = "signed";
