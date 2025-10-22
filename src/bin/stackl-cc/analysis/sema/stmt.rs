@@ -15,14 +15,12 @@ impl super::SemanticParser {
 	pub(super) fn block_item(&mut self, item: &mut BlockItem) -> bool {
 		use BlockItem::*;
 		let mut is_valid = true;
-		self.tree_builder.begin_child("block-item".to_string());
 		match item {
 			Declaration(decl) => is_valid &= self.declaration(decl, StorageClass::Auto, true),
 			Statement(stmt) => is_valid &= self.statement(stmt),
 			Pragma(_) => {}
 			Error => is_valid &= false,
 		}
-		self.tree_builder.end_child();
 		is_valid
 	}
 	pub(super) fn statement(&mut self, stmt: &mut Stmt) -> bool {

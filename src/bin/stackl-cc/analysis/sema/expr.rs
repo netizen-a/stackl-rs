@@ -200,7 +200,7 @@ impl super::SemanticParser {
 				syn::BinOpKind::MulAssign => self.tree_builder.begin_child("*=".to_string()),
 				syn::BinOpKind::DivAssign => self.tree_builder.begin_child("/=".to_string()),
 				syn::BinOpKind::RemAssign => self.tree_builder.begin_child("%=".to_string()),
-				syn::BinOpKind::AddAssign => self.tree_builder.begin_child("&=".to_string()),
+				syn::BinOpKind::AddAssign => self.tree_builder.begin_child("+=".to_string()),
 				syn::BinOpKind::SubAssign => self.tree_builder.begin_child("-=".to_string()),
 				syn::BinOpKind::LShiftAssign => self.tree_builder.begin_child("<<=".to_string()),
 				syn::BinOpKind::RShiftAssign => self.tree_builder.begin_child(">>=".to_string()),
