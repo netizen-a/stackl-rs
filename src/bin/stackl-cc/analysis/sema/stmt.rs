@@ -38,9 +38,11 @@ impl super::SemanticParser {
 				self.selection_stmt(stmt);
 			}
 			Stmt::Iter(_iter_stmt) => (),
-			Stmt::Jump(_jmp_stmt) => (),
+			Stmt::Jump(inner) => self.jmp_stmt(inner),
 			Stmt::Asm(_asm_stmt) => (),
-			Stmt::Error => {}
+			Stmt::Error => {
+				is_valid = false;
+			}
 		}
 		self.tree_builder.end_child();
 		is_valid
@@ -61,6 +63,17 @@ impl super::SemanticParser {
 				}
 			}
 			_ => {}
+		}
+		self.tree_builder.end_child();
+	}
+	fn jmp_stmt(&mut self, stmt: &mut JumpStmt) {
+		self.tree_builder
+			.begin_child("selection-statement".to_string());
+		match stmt {
+			JumpStmt::Return(_) => {
+				self.tree_builder.add_empty_child("return".to_string());
+			},
+			other => todo!("{other:?}"),
 		}
 		self.tree_builder.end_child();
 	}
