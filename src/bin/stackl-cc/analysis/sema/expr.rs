@@ -46,7 +46,7 @@ impl super::SemanticParser {
 		print_self: bool,
 	) -> DataType {
 		if print_self {
-			let _ = match kind {
+			match kind {
 				syn::CastKind::BitCast => self.tree_builder.begin_child("bit-cast".to_string()),
 				syn::CastKind::FnToPtr => self.tree_builder.begin_child("fn-to-ptr".to_string()),
 				syn::CastKind::Trunc => self.tree_builder.begin_child("trunc".to_string()),
@@ -59,6 +59,7 @@ impl super::SemanticParser {
 				syn::CastKind::LValueToRValue => {
 					self.tree_builder.begin_child("lval-to-rval".to_string())
 				}
+
 				syn::CastKind::UIToFP => self.tree_builder.begin_child("ui-to-fp".to_string()),
 				syn::CastKind::SIToFP => self.tree_builder.begin_child("si-to-fp".to_string()),
 				syn::CastKind::FPToUI => self.tree_builder.begin_child("fp-to-ui".to_string()),
@@ -129,19 +130,28 @@ impl super::SemanticParser {
 		print_self: bool,
 	) -> DataType {
 		let mut result = DataType::POISON;
-		match unary.op {
+		match &unary.op {
 			syn::Prefix::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
 				let inner_type = self.expr(&mut *unary.expr, in_func, print_self);
 				if !inner_type.is_poisoned() {
-					let kind = TypeKind::Pointer(Box::new(inner_type));
 					result = DataType {
-						kind,
+						kind: TypeKind::Pointer(Box::new(inner_type)),
 						qual: Default::default(),
 					}
 				}
 			}
-			_ => todo!(),
+			syn::Prefix::Star => {
+				self.tree_builder.begin_child("expr-prefix *".to_string());
+				let inner_type = self.expr(&mut *unary.expr, in_func, print_self);
+				if !inner_type.is_poisoned() {
+					result = DataType {
+						kind: inner_type.kind,
+						qual: Default::default(),
+					}
+				}
+			}
+			other => todo!("{other:?}"),
 		}
 		self.tree_builder.end_child();
 		result
@@ -173,7 +183,7 @@ impl super::SemanticParser {
 		print_self: bool,
 	) -> DataType {
 		if print_self {
-			let _ = match &binary.op.kind {
+			match &binary.op.kind {
 				syn::BinOpKind::Mul => self.tree_builder.begin_child("*".to_string()),
 				syn::BinOpKind::Div => self.tree_builder.begin_child("/".to_string()),
 				syn::BinOpKind::Rem => self.tree_builder.begin_child("%".to_string()),
@@ -206,15 +216,18 @@ impl super::SemanticParser {
 				syn::BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 			};
 		}
-		let l_type = self.expr(&mut *binary.left, in_func, false);
-		let r_type = self.expr(&mut *binary.right, in_func, false);
+		let mut l_type = self.expr(&mut *binary.left, in_func, false);
+		let mut r_type = self.expr(&mut *binary.right, in_func, false);
 
+		// add implicit casts to the ast.
 		let l_score = self.convert(&mut binary.left, &l_type, &r_type, binary.op.to_span());
 		let r_score = self.convert(&mut binary.right, &r_type, &l_type, binary.op.to_span());
 
+		// recalculate the data type
+		l_type = self.expr(&mut *binary.left, in_func, print_self);
+		r_type = self.expr(&mut *binary.right, in_func, print_self);
+
 		if print_self {
-			let _ = self.expr(&mut *binary.left, in_func, print_self);
-			let _ = self.expr(&mut *binary.right, in_func, print_self);
 			self.tree_builder.end_child();
 		}
 

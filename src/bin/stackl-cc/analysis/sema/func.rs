@@ -10,7 +10,7 @@ impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
 		let func_ident = &decl.ident;
 		self.tree_builder
-			.begin_child(format!("function-definition {}", func_ident.name.clone()));
+			.begin_child(format!("function-definition `{}`", func_ident.name));
 		let maybe_sc = self.specifiers_storage(&mut decl.specifiers);
 		let maybe_ty = self.specifiers_dtype(&mut decl.specifiers, false);
 
@@ -183,7 +183,7 @@ impl super::SemanticParser {
 			for (decl_maybe, decl_type, type_span) in declaration_list.iter() {
 				let Some(decl_ident) = decl_maybe else {
 					// missing parameter name
-					return false;
+					continue;
 				};
 				let new_entry = sym::SymbolTableEntry {
 					data_type: decl_type.clone(),

@@ -600,7 +600,10 @@ IdentifierList: Vec<Identifier> = {
 };
 
 TypeName: TypeName = {
-	SpecifierQualifierList AbstractDeclarator? => todo!("specifier-qualifier-list abstract-declarator"),
+	<spec:SpecifierQualifierList> <decl:AbstractDeclarator?> => TypeName {
+		specifiers: Specifiers::from(spec),
+		declarators: decl.unwrap_or_default(),
+	},
 };
 
 AbstractDeclarator: Vec<Declarator> = {
