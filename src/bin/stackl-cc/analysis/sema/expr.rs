@@ -220,8 +220,8 @@ impl super::SemanticParser {
 		let mut r_type = self.expr(&mut *binary.right, in_func, false);
 
 		// add implicit casts to the ast.
-		let l_score = self.convert(&mut binary.left, &l_type, &r_type, binary.op.to_span());
-		let r_score = self.convert(&mut binary.right, &r_type, &l_type, binary.op.to_span());
+		let l_score = self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
+		let r_score = self.convert_type(&mut binary.right, &r_type, &l_type, binary.op.to_span());
 
 		// recalculate the data type
 		l_type = self.expr(&mut *binary.left, in_func, print_self);

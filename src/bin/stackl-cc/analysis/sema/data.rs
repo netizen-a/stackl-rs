@@ -223,7 +223,7 @@ impl super::SemanticParser {
 		}
 	}
 
-	pub fn convert(
+	pub fn convert_type(
 		&mut self,
 		expr: &mut syn::Expr,
 		from_type: &DataType,
@@ -241,10 +241,57 @@ impl super::SemanticParser {
 			result_score += 1;
 		}
 
-		match self.dtype_eq(from_type, to_type, callee_span) {
+		match self.dtype_eq(from_type, to_type, callee_span.to_span()) {
 			Ok(true) => return result_score,
 			Err(_) => return 0,
-			Ok(false) => {
+			Ok(false) => match (&from_type.kind, &to_type.kind) {
+				(TypeKind::Scalar(from_scalar), TypeKind::Scalar(to_scalar)) => {
+					result_score +=
+						self.convert_scalar(expr, from_scalar, to_scalar, callee_span.to_span());
+				}
+				other => todo!("{other:?}"),
+			},
+		}
+
+		result_score
+	}
+
+	fn convert_scalar(
+		&mut self,
+		expr: &mut syn::Expr,
+		from_scalar: &ScalarType,
+		to_scalar: &ScalarType,
+		callee_span: Span,
+	) -> CastScore {
+		let mut result_score = 0;
+
+		use ScalarType::*;
+		match (from_scalar, to_scalar) {
+			(I8, I16 | I32 | I64 | I128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::SExt, Box::new(expr.clone()));
+			}
+			(I16, I32 | I64 | I128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::SExt, Box::new(expr.clone()));
+			}
+			(I32, I64 | I128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::SExt, Box::new(expr.clone()));
+			}
+			(I64, I128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::SExt, Box::new(expr.clone()));
+			}
+			(U8, U16 | U32 | U64 | U128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::ZExt, Box::new(expr.clone()));
+			}
+			(U16, U32 | U64 | U128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::ZExt, Box::new(expr.clone()));
+			}
+			(U32, U64 | U128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::ZExt, Box::new(expr.clone()));
+			}
+			(U64, U128) => {
+				*expr = syn::Expr::Cast(syn::CastKind::ZExt, Box::new(expr.clone()));
+			}
+			other => {
 				// do nothing
 			}
 		}

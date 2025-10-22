@@ -72,7 +72,7 @@ impl super::SemanticParser {
 		match stmt {
 			JumpStmt::Return(_) => {
 				self.tree_builder.add_empty_child("return".to_string());
-			},
+			}
 			other => todo!("{other:?}"),
 		}
 		self.tree_builder.end_child();
