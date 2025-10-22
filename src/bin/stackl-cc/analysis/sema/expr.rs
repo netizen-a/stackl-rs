@@ -16,25 +16,25 @@ impl super::SemanticParser {
 		&mut self,
 		expr: &mut syn::Expr,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
 		match expr {
 			syn::Expr::Paren(inner) => {
 				self.tree_builder.begin_child("( expression )".to_string());
-				let result = self.expr(inner, in_func, print_self);
+				let result = self.expr(inner, in_func, mut_self);
 				self.tree_builder.end_child();
 				result
 			}
-			syn::Expr::Ident(inner) => self.expr_identifier(inner, in_func, print_self),
-			syn::Expr::Const(inner) => self.expr_const(inner, print_self),
+			syn::Expr::Ident(inner) => self.expr_identifier(inner, in_func, mut_self),
+			syn::Expr::Const(inner) => self.expr_const(inner, mut_self),
 			syn::Expr::StrLit(_inner) => DataType::POISON,
-			syn::Expr::UnaryPrefix(unary) => self.expr_prefix(unary, in_func, print_self),
-			syn::Expr::UnaryPostfix(unary) => self.expr_postfix(unary, in_func, print_self),
-			syn::Expr::Binary(binary) => self.expr_binary(binary, in_func, print_self),
-			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func, print_self),
+			syn::Expr::UnaryPrefix(unary) => self.expr_prefix(unary, in_func, mut_self),
+			syn::Expr::UnaryPostfix(unary) => self.expr_postfix(unary, in_func, mut_self),
+			syn::Expr::Binary(binary) => self.expr_binary(binary, in_func, mut_self),
+			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func, mut_self),
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
-			syn::Expr::Cast(kind, expr) => self.expr_cast(kind, expr, in_func, print_self),
+			syn::Expr::Cast(kind, expr) => self.expr_cast(kind, expr, in_func, mut_self),
 		}
 	}
 
@@ -43,9 +43,9 @@ impl super::SemanticParser {
 		kind: &syn::CastKind,
 		expr: &mut syn::Expr,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
-		if print_self {
+		if self.print_ast {
 			match kind {
 				syn::CastKind::BitCast => self.tree_builder.begin_child("bit-cast".to_string()),
 				syn::CastKind::FnToPtr => self.tree_builder.begin_child("fn-to-ptr".to_string()),
@@ -67,8 +67,8 @@ impl super::SemanticParser {
 				syn::CastKind::Explicit(_) => self.tree_builder.begin_child("explicit".to_string()),
 			};
 		}
-		let result = self.expr(expr, in_func, print_self);
-		if print_self {
+		let result = self.expr(expr, in_func, mut_self);
+		if self.print_ast {
 			self.tree_builder.end_child();
 		}
 		result
@@ -94,13 +94,13 @@ impl super::SemanticParser {
 		&mut self,
 		ident: &mut syn::Identifier,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
 		let span = ident.to_span();
 		let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
 		let maybe = self.ordinary_table.global_lookup(&ident.name);
 		if let Some(entry) = maybe {
-			if print_self {
+			if mut_self {
 				self.tree_builder.add_empty_child(format!(
 					"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",
 					ident.name, entry.data_type
@@ -127,13 +127,13 @@ impl super::SemanticParser {
 		&mut self,
 		unary: &mut syn::UnaryPrefix,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
 		let mut result = DataType::POISON;
 		match &unary.op {
 			syn::Prefix::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
-				let inner_type = self.expr(&mut *unary.expr, in_func, print_self);
+				let inner_type = self.expr(&mut *unary.expr, in_func, mut_self);
 				if !inner_type.is_poisoned() {
 					result = DataType {
 						kind: TypeKind::Pointer(Box::new(inner_type)),
@@ -143,7 +143,7 @@ impl super::SemanticParser {
 			}
 			syn::Prefix::Star => {
 				self.tree_builder.begin_child("expr-prefix *".to_string());
-				let inner_type = self.expr(&mut *unary.expr, in_func, print_self);
+				let inner_type = self.expr(&mut *unary.expr, in_func, mut_self);
 				if !inner_type.is_poisoned() {
 					result = DataType {
 						kind: inner_type.kind,
@@ -160,7 +160,7 @@ impl super::SemanticParser {
 		&mut self,
 		unary: &mut syn::UnaryPostfix,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
 		let _ = match unary.op {
 			syn::Postfix::Array(_) => self.tree_builder.begin_child("postfix `[ ]`".to_string()),
@@ -172,7 +172,7 @@ impl super::SemanticParser {
 			syn::Postfix::Inc => self.tree_builder.begin_child("postfix `++`".to_string()),
 			syn::Postfix::Dec => self.tree_builder.begin_child("postfix `--`".to_string()),
 		};
-		self.expr(&mut *unary.expr, in_func, print_self);
+		self.expr(&mut *unary.expr, in_func, mut_self);
 		self.tree_builder.end_child();
 		DataType::POISON
 	}
@@ -180,9 +180,9 @@ impl super::SemanticParser {
 		&mut self,
 		binary: &mut syn::ExprBinary,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
-		if print_self {
+		if self.print_ast {
 			match &binary.op.kind {
 				syn::BinOpKind::Mul => self.tree_builder.begin_child("*".to_string()),
 				syn::BinOpKind::Div => self.tree_builder.begin_child("/".to_string()),
@@ -216,44 +216,49 @@ impl super::SemanticParser {
 				syn::BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 			};
 		}
-		let mut l_type = self.expr(&mut *binary.left, in_func, false);
-		let mut r_type = self.expr(&mut *binary.right, in_func, false);
+		let is_print = self.print_ast;
+		self.print_ast = false;
+		let mut l_type = self.expr(&mut *binary.left, in_func, true);
+		let mut r_type = self.expr(&mut *binary.right, in_func, true);
+		self.print_ast = is_print;
 
 		// add implicit casts to the ast.
-		let l_score = self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
-		let r_score = self.convert_type(&mut binary.right, &r_type, &l_type, binary.op.to_span());
+		let result = if mut_self {
+			let l_score = self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
+			let r_score = self.convert_type(&mut binary.right, &r_type, &l_type, binary.op.to_span());
+			if l_score <= r_score {
+				l_type
+			} else {
+				r_type
+			}
+		} else {
+			DataType::POISON
+		};
 
-		// recalculate the data type
-		l_type = self.expr(&mut *binary.left, in_func, print_self);
-		r_type = self.expr(&mut *binary.right, in_func, print_self);
-
-		if print_self {
+		if self.print_ast {
+			self.expr(&mut *binary.left, in_func, false);
+			self.expr(&mut *binary.right, in_func, false);
 			self.tree_builder.end_child();
 		}
-
-		if l_score <= r_score {
-			l_type
-		} else {
-			r_type
-		}
+		result
 	}
 	pub(super) fn expr_ternary(
 		&mut self,
 		ternary: &mut syn::ExprTernary,
 		in_func: bool,
-		print_self: bool,
+		mut_self: bool,
 	) -> DataType {
 		self.tree_builder.begin_child("ternary `?:`".to_string());
-		self.expr(&mut *ternary.expr_cond, in_func, print_self);
-		self.expr(&mut *ternary.expr_then, in_func, print_self);
-		self.expr(&mut *ternary.expr_else, in_func, print_self);
+		self.expr(&mut *ternary.expr_cond, in_func, mut_self);
+		self.expr(&mut *ternary.expr_then, in_func, mut_self);
+		self.expr(&mut *ternary.expr_else, in_func, mut_self);
 		self.tree_builder.end_child();
 		DataType::POISON
 	}
-	pub(super) fn expr_const(&mut self, constant: &mut Const, print_self: bool) -> DataType {
+	pub(super) fn expr_const(&mut self, constant: &mut Const, mut_self: bool) -> DataType {
 		match constant {
 			Const::Integer(IntegerConstant::I32(inner)) => {
-				if print_self {
+				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'int'"));
 				}
@@ -263,7 +268,7 @@ impl super::SemanticParser {
 				}
 			}
 			Const::Integer(IntegerConstant::U32(inner)) => {
-				if print_self {
+				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned int'"));
 				}
@@ -273,7 +278,7 @@ impl super::SemanticParser {
 				}
 			}
 			Const::Integer(IntegerConstant::I64(inner)) => {
-				if print_self {
+				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'long'"));
 				}
@@ -283,7 +288,7 @@ impl super::SemanticParser {
 				}
 			}
 			Const::Integer(IntegerConstant::U64(inner)) => {
-				if print_self {
+				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned long'"));
 				}
@@ -293,7 +298,7 @@ impl super::SemanticParser {
 				}
 			}
 			Const::Integer(IntegerConstant::I128(inner)) => {
-				if print_self {
+				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'long long'"));
 				}
@@ -303,7 +308,7 @@ impl super::SemanticParser {
 				}
 			}
 			Const::Integer(IntegerConstant::U128(inner)) => {
-				if print_self {
+				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned long long'"));
 				}
