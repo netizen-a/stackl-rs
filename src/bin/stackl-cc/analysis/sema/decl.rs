@@ -1,3 +1,5 @@
+use std::cell::OnceCell;
+
 use crate::analysis::sema::DeclType;
 use crate::analysis::syn;
 use crate::analysis::tok;
@@ -215,8 +217,22 @@ impl super::SemanticParser {
 				list_count.push((span.clone(), list.len().try_into().unwrap()));
 				self.tree_builder
 					.begin_child("initializer-list".to_string());
-				for (desig_list, init) in list.iter_mut() {
+				let once = OnceCell::new();
+				for (index, (desig_list, init)) in list.iter_mut().enumerate() {
 					self.initializer(init, list_count, in_func);
+					let Some((_, last_list_elem)) = list_count.last().cloned() else {
+						return false;
+					};
+					let last_size = once.get_or_init(|| last_list_elem.clone() );
+					if index > 0 {
+						// discard duplicate size elements
+						list_count.pop();
+
+						if *last_size != last_list_elem {
+							// TODO: add a diagnostic here
+							is_valid = false;
+						}
+					}
 				}
 				self.tree_builder.end_child();
 			}
