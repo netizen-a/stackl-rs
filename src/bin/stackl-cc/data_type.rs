@@ -78,6 +78,13 @@ impl ScalarType {
 			}
 		}
 	}
+	pub fn is_signed(&self) -> Option<bool> {
+		match self {
+			Self::I8 | Self::I16 | Self::I32 | Self::I64 | Self::I128 => Some(true),
+			Self::U8 | Self::U16 | Self::U32 | Self::U64 | Self::U128 => Some(false),
+			_ => None,
+		}
+	}
 }
 
 #[derive(Debug, Clone)]

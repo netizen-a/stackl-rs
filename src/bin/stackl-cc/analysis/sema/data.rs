@@ -266,43 +266,14 @@ impl super::SemanticParser {
 		let mut result_score = 0;
 
 		use ScalarType::*;
-		let cast_kind = match (from_scalar, to_scalar) {
-			// Signed integer widening
-			(I8, I16 | I32 | I64 | I128)
-			| (I16, I32 | I64 | I128)
-			| (I32, I64 | I128)
-			| (I64, I128) => Some(syn::CastKind::SExt),
+		let (from_bits, to_bits) = (from_scalar.bits(), to_scalar.bits());
 
-			// Unsigned integer widening
-			(U8, U16 | U32 | U64 | U128)
-			| (U16, U32 | U64 | U128)
-			| (U32, U64 | U128)
-			| (U64, U128) => Some(syn::CastKind::ZExt),
-
-			// Signed integer truncation
-			(I16, I8) | (I32, I8 | I16) | (I64, I8 | I16 | I32) | (I128, I8 | I16 | I32 | I64) => {
+		let cast_kind = match (from_scalar.is_signed(), to_scalar.is_signed()) {
+			(Some(true), Some(true)) if from_bits < to_bits => Some(syn::CastKind::SExt),
+			(Some(false), Some(false)) if from_bits < to_bits => Some(syn::CastKind::ZExt),
+			((Some(true), Some(true)) | (Some(false), Some(false))) if from_bits > to_bits => {
 				Some(syn::CastKind::Trunc)
 			}
-
-			// Unsigned integer truncation
-			(U16, U8) | (U32, U8 | U16) | (U64, U8 | U16 | U32) | (U128, U8 | U16 | U32 | U64) => {
-				Some(syn::CastKind::Trunc)
-			}
-
-			// Floating-point widening
-			(Float, Double | LongDouble) | (Double, LongDouble) => Some(syn::CastKind::FpExt),
-
-			// Floating-point narrowing
-			(LongDouble, Double | Float) | (Double, Float) => Some(syn::CastKind::FpTrunc),
-
-			// Integer to float conversion
-			(I8 | I16 | I32 | I64 | I128, Float | Double | LongDouble) => {
-				Some(syn::CastKind::SIToFP)
-			}
-			(U8 | U16 | U32 | U64 | U128, Float | Double | LongDouble) => {
-				Some(syn::CastKind::UIToFP)
-			}
-
 			_ => None,
 		};
 

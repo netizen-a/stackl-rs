@@ -217,7 +217,10 @@ impl PPNumber {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
-		if chars.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U').is_some() {
+		if chars
+			.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U')
+			.is_some()
+		{
 			let mut l_count = 1;
 			let mut u_count = 0;
 			while let Some(suffix) =
