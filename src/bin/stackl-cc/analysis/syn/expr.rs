@@ -50,7 +50,7 @@ pub enum CastKind {
 }
 
 /// (6.5.17) expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Expr {
 	// Paren variant is required for the AssignIf warning to work.
 	Paren(Box<Expr>),
@@ -65,6 +65,8 @@ pub enum Expr {
 	Sizeof(decl::TypeName),
 	/// ( type-name ) expression
 	Cast(CastKind, Box<Expr>),
+	#[default]
+	Error,
 }
 
 impl Expr {

@@ -217,42 +217,48 @@ impl PPNumber {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
-		if chars.next_if(|&c| c == 'u' || c == 'U').is_some() {
-			todo!("unsigned-suffix")
-		} else if chars.next_if(|&c| c == 'l' || c == 'L').is_some() {
+		if chars.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U').is_some() {
 			let mut l_count = 1;
 			let mut u_count = 0;
-			while let Some(suffix) = chars.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U') {
+			while let Some(suffix) =
+				chars.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U')
+			{
 				match suffix {
 					'l' | 'L' => l_count += 1,
 					'u' | 'U' => u_count += 1,
-					_ => unreachable!()
+					_ => unreachable!(),
 				}
 			}
 			let integer = match (l_count, u_count) {
-				(1, 0) => if let Ok(data) = name.parse::<i64>() {
-					Ok(IntegerConstant::I64(data))
-				} else {
-					Err(diag::DiagKind::InvalidToken)
-				},
-				(2, 0) => if let Ok(data) = name.parse::<i128>() {
-					Ok(IntegerConstant::I128(data))
-				} else {
-					Err(diag::DiagKind::InvalidToken)
-				},
-				(1, 1) => if let Ok(data) = name.parse::<u64>() {
-					Ok(IntegerConstant::U64(data))
-				} else {
-					Err(diag::DiagKind::InvalidToken)
-				},
-				(2, 1) => if let Ok(data) = name.parse::<u128>() {
-					Ok(IntegerConstant::U128(data))
-				} else {
-					Err(diag::DiagKind::InvalidToken)
-				},
-				_ => {
-					Err(diag::DiagKind::InvalidToken)
+				(1, 0) => {
+					if let Ok(data) = name.parse::<i64>() {
+						Ok(IntegerConstant::I64(data))
+					} else {
+						Err(diag::DiagKind::InvalidToken)
+					}
 				}
+				(2, 0) => {
+					if let Ok(data) = name.parse::<i128>() {
+						Ok(IntegerConstant::I128(data))
+					} else {
+						Err(diag::DiagKind::InvalidToken)
+					}
+				}
+				(1, 1) => {
+					if let Ok(data) = name.parse::<u64>() {
+						Ok(IntegerConstant::U64(data))
+					} else {
+						Err(diag::DiagKind::InvalidToken)
+					}
+				}
+				(2, 1) => {
+					if let Ok(data) = name.parse::<u128>() {
+						Ok(IntegerConstant::U128(data))
+					} else {
+						Err(diag::DiagKind::InvalidToken)
+					}
+				}
+				_ => Err(diag::DiagKind::InvalidToken),
 			};
 			let constant = integer.and_then(|inner| Ok(Const::Integer(inner)));
 			constant.and_then(|inner| Ok(TokenKind::Const(inner)))

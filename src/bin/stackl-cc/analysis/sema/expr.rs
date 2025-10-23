@@ -12,12 +12,7 @@ use crate::{
 };
 
 impl super::SemanticParser {
-	pub(super) fn expr(
-		&mut self,
-		expr: &mut syn::Expr,
-		in_func: bool,
-		mut_self: bool,
-	) -> DataType {
+	pub(super) fn expr(&mut self, expr: &mut syn::Expr, in_func: bool, mut_self: bool) -> DataType {
 		match expr {
 			syn::Expr::Paren(inner) => {
 				self.tree_builder.begin_child("( expression )".to_string());
@@ -35,6 +30,7 @@ impl super::SemanticParser {
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
 			syn::Expr::Cast(kind, expr) => self.expr_cast(kind, expr, in_func, mut_self),
+			syn::Expr::Error => unreachable!(),
 		}
 	}
 
@@ -224,8 +220,10 @@ impl super::SemanticParser {
 
 		// add implicit casts to the ast.
 		let result = if mut_self {
-			let l_score = self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
-			let r_score = self.convert_type(&mut binary.right, &r_type, &l_type, binary.op.to_span());
+			let l_score =
+				self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
+			let r_score =
+				self.convert_type(&mut binary.right, &r_type, &l_type, binary.op.to_span());
 			if l_score <= r_score {
 				l_type
 			} else {
