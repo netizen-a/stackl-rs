@@ -2,11 +2,12 @@ use std::f32;
 
 use super::decl;
 use super::Identifier;
-use crate::analysis::tok::{
-	self,
-	FloatingConstant,
-	IntegerConstant,
-};
+use crate::analysis::syn::Constant;
+use crate::analysis::syn::ConstantKind;
+use crate::analysis::syn::FloatingKind;
+use crate::analysis::syn::IntegerKind;
+use crate::analysis::syn::StringLiteral;
+use crate::analysis::tok;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
 
@@ -50,13 +51,13 @@ pub enum CastKind {
 }
 
 /// (6.5.17) expression
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub enum Expr {
 	// Paren variant is required for the AssignIf warning to work.
 	Paren(Box<Expr>),
 	Ident(Identifier),
-	Const(tok::Const),
-	StrLit(tok::StrLit),
+	Const(Constant),
+	StrLit(StringLiteral),
 	UnaryPrefix(UnaryPrefix),
 	UnaryPostfix(UnaryPostfix),
 	Binary(ExprBinary),
@@ -65,8 +66,24 @@ pub enum Expr {
 	Sizeof(decl::TypeName),
 	/// ( type-name ) expression
 	Cast(CastKind, Box<Expr>),
-	#[default]
-	Error,
+}
+
+impl ToSpan for Expr {
+	fn to_span(&self) -> diag::Span {
+		match self {
+			Self::Paren(inner) => inner.to_span(),
+			Self::Ident(inner) => inner.to_span(),
+			Self::Const(inner) => inner.to_span(),
+			Self::StrLit(inner) => inner.to_span(),
+			Self::UnaryPrefix(inner) => inner.to_span(),
+			Self::UnaryPostfix(inner) => inner.to_span(),
+			Self::Binary(inner) => inner.to_span(),
+			Self::Ternary(inner) => inner.to_span(),
+			Self::CompoundLiteral(inner, _) => inner.specifiers.to_span(),
+			Self::Sizeof(inner) => inner.to_span(),
+			Self::Cast(_, inner) => inner.to_span(),
+		}
+	}
 }
 
 impl Expr {
@@ -108,25 +125,24 @@ impl Expr {
 		}
 	}
 	#[inline]
-	pub fn with_ternary(cond_expr: Self, then_expr: Self, else_expr: Self) -> Self {
+	pub fn with_ternary(cond_expr: Self, cond_span: diag::Span, then_expr: Self, then_span: diag::Span, else_expr: Self) -> Self {
 		Self::Ternary(ExprTernary {
 			expr_cond: Box::new(cond_expr),
+			cond_span,
 			expr_then: Box::new(then_expr),
+			then_span,
 			expr_else: Box::new(else_expr),
 		})
 	}
 
 	pub fn constant_fold(&self, contract_int: bool, contract_float: bool) -> Expr {
-		use tok::Const::{
-			Floating,
-			Integer,
-		};
+		use ConstantKind::*;
 		match self {
 			Self::UnaryPrefix(unary) => {
 				let op = &unary.op;
 				let expr = unary.expr.constant_fold(contract_int, contract_float);
 				match &expr {
-					Expr::Const(Integer(rhs_int)) => op.reduce_int(rhs_int),
+					Expr::Const(Constant{kind: Integer(rhs_int), span}) => op.reduce_int(rhs_int, span.to_span()),
 					_ => Self::UnaryPrefix(UnaryPrefix {
 						op: op.clone(),
 						expr: Box::new(expr),
@@ -137,7 +153,7 @@ impl Expr {
 				let op = &unary.op;
 				let expr = unary.expr.constant_fold(contract_int, contract_float);
 				match &expr {
-					Expr::Const(Integer(rhs_int)) => {
+					Expr::Const(Constant{kind: Integer(rhs_int), ..}) => {
 						//op.reduce_int(rhs_int)
 						todo!("postfix reduce_int")
 					}
@@ -152,28 +168,28 @@ impl Expr {
 				let right = binary.right.constant_fold(contract_int, contract_float);
 				let op = binary.op.clone();
 				match (contract_int, contract_float, &left, &right) {
-					(true, _, Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) => {
-						op.constant_fold_int(lhs_int, rhs_int)
+					(true, _, Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}), Expr::Const(Constant{kind: Integer(rhs_int), span: r_span})) => {
+						op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
 					}
-					(true, _, Expr::Paren(expr), Expr::Const(Integer(rhs_int))) => {
-						if let Expr::Const(Integer(lhs_int)) = expr.as_ref() {
-							op.constant_fold_int(lhs_int, rhs_int)
+					(true, _, Expr::Paren(expr), Expr::Const(Constant{kind: Integer(rhs_int), span: r_span})) => {
+						if let Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}) = expr.as_ref() {
+							op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
 						} else {
 							self.clone()
 						}
 					}
-					(true, _, Expr::Const(Integer(lhs_int)), Expr::Paren(expr)) => {
-						if let Expr::Const(Integer(rhs_int)) = expr.as_ref() {
-							op.constant_fold_int(lhs_int, rhs_int)
+					(true, _, Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}), Expr::Paren(expr)) => {
+						if let Expr::Const(Constant{kind: Integer(rhs_int), span: r_span}) = expr.as_ref() {
+							op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
 						} else {
 							self.clone()
 						}
 					}
 					(_, _, Expr::Paren(lhs_expr), Expr::Paren(rhs_expr)) => {
-						if let (Expr::Const(Integer(lhs_int)), Expr::Const(Integer(rhs_int))) =
+						if let (Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}), Expr::Const(Constant{kind: Integer(rhs_int), span: r_span})) =
 							(lhs_expr.as_ref(), rhs_expr.as_ref())
 						{
-							op.constant_fold_int(lhs_int, rhs_int)
+							op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
 						} else {
 							self.clone()
 						}
@@ -181,9 +197,9 @@ impl Expr {
 					(
 						_,
 						true,
-						Expr::Const(Floating(lhs_float)),
-						Expr::Const(Floating(rhs_float)),
-					) => op.constant_fold_float(lhs_float, rhs_float),
+						Expr::Const(Constant{kind: Floating(lhs_float), span: l_span}),
+						Expr::Const(Constant{kind: Floating(rhs_float), span: r_span}),
+					) => op.constant_fold_float((lhs_float, l_span.to_span()), (rhs_float, r_span.to_span())),
 					_ => Self::Binary(ExprBinary {
 						op: op.clone(),
 						left: Box::new(left.clone()),
@@ -201,31 +217,32 @@ impl Expr {
 	}
 	// TODO: get sizeof working with this
 	pub fn to_u32(&mut self) -> Result<u32, ConversionError> {
+		use ConstantKind::*;
 		const U64_CAP: u64 = u32::MAX as u64;
 		const I64_CAP: i64 = u32::MAX as i64;
 		const U128_CAP: u128 = u32::MAX as u128;
 		const I128_CAP: i128 = u32::MAX as i128;
 		*self = self.constant_fold(true, false);
 		match self {
-			Self::Const(tok::Const::Integer(int_const)) => match int_const {
-				IntegerConstant::U32(val) => Ok(*val),
-				IntegerConstant::I32(val) => match val {
+			Self::Const(Constant{kind: Integer(int_const), ..}) => match int_const {
+				IntegerKind::U32(val) => Ok(*val),
+				IntegerKind::I32(val) => match val {
 					0.. => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::U64(val) => match val {
+				IntegerKind::U64(val) => match val {
 					0..=U64_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::I64(val) => match val {
+				IntegerKind::I64(val) => match val {
 					0..=I64_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::U128(val) => match val {
+				IntegerKind::U128(val) => match val {
 					0..=U128_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::I128(val) => match val {
+				IntegerKind::I128(val) => match val {
 					0..=I128_CAP => Ok(*val as u32),
 					_ => Err(ConversionError::OutOfRange),
 				},
@@ -234,6 +251,7 @@ impl Expr {
 		}
 	}
 	pub fn to_i32(&mut self) -> Result<i32, ConversionError> {
+		use ConstantKind::*;
 		const U32_CAP: u32 = i32::MAX as u32;
 		const U64_CAP: u64 = i32::MAX as u64;
 		const I64_CAP: i64 = i32::MAX as i64;
@@ -241,25 +259,25 @@ impl Expr {
 		const I128_CAP: i128 = i32::MAX as i128;
 		*self = self.constant_fold(true, false);
 		match self {
-			Self::Const(tok::Const::Integer(int_const)) => match int_const {
-				IntegerConstant::U32(val) => match val {
+			Self::Const(Constant{kind: Integer(int_const), ..}) => match int_const {
+				IntegerKind::U32(val) => match val {
 					0..=U32_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::I32(val) => Ok(*val),
-				IntegerConstant::U64(val) => match val {
+				IntegerKind::I32(val) => Ok(*val),
+				IntegerKind::U64(val) => match val {
 					0..=U64_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::I64(val) => match val {
+				IntegerKind::I64(val) => match val {
 					0..=I64_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::U128(val) => match val {
+				IntegerKind::U128(val) => match val {
 					0..=U128_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
-				IntegerConstant::I128(val) => match val {
+				IntegerKind::I128(val) => match val {
 					0..=I128_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
 				},
@@ -276,11 +294,23 @@ pub struct UnaryPrefix {
 	pub expr: Box<Expr>,
 }
 
+impl ToSpan for UnaryPrefix {
+	fn to_span(&self) -> diag::Span {
+		self.op.to_span()
+	}
+}
+
 /// (6.5.3) unary-expression
 #[derive(Debug, Clone)]
 pub struct UnaryPostfix {
 	pub op: Postfix,
 	pub expr: Box<Expr>,
+}
+
+impl ToSpan for UnaryPostfix {
+	fn to_span(&self) -> diag::Span {
+		self.op.to_span()
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -290,11 +320,25 @@ pub struct ExprBinary {
 	pub right: Box<Expr>,
 }
 
+impl ToSpan for ExprBinary {
+	fn to_span(&self) -> diag::Span {
+		self.op.to_span()
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct ExprTernary {
 	pub expr_cond: Box<Expr>,
+	pub cond_span: diag::Span,
 	pub expr_then: Box<Expr>,
+	pub then_span: diag::Span,
 	pub expr_else: Box<Expr>,
+}
+
+impl ToSpan for ExprTernary {
+	fn to_span(&self) -> diag::Span {
+		self.cond_span.clone()
+	}
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -344,140 +388,143 @@ impl ToSpan for BinOp {
 }
 
 impl BinOp {
-	fn constant_fold_int(&self, lhs: &IntegerConstant, rhs: &IntegerConstant) -> Expr {
-		let int_const = match (self.kind, lhs, rhs) {
-			(BinOpKind::Mul, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(lval.wrapping_mul(*rval))
+	fn constant_fold_int(&self, lhs: (&IntegerKind, diag::Span), rhs: (&IntegerKind, diag::Span)) -> Expr {
+		use ConstantKind::*;
+		let int_const = match (self.kind, lhs.0, rhs.0) {
+			(BinOpKind::Mul, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(lval.wrapping_mul(*rval))
 			}
-			(BinOpKind::Mul, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(lval.wrapping_mul(*rval))
+			(BinOpKind::Mul, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(lval.wrapping_mul(*rval))
 			}
-			(BinOpKind::Div, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
+			(BinOpKind::Div, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
 				if *rval != 0 {
-					IntegerConstant::U32(lval.wrapping_sub(*rval))
+					IntegerKind::U32(lval.wrapping_sub(*rval))
 				} else {
 					// Undefined Behavior
-					IntegerConstant::U32(u32::MAX)
+					IntegerKind::U32(u32::MAX)
 				}
 			}
-			(BinOpKind::Div, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Div, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
 				if *rval != 0 {
-					IntegerConstant::I32(lval.wrapping_sub(*rval))
+					IntegerKind::I32(lval.wrapping_sub(*rval))
 				} else {
 					// Undefined Behavior
-					IntegerConstant::I32(i32::MAX)
+					IntegerKind::I32(i32::MAX)
 				}
 			}
-			(BinOpKind::Rem, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(lval.wrapping_rem(*rval))
+			(BinOpKind::Rem, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(lval.wrapping_rem(*rval))
 			}
-			(BinOpKind::Rem, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(lval.wrapping_rem(*rval))
+			(BinOpKind::Rem, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(lval.wrapping_rem(*rval))
 			}
-			(BinOpKind::Sub, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(lval.wrapping_sub(*rval))
+			(BinOpKind::Sub, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(lval.wrapping_sub(*rval))
 			}
-			(BinOpKind::Sub, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(lval.wrapping_sub(*rval))
+			(BinOpKind::Sub, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(lval.wrapping_sub(*rval))
 			}
-			(BinOpKind::Add, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(lval.wrapping_add(*rval))
+			(BinOpKind::Add, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(lval.wrapping_add(*rval))
 			}
-			(BinOpKind::Add, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(lval.wrapping_add(*rval))
+			(BinOpKind::Add, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(lval.wrapping_add(*rval))
 			}
-			(BinOpKind::NotEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32((*lval != *rval) as i32)
+			(BinOpKind::NotEqual, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32((*lval != *rval) as i32)
 			}
-			(BinOpKind::NotEqual, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32((*lval != *rval) as i32)
+			(BinOpKind::NotEqual, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32((*lval != *rval) as i32)
 			}
-			(BinOpKind::Equal, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32((*lval == *rval) as i32)
+			(BinOpKind::Equal, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32((*lval == *rval) as i32)
 			}
-			(BinOpKind::Equal, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32((*lval == *rval) as i32)
+			(BinOpKind::Equal, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32((*lval == *rval) as i32)
 			}
-			(BinOpKind::And, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(*lval & *rval)
+			(BinOpKind::And, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(*lval & *rval)
 			}
-			(BinOpKind::And, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(*lval & *rval)
+			(BinOpKind::And, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(*lval & *rval)
 			}
-			(BinOpKind::XOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(*lval ^ *rval)
+			(BinOpKind::XOr, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(*lval ^ *rval)
 			}
-			(BinOpKind::XOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(*lval ^ *rval)
+			(BinOpKind::XOr, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(*lval ^ *rval)
 			}
-			(BinOpKind::Or, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(*lval | *rval)
+			(BinOpKind::Or, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(*lval | *rval)
 			}
-			(BinOpKind::Or, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(*lval | *rval)
+			(BinOpKind::Or, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(*lval | *rval)
 			}
-			(BinOpKind::LogicalAnd, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32(((*lval != 0) && (*rval != 0)) as i32)
+			(BinOpKind::LogicalAnd, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32(((*lval != 0) && (*rval != 0)) as i32)
 			}
-			(BinOpKind::LogicalAnd, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(((*lval != 0) && (*rval != 0)) as i32)
+			(BinOpKind::LogicalAnd, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(((*lval != 0) && (*rval != 0)) as i32)
 			}
-			(BinOpKind::LogicalOr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32(((*lval != 0) || (*rval != 0)) as i32)
+			(BinOpKind::LogicalOr, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32(((*lval != 0) || (*rval != 0)) as i32)
 			}
-			(BinOpKind::LogicalOr, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
-				IntegerConstant::I32(((*lval != 0) || (*rval != 0)) as i32)
+			(BinOpKind::LogicalOr, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
+				IntegerKind::I32(((*lval != 0) || (*rval != 0)) as i32)
 			}
-			(BinOpKind::Shl, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(lval.wrapping_shl(*rval))
+			(BinOpKind::Shl, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(lval.wrapping_shl(*rval))
 			}
-			(BinOpKind::Shl, IntegerConstant::I32(lval), IntegerConstant::I32(rval)) => {
+			(BinOpKind::Shl, IntegerKind::I32(lval), IntegerKind::I32(rval)) => {
 				match (*rval).try_into() {
-					Ok(rval) => IntegerConstant::I32(lval.wrapping_shl(rval)),
-					Err(_) => IntegerConstant::I32(lval.wrapping_shr((-rval) as u32)),
+					Ok(rval) => IntegerKind::I32(lval.wrapping_shl(rval)),
+					Err(_) => IntegerKind::I32(lval.wrapping_shr((-rval) as u32)),
 				}
 			}
-			(BinOpKind::Shl, IntegerConstant::I32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32(lval.wrapping_shl(*rval))
+			(BinOpKind::Shl, IntegerKind::I32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32(lval.wrapping_shl(*rval))
 			}
-			(BinOpKind::Shr, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::U32(lval.wrapping_shr(*rval))
+			(BinOpKind::Shr, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::U32(lval.wrapping_shr(*rval))
 			}
-			(BinOpKind::LessEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32((*lval <= *rval) as i32)
+			(BinOpKind::LessEqual, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32((*lval <= *rval) as i32)
 			}
-			(BinOpKind::GreatEqual, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32((*lval >= *rval) as i32)
+			(BinOpKind::GreatEqual, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32((*lval >= *rval) as i32)
 			}
-			(BinOpKind::Less, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32((*lval < *rval) as i32)
+			(BinOpKind::Less, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32((*lval < *rval) as i32)
 			}
-			(BinOpKind::Great, IntegerConstant::U32(lval), IntegerConstant::U32(rval)) => {
-				IntegerConstant::I32((*lval > *rval) as i32)
+			(BinOpKind::Great, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
+				IntegerKind::I32((*lval > *rval) as i32)
 			}
 			_ => {
 				return Expr::Binary(ExprBinary {
 					op: self.clone(),
-					left: Box::new(Expr::Const(tok::Const::Integer(lhs.clone()))),
-					right: Box::new(Expr::Const(tok::Const::Integer(rhs.clone()))),
+					left: Box::new(Expr::Const(Constant{kind:Integer(lhs.0.clone()), span: lhs.1})),
+					right: Box::new(Expr::Const(Constant{kind:Integer(rhs.0.clone()), span: rhs.1})),
 				})
 			}
 		};
-		Expr::Const(tok::Const::Integer(int_const))
+		// default span to left-most
+		Expr::Const(Constant{kind:Integer(int_const), span: lhs.1})
 	}
-	fn constant_fold_float(&self, lhs: &FloatingConstant, rhs: &FloatingConstant) -> Expr {
+	fn constant_fold_float(&self, lhs: (&FloatingKind, diag::Span), rhs: (&FloatingKind, diag::Span)) -> Expr {
+		use ConstantKind::*;
 		// TODO
 		return Expr::Binary(ExprBinary {
 			op: self.clone(),
-			left: Box::new(Expr::Const(tok::Const::Floating(lhs.clone()))),
-			right: Box::new(Expr::Const(tok::Const::Floating(rhs.clone()))),
+			left: Box::new(Expr::Const(Constant{kind: Floating(lhs.0.clone()), span: lhs.1})),
+			right: Box::new(Expr::Const(Constant{kind: Floating(rhs.0.clone()), span: rhs.1})),
 		});
 	}
 }
 
 /// (6.5.3) unary-operator
 #[derive(Debug, Clone)]
-pub enum Prefix {
+pub enum PrefixKind {
 	/// `&`
 	Amp,
 	/// `*`
@@ -498,33 +545,46 @@ pub enum Prefix {
 	Sizeof,
 }
 
+#[derive(Debug, Clone)]
+pub struct Prefix {
+	pub span: diag::Span,
+	pub kind: PrefixKind,
+}
+
+impl ToSpan for Prefix {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
+}
+
 impl Prefix {
-	fn reduce_int(&self, rhs: &IntegerConstant) -> Expr {
-		let int_const = match (self, rhs) {
-			(Prefix::Plus, rval) => rval.clone(),
-			(Prefix::Minus, IntegerConstant::I32(rval)) => IntegerConstant::I32(-(*rval)),
-			(Prefix::Minus, IntegerConstant::I64(rval)) => IntegerConstant::I64(-(*rval)),
-			(Prefix::Minus, IntegerConstant::I128(rval)) => IntegerConstant::I128(-(*rval)),
-			(Prefix::Neg, IntegerConstant::I32(rval)) => IntegerConstant::I32((*rval == 0) as i32),
-			(Prefix::Neg, IntegerConstant::U32(rval)) => IntegerConstant::I32((*rval == 0) as i32),
-			(Prefix::Neg, IntegerConstant::I64(rval)) => IntegerConstant::I32((*rval == 0) as i32),
-			(Prefix::Neg, IntegerConstant::U64(rval)) => IntegerConstant::I32((*rval == 0) as i32),
-			(Prefix::Neg, IntegerConstant::I128(rval)) => IntegerConstant::I32((*rval == 0) as i32),
-			(Prefix::Neg, IntegerConstant::U128(rval)) => IntegerConstant::I32((*rval == 0) as i32),
+	fn reduce_int(&self, rhs: &IntegerKind, span: diag::Span) -> Expr {
+		use ConstantKind::*;
+		let int_const = match (&self.kind, rhs) {
+			(PrefixKind::Plus, rval) => rval.clone(),
+			(PrefixKind::Minus, IntegerKind::I32(rval)) => IntegerKind::I32(-(*rval)),
+			(PrefixKind::Minus, IntegerKind::I64(rval)) => IntegerKind::I64(-(*rval)),
+			(PrefixKind::Minus, IntegerKind::I128(rval)) => IntegerKind::I128(-(*rval)),
+			(PrefixKind::Neg, IntegerKind::I32(rval)) => IntegerKind::I32((*rval == 0) as i32),
+			(PrefixKind::Neg, IntegerKind::U32(rval)) => IntegerKind::I32((*rval == 0) as i32),
+			(PrefixKind::Neg, IntegerKind::I64(rval)) => IntegerKind::I32((*rval == 0) as i32),
+			(PrefixKind::Neg, IntegerKind::U64(rval)) => IntegerKind::I32((*rval == 0) as i32),
+			(PrefixKind::Neg, IntegerKind::I128(rval)) => IntegerKind::I32((*rval == 0) as i32),
+			(PrefixKind::Neg, IntegerKind::U128(rval)) => IntegerKind::I32((*rval == 0) as i32),
 			_ => {
 				return Expr::UnaryPrefix(UnaryPrefix {
 					op: self.clone(),
-					expr: Box::new(Expr::Const(tok::Const::Integer(rhs.clone()))),
+					expr: Box::new(Expr::Const(Constant{kind:Integer(rhs.clone()), span})),
 				})
 			}
 		};
-		Expr::Const(tok::Const::Integer(int_const))
+		Expr::Const(Constant {kind:Integer(int_const), span })
 	}
 }
 
 /// (6.5.2) postfix-expression
 #[derive(Debug, Clone)]
-pub enum Postfix {
+pub enum PostfixKind {
 	Array(Box<Expr>),
 	/// (6.5.2) argument-expression-list
 	ArgExprList(Vec<Expr>),
@@ -532,4 +592,17 @@ pub enum Postfix {
 	Arrow(Identifier),
 	Inc,
 	Dec,
+}
+
+/// (6.5.2) postfix-expression
+#[derive(Debug, Clone)]
+pub struct Postfix {
+	pub span: diag::Span,
+	pub kind: PostfixKind,
+}
+
+impl ToSpan for Postfix {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
 }

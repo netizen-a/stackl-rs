@@ -3,6 +3,7 @@ use super::{
 	decl,
 	expr,
 };
+use crate::analysis::syn::StringLiteral;
 use crate::analysis::tok;
 use crate::diagnostics as diag;
 
@@ -44,27 +45,7 @@ pub enum AsmQualifier {
 }
 
 #[derive(Debug)]
-pub struct AsmStmt(pub tok::StrLit);
-
-#[derive(Debug)]
-pub struct AsmConstraints {
-	pub output_operands: Vec<OutputOperand>,
-	pub input_operands: Vec<InputOperand>,
-	pub clobber_operands: Vec<tok::StrLit>,
-	pub goto_labels: Vec<Identifier>,
-}
-
-#[derive(Debug)]
-pub struct OutputOperand {
-	pub prefix: tok::StrLit,
-	pub ident: Identifier,
-}
-
-#[derive(Debug)]
-pub struct InputOperand {
-	pub prefix: tok::StrLit,
-	pub expr: expr::Expr,
-}
+pub struct AsmStmt(pub StringLiteral);
 
 /// (6.8.1) labeled-statement
 #[derive(Debug)]

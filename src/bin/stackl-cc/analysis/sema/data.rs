@@ -156,21 +156,16 @@ impl super::SemanticParser {
 			}
 		}
 	}
-	pub(super) fn dtype_eq(
-		&mut self,
-		lhs: &DataType,
-		rhs: &DataType,
-		callee_span: Span,
-	) -> Result<bool, DataType> {
+	pub(super) fn dtype_eq(&mut self, lhs: &DataType, rhs: &DataType, callee_span: Span) -> bool {
 		match (&lhs.kind, &rhs.kind) {
-			(TypeKind::Void, TypeKind::Void) => Ok(true),
-			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => Ok(l_scalar == r_scalar),
+			(TypeKind::Void, TypeKind::Void) => true,
+			(TypeKind::Scalar(l_scalar), TypeKind::Scalar(r_scalar)) => l_scalar == r_scalar,
 			(TypeKind::Pointer(l_ptr), TypeKind::Pointer(r_ptr)) => {
 				self.dtype_eq(&l_ptr, &r_ptr, callee_span)
 			}
 			(TypeKind::Pointer(ptr), TypeKind::Array(array)) => {
 				if !array.is_decayed {
-					return Ok(false);
+					return false;
 				}
 				if let (true, ArrayLength::Fixed(0 | 2..)) = (array.has_static, &array.length) {
 					let kind = DiagKind::ArrayArgTooSmall;
@@ -181,7 +176,7 @@ impl super::SemanticParser {
 			}
 			(TypeKind::Array(array), TypeKind::Pointer(ptr)) => {
 				if !array.is_decayed {
-					return Ok(false);
+					return false;
 				}
 				if let (true, ArrayLength::Fixed(0 | 2..)) = (array.has_static, &array.length) {
 					let kind = DiagKind::ArrayArgTooSmall;
@@ -195,7 +190,7 @@ impl super::SemanticParser {
 					(&l_array.length, &r_array.length)
 				{
 					if *l_size != *r_size {
-						return Ok(false);
+						return false;
 					}
 				}
 				self.dtype_eq(&l_array.component, &r_array.component, callee_span)
@@ -206,20 +201,19 @@ impl super::SemanticParser {
 				if !is_params_unchecked {
 					if l_params.len() != r_params.len() || l_func.is_variadic != r_func.is_variadic
 					{
-						return Ok(false);
+						return false;
 					} else {
 						for (l_param, r_param) in l_params.iter().zip(r_params) {
-							if let Ok(false) = self.dtype_eq(l_param, r_param, callee_span.clone())
-							{
-								return Ok(false);
+							if let false = self.dtype_eq(l_param, r_param, callee_span.clone()) {
+								return false;
 							}
 						}
 					}
 				}
 				self.dtype_eq(&l_func.ret, &r_func.ret, callee_span)
 			}
-			(TypeKind::Poison, _) | (_, TypeKind::Poison) => Err(DataType::POISON),
-			(_, _) => Ok(false),
+			(TypeKind::Poison, _) | (_, TypeKind::Poison) => true,
+			(_, _) => false,
 		}
 	}
 
@@ -241,16 +235,16 @@ impl super::SemanticParser {
 			result_score += 1;
 		}
 
-		match self.dtype_eq(from_type, to_type, callee_span.to_span()) {
-			Ok(true) => return result_score,
-			Err(_) => return 0,
-			Ok(false) => match (&from_type.kind, &to_type.kind) {
+		if self.dtype_eq(from_type, to_type, callee_span.to_span()) {
+			return result_score;
+		} else {
+			match (&from_type.kind, &to_type.kind) {
 				(TypeKind::Scalar(from_scalar), TypeKind::Scalar(to_scalar)) => {
 					result_score +=
 						self.convert_scalar(expr, from_scalar, to_scalar, callee_span.to_span());
 				}
 				other => todo!("{other:?}"),
-			},
+			}
 		}
 
 		result_score
@@ -278,8 +272,7 @@ impl super::SemanticParser {
 		};
 
 		if let Some(kind) = cast_kind {
-			let old = std::mem::take(expr);
-			*expr = syn::Expr::Cast(kind, Box::new(old));
+			*expr = syn::Expr::Cast(kind, Box::new(expr.clone()));
 		}
 
 		result_score

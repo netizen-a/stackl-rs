@@ -17,19 +17,19 @@ Pragma: tok::Pragma = <pragma:PRAGMA> ";" => pragma.kind.unwrap_pragma();
 
 // A.1.3 Identifiers
 
-Identifier: Identifier = IDENTIFIER => Identifier::new(<>);
+Identifier: Identifier = IDENTIFIER => Identifier::try_from(<>).unwrap();
 
 
 // A.1.5 Constants
 
-Constant: tok::Const = CONSTANT => <>.kind.unwrap_const();
+Constant: Constant = CONSTANT => Constant::try_from(<>).unwrap();
 
 EnumerationConstant: Identifier = Identifier;
 
 
 // A.1.6 String literals
 
-StringLiteral: tok::StrLit = <v:STRING_LITERAL+> => string_concat(v.into_boxed_slice());
+StringLiteral: StringLiteral = <v:STRING_LITERAL+> => string_concat(v.into_boxed_slice());
 
 
 // A.2.1 Expressions
@@ -43,12 +43,30 @@ PrimaryExpr: Expr = {
 
 PostfixExpr: Expr = {
 	PrimaryExpr,
-	<expr:PostfixExpr> "[" <arr:Expr> "]" => Expr::with_postfix(Postfix::Array(Box::new(arr)), expr),
-	<expr:PostfixExpr> "(" <args:ArgumentExprList?> ")" => Expr::with_postfix(Postfix::ArgExprList(args.unwrap_or_default()), expr),
-	<expr:PostfixExpr> "." <ident:Identifier> => Expr::with_postfix(Postfix::Dot(ident), expr),
-	<expr:PostfixExpr> "->" <ident:Identifier> => Expr::with_postfix(Postfix::Arrow(ident), expr),
-	<expr:PostfixExpr> "++" => Expr::with_postfix(Postfix::Inc, expr),
-	<expr:PostfixExpr> "--" => Expr::with_postfix(Postfix::Dec, expr),
+	<expr:PostfixExpr> <lsqr:"["> <arr:Expr> "]" => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Array(Box::new(arr)), span: lsqr.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <lparen:"("> <args:ArgumentExprList?> ")" => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::ArgExprList(args.unwrap_or_default()), span: lparen.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <dot:"."> <ident:Identifier> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Dot(ident), span: dot.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <arrow:"->"> <ident:Identifier> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Arrow(ident), span: arrow.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <inc:"++"> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Inc, span: inc.to_span() },
+		expr
+	),
+	<expr:PostfixExpr> <dec:"--"> => Expr::with_postfix(
+		Postfix{ kind: PostfixKind::Dec, span: dec.to_span() },
+		expr
+	),
 	"(" <ty:TypeName> ")" "{" <list:InitializerList> ","? "}" => Expr::CompoundLiteral(ty, list),
 };
 
@@ -62,20 +80,29 @@ ArgumentExprList: Vec<Expr> = {
 
 UnaryExpr: Expr = {
 	PostfixExpr,
-	"++" <expr:UnaryExpr> => Expr::with_prefix(Prefix::Inc,expr),
-	"--" <expr:UnaryExpr> => Expr::with_prefix(Prefix::Dec,expr),
+	<inc:"++"> <expr:UnaryExpr> => Expr::with_prefix(
+		Prefix{ kind: PrefixKind::Inc, span: inc.to_span() },
+		expr
+	),
+	<dec:"--"> <expr:UnaryExpr> => Expr::with_prefix(
+		Prefix{ kind: PrefixKind::Dec, span: dec.to_span() },
+		expr
+	),
 	<prefix:UnaryOperator> <expr:CastExpr> => Expr::with_prefix(prefix,expr),
-	"sizeof" <expr:UnaryExpr> => Expr::with_prefix(Prefix::Sizeof,expr),
+	<kw:"sizeof"> <expr:UnaryExpr> => Expr::with_prefix(
+		Prefix{ kind: PrefixKind::Sizeof, span: kw.to_span() },
+		expr
+	),
 	"sizeof" "(" <ty:TypeName> ")" => Expr::Sizeof(ty),
 };
 
 UnaryOperator: Prefix = {
-	"&" => Prefix::Amp,
-	"*" => Prefix::Star,
-	"+" => Prefix::Plus,
-	"-" => Prefix::Minus,
-	"~" => Prefix::Comp,
-	"!" => Prefix::Neg,
+	<prefix:"&"> => Prefix{ kind: PrefixKind::Amp, span: prefix.to_span() },
+	<prefix:"*"> => Prefix{ kind: PrefixKind::Star, span: prefix.to_span() },
+	<prefix:"+"> => Prefix{ kind: PrefixKind::Plus, span: prefix.to_span() },
+	<prefix:"-"> => Prefix{ kind: PrefixKind::Minus, span: prefix.to_span() },
+	<prefix:"~"> => Prefix{ kind: PrefixKind::Comp, span: prefix.to_span() },
+	<prefix:"!"> => Prefix{ kind: PrefixKind::Neg, span: prefix.to_span() },
 };
 
 CastExpr: Expr = {
@@ -251,8 +278,8 @@ LogicalOrExpr: Expr = {
 
 ConditionalExpr: Expr = {
 	LogicalOrExpr,
-	<cond_expr:LogicalOrExpr> "?" <then_expr:Expr> ":" <else_expr:ConditionalExpr> => {
-		Expr::with_ternary(cond_expr, then_expr, else_expr)
+	<cond_expr:LogicalOrExpr> <cond:"?"> <then_expr:Expr> <then:":"> <else_expr:ConditionalExpr> => {
+		Expr::with_ternary(cond_expr, cond.to_span(), then_expr, then.to_span(), else_expr)
 	},
 };
 
@@ -365,7 +392,7 @@ TypeSpecifier: TypeSpecifier = {
 	<kw:"_Bool"> => TypeSpecifier::Bool(kw.to_span()),
 	StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
 	EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
-	<type_name:TYPE_NAME> => TypeSpecifier::TypedefName(Identifier::new(type_name)),
+	<type_name:TYPE_NAME> => TypeSpecifier::TypedefName(Identifier::try_from(type_name).unwrap()),
 };
 
 StructOrUnionSpecifier: StructOrUnionSpecifier = {
@@ -851,7 +878,7 @@ JumpStatement: JumpStmt = {
 
 AsmStatement: AsmStmt = "asm" "(" <template:StringLiteral> ")" ";" => AsmStmt(template);
 
-StringLiteralList: Vec<tok::StrLit> = {
+StringLiteralList: Vec<StringLiteral> = {
 	StringLiteral => vec![<>],
 	<mut v:StringLiteralList> "," <s:StringLiteral> => {
 		v.push(s);

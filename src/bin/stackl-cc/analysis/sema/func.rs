@@ -144,8 +144,7 @@ impl super::SemanticParser {
 						self.diagnostics.push(error);
 					} else {
 						let callee_span = prev_entry.to_span();
-						if let Ok(false) =
-							self.dtype_eq(&prev_entry.data_type, &new_entry.data_type, callee_span)
+						if !self.dtype_eq(&prev_entry.data_type, &new_entry.data_type, callee_span)
 						{
 							self.diagnostics.push(error);
 						}
@@ -247,7 +246,7 @@ impl super::SemanticParser {
 			let name_opt = param.ident.as_ref().and_then(|v| Some(v.name.clone()));
 			let param_span = match &param.ident {
 				Some(ident) => ident.to_span(),
-				None => param.specifiers.first_span.clone(),
+				None => param.specifiers.to_span(),
 			};
 			let maybe_type = self.specifiers_dtype(&mut param.specifiers, true);
 			let mut param_type =
@@ -271,7 +270,7 @@ impl super::SemanticParser {
 					Some(syn::Declarator::Pointer(_)) => {
 						if decl_type == DeclType::FnDef {
 							let kind = DiagKind::OmittedParamName;
-							let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
+							let diag = Diagnostic::error(kind, param.specifiers.to_span());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
@@ -279,7 +278,7 @@ impl super::SemanticParser {
 					Some(syn::Declarator::ParamList(_)) => {
 						if decl_type == DeclType::FnDef {
 							let kind = DiagKind::OmittedParamName;
-							let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
+							let diag = Diagnostic::error(kind, param.specifiers.to_span());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
@@ -292,14 +291,14 @@ impl super::SemanticParser {
 					}
 					Some(syn::Declarator::IdentList(_)) => {
 						let kind = DiagKind::DeclIdentList;
-						let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
+						let diag = Diagnostic::error(kind, param.specifiers.to_span());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
 					None => {
 						if param_count > 1 {
 							let kind = DiagKind::OnlyVoid;
-							let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
+							let diag = Diagnostic::error(kind, param.specifiers.to_span());
 							self.diagnostics.push(diag);
 							is_valid = false;
 						}
@@ -337,7 +336,7 @@ impl super::SemanticParser {
 				(None, _) => {
 					if decl_type == DeclType::FnDef {
 						let kind = DiagKind::OmittedParamName;
-						let diag = Diagnostic::error(kind, param.specifiers.first_span.clone());
+						let diag = Diagnostic::error(kind, param.specifiers.to_span());
 						self.diagnostics.push(diag);
 						is_valid = false;
 					}
@@ -358,7 +357,7 @@ impl super::SemanticParser {
 			result.push((
 				param.ident.clone(),
 				param_type,
-				param.specifiers.first_span.clone(),
+				param.specifiers.to_span(),
 			))
 		}
 		self.tree_builder.end_child();

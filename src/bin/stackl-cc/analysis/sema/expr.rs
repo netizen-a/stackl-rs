@@ -1,12 +1,9 @@
+use crate::analysis::syn::Constant;
 use crate::diagnostics::*;
 use crate::symbol_table as sym;
 use crate::{
 	analysis::{
 		syn,
-		tok::{
-			Const,
-			IntegerConstant,
-		},
 	},
 	data_type::*,
 };
@@ -30,7 +27,6 @@ impl super::SemanticParser {
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
 			syn::Expr::Cast(kind, expr) => self.expr_cast(kind, expr, in_func, mut_self),
-			syn::Expr::Error => unreachable!(),
 		}
 	}
 
@@ -81,7 +77,7 @@ impl super::SemanticParser {
 				}
 			}
 			syn::Expr::StrLit(_) => true,
-			syn::Expr::UnaryPrefix(unary) => matches!(unary.op, syn::Prefix::Star),
+			syn::Expr::UnaryPrefix(unary) => matches!(unary.op.kind, syn::PrefixKind::Star),
 			_ => false,
 		}
 	}
@@ -126,8 +122,8 @@ impl super::SemanticParser {
 		mut_self: bool,
 	) -> DataType {
 		let mut result = DataType::POISON;
-		match &unary.op {
-			syn::Prefix::Amp => {
+		match &unary.op.kind {
+			syn::PrefixKind::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
 				let inner_type = self.expr(&mut *unary.expr, in_func, mut_self);
 				if !inner_type.is_poisoned() {
@@ -137,7 +133,7 @@ impl super::SemanticParser {
 					}
 				}
 			}
-			syn::Prefix::Star => {
+			syn::PrefixKind::Star => {
 				self.tree_builder.begin_child("expr-prefix *".to_string());
 				let inner_type = self.expr(&mut *unary.expr, in_func, mut_self);
 				if !inner_type.is_poisoned() {
@@ -158,15 +154,15 @@ impl super::SemanticParser {
 		in_func: bool,
 		mut_self: bool,
 	) -> DataType {
-		let _ = match unary.op {
-			syn::Postfix::Array(_) => self.tree_builder.begin_child("postfix `[ ]`".to_string()),
-			syn::Postfix::ArgExprList(_) => {
+		let _ = match unary.op.kind {
+			syn::PostfixKind::Array(_) => self.tree_builder.begin_child("postfix `[ ]`".to_string()),
+			syn::PostfixKind::ArgExprList(_) => {
 				self.tree_builder.begin_child("postfix `( )`".to_string())
 			}
-			syn::Postfix::Dot(_) => self.tree_builder.begin_child("postfix `.`".to_string()),
-			syn::Postfix::Arrow(_) => self.tree_builder.begin_child("postifx `->`".to_string()),
-			syn::Postfix::Inc => self.tree_builder.begin_child("postfix `++`".to_string()),
-			syn::Postfix::Dec => self.tree_builder.begin_child("postfix `--`".to_string()),
+			syn::PostfixKind::Dot(_) => self.tree_builder.begin_child("postfix `.`".to_string()),
+			syn::PostfixKind::Arrow(_) => self.tree_builder.begin_child("postifx `->`".to_string()),
+			syn::PostfixKind::Inc => self.tree_builder.begin_child("postfix `++`".to_string()),
+			syn::PostfixKind::Dec => self.tree_builder.begin_child("postfix `--`".to_string()),
 		};
 		self.expr(&mut *unary.expr, in_func, mut_self);
 		self.tree_builder.end_child();
@@ -253,9 +249,11 @@ impl super::SemanticParser {
 		self.tree_builder.end_child();
 		DataType::POISON
 	}
-	pub(super) fn expr_const(&mut self, constant: &mut Const, mut_self: bool) -> DataType {
+	pub(super) fn expr_const(&mut self, constant: &mut Constant, mut_self: bool) -> DataType {
+		use syn::ConstantKind::*;
+		use syn::IntegerKind::*;
 		match constant {
-			Const::Integer(IntegerConstant::I32(inner)) => {
+			Constant{kind: Integer(I32(inner)), ..} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'int'"));
@@ -265,7 +263,7 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Const::Integer(IntegerConstant::U32(inner)) => {
+			Constant{kind: Integer(U32(inner)), ..} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned int'"));
@@ -275,7 +273,7 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Const::Integer(IntegerConstant::I64(inner)) => {
+			Constant{kind: Integer(I64(inner)), ..} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'long'"));
@@ -285,7 +283,7 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Const::Integer(IntegerConstant::U64(inner)) => {
+			Constant{kind: Integer(U64(inner)), ..} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned long'"));
@@ -295,7 +293,7 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Const::Integer(IntegerConstant::I128(inner)) => {
+			Constant{kind: Integer(I128(inner)), ..} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'long long'"));
@@ -305,7 +303,7 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Const::Integer(IntegerConstant::U128(inner)) => {
+			Constant{kind: Integer(U128(inner)), ..} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned long long'"));

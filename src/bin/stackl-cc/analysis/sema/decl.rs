@@ -31,7 +31,7 @@ impl super::SemanticParser {
 		};
 
 		if let Some(data_type) = &maybe_ty {
-			self.declare_tag(data_type, decl.specifiers.first_span.clone());
+			self.declare_tag(data_type, decl.specifiers.to_span());
 		}
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
@@ -46,9 +46,10 @@ impl super::SemanticParser {
 				);
 				self.tree_builder.begin_child(text);
 			}
-			let mut init_list_count = vec![];
+			let mut init_list_type = vec![];
 			if let Some(ref mut init) = init_decl.initializer {
-				self.initializer(init, &mut init_list_count, in_func);
+				println!("ident: {}", ident.name);
+				init_list_type = self.initializer(init, in_func);
 			}
 			let data_type =
 				self.unwrap_or_poison(maybe_ty.clone(), Some(ident.name.clone()), ident.to_span());
@@ -65,7 +66,7 @@ impl super::SemanticParser {
 				false,
 				DeclType::Decl,
 				Some(ident.name.clone()),
-				init_list_count,
+				init_list_type,
 			);
 			let new_entry = sym::SymbolTableEntry {
 				data_type: var_dtype,
@@ -111,7 +112,7 @@ impl super::SemanticParser {
 
 			let member_span = match &decl.ident {
 				Some(ident) => ident.to_span(),
-				None => struct_decl.specifiers.first_span.clone(),
+				None => struct_decl.specifiers.to_span(),
 			};
 			let mut data_type =
 				self.unwrap_or_poison(ty_opt.clone(), name_opt.clone(), member_span.clone());
@@ -202,42 +203,46 @@ impl super::SemanticParser {
 		}
 	}
 
-	fn initializer(
-		&mut self,
-		init: &mut syn::Initializer,
-		list_count: &mut Vec<(Span, u32)>,
-		in_func: bool,
-	) -> bool {
-		let mut is_valid = true;
+	fn initializer(&mut self, init: &mut syn::Initializer, in_func: bool) -> Vec<(Span, DataType, u32)> {
 		match init {
 			syn::Initializer::Expr(expr) => {
-				is_valid &= !self.expr(expr, in_func, true).is_poisoned()
+				vec![(expr.to_span(), self.expr(expr, in_func, true), 0)]
 			}
 			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
-				list_count.push((span.clone(), list.len().try_into().unwrap()));
 				self.tree_builder
 					.begin_child("initializer-list".to_string());
+				let mut result: Vec<(Span, DataType, u32)> = vec![];
 				let once = OnceCell::new();
 				for (index, (desig_list, init)) in list.iter_mut().enumerate() {
-					self.initializer(init, list_count, in_func);
-					let Some((_, last_list_elem)) = list_count.last().cloned() else {
-						return false;
-					};
-					let last_size = once.get_or_init(|| last_list_elem.clone() );
-					if index > 0 {
-						// discard duplicate size elements
-						list_count.pop();
-
-						if *last_size != last_list_elem {
-							// TODO: add a diagnostic here
-							is_valid = false;
+					let inner_types = self.initializer(init, in_func);
+					if let Some((_, curr_type, _)) = inner_types.first() {
+						let last_type = once.get_or_init(|| curr_type.clone());
+						if !self.dtype_eq(curr_type, last_type, span.to_span()) {
+							todo!("error")
 						}
+					} else {
+						todo!("empty init?")
 					}
 				}
+
+				if let Some(data) = once.get().cloned() {
+					let kind = TypeKind::Array(ArrayType {
+						component: Box::new(data),
+						length: ArrayLength::Fixed(list.len() as _),
+						is_decayed: false,
+						has_static: false,
+					});
+					let array = DataType {
+						kind,
+						qual: Default::default(),
+					};
+					result.push((span.to_span(), array, list.len() as _));
+				}
+
 				self.tree_builder.end_child();
+				result
 			}
 		}
-		is_valid
 	}
 
 	pub(super) fn declarator_list(
@@ -248,7 +253,7 @@ impl super::SemanticParser {
 		is_param: bool,
 		mut decl_type: DeclType,
 		name: Option<String>,
-		mut init_list_vec: Vec<(Span, u32)>,
+		mut init_list_vec: Vec<(Span, DataType, u32)>,
 	) {
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		let mut last_is_arr = false;
@@ -367,7 +372,7 @@ impl super::SemanticParser {
 									self.diagnostics.push(diag);
 									data_type.kind = TypeKind::Poison;
 									continue;
-								} else if let Some((span, init_size)) = init_list {
+								} else if let Some((span, _, init_size)) = init_list {
 									if init_size > val {
 										let kind = DiagKind::ArrayExcessElements;
 										let error = Diagnostic::error(kind, span.clone());
@@ -389,7 +394,7 @@ impl super::SemanticParser {
 								continue;
 							}
 							Err(syn::ConversionError::Expr(expr)) => {
-								if let Some((span, _)) = init_list {
+								if let Some((span, _, _)) = init_list {
 									let kind = DiagKind::VlaInitList;
 									let diag = Diagnostic::error(kind, span.clone());
 									self.diagnostics.push(diag);
@@ -402,7 +407,7 @@ impl super::SemanticParser {
 						}
 					} else if array.has_star {
 						ArrayLength::VLA(VlaLength::Star)
-					} else if let (Some((_, count)), true) = (init_list_vec.pop(), !is_param) {
+					} else if let (Some((_, _, count)), true) = (init_list_vec.pop(), !is_param) {
 						ArrayLength::Fixed(count)
 					} else {
 						ArrayLength::Incomplete
@@ -473,7 +478,7 @@ impl super::SemanticParser {
 				}
 			};
 		}
-		for (span, count) in init_list_vec {
+		for (span, _, count) in init_list_vec {
 			let kind = DiagKind::ArrayExcessElements;
 			let error = Diagnostic::error(kind, span);
 			self.diagnostics.push(error);

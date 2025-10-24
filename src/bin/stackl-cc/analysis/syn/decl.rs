@@ -30,7 +30,7 @@ pub struct Declaration {
 
 #[derive(Debug, Default, Clone)]
 pub struct Specifiers {
-	pub first_span: diag::Span,
+	first_span: diag::Span,
 	pub storage_classes: Vec<StorageClassSpecifier>,
 	pub type_specifiers: Vec<TypeSpecifier>,
 	pub is_const: bool,
@@ -79,6 +79,12 @@ impl From<Vec<SpecifierKind>> for Specifiers {
 			}
 		}
 		specifiers
+	}
+}
+
+impl ToSpan for Specifiers {
+	fn to_span(&self) -> Span {
+		self.first_span.clone()
 	}
 }
 
@@ -343,6 +349,12 @@ pub struct TypeName {
 	pub specifiers: Specifiers,
 	/// abstract-declarator_opt
 	pub declarators: Vec<Declarator>,
+}
+
+impl ToSpan for TypeName {
+	fn to_span(&self) -> Span {
+		self.specifiers.to_span()
+	}
 }
 
 /// (6.7.8) initializer-list

@@ -48,8 +48,8 @@ pub enum IntegerConstant {
 #[derive(Debug, Clone)]
 pub enum FloatingConstant {
 	Float(f32),
-	Double(f32),
-	Long(f32),
+	Double(f64),
+	Long(f64),
 }
 
 #[derive(Debug, Clone)]
@@ -147,13 +147,13 @@ impl PPNumber {
 					FloatingConstant::Float(data)
 				}
 				Some('l' | 'L') => {
-					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data * 10f32.powi(exponent);
+					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
+					let data = data * 10f64.powi(exponent);
 					FloatingConstant::Long(data)
 				}
 				None => {
-					let data: f32 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
-					let data = data * 10f32.powi(exponent);
+					let data: f64 = decimal.parse().or(Err(diag::DiagKind::InvalidToken))?;
+					let data = data * 10f64.powi(exponent);
 					FloatingConstant::Double(data)
 				}
 				_ => unreachable!(),
@@ -337,12 +337,6 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-	pub fn unwrap_const(self) -> Const {
-		match self {
-			Self::Const(token) => token,
-			other => panic!("called `Token::unwrap_constant` on an `{other:?}` value"),
-		}
-	}
 	pub fn unwrap_str_lit(self) -> StrLit {
 		match self {
 			Self::StrLit(token) => token,
