@@ -30,33 +30,50 @@ impl super::SemanticParser {
 		}
 	}
 
+	#[inline]
+	fn expr_no_print(&mut self, expr: &mut syn::Expr, in_func: bool, mut_self: bool) -> DataType {
+		let is_print = self.print_ast;
+		self.print_ast = false;
+		let result = self.expr(expr, in_func, mut_self);
+		self.print_ast = is_print;
+		result
+	}
+
 	fn expr_cast(
 		&mut self,
-		kind: &syn::CastKind,
+		kind: &mut syn::CastKind,
 		expr: &mut syn::Expr,
 		in_func: bool,
 		mut_self: bool,
 	) -> DataType {
+		let from_type = self.expr_no_print(expr, in_func, mut_self);
+
 		if self.print_ast {
 			match kind {
-				syn::CastKind::BitCast => self.tree_builder.begin_child("bit-cast".to_string()),
-				syn::CastKind::FnToPtr => self.tree_builder.begin_child("fn-to-ptr".to_string()),
-				syn::CastKind::Trunc => self.tree_builder.begin_child("trunc".to_string()),
-				syn::CastKind::ZExt => self.tree_builder.begin_child("z-ext".to_string()),
-				syn::CastKind::SExt => self.tree_builder.begin_child("s-ext".to_string()),
-				syn::CastKind::FpTrunc => self.tree_builder.begin_child("fp-trunc".to_string()),
-				syn::CastKind::FpExt => self.tree_builder.begin_child("fp-ext".to_string()),
-				syn::CastKind::PtrToInt => self.tree_builder.begin_child("ptr-to-int".to_string()),
-				syn::CastKind::IntToPtr => self.tree_builder.begin_child("int-to-ptr".to_string()),
+				syn::CastKind::BitCast => self.tree_builder.begin_child(format!("cast bit-cast '{from_type}' -> ?")),
+				syn::CastKind::FnToPtr => self.tree_builder.begin_child(format!("cast fn-to-ptr '{from_type}' -> ?")),
+				syn::CastKind::Trunc => self.tree_builder.begin_child(format!("cast trunc '{from_type}' -> ?")),
+				syn::CastKind::ZExt => self.tree_builder.begin_child(format!("cast z-ext '{from_type}' -> ?")),
+				syn::CastKind::SExt => self.tree_builder.begin_child(format!("cast s-ext '{from_type}' -> ?")),
+				syn::CastKind::FpTrunc => self.tree_builder.begin_child(format!("cast fp-trunc '{from_type}' -> ?")),
+				syn::CastKind::FpExt => self.tree_builder.begin_child(format!("cast fp-ext '{from_type}' -> ?")),
+				syn::CastKind::PtrToInt => self.tree_builder.begin_child(format!("cast ptr-to-int '{from_type}' -> ?")),
+				syn::CastKind::IntToPtr => self.tree_builder.begin_child(format!("cast int-to-ptr '{from_type}' -> ?")),
 				syn::CastKind::LValueToRValue => {
 					self.tree_builder.begin_child("lval-to-rval".to_string())
 				}
 
-				syn::CastKind::UIToFP => self.tree_builder.begin_child("ui-to-fp".to_string()),
-				syn::CastKind::SIToFP => self.tree_builder.begin_child("si-to-fp".to_string()),
-				syn::CastKind::FPToUI => self.tree_builder.begin_child("fp-to-ui".to_string()),
-				syn::CastKind::FPToSI => self.tree_builder.begin_child("fp-to-si".to_string()),
-				syn::CastKind::Explicit(_) => self.tree_builder.begin_child("explicit".to_string()),
+				syn::CastKind::UIToFP => self.tree_builder.begin_child(format!("cast ui-to-fp '{from_type}' -> ?")),
+				syn::CastKind::SIToFP => self.tree_builder.begin_child(format!("cast si-to-fp '{from_type}' -> ?")),
+				syn::CastKind::FPToUI => self.tree_builder.begin_child(format!("cast fp-to-ui '{from_type}' -> ?")),
+				syn::CastKind::FPToSI => self.tree_builder.begin_child(format!("cast fp-to-si '{from_type}' -> ?")),
+				syn::CastKind::Explicit(type_name) => {
+					if let Some(data_type) = self.specifiers_dtype(&mut type_name.specifiers, in_func) {
+						self.tree_builder.begin_child(format!("cast explicit '{from_type}' -> '{data_type}'"))
+					} else {
+						self.tree_builder.begin_child(format!("cast explicit '<unknown-type>'"))
+					}
+				},
 			};
 		}
 		let result = self.expr(expr, in_func, mut_self);
@@ -208,11 +225,8 @@ impl super::SemanticParser {
 				syn::BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 			};
 		}
-		let is_print = self.print_ast;
-		self.print_ast = false;
-		let mut l_type = self.expr(&mut *binary.left, in_func, true);
-		let mut r_type = self.expr(&mut *binary.right, in_func, true);
-		self.print_ast = is_print;
+		let mut l_type = self.expr_no_print(&mut *binary.left, in_func, true);
+		let mut r_type = self.expr_no_print(&mut *binary.right, in_func, true);
 
 		// add implicit casts to the ast.
 		let result = if mut_self {

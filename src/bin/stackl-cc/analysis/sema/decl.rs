@@ -48,7 +48,6 @@ impl super::SemanticParser {
 			}
 			let mut init_list_type = vec![];
 			if let Some(ref mut init) = init_decl.initializer {
-				println!("ident: {}", ident.name);
 				init_list_type = self.initializer(init, in_func);
 			}
 			let data_type =
@@ -203,29 +202,29 @@ impl super::SemanticParser {
 		}
 	}
 
-	fn initializer(&mut self, init: &mut syn::Initializer, in_func: bool) -> Vec<(Span, DataType, u32)> {
+	fn initializer(&mut self, init: &mut syn::Initializer, in_func: bool) -> Vec<(syn::Expr, DataType, u32)> {
 		match init {
 			syn::Initializer::Expr(expr) => {
-				vec![(expr.to_span(), self.expr(expr, in_func, true), 0)]
+				vec![(expr.clone(), self.expr(expr, in_func, true), 0)]
 			}
 			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
 				self.tree_builder
 					.begin_child("initializer-list".to_string());
-				let mut result: Vec<(Span, DataType, u32)> = vec![];
-				let once = OnceCell::new();
+				let mut result: Vec<(syn::Expr, DataType, u32)> = vec![];
+				let mut once = OnceCell::new();
 				for (index, (desig_list, init)) in list.iter_mut().enumerate() {
-					let inner_types = self.initializer(init, in_func);
-					if let Some((_, curr_type, _)) = inner_types.first() {
-						let last_type = once.get_or_init(|| curr_type.clone());
-						if !self.dtype_eq(curr_type, last_type, span.to_span()) {
-							todo!("error")
-						}
-					} else {
-						todo!("empty init?")
+					let mut inner_data = self.initializer(init, in_func);
+					let mut curr_data = inner_data.first_mut().unwrap();
+					let last_data = once.get_or_init(|| curr_data.clone());
+					if !self.dtype_eq(&curr_data.1, &last_data.1, span.to_span()) {
+						let l_type = last_data.1.clone();
+						let r_type = curr_data.1.clone();
+						let callee_span = curr_data.0.to_span();
+						self.convert_type(&mut curr_data.0, &r_type, &l_type, callee_span);
 					}
 				}
 
-				if let Some(data) = once.get().cloned() {
+				if let Some((expr,data,_)) = once.get().cloned() {
 					let kind = TypeKind::Array(ArrayType {
 						component: Box::new(data),
 						length: ArrayLength::Fixed(list.len() as _),
@@ -236,7 +235,7 @@ impl super::SemanticParser {
 						kind,
 						qual: Default::default(),
 					};
-					result.push((span.to_span(), array, list.len() as _));
+					result.push((expr, array, list.len() as _));
 				}
 
 				self.tree_builder.end_child();
@@ -253,7 +252,7 @@ impl super::SemanticParser {
 		is_param: bool,
 		mut decl_type: DeclType,
 		name: Option<String>,
-		mut init_list_vec: Vec<(Span, DataType, u32)>,
+		mut init_list_vec: Vec<(syn::Expr, DataType, u32)>,
 	) {
 		let mut last_is_ptr = decl_type != DeclType::FnDef;
 		let mut last_is_arr = false;
@@ -372,10 +371,10 @@ impl super::SemanticParser {
 									self.diagnostics.push(diag);
 									data_type.kind = TypeKind::Poison;
 									continue;
-								} else if let Some((span, _, init_size)) = init_list {
+								} else if let Some((expr, _, init_size)) = init_list {
 									if init_size > val {
 										let kind = DiagKind::ArrayExcessElements;
-										let error = Diagnostic::error(kind, span.clone());
+										let error = Diagnostic::error(kind, expr.to_span());
 										self.diagnostics.push(error);
 										data_type.kind = TypeKind::Poison;
 										continue;
@@ -396,7 +395,7 @@ impl super::SemanticParser {
 							Err(syn::ConversionError::Expr(expr)) => {
 								if let Some((span, _, _)) = init_list {
 									let kind = DiagKind::VlaInitList;
-									let diag = Diagnostic::error(kind, span.clone());
+									let diag = Diagnostic::error(kind, expr.to_span());
 									self.diagnostics.push(diag);
 									data_type.kind = TypeKind::Poison;
 									continue;
@@ -478,10 +477,12 @@ impl super::SemanticParser {
 				}
 			};
 		}
-		for (span, _, count) in init_list_vec {
-			let kind = DiagKind::ArrayExcessElements;
-			let error = Diagnostic::error(kind, span);
-			self.diagnostics.push(error);
+		for (expr, dtype, count) in init_list_vec {
+			if let TypeKind::Array(_) = &dtype.kind {
+				let kind = DiagKind::ArrayExcessElements;
+				let error = Diagnostic::error(kind, expr.to_span());
+				self.diagnostics.push(error);
+			}
 		}
 	}
 }

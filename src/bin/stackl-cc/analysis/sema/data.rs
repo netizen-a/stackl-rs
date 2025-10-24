@@ -243,6 +243,14 @@ impl super::SemanticParser {
 					result_score +=
 						self.convert_scalar(expr, from_scalar, to_scalar, callee_span.to_span());
 				}
+				(TypeKind::Array(_), TypeKind::Scalar(_)) => {
+					// invalid conversion: array -> scalar
+					result_score = 0;
+				}
+				(TypeKind::Scalar(_), TypeKind::Array(_)) => {
+					// invalid conversion: scalar -> array
+					result_score = 0;
+				}
 				other => todo!("{other:?}"),
 			}
 		}

@@ -215,12 +215,16 @@ impl super::SemanticParser {
 				self.declare_tag(decl_type, type_span.clone());
 			}
 
-			self.tree_builder
-				.begin_child("declaration-list".to_string());
+			if decl.declaration_list.len() > 0 {
+				self.tree_builder
+					.begin_child("declaration-list".to_string());
+			}
 			for declaration in decl.declaration_list.iter_mut() {
 				self.declaration(declaration, syn::StorageClass::Auto, true);
 			}
-			self.tree_builder.end_child();
+			if decl.declaration_list.len() > 0 {
+				self.tree_builder.end_child();
+			}
 			self.tree_builder
 				.begin_child("compound-stmt { }".to_string());
 			for item in decl.compound_stmt.blocks.iter_mut() {
