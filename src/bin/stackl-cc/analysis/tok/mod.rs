@@ -217,12 +217,9 @@ impl PPNumber {
 		while let Some(digit) = chars.next_if(char::is_ascii_digit) {
 			name.push(digit);
 		}
-		if chars
-			.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U')
-			.is_some()
-		{
-			let mut l_count = 1;
-			let mut u_count = 0;
+		if let Some(c) = chars.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U') {
+			let mut l_count = (c == 'l' || c == 'L') as u32;
+			let mut u_count = (c == 'u' || c == 'U') as u32;
 			while let Some(suffix) =
 				chars.next_if(|&c| c == 'l' || c == 'L' || c == 'u' || c == 'U')
 			{
@@ -233,6 +230,13 @@ impl PPNumber {
 				}
 			}
 			let integer = match (l_count, u_count) {
+				(0, 1) => {
+					if let Ok(data) = name.parse::<u32>() {
+						Ok(IntegerConstant::U32(data))
+					} else {
+						Err(diag::DiagKind::InvalidToken)
+					}
+				}
 				(1, 0) => {
 					if let Ok(data) = name.parse::<i64>() {
 						Ok(IntegerConstant::I64(data))
