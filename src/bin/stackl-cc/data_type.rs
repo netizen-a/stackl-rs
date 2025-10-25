@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::analysis::syn;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScalarType {
 	Bool,
 	I8,

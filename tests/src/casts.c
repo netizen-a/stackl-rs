@@ -22,4 +22,6 @@ void test_casts(void) {
     // Bool ↔ integer
     int b2 = 1 < 2;   // bool → int
     _Bool b3 = 42;    // int → bool
+
+    _Bool b4 = (_Bool)50 + (_Bool)0;
 }

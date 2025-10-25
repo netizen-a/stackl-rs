@@ -241,7 +241,7 @@ impl super::SemanticParser {
 			match (&from_type.kind, &to_type.kind) {
 				(TypeKind::Scalar(from_scalar), TypeKind::Scalar(to_scalar)) => {
 					result_score +=
-						self.convert_scalar(expr, from_scalar, to_scalar, callee_span.to_span());
+						self.convert_scalar(expr, *from_scalar, *to_scalar, callee_span.to_span());
 				}
 				(TypeKind::Array(_), TypeKind::Scalar(_)) => {
 					// invalid conversion: array -> scalar
@@ -261,13 +261,22 @@ impl super::SemanticParser {
 	fn convert_scalar(
 		&mut self,
 		expr: &mut syn::Expr,
-		from_scalar: &ScalarType,
-		to_scalar: &ScalarType,
+		from_scalar: ScalarType,
+		mut to_scalar: ScalarType,
 		callee_span: Span,
 	) -> CastScore {
 		let mut result_score = 0;
 
 		use ScalarType::*;
+
+		if to_scalar.bits() < 32 {
+			match to_scalar.is_signed() {
+				Some(true) => to_scalar = ScalarType::I32,
+				Some(false) => to_scalar = ScalarType::U32,
+				None => {}
+			}
+		}
+
 		let (from_bits, to_bits) = (from_scalar.bits(), to_scalar.bits());
 
 		let to_kind = Box::new(TypeKind::Scalar(to_scalar.clone()));

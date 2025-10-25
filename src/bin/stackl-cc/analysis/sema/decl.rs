@@ -221,10 +221,10 @@ impl super::SemanticParser {
 					let mut curr_data = inner_data.first_mut().unwrap();
 					let last_data = once.get_or_init(|| curr_data.clone());
 					if !self.dtype_eq(&curr_data.1, &last_data.1, span.to_span()) {
-						let l_type = last_data.1.clone();
-						let r_type = curr_data.1.clone();
+						let mut l_type = last_data.1.clone();
+						let mut r_type = curr_data.1.clone();
 						let callee_span = curr_data.0.to_span();
-						self.convert_type(&mut curr_data.0, &r_type, &l_type, callee_span);
+						self.convert_type(&mut curr_data.0, &mut r_type, &mut l_type, callee_span);
 					}
 				}
 
