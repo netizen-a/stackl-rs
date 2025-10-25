@@ -74,7 +74,7 @@ impl From<tok::IntegerConstant> for IntegerKind {
 pub enum FloatingKind {
 	Float(f32),
 	Double(f64),
-	Long(f64),
+	LongDouble(f64),
 }
 
 impl From<tok::FloatingConstant> for FloatingKind {
@@ -82,7 +82,7 @@ impl From<tok::FloatingConstant> for FloatingKind {
 		match value {
 			tok::FloatingConstant::Float(inner) => Self::Float(inner),
 			tok::FloatingConstant::Double(inner) => Self::Double(inner),
-			tok::FloatingConstant::Long(inner) => Self::Long(inner),
+			tok::FloatingConstant::Long(inner) => Self::LongDouble(inner),
 		}
 	}
 }

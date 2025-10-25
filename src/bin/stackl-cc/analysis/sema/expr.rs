@@ -47,20 +47,51 @@ impl super::SemanticParser {
 		let from_type = self.expr_no_print(expr, in_func, mut_self);
 
 		let to_type: DataType = match kind {
-			syn::CastKind::BitCast => { todo!("cast bit-cast") },
-			syn::CastKind::FnToPtr => { todo!("cast fn-to-ptr") },
-			syn::CastKind::Trunc(inner) => { DataType {kind: *inner.clone(), qual: Default::default() } },
-			syn::CastKind::ZExt(inner) => { DataType {kind: *inner.clone(), qual: Default::default() } },
-			syn::CastKind::SExt(inner) => { DataType {kind: *inner.clone(), qual: Default::default() } },
-			syn::CastKind::FpTrunc => { todo!("cast fp-trunc") },
-			syn::CastKind::FpExt => { todo!("cast fp-ext") },
-			syn::CastKind::PtrToInt => { todo!("cast ptr-to-int") },
-			syn::CastKind::IntToPtr => { todo!("cast int-to-ptr") },
-			syn::CastKind::LValueToRValue => { todo!("cast lval-to-rval") },
-			syn::CastKind::UIToFP => { todo!("cast ui-to-fp") },
-			syn::CastKind::SIToFP => { todo!("cast si-to-fp") },
-			syn::CastKind::FPToUI => { todo!("cast fp-to-ui") },
-			syn::CastKind::FPToSI => { todo!("cast fp-to-si") },
+			syn::CastKind::BitCast => {
+				todo!("cast bit-cast")
+			}
+			syn::CastKind::FnToPtr => {
+				todo!("cast fn-to-ptr")
+			}
+			syn::CastKind::Trunc(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::ZExt(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::SExt(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::FpTrunc => {
+				todo!("cast fp-trunc")
+			}
+			syn::CastKind::FpExt => {
+				todo!("cast fp-ext")
+			}
+			syn::CastKind::PtrToInt => {
+				todo!("cast ptr-to-int")
+			}
+			syn::CastKind::IntToPtr => {
+				todo!("cast int-to-ptr")
+			}
+			syn::CastKind::LValueToRValue => {
+				todo!("cast lval-to-rval")
+			}
+			syn::CastKind::UIToFP => {
+				todo!("cast ui-to-fp")
+			}
+			syn::CastKind::SIToFP => {
+				todo!("cast si-to-fp")
+			}
+			syn::CastKind::FPToUI => {
+				todo!("cast fp-to-ui")
+			}
+			syn::CastKind::FPToSI => {
+				todo!("cast fp-to-si")
+			}
 			syn::CastKind::Explicit(type_name) => {
 				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
 				self.unwrap_or_poison(maybe, None, expr.to_span())
@@ -111,10 +142,9 @@ impl super::SemanticParser {
 				syn::CastKind::FPToSI => self
 					.tree_builder
 					.begin_child(format!("cast fp-to-si '{from_type}' -> ?")),
-				syn::CastKind::Explicit(type_name) => {
-					self.tree_builder
-						.begin_child(format!("cast explicit '{from_type}' -> '{to_type}'"))
-				}
+				syn::CastKind::Explicit(type_name) => self
+					.tree_builder
+					.begin_child(format!("cast explicit '{from_type}' -> '{to_type}'")),
 			};
 		}
 
@@ -309,6 +339,7 @@ impl super::SemanticParser {
 	}
 	pub(super) fn expr_const(&mut self, constant: &mut Constant, mut_self: bool) -> DataType {
 		use syn::ConstantKind::*;
+		use syn::FloatingKind::*;
 		use syn::IntegerKind::*;
 		match constant {
 			Constant {
@@ -386,6 +417,45 @@ impl super::SemanticParser {
 				}
 				DataType {
 					kind: TypeKind::Scalar(ScalarType::U128),
+					qual: Default::default(),
+				}
+			}
+			Constant {
+				kind: Floating(Float(inner)),
+				..
+			} => {
+				if self.print_ast {
+					self.tree_builder
+						.add_empty_child(format!("constant `{inner}` 'float'"));
+				}
+				DataType {
+					kind: TypeKind::Scalar(ScalarType::Float),
+					qual: Default::default(),
+				}
+			}
+			Constant {
+				kind: Floating(Double(inner)),
+				..
+			} => {
+				if self.print_ast {
+					self.tree_builder
+						.add_empty_child(format!("constant `{inner}` 'double'"));
+				}
+				DataType {
+					kind: TypeKind::Scalar(ScalarType::Double),
+					qual: Default::default(),
+				}
+			}
+			Constant {
+				kind: Floating(LongDouble(inner)),
+				..
+			} => {
+				if self.print_ast {
+					self.tree_builder
+						.add_empty_child(format!("constant `{inner}` 'long double'"));
+				}
+				DataType {
+					kind: TypeKind::Scalar(ScalarType::LongDouble),
 					qual: Default::default(),
 				}
 			}

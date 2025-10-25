@@ -8,9 +8,9 @@ use crate::analysis::syn::FloatingKind;
 use crate::analysis::syn::IntegerKind;
 use crate::analysis::syn::StringLiteral;
 use crate::analysis::tok;
+use crate::data_type as dtype;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
-use crate::data_type as dtype;
 
 pub enum ConversionError {
 	OutOfRange,
