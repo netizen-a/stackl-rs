@@ -10,6 +10,7 @@ use crate::analysis::syn::StringLiteral;
 use crate::analysis::tok;
 use crate::diagnostics as diag;
 use crate::diagnostics::ToSpan;
+use crate::data_type as dtype;
 
 pub enum ConversionError {
 	OutOfRange,
@@ -23,11 +24,11 @@ pub enum CastKind {
 	/// Cost: 1
 	FnToPtr,
 	/// Cost: 1
-	Trunc,
+	Trunc(Box<dtype::TypeKind>),
 	/// Cost: 1
-	ZExt,
+	ZExt(Box<dtype::TypeKind>),
 	/// Cost: 1
-	SExt,
+	SExt(Box<dtype::TypeKind>),
 	/// Cost: 1
 	FpTrunc,
 	/// Cost: 1

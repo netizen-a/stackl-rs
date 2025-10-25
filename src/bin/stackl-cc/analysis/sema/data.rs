@@ -270,11 +270,13 @@ impl super::SemanticParser {
 		use ScalarType::*;
 		let (from_bits, to_bits) = (from_scalar.bits(), to_scalar.bits());
 
+		let to_kind = Box::new(TypeKind::Scalar(to_scalar.clone()));
+
 		let cast_kind = match (from_scalar.is_signed(), to_scalar.is_signed()) {
-			(Some(true), Some(true)) if from_bits < to_bits => Some(syn::CastKind::SExt),
-			(Some(false), Some(false)) if from_bits < to_bits => Some(syn::CastKind::ZExt),
+			(Some(true), Some(true)) if from_bits < to_bits => Some(syn::CastKind::SExt(to_kind)),
+			(Some(false), Some(false)) if from_bits < to_bits => Some(syn::CastKind::ZExt(to_kind)),
 			((Some(true), Some(true)) | (Some(false), Some(false))) if from_bits > to_bits => {
-				Some(syn::CastKind::Trunc)
+				Some(syn::CastKind::Trunc(to_kind))
 			}
 			_ => None,
 		};

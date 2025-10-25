@@ -47,20 +47,20 @@ impl super::SemanticParser {
 		let from_type = self.expr_no_print(expr, in_func, mut_self);
 
 		let to_type: DataType = match kind {
-			syn::CastKind::BitCast => { todo!() },
-			syn::CastKind::FnToPtr => { todo!() },
-			syn::CastKind::Trunc => { todo!() },
-			syn::CastKind::ZExt => { todo!() },
-			syn::CastKind::SExt => { todo!() },
-			syn::CastKind::FpTrunc => { todo!() },
-			syn::CastKind::FpExt => { todo!() },
-			syn::CastKind::PtrToInt => { todo!() },
-			syn::CastKind::IntToPtr => { todo!() },
-			syn::CastKind::LValueToRValue => { todo!() },
-			syn::CastKind::UIToFP => { todo!() },
-			syn::CastKind::SIToFP => { todo!() },
-			syn::CastKind::FPToUI => { todo!() },
-			syn::CastKind::FPToSI => { todo!() },
+			syn::CastKind::BitCast => { todo!("cast bit-cast") },
+			syn::CastKind::FnToPtr => { todo!("cast fn-to-ptr") },
+			syn::CastKind::Trunc(inner) => { DataType {kind: *inner.clone(), qual: Default::default() } },
+			syn::CastKind::ZExt(inner) => { DataType {kind: *inner.clone(), qual: Default::default() } },
+			syn::CastKind::SExt(inner) => { DataType {kind: *inner.clone(), qual: Default::default() } },
+			syn::CastKind::FpTrunc => { todo!("cast fp-trunc") },
+			syn::CastKind::FpExt => { todo!("cast fp-ext") },
+			syn::CastKind::PtrToInt => { todo!("cast ptr-to-int") },
+			syn::CastKind::IntToPtr => { todo!("cast int-to-ptr") },
+			syn::CastKind::LValueToRValue => { todo!("cast lval-to-rval") },
+			syn::CastKind::UIToFP => { todo!("cast ui-to-fp") },
+			syn::CastKind::SIToFP => { todo!("cast si-to-fp") },
+			syn::CastKind::FPToUI => { todo!("cast fp-to-ui") },
+			syn::CastKind::FPToSI => { todo!("cast fp-to-si") },
 			syn::CastKind::Explicit(type_name) => {
 				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
 				self.unwrap_or_poison(maybe, None, expr.to_span())
@@ -75,15 +75,15 @@ impl super::SemanticParser {
 				syn::CastKind::FnToPtr => self
 					.tree_builder
 					.begin_child(format!("cast fn-to-ptr '{from_type}' -> ?")),
-				syn::CastKind::Trunc => self
+				syn::CastKind::Trunc(_) => self
 					.tree_builder
-					.begin_child(format!("cast trunc '{from_type}' -> ?")),
-				syn::CastKind::ZExt => self
+					.begin_child(format!("cast trunc '{from_type}' -> '{to_type}'")),
+				syn::CastKind::ZExt(_) => self
 					.tree_builder
-					.begin_child(format!("cast z-ext '{from_type}' -> ?")),
-				syn::CastKind::SExt => self
+					.begin_child(format!("cast z-ext '{from_type}' -> '{to_type}'")),
+				syn::CastKind::SExt(_) => self
 					.tree_builder
-					.begin_child(format!("cast s-ext '{from_type}' -> ?")),
+					.begin_child(format!("cast s-ext '{from_type}' -> '{to_type}'")),
 				syn::CastKind::FpTrunc => self
 					.tree_builder
 					.begin_child(format!("cast fp-trunc '{from_type}' -> ?")),
@@ -117,11 +117,12 @@ impl super::SemanticParser {
 				}
 			};
 		}
-		let result = self.expr(expr, in_func, mut_self);
+
 		if self.print_ast {
+			self.expr(expr, in_func, mut_self);
 			self.tree_builder.end_child();
 		}
-		result
+		to_type
 	}
 
 	pub(super) fn is_l_value(&self, expr: &syn::Expr) -> bool {
