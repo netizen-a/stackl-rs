@@ -125,7 +125,13 @@ impl Expr {
 		}
 	}
 	#[inline]
-	pub fn with_ternary(cond_expr: Self, cond_span: diag::Span, then_expr: Self, then_span: diag::Span, else_expr: Self) -> Self {
+	pub fn with_ternary(
+		cond_expr: Self,
+		cond_span: diag::Span,
+		then_expr: Self,
+		then_span: diag::Span,
+		else_expr: Self,
+	) -> Self {
 		Self::Ternary(ExprTernary {
 			expr_cond: Box::new(cond_expr),
 			cond_span,
@@ -142,7 +148,10 @@ impl Expr {
 				let op = &unary.op;
 				let expr = unary.expr.constant_fold(contract_int, contract_float);
 				match &expr {
-					Expr::Const(Constant{kind: Integer(rhs_int), span}) => op.reduce_int(rhs_int, span.to_span()),
+					Expr::Const(Constant {
+						kind: Integer(rhs_int),
+						span,
+					}) => op.reduce_int(rhs_int, span.to_span()),
 					_ => Self::UnaryPrefix(UnaryPrefix {
 						op: op.clone(),
 						expr: Box::new(expr),
@@ -153,7 +162,10 @@ impl Expr {
 				let op = &unary.op;
 				let expr = unary.expr.constant_fold(contract_int, contract_float);
 				match &expr {
-					Expr::Const(Constant{kind: Integer(rhs_int), ..}) => {
+					Expr::Const(Constant {
+						kind: Integer(rhs_int),
+						..
+					}) => {
 						//op.reduce_int(rhs_int)
 						todo!("postfix reduce_int")
 					}
@@ -168,28 +180,81 @@ impl Expr {
 				let right = binary.right.constant_fold(contract_int, contract_float);
 				let op = binary.op.clone();
 				match (contract_int, contract_float, &left, &right) {
-					(true, _, Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}), Expr::Const(Constant{kind: Integer(rhs_int), span: r_span})) => {
-						op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
-					}
-					(true, _, Expr::Paren(expr), Expr::Const(Constant{kind: Integer(rhs_int), span: r_span})) => {
-						if let Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}) = expr.as_ref() {
-							op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
+					(
+						true,
+						_,
+						Expr::Const(Constant {
+							kind: Integer(lhs_int),
+							span: l_span,
+						}),
+						Expr::Const(Constant {
+							kind: Integer(rhs_int),
+							span: r_span,
+						}),
+					) => op.constant_fold_int(
+						(lhs_int, l_span.to_span()),
+						(rhs_int, r_span.to_span()),
+					),
+					(
+						true,
+						_,
+						Expr::Paren(expr),
+						Expr::Const(Constant {
+							kind: Integer(rhs_int),
+							span: r_span,
+						}),
+					) => {
+						if let Expr::Const(Constant {
+							kind: Integer(lhs_int),
+							span: l_span,
+						}) = expr.as_ref()
+						{
+							op.constant_fold_int(
+								(lhs_int, l_span.to_span()),
+								(rhs_int, r_span.to_span()),
+							)
 						} else {
 							self.clone()
 						}
 					}
-					(true, _, Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}), Expr::Paren(expr)) => {
-						if let Expr::Const(Constant{kind: Integer(rhs_int), span: r_span}) = expr.as_ref() {
-							op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
+					(
+						true,
+						_,
+						Expr::Const(Constant {
+							kind: Integer(lhs_int),
+							span: l_span,
+						}),
+						Expr::Paren(expr),
+					) => {
+						if let Expr::Const(Constant {
+							kind: Integer(rhs_int),
+							span: r_span,
+						}) = expr.as_ref()
+						{
+							op.constant_fold_int(
+								(lhs_int, l_span.to_span()),
+								(rhs_int, r_span.to_span()),
+							)
 						} else {
 							self.clone()
 						}
 					}
 					(_, _, Expr::Paren(lhs_expr), Expr::Paren(rhs_expr)) => {
-						if let (Expr::Const(Constant{kind: Integer(lhs_int), span: l_span}), Expr::Const(Constant{kind: Integer(rhs_int), span: r_span})) =
-							(lhs_expr.as_ref(), rhs_expr.as_ref())
+						if let (
+							Expr::Const(Constant {
+								kind: Integer(lhs_int),
+								span: l_span,
+							}),
+							Expr::Const(Constant {
+								kind: Integer(rhs_int),
+								span: r_span,
+							}),
+						) = (lhs_expr.as_ref(), rhs_expr.as_ref())
 						{
-							op.constant_fold_int((lhs_int, l_span.to_span()), (rhs_int, r_span.to_span()))
+							op.constant_fold_int(
+								(lhs_int, l_span.to_span()),
+								(rhs_int, r_span.to_span()),
+							)
 						} else {
 							self.clone()
 						}
@@ -197,9 +262,18 @@ impl Expr {
 					(
 						_,
 						true,
-						Expr::Const(Constant{kind: Floating(lhs_float), span: l_span}),
-						Expr::Const(Constant{kind: Floating(rhs_float), span: r_span}),
-					) => op.constant_fold_float((lhs_float, l_span.to_span()), (rhs_float, r_span.to_span())),
+						Expr::Const(Constant {
+							kind: Floating(lhs_float),
+							span: l_span,
+						}),
+						Expr::Const(Constant {
+							kind: Floating(rhs_float),
+							span: r_span,
+						}),
+					) => op.constant_fold_float(
+						(lhs_float, l_span.to_span()),
+						(rhs_float, r_span.to_span()),
+					),
 					_ => Self::Binary(ExprBinary {
 						op: op.clone(),
 						left: Box::new(left.clone()),
@@ -224,7 +298,10 @@ impl Expr {
 		const I128_CAP: i128 = u32::MAX as i128;
 		*self = self.constant_fold(true, false);
 		match self {
-			Self::Const(Constant{kind: Integer(int_const), ..}) => match int_const {
+			Self::Const(Constant {
+				kind: Integer(int_const),
+				..
+			}) => match int_const {
 				IntegerKind::U32(val) => Ok(*val),
 				IntegerKind::I32(val) => match val {
 					0.. => Ok(*val as u32),
@@ -259,7 +336,10 @@ impl Expr {
 		const I128_CAP: i128 = i32::MAX as i128;
 		*self = self.constant_fold(true, false);
 		match self {
-			Self::Const(Constant{kind: Integer(int_const), ..}) => match int_const {
+			Self::Const(Constant {
+				kind: Integer(int_const),
+				..
+			}) => match int_const {
 				IntegerKind::U32(val) => match val {
 					0..=U32_CAP => Ok(*val as i32),
 					_ => Err(ConversionError::OutOfRange),
@@ -388,7 +468,11 @@ impl ToSpan for BinOp {
 }
 
 impl BinOp {
-	fn constant_fold_int(&self, lhs: (&IntegerKind, diag::Span), rhs: (&IntegerKind, diag::Span)) -> Expr {
+	fn constant_fold_int(
+		&self,
+		lhs: (&IntegerKind, diag::Span),
+		rhs: (&IntegerKind, diag::Span),
+	) -> Expr {
 		use ConstantKind::*;
 		let int_const = match (self.kind, lhs.0, rhs.0) {
 			(BinOpKind::Mul, IntegerKind::U32(lval), IntegerKind::U32(rval)) => {
@@ -503,21 +587,40 @@ impl BinOp {
 			_ => {
 				return Expr::Binary(ExprBinary {
 					op: self.clone(),
-					left: Box::new(Expr::Const(Constant{kind:Integer(lhs.0.clone()), span: lhs.1})),
-					right: Box::new(Expr::Const(Constant{kind:Integer(rhs.0.clone()), span: rhs.1})),
+					left: Box::new(Expr::Const(Constant {
+						kind: Integer(lhs.0.clone()),
+						span: lhs.1,
+					})),
+					right: Box::new(Expr::Const(Constant {
+						kind: Integer(rhs.0.clone()),
+						span: rhs.1,
+					})),
 				})
 			}
 		};
 		// default span to left-most
-		Expr::Const(Constant{kind:Integer(int_const), span: lhs.1})
+		Expr::Const(Constant {
+			kind: Integer(int_const),
+			span: lhs.1,
+		})
 	}
-	fn constant_fold_float(&self, lhs: (&FloatingKind, diag::Span), rhs: (&FloatingKind, diag::Span)) -> Expr {
+	fn constant_fold_float(
+		&self,
+		lhs: (&FloatingKind, diag::Span),
+		rhs: (&FloatingKind, diag::Span),
+	) -> Expr {
 		use ConstantKind::*;
 		// TODO
 		return Expr::Binary(ExprBinary {
 			op: self.clone(),
-			left: Box::new(Expr::Const(Constant{kind: Floating(lhs.0.clone()), span: lhs.1})),
-			right: Box::new(Expr::Const(Constant{kind: Floating(rhs.0.clone()), span: rhs.1})),
+			left: Box::new(Expr::Const(Constant {
+				kind: Floating(lhs.0.clone()),
+				span: lhs.1,
+			})),
+			right: Box::new(Expr::Const(Constant {
+				kind: Floating(rhs.0.clone()),
+				span: rhs.1,
+			})),
 		});
 	}
 }
@@ -574,11 +677,17 @@ impl Prefix {
 			_ => {
 				return Expr::UnaryPrefix(UnaryPrefix {
 					op: self.clone(),
-					expr: Box::new(Expr::Const(Constant{kind:Integer(rhs.clone()), span})),
+					expr: Box::new(Expr::Const(Constant {
+						kind: Integer(rhs.clone()),
+						span,
+					})),
 				})
 			}
 		};
-		Expr::Const(Constant {kind:Integer(int_const), span })
+		Expr::Const(Constant {
+			kind: Integer(int_const),
+			span,
+		})
 	}
 }
 

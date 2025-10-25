@@ -202,7 +202,11 @@ impl super::SemanticParser {
 		}
 	}
 
-	fn initializer(&mut self, init: &mut syn::Initializer, in_func: bool) -> Vec<(syn::Expr, DataType, u32)> {
+	fn initializer(
+		&mut self,
+		init: &mut syn::Initializer,
+		in_func: bool,
+	) -> Vec<(syn::Expr, DataType, u32)> {
 		match init {
 			syn::Initializer::Expr(expr) => {
 				vec![(expr.clone(), self.expr(expr, in_func, true), 0)]
@@ -224,7 +228,7 @@ impl super::SemanticParser {
 					}
 				}
 
-				if let Some((expr,data,_)) = once.get().cloned() {
+				if let Some((expr, data, _)) = once.get().cloned() {
 					let kind = TypeKind::Array(ArrayType {
 						component: Box::new(data),
 						length: ArrayLength::Fixed(list.len() as _),

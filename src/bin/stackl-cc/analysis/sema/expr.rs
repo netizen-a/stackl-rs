@@ -2,9 +2,7 @@ use crate::analysis::syn::Constant;
 use crate::diagnostics::*;
 use crate::symbol_table as sym;
 use crate::{
-	analysis::{
-		syn,
-	},
+	analysis::syn,
 	data_type::*,
 };
 
@@ -48,32 +46,75 @@ impl super::SemanticParser {
 	) -> DataType {
 		let from_type = self.expr_no_print(expr, in_func, mut_self);
 
+		let to_type: DataType = match kind {
+			syn::CastKind::BitCast => { todo!() },
+			syn::CastKind::FnToPtr => { todo!() },
+			syn::CastKind::Trunc => { todo!() },
+			syn::CastKind::ZExt => { todo!() },
+			syn::CastKind::SExt => { todo!() },
+			syn::CastKind::FpTrunc => { todo!() },
+			syn::CastKind::FpExt => { todo!() },
+			syn::CastKind::PtrToInt => { todo!() },
+			syn::CastKind::IntToPtr => { todo!() },
+			syn::CastKind::LValueToRValue => { todo!() },
+			syn::CastKind::UIToFP => { todo!() },
+			syn::CastKind::SIToFP => { todo!() },
+			syn::CastKind::FPToUI => { todo!() },
+			syn::CastKind::FPToSI => { todo!() },
+			syn::CastKind::Explicit(type_name) => {
+				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
+				self.unwrap_or_poison(maybe, None, expr.to_span())
+			}
+		};
+
 		if self.print_ast {
 			match kind {
-				syn::CastKind::BitCast => self.tree_builder.begin_child(format!("cast bit-cast '{from_type}' -> ?")),
-				syn::CastKind::FnToPtr => self.tree_builder.begin_child(format!("cast fn-to-ptr '{from_type}' -> ?")),
-				syn::CastKind::Trunc => self.tree_builder.begin_child(format!("cast trunc '{from_type}' -> ?")),
-				syn::CastKind::ZExt => self.tree_builder.begin_child(format!("cast z-ext '{from_type}' -> ?")),
-				syn::CastKind::SExt => self.tree_builder.begin_child(format!("cast s-ext '{from_type}' -> ?")),
-				syn::CastKind::FpTrunc => self.tree_builder.begin_child(format!("cast fp-trunc '{from_type}' -> ?")),
-				syn::CastKind::FpExt => self.tree_builder.begin_child(format!("cast fp-ext '{from_type}' -> ?")),
-				syn::CastKind::PtrToInt => self.tree_builder.begin_child(format!("cast ptr-to-int '{from_type}' -> ?")),
-				syn::CastKind::IntToPtr => self.tree_builder.begin_child(format!("cast int-to-ptr '{from_type}' -> ?")),
+				syn::CastKind::BitCast => self
+					.tree_builder
+					.begin_child(format!("cast bit-cast '{from_type}' -> ?")),
+				syn::CastKind::FnToPtr => self
+					.tree_builder
+					.begin_child(format!("cast fn-to-ptr '{from_type}' -> ?")),
+				syn::CastKind::Trunc => self
+					.tree_builder
+					.begin_child(format!("cast trunc '{from_type}' -> ?")),
+				syn::CastKind::ZExt => self
+					.tree_builder
+					.begin_child(format!("cast z-ext '{from_type}' -> ?")),
+				syn::CastKind::SExt => self
+					.tree_builder
+					.begin_child(format!("cast s-ext '{from_type}' -> ?")),
+				syn::CastKind::FpTrunc => self
+					.tree_builder
+					.begin_child(format!("cast fp-trunc '{from_type}' -> ?")),
+				syn::CastKind::FpExt => self
+					.tree_builder
+					.begin_child(format!("cast fp-ext '{from_type}' -> ?")),
+				syn::CastKind::PtrToInt => self
+					.tree_builder
+					.begin_child(format!("cast ptr-to-int '{from_type}' -> ?")),
+				syn::CastKind::IntToPtr => self
+					.tree_builder
+					.begin_child(format!("cast int-to-ptr '{from_type}' -> ?")),
 				syn::CastKind::LValueToRValue => {
-					self.tree_builder.begin_child("lval-to-rval".to_string())
+					self.tree_builder.begin_child(format!("cast lval-to-rval"))
 				}
-
-				syn::CastKind::UIToFP => self.tree_builder.begin_child(format!("cast ui-to-fp '{from_type}' -> ?")),
-				syn::CastKind::SIToFP => self.tree_builder.begin_child(format!("cast si-to-fp '{from_type}' -> ?")),
-				syn::CastKind::FPToUI => self.tree_builder.begin_child(format!("cast fp-to-ui '{from_type}' -> ?")),
-				syn::CastKind::FPToSI => self.tree_builder.begin_child(format!("cast fp-to-si '{from_type}' -> ?")),
+				syn::CastKind::UIToFP => self
+					.tree_builder
+					.begin_child(format!("cast ui-to-fp '{from_type}' -> ?")),
+				syn::CastKind::SIToFP => self
+					.tree_builder
+					.begin_child(format!("cast si-to-fp '{from_type}' -> ?")),
+				syn::CastKind::FPToUI => self
+					.tree_builder
+					.begin_child(format!("cast fp-to-ui '{from_type}' -> ?")),
+				syn::CastKind::FPToSI => self
+					.tree_builder
+					.begin_child(format!("cast fp-to-si '{from_type}' -> ?")),
 				syn::CastKind::Explicit(type_name) => {
-					if let Some(data_type) = self.specifiers_dtype(&mut type_name.specifiers, in_func) {
-						self.tree_builder.begin_child(format!("cast explicit '{from_type}' -> '{data_type}'"))
-					} else {
-						self.tree_builder.begin_child(format!("cast explicit '<unknown-type>'"))
-					}
-				},
+					self.tree_builder
+						.begin_child(format!("cast explicit '{from_type}' -> '{to_type}'"))
+				}
 			};
 		}
 		let result = self.expr(expr, in_func, mut_self);
@@ -172,7 +213,9 @@ impl super::SemanticParser {
 		mut_self: bool,
 	) -> DataType {
 		let _ = match unary.op.kind {
-			syn::PostfixKind::Array(_) => self.tree_builder.begin_child("postfix `[ ]`".to_string()),
+			syn::PostfixKind::Array(_) => {
+				self.tree_builder.begin_child("postfix `[ ]`".to_string())
+			}
 			syn::PostfixKind::ArgExprList(_) => {
 				self.tree_builder.begin_child("postfix `( )`".to_string())
 			}
@@ -267,7 +310,10 @@ impl super::SemanticParser {
 		use syn::ConstantKind::*;
 		use syn::IntegerKind::*;
 		match constant {
-			Constant{kind: Integer(I32(inner)), ..} => {
+			Constant {
+				kind: Integer(I32(inner)),
+				..
+			} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'int'"));
@@ -277,7 +323,10 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Constant{kind: Integer(U32(inner)), ..} => {
+			Constant {
+				kind: Integer(U32(inner)),
+				..
+			} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned int'"));
@@ -287,7 +336,10 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Constant{kind: Integer(I64(inner)), ..} => {
+			Constant {
+				kind: Integer(I64(inner)),
+				..
+			} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'long'"));
@@ -297,7 +349,10 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Constant{kind: Integer(U64(inner)), ..} => {
+			Constant {
+				kind: Integer(U64(inner)),
+				..
+			} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned long'"));
@@ -307,7 +362,10 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Constant{kind: Integer(I128(inner)), ..} => {
+			Constant {
+				kind: Integer(I128(inner)),
+				..
+			} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'long long'"));
@@ -317,7 +375,10 @@ impl super::SemanticParser {
 					qual: Default::default(),
 				}
 			}
-			Constant{kind: Integer(U128(inner)), ..} => {
+			Constant {
+				kind: Integer(U128(inner)),
+				..
+			} => {
 				if self.print_ast {
 					self.tree_builder
 						.add_empty_child(format!("constant `{inner}` 'unsigned long long'"));

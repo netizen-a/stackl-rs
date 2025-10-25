@@ -358,11 +358,7 @@ impl super::SemanticParser {
 				name_opt.clone(),
 				vec![],
 			);
-			result.push((
-				param.ident.clone(),
-				param_type,
-				param.specifiers.to_span(),
-			))
+			result.push((param.ident.clone(), param_type, param.specifiers.to_span()))
 		}
 		self.tree_builder.end_child();
 		match is_valid {

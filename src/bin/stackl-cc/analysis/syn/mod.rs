@@ -31,9 +31,12 @@ impl TryFrom<tok::Token> for Identifier {
 				span: token.span,
 			}),
 			_ => {
-				let error = diag::Diagnostic::fatal(diag::DiagKind::Internal("failed to parse identifier".to_string()), Some(token.span));
+				let error = diag::Diagnostic::fatal(
+					diag::DiagKind::Internal("failed to parse identifier".to_string()),
+					Some(token.span),
+				);
 				Err(error)
-			},
+			}
 		}
 	}
 }
@@ -43,7 +46,6 @@ impl ToSpan for Identifier {
 		self.span.clone()
 	}
 }
-
 
 #[derive(Debug, Clone)]
 pub enum IntegerKind {
@@ -132,9 +134,12 @@ impl TryFrom<tok::Token> for Constant {
 				kind: ConstantKind::from(constant),
 			}),
 			_ => {
-				let error = diag::Diagnostic::fatal(diag::DiagKind::Internal("failed to parse constant".to_string()), Some(token.span));
+				let error = diag::Diagnostic::fatal(
+					diag::DiagKind::Internal("failed to parse constant".to_string()),
+					Some(token.span),
+				);
 				Err(error)
-			},
+			}
 		}
 	}
 }
@@ -168,7 +173,6 @@ impl ToSpan for StringLiteral {
 	}
 }
 
-
 /// (6.9) translation-unit
 pub type TranslationUnit = Vec<ExternalDeclaration>;
 
@@ -196,7 +200,7 @@ pub fn string_concat(v: Box<[tok::Token]>) -> StringLiteral {
 	let mut is_first = true;
 	let once = cell::OnceCell::new();
 	for literal in v {
-		let span = once.get_or_init(||literal.to_span());
+		let span = once.get_or_init(|| literal.to_span());
 		if is_first {
 			str_lit.file_id = span.file_id;
 			is_first = false;
