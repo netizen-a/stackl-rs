@@ -40,13 +40,13 @@ pub enum CastKind {
 	/// Cost: 1
 	LValueToRValue,
 	/// Cost: 2
-	UIToFP,
+	UIToFP(Box<dtype::TypeKind>),
 	/// Cost: 2
-	SIToFP,
+	SIToFP(Box<dtype::TypeKind>),
 	/// Cost: 3
-	FPToUI,
+	FPToUI(Box<dtype::TypeKind>),
 	/// Cost: 3
-	FPToSI,
+	FPToSI(Box<dtype::TypeKind>),
 	/// Cost: N/A
 	Explicit(decl::TypeName),
 }

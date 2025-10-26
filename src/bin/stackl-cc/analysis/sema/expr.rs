@@ -10,9 +10,13 @@ impl super::SemanticParser {
 	pub(super) fn expr(&mut self, expr: &mut syn::Expr, in_func: bool, mut_self: bool) -> DataType {
 		match expr {
 			syn::Expr::Paren(inner) => {
-				self.tree_builder.begin_child("( expression )".to_string());
+				if self.print_ast {
+					self.tree_builder.begin_child("( expression )".to_string());
+				}
 				let result = self.expr(inner, in_func, mut_self);
-				self.tree_builder.end_child();
+				if self.print_ast {
+					self.tree_builder.end_child();
+				}
 				result
 			}
 			syn::Expr::Ident(inner) => self.expr_identifier(inner, in_func, mut_self),
@@ -75,10 +79,10 @@ impl super::SemanticParser {
 		let to_type: DataType = match kind {
 			syn::CastKind::BitCast => {
 				todo!("cast bit-cast")
-			}
+			},
 			syn::CastKind::FnToPtr => {
 				todo!("cast fn-to-ptr")
-			}
+			},
 			syn::CastKind::Trunc(inner) => DataType {
 				kind: *inner.clone(),
 				qual: Default::default(),
@@ -93,35 +97,39 @@ impl super::SemanticParser {
 			},
 			syn::CastKind::FpTrunc => {
 				todo!("cast fp-trunc")
-			}
+			},
 			syn::CastKind::FpExt => {
 				todo!("cast fp-ext")
-			}
+			},
 			syn::CastKind::PtrToInt => {
 				todo!("cast ptr-to-int")
-			}
+			},
 			syn::CastKind::IntToPtr => {
 				todo!("cast int-to-ptr")
-			}
+			},
 			syn::CastKind::LValueToRValue => {
 				todo!("cast lval-to-rval")
-			}
-			syn::CastKind::UIToFP => {
-				todo!("cast ui-to-fp")
-			}
-			syn::CastKind::SIToFP => {
-				todo!("cast si-to-fp")
-			}
-			syn::CastKind::FPToUI => {
-				todo!("cast fp-to-ui")
-			}
-			syn::CastKind::FPToSI => {
-				todo!("cast fp-to-si")
-			}
+			},
+			syn::CastKind::UIToFP(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::SIToFP(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::FPToUI(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::FPToSI(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
 			syn::CastKind::Explicit(type_name) => {
 				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
 				self.unwrap_or_poison(maybe, None, expr.to_span())
-			}
+			},
 		};
 
 		if self.print_ast {
@@ -156,18 +164,18 @@ impl super::SemanticParser {
 				syn::CastKind::LValueToRValue => {
 					self.tree_builder.begin_child(format!("cast lval-to-rval"))
 				}
-				syn::CastKind::UIToFP => self
+				syn::CastKind::UIToFP(_) => self
 					.tree_builder
-					.begin_child(format!("cast ui-to-fp '{from_type}' -> ?")),
-				syn::CastKind::SIToFP => self
+					.begin_child(format!("cast ui-to-fp '{from_type}' -> '{to_type}'")),
+				syn::CastKind::SIToFP(_) => self
 					.tree_builder
-					.begin_child(format!("cast si-to-fp '{from_type}' -> ?")),
-				syn::CastKind::FPToUI => self
+					.begin_child(format!("cast si-to-fp '{from_type}' -> '{to_type}'")),
+				syn::CastKind::FPToUI(_) => self
 					.tree_builder
-					.begin_child(format!("cast fp-to-ui '{from_type}' -> ?")),
-				syn::CastKind::FPToSI => self
+					.begin_child(format!("cast fp-to-ui '{from_type}' -> '{to_type}'")),
+				syn::CastKind::FPToSI(_) => self
 					.tree_builder
-					.begin_child(format!("cast fp-to-si '{from_type}' -> ?")),
+					.begin_child(format!("cast fp-to-si '{from_type}' -> '{to_type}'")),
 				syn::CastKind::Explicit(type_name) => self
 					.tree_builder
 					.begin_child(format!("cast explicit '{from_type}' -> '{to_type}'")),

@@ -36,16 +36,6 @@ impl super::SemanticParser {
 
 		for init_decl in decl.init_declarator_list.iter_mut() {
 			let ident = &init_decl.identifier;
-			{
-				let span = ident.to_span();
-				let (actual_line, reported_line, col) =
-					self.diagnostics.get_location(&span).unwrap();
-				let text = format!(
-					"init-declarator <line:{actual_line}:{reported_line}, col:{col}> `{}`",
-					ident.name
-				);
-				self.tree_builder.begin_child(text);
-			}
 			let mut init_list_type = vec![];
 			if let Some(ref mut init) = init_decl.initializer {
 				init_list_type = self.initializer(init, in_func);
@@ -67,6 +57,27 @@ impl super::SemanticParser {
 				Some(ident.name.clone()),
 				init_list_type,
 			);
+
+			{
+				let span = ident.to_span();
+				let (actual_line, reported_line, col) =
+					self.diagnostics.get_location(&span).unwrap();
+				let text = format!(
+					"init-declarator <line:{actual_line}:{reported_line}, col:{col}> `{}` '{var_dtype}'",
+					ident.name
+				);
+				self.tree_builder.begin_child(text);
+			}
+			if let Some(syn::Initializer::Expr(expr)) = &mut init_decl.initializer {
+				let from_type = &self.expr_no_print(expr, in_func, true);
+				let to_type = &var_dtype;
+				self.convert_type(expr, from_type, to_type, expr.to_span());
+				if self.print_ast {
+					let is_poisoned = self.expr(expr, in_func, false).is_poisoned();
+					println!("{} is poisoned!", ident.name);
+				}
+			}
+
 			let new_entry = sym::SymbolTableEntry {
 				data_type: var_dtype,
 				linkage,
@@ -209,7 +220,7 @@ impl super::SemanticParser {
 	) -> Vec<(syn::Expr, DataType, u32)> {
 		match init {
 			syn::Initializer::Expr(expr) => {
-				vec![(expr.clone(), self.expr(expr, in_func, true), 0)]
+				vec![(expr.clone(), self.expr_no_print(expr, in_func, true), 0)]
 			}
 			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
 				self.tree_builder

@@ -244,16 +244,16 @@ impl PPNumber {
 						Err(diag::DiagKind::InvalidToken)
 					}
 				}
-				(2, 0) => {
-					if let Ok(data) = name.parse::<i128>() {
-						Ok(IntegerConstant::I128(data))
+				(1, 1) => {
+					if let Ok(data) = name.parse::<u64>() {
+						Ok(IntegerConstant::U64(data))
 					} else {
 						Err(diag::DiagKind::InvalidToken)
 					}
 				}
-				(1, 1) => {
-					if let Ok(data) = name.parse::<u64>() {
-						Ok(IntegerConstant::U64(data))
+				(2, 0) => {
+					if let Ok(data) = name.parse::<i128>() {
+						Ok(IntegerConstant::I128(data))
 					} else {
 						Err(diag::DiagKind::InvalidToken)
 					}
