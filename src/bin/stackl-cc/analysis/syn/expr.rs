@@ -30,9 +30,9 @@ pub enum CastKind {
 	/// Cost: 1
 	SExt(Box<dtype::TypeKind>),
 	/// Cost: 1
-	FpTrunc,
+	FpTrunc(Box<dtype::TypeKind>),
 	/// Cost: 1
-	FpExt,
+	FpExt(Box<dtype::TypeKind>),
 	/// Cost: 1
 	PtrToInt,
 	/// Cost: 1

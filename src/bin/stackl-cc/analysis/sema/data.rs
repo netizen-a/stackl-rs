@@ -304,7 +304,18 @@ impl super::SemanticParser {
 				Some(syn::CastKind::FPToUI(to_kind))
 			}
 			(Some(_), None) if to_scalar == ScalarType::Bool => Some(syn::CastKind::IntToBool),
-			(None, Some(_)) if from_scalar == ScalarType::Bool => Some(syn::CastKind::ZExt(to_kind)),
+			(None, Some(_)) if from_scalar == ScalarType::Bool => {
+				Some(syn::CastKind::ZExt(to_kind))
+			}
+			(None, None) if from_scalar.is_floating() && to_scalar.is_floating() => {
+				if from_bits < to_bits {
+					Some(syn::CastKind::FpExt(to_kind))
+				} else if from_bits > to_bits {
+					Some(syn::CastKind::FpTrunc(to_kind))
+				} else {
+					None
+				}
+			}
 			_ => None,
 		};
 

@@ -90,12 +90,14 @@ impl super::SemanticParser {
 				kind: *inner.clone(),
 				qual: Default::default(),
 			},
-			syn::CastKind::FpTrunc => {
-				todo!("cast fp-trunc")
-			}
-			syn::CastKind::FpExt => {
-				todo!("cast fp-ext")
-			}
+			syn::CastKind::FpTrunc(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
+			syn::CastKind::FpExt(inner) => DataType {
+				kind: *inner.clone(),
+				qual: Default::default(),
+			},
 			syn::CastKind::PtrToInt => {
 				todo!("cast ptr-to-int")
 			}
@@ -146,10 +148,10 @@ impl super::SemanticParser {
 				syn::CastKind::SExt(_) => self
 					.tree_builder
 					.begin_child(format!("cast s-ext '{from_type}' -> '{to_type}'")),
-				syn::CastKind::FpTrunc => self
+				syn::CastKind::FpTrunc(_) => self
 					.tree_builder
 					.begin_child(format!("cast fp-trunc '{from_type}' -> '{to_type}'")),
-				syn::CastKind::FpExt => self
+				syn::CastKind::FpExt(_) => self
 					.tree_builder
 					.begin_child(format!("cast fp-ext '{from_type}' -> '{to_type}'")),
 				syn::CastKind::PtrToInt => self
