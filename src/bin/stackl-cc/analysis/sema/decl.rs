@@ -58,16 +58,13 @@ impl super::SemanticParser {
 				init_list_type,
 			);
 
-			{
-				let span = ident.to_span();
-				let (actual_line, reported_line, col) =
-					self.diagnostics.get_location(&span).unwrap();
-				let text = format!(
-					"init-declarator <line:{actual_line}:{reported_line}, col:{col}> `{}` '{var_dtype}'",
-					ident.name
-				);
-				self.tree_builder.begin_child(text);
-			}
+			let span = ident.to_span();
+			let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
+			let text = format!(
+				"init-declarator <line:{actual_line}:{reported_line}, col:{col}> `{}` '{var_dtype}'",
+				ident.name
+			);
+			self.tree_builder.begin_child(text);
 			if let Some(syn::Initializer::Expr(expr)) = &mut init_decl.initializer {
 				let from_type = &self.expr_no_print(expr, in_func);
 				let to_type = &var_dtype;

@@ -33,11 +33,7 @@ impl super::SemanticParser {
 	}
 
 	#[inline]
-	pub fn expr_no_print(
-		&mut self,
-		expr: &mut syn::Expr,
-		in_func: bool,
-	) -> DataType {
+	pub fn expr_no_print(&mut self, expr: &mut syn::Expr, in_func: bool) -> DataType {
 		let is_print = self.print_ast;
 		self.print_ast = false;
 		let result = self.expr(expr, in_func, true);
@@ -78,10 +74,10 @@ impl super::SemanticParser {
 		let to_type: DataType = match kind {
 			syn::CastKind::BitCast => {
 				todo!("cast bit-cast")
-			},
+			}
 			syn::CastKind::FnToPtr => {
 				todo!("cast fn-to-ptr")
-			},
+			}
 			syn::CastKind::Trunc(inner) => DataType {
 				kind: *inner.clone(),
 				qual: Default::default(),
@@ -96,19 +92,19 @@ impl super::SemanticParser {
 			},
 			syn::CastKind::FpTrunc => {
 				todo!("cast fp-trunc")
-			},
+			}
 			syn::CastKind::FpExt => {
 				todo!("cast fp-ext")
-			},
+			}
 			syn::CastKind::PtrToInt => {
 				todo!("cast ptr-to-int")
-			},
+			}
 			syn::CastKind::IntToPtr => {
 				todo!("cast int-to-ptr")
-			},
+			}
 			syn::CastKind::LValueToRValue => {
 				todo!("cast lval-to-rval")
-			},
+			}
 			syn::CastKind::UIToFP(inner) => DataType {
 				kind: *inner.clone(),
 				qual: Default::default(),
@@ -128,7 +124,7 @@ impl super::SemanticParser {
 			syn::CastKind::Explicit(type_name) => {
 				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
 				self.unwrap_or_poison(maybe, None, expr.to_span())
-			},
+			}
 		};
 
 		if self.print_ast {

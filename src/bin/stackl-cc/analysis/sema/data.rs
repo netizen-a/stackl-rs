@@ -290,20 +290,20 @@ impl super::SemanticParser {
 			(Some(true), None) if to_scalar.is_floating() => {
 				result_score += 1;
 				Some(syn::CastKind::SIToFP(to_kind))
-			},
+			}
 			(Some(false), None) if to_scalar.is_floating() => {
 				result_score += 1;
 				Some(syn::CastKind::UIToFP(to_kind))
-			},
+			}
 			(None, Some(true)) if from_scalar.is_floating() => {
 				result_score += 2;
 				Some(syn::CastKind::FPToSI(to_kind))
-			},
+			}
 			(None, Some(false)) if from_scalar.is_floating() => {
 				result_score += 2;
 				Some(syn::CastKind::FPToUI(to_kind))
-			},
-			_ => None
+			}
+			_ => None,
 		};
 
 		if let Some(kind) = cast_kind {
