@@ -59,9 +59,9 @@ impl super::SemanticParser {
 			);
 
 			let span = ident.to_span();
-			let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
+			let (_, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
 			let text = format!(
-				"init-declarator <line:{actual_line}:{reported_line}, col:{col}> `{}` '{var_dtype}'",
+				"init-declarator <line:{reported_line}, col:{col}> `{}` '{var_dtype}'",
 				ident.name
 			);
 			self.tree_builder.begin_child(text);

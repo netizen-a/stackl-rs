@@ -212,12 +212,12 @@ impl super::SemanticParser {
 		mut_self: bool,
 	) -> DataType {
 		let span = ident.to_span();
-		let (actual_line, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
+		let (_, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
 		let maybe = self.ordinary_table.global_lookup(&ident.name);
 		if let Some(entry) = maybe {
 			if mut_self {
 				self.tree_builder.add_empty_child(format!(
-					"identifier <line:{actual_line}:{reported_line}, col:{col}> `{}` '{}'",
+					"identifier <line:{reported_line}, col:{col}> `{}` '{}'",
 					ident.name, entry.data_type
 				));
 			}
