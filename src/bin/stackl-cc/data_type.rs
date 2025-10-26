@@ -239,8 +239,19 @@ impl TypeKind {
 				new_context.push_str(&context);
 				inner.kind.get_render(new_context, Some(inner.qual.clone()))
 			}
-			Self::Array(ArrayType { component, .. }) => {
-				context.push_str("[]");
+			Self::Array(ArrayType {
+				component, length, ..
+			}) => {
+				context.push('[');
+				match length {
+					ArrayLength::Fixed(fixed_length) => {
+						context.push_str(&format!("{fixed_length}"))
+					}
+					ArrayLength::VLA(vla_length) => context.push('*'),
+					ArrayLength::Incomplete => {}
+				}
+
+				context.push(']');
 				component
 					.kind
 					.get_render(context, Some(component.qual.clone()))

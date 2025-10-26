@@ -17,24 +17,7 @@ impl super::SemanticParser {
 			}
 			syn::Expr::Ident(inner) => self.expr_identifier(inner, in_func, mut_self),
 			syn::Expr::Const(inner) => self.expr_const(inner, mut_self),
-			syn::Expr::StrLit(inner) => {
-				if self.print_ast {
-					self.tree_builder
-						.add_empty_child(format!("string-literal \"{}\"", inner.seq));
-				}
-				DataType {
-					kind: TypeKind::Array(ArrayType {
-						component: Box::new(DataType {
-							kind: TypeKind::Scalar(ScalarType::I8),
-							qual: Default::default(),
-						}),
-						length: ArrayLength::Fixed(inner.seq.len() as u32),
-						is_decayed: false,
-						has_static: false,
-					}),
-					qual: Default::default(),
-				}
-			}
+			syn::Expr::StrLit(inner) => self.expr_string_literal(inner),
 			syn::Expr::UnaryPrefix(unary) => self.expr_prefix(unary, in_func, mut_self),
 			syn::Expr::UnaryPostfix(unary) => self.expr_postfix(unary, in_func, mut_self),
 			syn::Expr::Binary(binary) => self.expr_binary(binary, in_func, mut_self),
@@ -56,6 +39,26 @@ impl super::SemanticParser {
 		self.print_ast = false;
 		let result = self.expr(expr, in_func, mut_self);
 		self.print_ast = is_print;
+		result
+	}
+
+	fn expr_string_literal(&mut self, literal: &mut syn::StringLiteral) -> DataType {
+		let result = DataType {
+			kind: TypeKind::Array(ArrayType {
+				component: Box::new(DataType {
+					kind: TypeKind::Scalar(ScalarType::I8),
+					qual: Default::default(),
+				}),
+				length: ArrayLength::Fixed((literal.seq.len() + 1) as u32),
+				is_decayed: false,
+				has_static: false,
+			}),
+			qual: Default::default(),
+		};
+		if self.print_ast {
+			self.tree_builder
+				.add_empty_child(format!("string-literal \"{}\" '{result}'", literal.seq));
+		}
 		result
 	}
 
