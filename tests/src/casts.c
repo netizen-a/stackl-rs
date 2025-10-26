@@ -20,8 +20,8 @@ void test_casts(void) {
     float f3 = 2.0;      // double → float
 
     // Bool ↔ integer
-    int b2 = 1 < 2;   // bool → int
+    int b2 = 1 < 2;   // int → int
     _Bool b3 = 42;    // int → bool
 
-    _Bool b4 = (_Bool)50 + (_Bool)0;
+    unsigned int b4 = (_Bool)56; // int -> unsigned int
 }

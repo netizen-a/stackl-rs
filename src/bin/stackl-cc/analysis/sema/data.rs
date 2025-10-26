@@ -304,6 +304,7 @@ impl super::SemanticParser {
 				Some(syn::CastKind::FPToUI(to_kind))
 			}
 			(Some(_), None) if to_scalar == ScalarType::Bool => Some(syn::CastKind::IntToBool),
+			(None, Some(_)) if from_scalar == ScalarType::Bool => Some(syn::CastKind::ZExt(to_kind)),
 			_ => None,
 		};
 
