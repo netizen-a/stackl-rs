@@ -69,12 +69,11 @@ impl super::SemanticParser {
 				self.tree_builder.begin_child(text);
 			}
 			if let Some(syn::Initializer::Expr(expr)) = &mut init_decl.initializer {
-				let from_type = &self.expr_no_print(expr, in_func, true);
+				let from_type = &self.expr_no_print(expr, in_func);
 				let to_type = &var_dtype;
 				self.convert_type(expr, from_type, to_type, expr.to_span());
 				if self.print_ast {
-					let is_poisoned = self.expr(expr, in_func, false).is_poisoned();
-					println!("{} is poisoned!", ident.name);
+					self.expr(expr, in_func, false);
 				}
 			}
 
@@ -220,7 +219,7 @@ impl super::SemanticParser {
 	) -> Vec<(syn::Expr, DataType, u32)> {
 		match init {
 			syn::Initializer::Expr(expr) => {
-				vec![(expr.clone(), self.expr_no_print(expr, in_func, true), 0)]
+				vec![(expr.clone(), self.expr_no_print(expr, in_func), 0)]
 			}
 			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
 				self.tree_builder

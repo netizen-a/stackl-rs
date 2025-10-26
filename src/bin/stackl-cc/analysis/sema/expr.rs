@@ -37,11 +37,10 @@ impl super::SemanticParser {
 		&mut self,
 		expr: &mut syn::Expr,
 		in_func: bool,
-		mut_self: bool,
 	) -> DataType {
 		let is_print = self.print_ast;
 		self.print_ast = false;
-		let result = self.expr(expr, in_func, mut_self);
+		let result = self.expr(expr, in_func, true);
 		self.print_ast = is_print;
 		result
 	}
@@ -74,7 +73,7 @@ impl super::SemanticParser {
 		in_func: bool,
 		mut_self: bool,
 	) -> DataType {
-		let from_type = self.expr_no_print(expr, in_func, mut_self);
+		let from_type = self.expr_no_print(expr, in_func);
 
 		let to_type: DataType = match kind {
 			syn::CastKind::BitCast => {
@@ -333,8 +332,8 @@ impl super::SemanticParser {
 				syn::BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 			};
 		}
-		let mut l_type = self.expr_no_print(&mut *binary.left, in_func, true);
-		let mut r_type = self.expr_no_print(&mut *binary.right, in_func, true);
+		let mut l_type = self.expr_no_print(&mut *binary.left, in_func);
+		let mut r_type = self.expr_no_print(&mut *binary.right, in_func);
 
 		// add implicit casts to the ast.
 		let result = if mut_self {
