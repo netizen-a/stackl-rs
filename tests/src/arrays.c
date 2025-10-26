@@ -25,4 +25,5 @@ int arr3[1][2][3] = {{{1,2,3},{4,5,6}}};
 
 int min_arr[1] = {};
 
+char s4[] = "\"hello\nworld!\"";
 

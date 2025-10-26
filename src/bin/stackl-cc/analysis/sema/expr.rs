@@ -56,8 +56,9 @@ impl super::SemanticParser {
 			qual: Default::default(),
 		};
 		if self.print_ast {
+			let seq = literal.seq.replace("\n", "\\n").replace('"', "\\\"");
 			self.tree_builder
-				.add_empty_child(format!("string-literal \"{}\" '{result}'", literal.seq));
+				.add_empty_child(format!("string-literal \"{seq}\" '{result}'"));
 		}
 		result
 	}
