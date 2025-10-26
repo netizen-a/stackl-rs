@@ -102,9 +102,11 @@ impl super::SemanticParser {
 			syn::CastKind::IntToPtr => {
 				todo!("cast int-to-ptr")
 			}
-			syn::CastKind::LValueToRValue => {
-				todo!("cast lval-to-rval")
-			}
+			syn::CastKind::LValueToRValue => from_type.clone(),
+			syn::CastKind::IntToBool => DataType {
+				kind: TypeKind::Scalar(ScalarType::Bool),
+				qual: Default::default(),
+			},
 			syn::CastKind::UIToFP(inner) => DataType {
 				kind: *inner.clone(),
 				qual: Default::default(),
@@ -131,10 +133,10 @@ impl super::SemanticParser {
 			match kind {
 				syn::CastKind::BitCast => self
 					.tree_builder
-					.begin_child(format!("cast bit-cast '{from_type}' -> ?")),
+					.begin_child(format!("cast bit-cast '{from_type}' -> '{to_type}'")),
 				syn::CastKind::FnToPtr => self
 					.tree_builder
-					.begin_child(format!("cast fn-to-ptr '{from_type}' -> ?")),
+					.begin_child(format!("cast fn-to-ptr '{from_type}' -> '{to_type}'")),
 				syn::CastKind::Trunc(_) => self
 					.tree_builder
 					.begin_child(format!("cast trunc '{from_type}' -> '{to_type}'")),
@@ -146,19 +148,22 @@ impl super::SemanticParser {
 					.begin_child(format!("cast s-ext '{from_type}' -> '{to_type}'")),
 				syn::CastKind::FpTrunc => self
 					.tree_builder
-					.begin_child(format!("cast fp-trunc '{from_type}' -> ?")),
+					.begin_child(format!("cast fp-trunc '{from_type}' -> '{to_type}'")),
 				syn::CastKind::FpExt => self
 					.tree_builder
-					.begin_child(format!("cast fp-ext '{from_type}' -> ?")),
+					.begin_child(format!("cast fp-ext '{from_type}' -> '{to_type}'")),
 				syn::CastKind::PtrToInt => self
 					.tree_builder
-					.begin_child(format!("cast ptr-to-int '{from_type}' -> ?")),
+					.begin_child(format!("cast ptr-to-int '{from_type}' -> '{to_type}'")),
 				syn::CastKind::IntToPtr => self
 					.tree_builder
-					.begin_child(format!("cast int-to-ptr '{from_type}' -> ?")),
+					.begin_child(format!("cast int-to-ptr '{from_type}' -> '{to_type}'")),
 				syn::CastKind::LValueToRValue => {
 					self.tree_builder.begin_child(format!("cast lval-to-rval"))
 				}
+				syn::CastKind::IntToBool => self
+					.tree_builder
+					.begin_child(format!("cast int-to-bool '{from_type}' -> '{to_type}'")),
 				syn::CastKind::UIToFP(_) => self
 					.tree_builder
 					.begin_child(format!("cast ui-to-fp '{from_type}' -> '{to_type}'")),

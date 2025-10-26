@@ -39,6 +39,8 @@ pub enum CastKind {
 	IntToPtr,
 	/// Cost: 1
 	LValueToRValue,
+	/// Cost: 1
+	IntToBool,
 	/// Cost: 2
 	UIToFP(Box<dtype::TypeKind>),
 	/// Cost: 2

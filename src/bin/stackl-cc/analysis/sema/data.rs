@@ -303,6 +303,7 @@ impl super::SemanticParser {
 				result_score += 2;
 				Some(syn::CastKind::FPToUI(to_kind))
 			}
+			(Some(_), None) if to_scalar == ScalarType::Bool => Some(syn::CastKind::IntToBool),
 			_ => None,
 		};
 
