@@ -5,7 +5,7 @@ void test_casts(void) {
 
     // Integer truncation
     short c = (short)1000;           // int → short
-    unsigned int d = (unsigned int)10000000000UL; // long → unsigned int
+    unsigned int d = (unsigned int)10000000000UL; // unsigned long → unsigned int
 
     // Integer → float
     float f1 = 42;     // int → float

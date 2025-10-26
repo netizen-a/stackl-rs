@@ -17,7 +17,24 @@ impl super::SemanticParser {
 			}
 			syn::Expr::Ident(inner) => self.expr_identifier(inner, in_func, mut_self),
 			syn::Expr::Const(inner) => self.expr_const(inner, mut_self),
-			syn::Expr::StrLit(_inner) => DataType::POISON,
+			syn::Expr::StrLit(inner) => {
+				if self.print_ast {
+					self.tree_builder
+						.add_empty_child(format!("string-literal \"{}\"", inner.seq));
+				}
+				DataType {
+					kind: TypeKind::Array(ArrayType {
+						component: Box::new(DataType {
+							kind: TypeKind::Scalar(ScalarType::I8),
+							qual: Default::default(),
+						}),
+						length: ArrayLength::Fixed(inner.seq.len() as u32),
+						is_decayed: false,
+						has_static: false,
+					}),
+					qual: Default::default(),
+				}
+			}
 			syn::Expr::UnaryPrefix(unary) => self.expr_prefix(unary, in_func, mut_self),
 			syn::Expr::UnaryPostfix(unary) => self.expr_postfix(unary, in_func, mut_self),
 			syn::Expr::Binary(binary) => self.expr_binary(binary, in_func, mut_self),
@@ -29,7 +46,12 @@ impl super::SemanticParser {
 	}
 
 	#[inline]
-	fn expr_no_print(&mut self, expr: &mut syn::Expr, in_func: bool, mut_self: bool) -> DataType {
+	pub fn expr_no_print(
+		&mut self,
+		expr: &mut syn::Expr,
+		in_func: bool,
+		mut_self: bool,
+	) -> DataType {
 		let is_print = self.print_ast;
 		self.print_ast = false;
 		let result = self.expr(expr, in_func, mut_self);

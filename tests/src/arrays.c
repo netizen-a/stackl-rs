@@ -1,5 +1,5 @@
 int s0[] = {[0] = 5};
-// char x[12] = __DATE__;
+char x[12] = __DATE__;
 int v[*];
 int a0[];
 int s1[4294967295];
