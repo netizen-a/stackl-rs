@@ -326,7 +326,7 @@ impl super::SemanticParser {
 		if let Some(kind) = cast_kind {
 			let expr_cast = syn::ExprCast {
 				span: callee_span.to_span(),
-				kind: syn::CastKind::LValueToRValue,
+				kind,
 				expr: Box::new(expr.clone()),
 			};
 			*expr = syn::Expr::Cast(expr_cast);

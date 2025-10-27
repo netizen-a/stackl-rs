@@ -195,7 +195,7 @@ impl super::SemanticParser {
 					todo!("is_l_value: undeclared identifier")
 				}
 			}
-			syn::Expr::StrLit(_) => true,
+			syn::Expr::StrLit(_) => false,
 			syn::Expr::UnaryPrefix(unary) => matches!(unary.op.kind, syn::PrefixKind::Star),
 			_ => false,
 		}

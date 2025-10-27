@@ -50,8 +50,9 @@ impl Span {
 						length -= 1;
 					}
 				}
-				let mut line_left = line_count.checked_sub(min_column)
-					.expect(&format!("{actual_line_min}:( {line_count} <= {min_column} ):{line}"));
+				let mut line_left = line_count.checked_sub(min_column).expect(&format!(
+					"{actual_line_min}:( {line_count} <= {min_column} ):{line}"
+				));
 				let max_column = if length <= line_left {
 					min_column + length
 				} else {
@@ -79,9 +80,8 @@ pub fn calculate_location(source: &str, loc: usize) -> Option<(usize, usize)> {
 	let (mut line, mut column) = (1, 1);
 	let mut last_char = None;
 	for character in source.chars().take(loc) {
-		if let Some(
-			'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}',
-		) = last_char
+		if let Some('\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}') =
+			last_char
 		{
 			column = 1;
 			line += 1;
