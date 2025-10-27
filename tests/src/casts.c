@@ -1,11 +1,11 @@
-// struct Foo {
-//     int x;
-//     int y;
-// };
+struct Foo {
+    int x;
+    int y;
+};
 
-// struct Bar {
-//     float p;
-// };
+struct Bar {
+    float p;
+};
 
 void test_casts(void) {
     // Integer widening
@@ -32,7 +32,7 @@ void test_casts(void) {
     int b2 = 1 < 2;   // int → int
     _Bool b3 = 42;    // int → bool
 
-    unsigned int b4 = (_Bool)56; // int -> unsigned int
+    unsigned int b4 = (_Bool)56; // int → unsigned int
 
     struct Bar k;
     struct Foo j = (struct Foo)k;

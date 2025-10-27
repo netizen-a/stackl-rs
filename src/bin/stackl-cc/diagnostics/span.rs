@@ -20,42 +20,15 @@ impl ToSpan for Span {
 
 impl Span {
 	pub fn get_location(&self, source: &str) -> Option<(usize, usize)> {
-		let (mut line, mut column) = (1, 1);
-		let mut last_char = None;
-		for character in source.chars().take(self.loc.0) {
-			if let Some(
-				'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}',
-			) = last_char
-			{
-				column = 1;
-				line += 1;
-			}
-			column += 1;
-			last_char = Some(character);
-		}
-		Some((line, column))
+		calculate_location(source, self.loc.0)
 	}
 	pub fn to_vec(&self, source: &str) -> Vec<(usize, String, usize)> {
-		let (_, column) = self.get_location(source).unwrap();
+		let (actual_line_min, column) = self.get_location(source).unwrap();
 		let mut length = self.loc.1 - self.loc.0;
-		let line_min = source[..self.loc.0]
-			.chars()
-			.filter(|x| {
-				matches!(
-					*x,
-					'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}'
-				)
-			})
-			.count();
-		let line_max = source[..self.loc.1]
-			.chars()
-			.filter(|x| {
-				matches!(
-					*x,
-					'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}'
-				)
-			})
-			.count();
+		let line_min = actual_line_min - 1;
+		let (actual_line_max, _) = calculate_location(source, self.loc.1).unwrap();
+		let line_max = actual_line_max - 1;
+
 		let mut line_num = 0;
 		let mut result = vec![];
 
@@ -77,7 +50,8 @@ impl Span {
 						length -= 1;
 					}
 				}
-				let mut line_left = line_count.saturating_sub(min_column);
+				let mut line_left = line_count.checked_sub(min_column)
+					.expect(&format!("{actual_line_min}:( {line_count} <= {min_column} ):{line}"));
 				let max_column = if length <= line_left {
 					min_column + length
 				} else {
@@ -99,4 +73,21 @@ impl Span {
 		}
 		result
 	}
+}
+
+pub fn calculate_location(source: &str, loc: usize) -> Option<(usize, usize)> {
+	let (mut line, mut column) = (1, 1);
+	let mut last_char = None;
+	for character in source.chars().take(loc) {
+		if let Some(
+			'\r' | '\n' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}',
+		) = last_char
+		{
+			column = 1;
+			line += 1;
+		}
+		column += 1;
+		last_char = Some(character);
+	}
+	Some((line, column))
 }
