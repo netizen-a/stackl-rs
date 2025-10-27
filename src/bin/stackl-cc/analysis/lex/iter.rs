@@ -369,6 +369,17 @@ impl PPTokenStack {
 				};
 				return Some(Ok(pp_token));
 			}
+			"__STACKLC__" => {
+				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
+					name: "1".to_string(),
+				});
+				let pp_token = tok::PPToken {
+					kind,
+					leading_space: triple.leading_space,
+					span,
+				};
+				return Some(Ok(pp_token));
+			}
 			// This compiler is freestanding
 			"__STDC_HOSTED__" => {
 				let kind = tok::PPTokenKind::PPNumber(tok::PPNumber {
