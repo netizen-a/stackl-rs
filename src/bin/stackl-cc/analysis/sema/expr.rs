@@ -62,12 +62,7 @@ impl super::SemanticParser {
 		result
 	}
 
-	fn expr_cast(
-		&mut self,
-		cast: &mut syn::ExprCast,
-		in_func: bool,
-		mut_self: bool,
-	) -> DataType {
+	fn expr_cast(&mut self, cast: &mut syn::ExprCast, in_func: bool, mut_self: bool) -> DataType {
 		let from_type = self.expr_no_print(&mut cast.expr, in_func);
 
 		let to_type: DataType = match &mut cast.kind {

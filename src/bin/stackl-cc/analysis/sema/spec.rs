@@ -624,11 +624,13 @@ impl super::SemanticParser {
 		if let Some(ident) = &spec.ident {
 			if let Some(entry) = self.tag_table.global_lookup(&ident.name.clone()) {
 				if is_incomplete {
-					if let (TypeKind::Tag(entry_tag), TypeKind::Tag(decl_tag)) = (&entry.data_type.kind, tmp_type_kind) {
+					if let (TypeKind::Tag(entry_tag), TypeKind::Tag(decl_tag)) =
+						(&entry.data_type.kind, tmp_type_kind)
+					{
 						match (entry_tag, decl_tag) {
 							(TagKind::DeclStruct(_, _), TagKind::StubStruct(_)) => {
 								*type_kind = Some(entry.data_type.kind.clone());
-							},
+							}
 							(TagKind::DeclUnion(_, _), TagKind::StubUnion(_)) => {
 								*type_kind = Some(entry.data_type.kind.clone());
 							}

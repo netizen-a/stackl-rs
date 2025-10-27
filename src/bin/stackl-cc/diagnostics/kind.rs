@@ -29,7 +29,10 @@ pub enum DiagKind {
 	BothSpecifiers(String, String),
 	InvalidRestrict,
 	// TypeError { found: DataType, expected: DataType },
-	CastError { from_type: DataType, to_type: DataType },
+	CastError {
+		from_type: DataType,
+		to_type: DataType,
+	},
 	MultipleTypes,
 	TooLong,
 	ImplicitInt(Option<String>),

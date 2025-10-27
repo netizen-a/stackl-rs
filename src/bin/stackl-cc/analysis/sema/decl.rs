@@ -69,7 +69,6 @@ impl super::SemanticParser {
 				let from_type = &self.expr_no_print(expr, in_func);
 				let to_type = &var_dtype;
 				// TODO: fix span
-				println!("{expr:#?}");
 				self.convert_type(expr, from_type, to_type, expr.to_span());
 				if self.print_ast {
 					self.expr(expr, in_func, false);

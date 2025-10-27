@@ -248,7 +248,10 @@ impl super::SemanticParser {
 						self.convert_scalar(expr, *from_scalar, *to_scalar, callee_span.to_span());
 				}
 				_ => {
-					let kind = DiagKind::CastError { from_type: from_type.clone(), to_type: to_type.clone() };
+					let kind = DiagKind::CastError {
+						from_type: from_type.clone(),
+						to_type: to_type.clone(),
+					};
 					let error = Diagnostic::error(kind, callee_span.to_span());
 					self.diagnostics.push(error);
 					result_score = 0;
