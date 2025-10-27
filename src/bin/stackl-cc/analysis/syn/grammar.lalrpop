@@ -107,7 +107,11 @@ UnaryOperator: Prefix = {
 
 CastExpr: Expr = {
 	UnaryExpr,
-	"(" <ty:TypeName> ")" <expr:CastExpr> => Expr::Cast(CastKind::Explicit(ty), Box::new(expr)),
+	<lparen:"("> <ty:TypeName> ")" <expr:CastExpr> => Expr::Cast(ExprCast {
+		span: lparen.to_span(),
+		kind: CastKind::Explicit(ty),
+		expr: Box::new(expr),
+	}),
 };
 
 MultiplicativeExpr: Expr = {
@@ -970,7 +974,6 @@ extern {
 		"{" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LCurly), ..},
 		"}" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RCurly), ..},
 		"(" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LParen), ..},
-		")" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RParen), ..},
 		")" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RParen), ..},
 		"[" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LSquare), ..},
 		"]" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::RSquare), ..},

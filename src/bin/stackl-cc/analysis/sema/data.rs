@@ -104,7 +104,6 @@ impl super::SemanticParser {
 				let Some(member_ident) = &member_type.ident else {
 					continue;
 				};
-				println!("tag member: {}", member_ident.name);
 
 				let mut ident_list = decl_ident.clone();
 				ident_list.push(member_ident.clone());
@@ -231,7 +230,12 @@ impl super::SemanticParser {
 		}
 
 		if self.is_l_value(expr) {
-			*expr = syn::Expr::Cast(syn::CastKind::LValueToRValue, Box::new(expr.clone()));
+			let expr_cast = syn::ExprCast {
+				span: callee_span.to_span(),
+				kind: syn::CastKind::LValueToRValue,
+				expr: Box::new(expr.clone()),
+			};
+			*expr = syn::Expr::Cast(expr_cast);
 			result_score += 1;
 		}
 
@@ -243,15 +247,12 @@ impl super::SemanticParser {
 					result_score +=
 						self.convert_scalar(expr, *from_scalar, *to_scalar, callee_span.to_span());
 				}
-				(TypeKind::Array(_), TypeKind::Scalar(_)) => {
-					// invalid conversion: array -> scalar
+				_ => {
+					let kind = DiagKind::CastError { from_type: from_type.clone(), to_type: to_type.clone() };
+					let error = Diagnostic::error(kind, callee_span.to_span());
+					self.diagnostics.push(error);
 					result_score = 0;
 				}
-				(TypeKind::Scalar(_), TypeKind::Array(_)) => {
-					// invalid conversion: scalar -> array
-					result_score = 0;
-				}
-				other => todo!("{other:?}"),
 			}
 		}
 
@@ -320,7 +321,12 @@ impl super::SemanticParser {
 		};
 
 		if let Some(kind) = cast_kind {
-			*expr = syn::Expr::Cast(kind, Box::new(expr.clone()));
+			let expr_cast = syn::ExprCast {
+				span: callee_span.to_span(),
+				kind: syn::CastKind::LValueToRValue,
+				expr: Box::new(expr.clone()),
+			};
+			*expr = syn::Expr::Cast(expr_cast);
 		}
 
 		result_score

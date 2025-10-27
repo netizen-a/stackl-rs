@@ -53,6 +53,19 @@ pub enum CastKind {
 	Explicit(decl::TypeName),
 }
 
+#[derive(Debug, Clone)]
+pub struct ExprCast {
+	pub span: diag::Span,
+	pub kind: CastKind,
+	pub expr: Box<Expr>,
+}
+
+impl ToSpan for ExprCast {
+	fn to_span(&self) -> diag::Span {
+		self.span.clone()
+	}
+}
+
 /// (6.5.17) expression
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -68,7 +81,7 @@ pub enum Expr {
 	CompoundLiteral(decl::TypeName, decl::InitializerList),
 	Sizeof(decl::TypeName),
 	/// ( type-name ) expression
-	Cast(CastKind, Box<Expr>),
+	Cast(ExprCast),
 }
 
 impl ToSpan for Expr {
@@ -84,7 +97,7 @@ impl ToSpan for Expr {
 			Self::Ternary(inner) => inner.to_span(),
 			Self::CompoundLiteral(inner, _) => inner.specifiers.to_span(),
 			Self::Sizeof(inner) => inner.to_span(),
-			Self::Cast(_, inner) => inner.to_span(),
+			Self::Cast(inner) => inner.to_span(),
 		}
 	}
 }

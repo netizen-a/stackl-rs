@@ -490,6 +490,10 @@ impl DiagnosticEngine {
 				let msg0 = "unrecognized pragma is ignored";
 				self.format_diagnostic(&diag, msg0)
 			}
+			DiagKind::CastError { from_type, to_type } => {
+				let msg0 = "cast error";
+				self.format_diagnostic(&diag, msg0)
+			}
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");

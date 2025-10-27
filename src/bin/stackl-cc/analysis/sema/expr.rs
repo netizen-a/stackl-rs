@@ -28,7 +28,7 @@ impl super::SemanticParser {
 			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func, mut_self),
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
-			syn::Expr::Cast(kind, expr) => self.expr_cast(kind, expr, in_func, mut_self),
+			syn::Expr::Cast(inner) => self.expr_cast(inner, in_func, mut_self),
 		}
 	}
 
@@ -64,14 +64,13 @@ impl super::SemanticParser {
 
 	fn expr_cast(
 		&mut self,
-		kind: &mut syn::CastKind,
-		expr: &mut syn::Expr,
+		cast: &mut syn::ExprCast,
 		in_func: bool,
 		mut_self: bool,
 	) -> DataType {
-		let from_type = self.expr_no_print(expr, in_func);
+		let from_type = self.expr_no_print(&mut cast.expr, in_func);
 
-		let to_type: DataType = match kind {
+		let to_type: DataType = match &mut cast.kind {
 			syn::CastKind::BitCast => {
 				todo!("cast bit-cast")
 			}
@@ -127,12 +126,12 @@ impl super::SemanticParser {
 			},
 			syn::CastKind::Explicit(type_name) => {
 				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
-				self.unwrap_or_poison(maybe, None, expr.to_span())
+				self.unwrap_or_poison(maybe, None, cast.to_span())
 			}
 		};
 
 		if self.print_ast {
-			match kind {
+			match &cast.kind {
 				syn::CastKind::BitCast => self
 					.tree_builder
 					.begin_child(format!("cast bit-cast '{from_type}' -> '{to_type}'")),
@@ -185,7 +184,7 @@ impl super::SemanticParser {
 		}
 
 		if self.print_ast {
-			self.expr(expr, in_func, mut_self);
+			self.expr(&mut cast.expr, in_func, mut_self);
 			self.tree_builder.end_child();
 		}
 		to_type
@@ -217,7 +216,7 @@ impl super::SemanticParser {
 		let (_, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
 		let maybe = self.ordinary_table.global_lookup(&ident.name);
 		if let Some(entry) = maybe {
-			if mut_self {
+			if self.print_ast {
 				self.tree_builder.add_empty_child(format!(
 					"identifier <line:{reported_line}, col:{col}> `{}` '{}'",
 					ident.name, entry.data_type
