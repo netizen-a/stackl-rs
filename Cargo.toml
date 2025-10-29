@@ -47,3 +47,7 @@ path="src/bin/stackl-im/main.rs"
 [[bin]]
 name="stackl-cc"
 path="src/bin/stackl-cc/main.rs"
+
+[[bin]]
+name="stackl-ir"
+path="src/bin/stackl-ir/main.rs"
