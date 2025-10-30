@@ -5,7 +5,6 @@ use std::{
 
 use bitflags::bitflags;
 
-pub mod op;
 pub mod asm;
 pub mod lnk;
 pub mod ssa;

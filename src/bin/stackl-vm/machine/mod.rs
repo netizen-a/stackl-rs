@@ -9,7 +9,7 @@ use flag::{
 };
 use memory::MachineMemory;
 use stackl::{
-	op,
+	asm::op,
 	StacklFlags,
 	StacklFormatV2,
 };

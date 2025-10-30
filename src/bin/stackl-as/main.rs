@@ -1,10 +1,10 @@
 use clap::Parser;
 use lalrpop_util::lalrpop_mod;
 use lalrpop_util::ErrorRecovery;
+use stackl::asm::ast::*;
 use std::fs;
 use std::path;
 use std::process::ExitCode;
-use stackl::asm::ast::*;
 
 use crate::grammar::ProgramParser;
 use tok::{

@@ -6,7 +6,7 @@ use std::{
 use crate::sym;
 use stackl::{
 	asm::ast::*,
-	op,
+	asm::op,
 	StacklFlags,
 	StacklFormatV2,
 };
