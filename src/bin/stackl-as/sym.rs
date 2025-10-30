@@ -3,7 +3,7 @@ use std::collections::{
 	HashSet,
 };
 
-use stackl::ast::*;
+use stackl::asm::ast::*;
 
 #[derive(Debug)]
 pub struct SymTabError {

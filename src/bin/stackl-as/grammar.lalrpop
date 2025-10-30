@@ -1,4 +1,4 @@
-use stackl::ast::*;
+use stackl::asm::ast::*;
 use crate::tok::*;
 use lalrpop_util::ParseError;
 use lalrpop_util::ErrorRecovery;

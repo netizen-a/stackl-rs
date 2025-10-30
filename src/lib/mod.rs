@@ -5,10 +5,10 @@ use std::{
 
 use bitflags::bitflags;
 
-pub mod ast;
-pub mod dr;
 pub mod op;
-pub mod sr;
+pub mod asm;
+pub mod lnk;
+pub mod ssa;
 
 bitflags! {
 	#[derive(Debug, Clone, Copy)]

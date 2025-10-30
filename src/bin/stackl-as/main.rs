@@ -4,6 +4,7 @@ use lalrpop_util::ErrorRecovery;
 use std::fs;
 use std::path;
 use std::process::ExitCode;
+use stackl::asm::ast::*;
 
 use crate::grammar::ProgramParser;
 use tok::{
@@ -73,7 +74,7 @@ fn main() -> ExitCode {
 
 pub fn parse_grammar(
 	input: &str,
-) -> Result<Vec<stackl::ast::Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
+) -> Result<Vec<Stmt>, Vec<ErrorRecovery<usize, Token, LexicalError>>> {
 	let tokens = lex::Lexer::new(input);
 	let mut errors = Vec::new();
 	let mut ast = match ProgramParser::new().parse(&mut errors, tokens) {
@@ -89,8 +90,8 @@ pub fn parse_grammar(
 	// prepend .text directive in case fixup rotates vector
 	ast.insert(
 		0,
-		stackl::ast::Stmt::new(stackl::ast::Inst::Directive(
-			stackl::ast::Directive::Segment,
+		Stmt::new(Inst::Directive(
+			Directive::Segment,
 			vec![".text".to_string()],
 		)),
 	);
