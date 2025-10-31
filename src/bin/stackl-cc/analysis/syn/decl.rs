@@ -7,6 +7,7 @@ use std::{
 
 use super::expr;
 use super::Identifier;
+use crate::data_type::DataType;
 use crate::diagnostics::Span;
 use crate::{
 	analysis::tok,
@@ -37,6 +38,7 @@ pub struct Specifiers {
 	pub is_volatile: bool,
 	pub restrict_list: Vec<diag::Span>,
 	pub inline_list: Vec<diag::Span>,
+	pub data_type: Option<Box<DataType>>,
 }
 
 impl From<Vec<SpecifierKind>> for Specifiers {

@@ -22,10 +22,22 @@ impl Builder {
 	pub fn nop(&mut self) -> Result<(), Error> {
 		self.inst_list.push(data::Instruction {
 			opcode: data::Opcode::Nop,
-			operand: vec![],
+			result_id: None,
+			result_type: None,
+			operand: [].into(),
 		});
 		Ok(())
 	}
+    pub fn add(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+		let id = self.id();
+        self.inst_list.push(data::Instruction {
+            opcode: data::Opcode::Add,
+			result_id: Some(id),
+			result_type: Some(result_type),
+            operand: operands.into()
+        });
+        Ok(id)
+    }
 	pub fn build(self) -> data::Module {
 		todo!()
 	}
