@@ -24,20 +24,60 @@ impl Builder {
 			opcode: data::Opcode::Nop,
 			result_id: None,
 			result_type: None,
-			operand: [].into(),
+			operands: [].into(),
 		});
 		Ok(())
 	}
-    pub fn add(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+	pub fn i_add(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
 		let id = self.id();
-        self.inst_list.push(data::Instruction {
-            opcode: data::Opcode::Add,
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::IAdd,
 			result_id: Some(id),
 			result_type: Some(result_type),
-            operand: operands.into()
-        });
-        Ok(id)
-    }
+			operands: operands.into(),
+		});
+		Ok(id)
+	}
+	pub fn i_sub(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+		let id = self.id();
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::ISub,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: operands.into(),
+		});
+		Ok(id)
+	}
+	pub fn i_mul(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+		let id = self.id();
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::IMul,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: operands.into(),
+		});
+		Ok(id)
+	}
+	pub fn s_div(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+		let id = self.id();
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::SDiv,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: operands.into(),
+		});
+		Ok(id)
+	}
+	pub fn s_mod(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+		let id = self.id();
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::SMod,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: operands.into(),
+		});
+		Ok(id)
+	}
 	pub fn build(self) -> data::Module {
 		todo!()
 	}
