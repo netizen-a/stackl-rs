@@ -78,6 +78,25 @@ impl Builder {
 		});
 		Ok(id)
 	}
+	pub fn load(&mut self, result_type: u32, pointer: u32) -> Result<u32, Error> {
+		let id = self.id();
+        self.inst_list.push(data::Instruction {
+            opcode: data::Opcode::Load,
+			result_id: Some(id),
+			result_type: Some(result_type),
+            operands: [pointer].into(),
+        });
+        Ok(id)
+    }
+	pub fn store(&mut self, pointer: u32, object: u32) -> Result<(), Error> {
+        self.inst_list.push(data::Instruction {
+            opcode: data::Opcode::Store,
+			result_id: None,
+			result_type: None,
+            operands: [pointer, object].into(),
+        });
+        Ok(())
+    }
 	pub fn build(self) -> data::Module {
 		todo!()
 	}
