@@ -97,6 +97,24 @@ impl Builder {
         });
         Ok(())
     }
+	pub fn ret(&mut self) -> Result<(), Error> {
+        self.inst_list.push(data::Instruction {
+            opcode: data::Opcode::Ret,
+			result_id: None,
+			result_type: None,
+            operands: [].into(),
+        });
+        Ok(())
+    }
+	pub fn ret_value(&mut self, operand: u32) -> Result<(), Error> {
+        self.inst_list.push(data::Instruction {
+            opcode: data::Opcode::RetValue,
+			result_id: None,
+			result_type: None,
+            operands: [operand].into(),
+        });
+        Ok(())
+    }
 	pub fn build(self) -> data::Module {
 		todo!()
 	}
