@@ -26,6 +26,7 @@ pub enum Opcode {
 	TypeInt,
 	TypeFloat,
 	TypeArray,
+	TypePointer,
 	Halt,
 	LifetimeStart,
 	LifetimeEnd,

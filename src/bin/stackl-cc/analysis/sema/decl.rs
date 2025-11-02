@@ -76,7 +76,6 @@ impl super::SemanticParser {
 					},
 				);
 				let to_type = &var_dtype;
-				// TODO: fix span
 				self.convert_type(expr, from_type, to_type, expr.to_span());
 				if self.print_ast {
 					self.expr(
