@@ -363,7 +363,7 @@ impl DiagnosticEngine {
 				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::InitializerNotConst => {
-				let msg0 = "initializer element is not constant";
+				let msg0 = "initializer element is not a compile-time constant";
 				self.format_diagnostic(&diag, msg0)
 			}
 			DiagKind::EnumNonIntegral(name) => {
