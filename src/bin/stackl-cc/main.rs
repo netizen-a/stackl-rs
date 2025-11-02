@@ -22,6 +22,8 @@ use analysis::{
 	tok,
 };
 
+use synthesis::icg;
+
 fn main() -> ExitCode {
 	let args = cli::Args::parse();
 	let enable_color = match args.enable_color {
@@ -86,7 +88,7 @@ fn main() -> ExitCode {
 
 	let timer = time::Instant::now();
 	let mut semantic_parser = sema::SemanticParser::new(diag_engine, &args);
-	semantic_parser.parse(unit);
+	let maybe_unit = semantic_parser.parse(unit);
 
 	let duration = time::Instant::now().duration_since(timer);
 	since_array.push((duration, "semantic parser time"));
@@ -112,6 +114,12 @@ fn main() -> ExitCode {
 	if args.ast {
 		ptree::print_tree(&semantic_parser.build_tree());
 	}
+
+	let Some(unit) = maybe_unit else {
+		return ExitCode::FAILURE;
+	};
+
+	let _ssa_module = icg::SSACodeGen::new().build(&unit);
 	ExitCode::SUCCESS
 }
 

@@ -47,7 +47,7 @@ impl SemanticParser {
 	pub fn parse(
 		&mut self,
 		mut unit: Vec<syn::ExternalDeclaration>,
-	) -> Option<Vec<syn::ExternalDeclaration>> {
+	) -> Option<Box<[syn::ExternalDeclaration]>> {
 		use syn::ExternalDeclaration::*;
 		let mut is_valid = true;
 		for external_decl in unit.iter_mut() {
@@ -64,7 +64,7 @@ impl SemanticParser {
 			}
 		}
 		match is_valid {
-			true => Some(unit),
+			true => Some(unit.into_boxed_slice()),
 			false => None,
 		}
 	}

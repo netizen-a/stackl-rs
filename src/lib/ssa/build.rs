@@ -80,41 +80,41 @@ impl Builder {
 	}
 	pub fn load(&mut self, result_type: u32, pointer: u32) -> Result<u32, Error> {
 		let id = self.id();
-        self.inst_list.push(data::Instruction {
-            opcode: data::Opcode::Load,
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::Load,
 			result_id: Some(id),
 			result_type: Some(result_type),
-            operands: [pointer].into(),
-        });
-        Ok(id)
-    }
+			operands: [pointer].into(),
+		});
+		Ok(id)
+	}
 	pub fn store(&mut self, pointer: u32, object: u32) -> Result<(), Error> {
-        self.inst_list.push(data::Instruction {
-            opcode: data::Opcode::Store,
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::Store,
 			result_id: None,
 			result_type: None,
-            operands: [pointer, object].into(),
-        });
-        Ok(())
-    }
+			operands: [pointer, object].into(),
+		});
+		Ok(())
+	}
 	pub fn ret(&mut self) -> Result<(), Error> {
-        self.inst_list.push(data::Instruction {
-            opcode: data::Opcode::Ret,
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::Ret,
 			result_id: None,
 			result_type: None,
-            operands: [].into(),
-        });
-        Ok(())
-    }
+			operands: [].into(),
+		});
+		Ok(())
+	}
 	pub fn ret_value(&mut self, operand: u32) -> Result<(), Error> {
-        self.inst_list.push(data::Instruction {
-            opcode: data::Opcode::RetValue,
+		self.inst_list.push(data::Instruction {
+			opcode: data::Opcode::RetValue,
 			result_id: None,
 			result_type: None,
-            operands: [operand].into(),
-        });
-        Ok(())
-    }
+			operands: [operand].into(),
+		});
+		Ok(())
+	}
 	pub fn build(self) -> data::Module {
 		todo!()
 	}
