@@ -6,37 +6,43 @@ use crate::{
 	data_type::*,
 };
 
+pub struct ExprContext {
+	pub in_func: bool,
+	pub is_mut: bool,
+	pub enabled_diag: bool,
+}
+
 impl super::SemanticParser {
-	pub(super) fn expr(&mut self, expr: &mut syn::Expr, in_func: bool, mut_self: bool) -> DataType {
+	pub(super) fn expr(&mut self, expr: &mut syn::Expr, context: &ExprContext) -> DataType {
 		match expr {
 			syn::Expr::Paren(inner) => {
 				if self.print_ast {
 					self.tree_builder.begin_child("( expression )".to_string());
 				}
-				let result = self.expr(inner, in_func, mut_self);
+				let result = self.expr(inner, context);
 				if self.print_ast {
 					self.tree_builder.end_child();
 				}
 				result
 			}
-			syn::Expr::Ident(inner) => self.expr_identifier(inner, in_func, mut_self),
-			syn::Expr::Const(inner) => self.expr_const(inner, mut_self),
+			syn::Expr::Ident(inner) => self.expr_identifier(inner, context),
+			syn::Expr::Const(inner) => self.expr_const(inner, context),
 			syn::Expr::StrLit(inner) => self.expr_string_literal(inner),
-			syn::Expr::UnaryPrefix(unary) => self.expr_prefix(unary, in_func, mut_self),
-			syn::Expr::UnaryPostfix(unary) => self.expr_postfix(unary, in_func, mut_self),
-			syn::Expr::Binary(binary) => self.expr_binary(binary, in_func, mut_self),
-			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, in_func, mut_self),
+			syn::Expr::UnaryPrefix(unary) => self.expr_prefix(unary, context),
+			syn::Expr::UnaryPostfix(unary) => self.expr_postfix(unary, context),
+			syn::Expr::Binary(binary) => self.expr_binary(binary, context),
+			syn::Expr::Ternary(ternary) => self.expr_ternary(ternary, context),
 			syn::Expr::CompoundLiteral(_, _) => DataType::POISON,
 			syn::Expr::Sizeof(_) => DataType::POISON,
-			syn::Expr::Cast(inner) => self.expr_cast(inner, in_func, mut_self),
+			syn::Expr::Cast(inner) => self.expr_cast(inner, context),
 		}
 	}
 
 	#[inline]
-	pub fn expr_no_print(&mut self, expr: &mut syn::Expr, in_func: bool) -> DataType {
+	pub fn expr_no_print(&mut self, expr: &mut syn::Expr, context: &ExprContext) -> DataType {
 		let is_print = self.print_ast;
 		self.print_ast = false;
-		let result = self.expr(expr, in_func, true);
+		let result = self.expr(expr, context);
 		self.print_ast = is_print;
 		result
 	}
@@ -62,8 +68,8 @@ impl super::SemanticParser {
 		result
 	}
 
-	fn expr_cast(&mut self, cast: &mut syn::ExprCast, in_func: bool, mut_self: bool) -> DataType {
-		let from_type = self.expr_no_print(&mut cast.expr, in_func);
+	fn expr_cast(&mut self, cast: &mut syn::ExprCast, context: &ExprContext) -> DataType {
+		let from_type = self.expr_no_print(&mut cast.expr, context);
 
 		let to_type: DataType = match &mut cast.kind {
 			syn::CastKind::BitCast => {
@@ -120,7 +126,7 @@ impl super::SemanticParser {
 				qual: Default::default(),
 			},
 			syn::CastKind::Explicit(type_name) => {
-				let maybe = self.specifiers_dtype(&mut type_name.specifiers, in_func);
+				let maybe = self.specifiers_dtype(&mut type_name.specifiers, context.in_func);
 				self.unwrap_or_poison(maybe, None, cast.to_span())
 			}
 		};
@@ -179,7 +185,7 @@ impl super::SemanticParser {
 		}
 
 		if self.print_ast {
-			self.expr(&mut cast.expr, in_func, mut_self);
+			self.expr(&mut cast.expr, context);
 			self.tree_builder.end_child();
 		}
 		to_type
@@ -201,12 +207,7 @@ impl super::SemanticParser {
 		}
 	}
 
-	fn expr_identifier(
-		&mut self,
-		ident: &mut syn::Identifier,
-		in_func: bool,
-		mut_self: bool,
-	) -> DataType {
+	fn expr_identifier(&mut self, ident: &mut syn::Identifier, context: &ExprContext) -> DataType {
 		let span = ident.to_span();
 		let (_, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
 		let maybe = self.ordinary_table.global_lookup(&ident.name);
@@ -217,15 +218,15 @@ impl super::SemanticParser {
 					ident.name, entry.data_type
 				));
 			}
-			if !in_func && !entry.is_constant() {
-				let kind = DiagKind::InitializerNotConst;
-				let error = Diagnostic::error(kind, span);
+			if context.enabled_diag && !context.in_func && !entry.is_constant() {
+				eprintln!("expr-ident: {}, {}", context.in_func, context.is_mut);
+				let error = Diagnostic::error(DiagKind::InitializerNotConst, span);
 				self.diagnostics.push(error);
 			}
 		} else {
 			let kind = DiagKind::SymbolUndeclared {
 				name: ident.name.clone(),
-				in_func,
+				in_func: context.in_func,
 			};
 			let error = Diagnostic::error(kind, span);
 			self.diagnostics.push(error);
@@ -237,14 +238,13 @@ impl super::SemanticParser {
 	pub(super) fn expr_prefix(
 		&mut self,
 		unary: &mut syn::UnaryPrefix,
-		in_func: bool,
-		mut_self: bool,
+		context: &ExprContext,
 	) -> DataType {
 		let mut result = DataType::POISON;
 		match &unary.op.kind {
 			syn::PrefixKind::Amp => {
 				self.tree_builder.begin_child("expr-prefix &".to_string());
-				let inner_type = self.expr(&mut *unary.expr, in_func, mut_self);
+				let inner_type = self.expr(&mut *unary.expr, context);
 				if !inner_type.is_poisoned() {
 					result = DataType {
 						kind: TypeKind::Pointer(Box::new(inner_type)),
@@ -254,7 +254,7 @@ impl super::SemanticParser {
 			}
 			syn::PrefixKind::Star => {
 				self.tree_builder.begin_child("expr-prefix *".to_string());
-				let inner_type = self.expr(&mut *unary.expr, in_func, mut_self);
+				let inner_type = self.expr(&mut *unary.expr, context);
 				if !inner_type.is_poisoned() {
 					result = DataType {
 						kind: inner_type.kind,
@@ -270,8 +270,7 @@ impl super::SemanticParser {
 	pub(super) fn expr_postfix(
 		&mut self,
 		unary: &mut syn::UnaryPostfix,
-		in_func: bool,
-		mut_self: bool,
+		context: &ExprContext,
 	) -> DataType {
 		let _ = match unary.op.kind {
 			syn::PostfixKind::Array(_) => {
@@ -285,15 +284,14 @@ impl super::SemanticParser {
 			syn::PostfixKind::Inc => self.tree_builder.begin_child("postfix `++`".to_string()),
 			syn::PostfixKind::Dec => self.tree_builder.begin_child("postfix `--`".to_string()),
 		};
-		self.expr(&mut *unary.expr, in_func, mut_self);
+		self.expr(&mut *unary.expr, context);
 		self.tree_builder.end_child();
 		DataType::POISON
 	}
 	pub(super) fn expr_binary(
 		&mut self,
 		binary: &mut syn::ExprBinary,
-		in_func: bool,
-		mut_self: bool,
+		context: &ExprContext,
 	) -> DataType {
 		if self.print_ast {
 			match &binary.op.kind {
@@ -329,11 +327,11 @@ impl super::SemanticParser {
 				syn::BinOpKind::Great => self.tree_builder.begin_child(">".to_string()),
 			};
 		}
-		let mut l_type = self.expr_no_print(&mut *binary.left, in_func);
-		let mut r_type = self.expr_no_print(&mut *binary.right, in_func);
+		let mut l_type = self.expr_no_print(&mut *binary.left, context);
+		let mut r_type = self.expr_no_print(&mut *binary.right, context);
 
 		// add implicit casts to the ast.
-		let result = if mut_self {
+		let result = if context.is_mut {
 			let l_score =
 				self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
 			let r_score =
@@ -348,8 +346,13 @@ impl super::SemanticParser {
 		};
 
 		if self.print_ast {
-			self.expr(&mut *binary.left, in_func, false);
-			self.expr(&mut *binary.right, in_func, false);
+			let print_ast_context = ExprContext {
+				in_func: context.in_func,
+				is_mut: false,
+				enabled_diag: context.enabled_diag,
+			};
+			self.expr(&mut *binary.left, &print_ast_context);
+			self.expr(&mut *binary.right, &print_ast_context);
 			self.tree_builder.end_child();
 		}
 		result
@@ -357,17 +360,20 @@ impl super::SemanticParser {
 	pub(super) fn expr_ternary(
 		&mut self,
 		ternary: &mut syn::ExprTernary,
-		in_func: bool,
-		mut_self: bool,
+		context: &ExprContext,
 	) -> DataType {
 		self.tree_builder.begin_child("ternary `?:`".to_string());
-		self.expr(&mut *ternary.expr_cond, in_func, mut_self);
-		self.expr(&mut *ternary.expr_then, in_func, mut_self);
-		self.expr(&mut *ternary.expr_else, in_func, mut_self);
+		self.expr(&mut *ternary.expr_cond, context);
+		self.expr(&mut *ternary.expr_then, context);
+		self.expr(&mut *ternary.expr_else, context);
 		self.tree_builder.end_child();
 		DataType::POISON
 	}
-	pub(super) fn expr_const(&mut self, constant: &mut Constant, mut_self: bool) -> DataType {
+	pub(super) fn expr_const(
+		&mut self,
+		constant: &mut Constant,
+		context: &ExprContext,
+	) -> DataType {
 		use syn::ConstantKind::*;
 		use syn::FloatingKind::*;
 		use syn::IntegerKind::*;

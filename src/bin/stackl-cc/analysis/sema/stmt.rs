@@ -1,3 +1,4 @@
+use super::expr::ExprContext;
 use crate::analysis::syn::*;
 use crate::diagnostics as diag;
 
@@ -31,7 +32,12 @@ impl super::SemanticParser {
 			Stmt::Compound(inner) => self.compound_stmt(inner),
 			Stmt::Expr(expr_stmt) => {
 				if let Some(expr) = &mut expr_stmt.0 {
-					is_valid &= !self.expr(expr, true, true).is_poisoned();
+					let expr_context = ExprContext {
+						in_func: true,
+						is_mut: true,
+						enabled_diag: true,
+					};
+					is_valid &= !self.expr(expr, &expr_context).is_poisoned();
 				}
 			}
 			Stmt::Select(stmt) => {
@@ -92,7 +98,12 @@ impl super::SemanticParser {
 			let mut diag = diag::Diagnostic::warn(diag::DiagKind::IfAssign, span.clone());
 			self.diagnostics.push(diag);
 		}
-		self.expr(stmt_cond, true, true);
+		let expr_context = ExprContext {
+			in_func: true,
+			is_mut: true,
+			enabled_diag: true,
+		};
+		self.expr(stmt_cond, &expr_context);
 		self.tree_builder.end_child();
 	}
 	fn stmt_then(&mut self, stmt_then: &mut Stmt) {

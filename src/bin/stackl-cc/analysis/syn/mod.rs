@@ -32,7 +32,7 @@ impl TryFrom<tok::Token> for Identifier {
 			}),
 			_ => {
 				let error = diag::Diagnostic::fatal(
-					diag::DiagKind::Internal("failed to parse identifier".to_string()),
+					diag::DiagKind::Internal("failed to parse identifier"),
 					Some(token.span),
 				);
 				Err(error)
@@ -135,7 +135,7 @@ impl TryFrom<tok::Token> for Constant {
 			}),
 			_ => {
 				let error = diag::Diagnostic::fatal(
-					diag::DiagKind::Internal("failed to parse constant".to_string()),
+					diag::DiagKind::Internal("failed to parse constant"),
 					Some(token.span),
 				);
 				Err(error)

@@ -1,5 +1,6 @@
 use std::cell::OnceCell;
 
+use super::expr::ExprContext;
 use crate::analysis::sema::DeclType;
 use crate::analysis::syn;
 use crate::analysis::tok;
@@ -66,12 +67,26 @@ impl super::SemanticParser {
 			);
 			self.tree_builder.begin_child(text);
 			if let Some(syn::Initializer::Expr(expr)) = &mut init_decl.initializer {
-				let from_type = &self.expr_no_print(expr, in_func);
+				let from_type = &self.expr_no_print(
+					expr,
+					&ExprContext {
+						in_func,
+						is_mut: true,
+						enabled_diag: false,
+					},
+				);
 				let to_type = &var_dtype;
 				// TODO: fix span
 				self.convert_type(expr, from_type, to_type, expr.to_span());
 				if self.print_ast {
-					self.expr(expr, in_func, false);
+					self.expr(
+						expr,
+						&ExprContext {
+							in_func,
+							is_mut: false,
+							enabled_diag: false,
+						},
+					);
 				}
 			}
 
@@ -166,7 +181,12 @@ impl super::SemanticParser {
 					}
 					Some(Err(syn::ConversionError::Expr(mut expr))) => {
 						// collect errors from expression first
-						is_valid &= !self.expr(&mut expr, in_func, true).is_poisoned();
+						let expr_context = ExprContext {
+							in_func,
+							is_mut: true,
+							enabled_diag: true,
+						};
+						is_valid &= !self.expr(&mut expr, &expr_context).is_poisoned();
 						if is_valid {
 							let kind = DiagKind::NonIntConstExpr;
 							let diag = Diagnostic::error(kind, member_span.clone());
@@ -217,7 +237,12 @@ impl super::SemanticParser {
 	) -> Vec<(syn::Expr, DataType, u32)> {
 		match init {
 			syn::Initializer::Expr(expr) => {
-				vec![(expr.clone(), self.expr_no_print(expr, in_func), 0)]
+				let expr_context = ExprContext {
+					in_func,
+					is_mut: true,
+					enabled_diag: true,
+				};
+				vec![(expr.clone(), self.expr_no_print(expr, &expr_context), 0)]
 			}
 			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
 				self.tree_builder
