@@ -1,5 +1,5 @@
 // intermediate code generation
-//mod icg;
+mod icg;
 // optimizer
 //mod opt;
 // output code generation
