@@ -1,6 +1,16 @@
 use super::data;
 use super::Error;
 
+macro_rules! return_if_detached {
+	($in_func:expr, $instruction:ident) => {
+		if !$in_func {
+			// type check macro here.
+			let instruction: data::Instruction = $instruction;
+			return Err(Error::DetachedInstruction(Some(instruction)));
+		}
+	};
+}
+
 pub struct Builder {
 	type_list: Vec<data::Instruction>,
 	decl_list: Vec<data::Instruction>,
@@ -32,9 +42,7 @@ impl Builder {
 			result_type: None,
 			operands: [].into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(())
 	}
@@ -46,9 +54,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: operands.into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
@@ -60,9 +66,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: operands.into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.decl_list.push(instruction);
 		Ok(id)
 	}
@@ -74,9 +78,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: operands.into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
@@ -88,9 +90,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: operands.into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
@@ -102,9 +102,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: operands.into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
@@ -116,9 +114,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [pointer].into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
@@ -129,9 +125,7 @@ impl Builder {
 			result_type: None,
 			operands: [pointer, object].into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(())
 	}
@@ -142,9 +136,7 @@ impl Builder {
 			result_type: None,
 			operands: [].into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(())
 	}
@@ -155,9 +147,7 @@ impl Builder {
 			result_type: None,
 			operands: [operand].into(),
 		};
-		if !self.in_func {
-			return Err(Error::DetachedInstruction(Some(instruction)))
-		}
+		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(())
 	}
@@ -204,7 +194,12 @@ impl Builder {
 		});
 		Ok(id)
 	}
-	pub fn variable(&mut self, result_type: u32, storage_class: u32, initializer: Option<u32>) -> Result<u32, Error> {
+	pub fn variable(
+		&mut self,
+		result_type: u32,
+		storage_class: u32,
+		initializer: Option<u32>,
+	) -> Result<u32, Error> {
 		let id = self.id();
 		let mut operands = vec![storage_class];
 		if let Some(initializer) = initializer {
