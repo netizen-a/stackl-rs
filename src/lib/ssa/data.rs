@@ -48,6 +48,7 @@ pub enum Opcode {
 	DecorateId,
 	DecorateString,
 	MemberDecorateString,
+	Variable,
 }
 
 pub struct Instruction {
