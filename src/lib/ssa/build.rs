@@ -194,6 +194,22 @@ impl Builder {
 		});
 		Ok(id)
 	}
+	pub fn type_function(
+		&mut self,
+		return_type: u32,
+		parameter_types: &[u32],
+	) -> Result<u32, Error> {
+		let id = self.id();
+		let mut operands = vec![return_type];
+		operands.extend_from_slice(parameter_types);
+		self.type_list.push(data::Instruction {
+			opcode: data::Opcode::TypePointer,
+			result_id: Some(id),
+			result_type: None,
+			operands: operands.into(),
+		});
+		Ok(id)
+	}
 	pub fn variable(
 		&mut self,
 		result_type: u32,
