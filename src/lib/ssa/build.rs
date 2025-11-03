@@ -217,4 +217,43 @@ impl Builder {
 		}
 		Ok(id)
 	}
+	pub fn function_begin(&mut self, result_type: u32, mask: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::Function,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [mask].into(),
+		};
+		if self.in_func {
+			return Err(Error::NestedFunction);
+		}
+		self.func_list.push(instruction);
+		self.in_func = true;
+		Ok(id)
+	}
+	pub fn function_parameter(&mut self, result_type: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FunctionParameter,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
+	pub fn function_end(&mut self) -> Result<(), Error> {
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FunctionEnd,
+			result_id: None,
+			result_type: None,
+			operands: [].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		self.in_func = false;
+		Ok(())
+	}
 }

@@ -4,4 +4,5 @@ pub mod data;
 pub enum Error {
 	UnusedId,
 	DetachedInstruction(Option<data::Instruction>),
+	NestedFunction,
 }
