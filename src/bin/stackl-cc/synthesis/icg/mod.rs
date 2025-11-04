@@ -2,6 +2,7 @@
 
 mod decl;
 mod func;
+mod layout;
 
 use crate::analysis::syn;
 use crate::diagnostics::{
