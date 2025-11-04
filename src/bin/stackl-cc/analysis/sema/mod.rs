@@ -18,8 +18,14 @@ enum DeclType {
 	Decl,
 }
 
+#[derive(Clone)]
+struct LabelContext {
+	pub label: Option<Span>,
+	pub gotos: Vec<Span>,
+}
+
 pub struct SemanticParser {
-	label_table: sym::SymbolTable<String, Span>,
+	label_table: sym::SymbolTable<String, LabelContext>,
 	tag_table: sym::SymbolTable,
 	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
@@ -72,7 +78,6 @@ impl SemanticParser {
 		self.tree_builder.build()
 	}
 	pub(self) fn increase_scope(&mut self) {
-		self.label_table.increase_scope();
 		self.tag_table.increase_scope();
 		self.member_table.increase_scope();
 		self.ordinary_table.increase_scope();
@@ -86,7 +91,6 @@ impl SemanticParser {
 			}
 		}
 		// TODO: check if any types are incomplete
-		self.label_table.decrease_scope();
 		self.tag_table.decrease_scope();
 		self.member_table.decrease_scope();
 		self.ordinary_table.decrease_scope();

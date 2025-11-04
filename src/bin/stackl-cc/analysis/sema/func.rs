@@ -178,6 +178,7 @@ impl super::SemanticParser {
 		}
 
 		self.increase_scope();
+		self.label_table.increase_scope();
 		{
 			for (decl_maybe, decl_type, type_span) in declaration_list.iter() {
 				let Some(decl_ident) = decl_maybe else {
@@ -232,6 +233,7 @@ impl super::SemanticParser {
 			}
 			self.tree_builder.end_child();
 		}
+		self.label_table.decrease_scope();
 		self.decrease_scope();
 		self.tree_builder.end_child();
 		return true;
