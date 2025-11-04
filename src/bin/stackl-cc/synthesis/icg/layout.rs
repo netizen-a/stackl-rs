@@ -1,18 +1,12 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ScalarLayout {
-	Bool,
-	I8,
-	U8,
-	I16,
-	U16,
-	I32,
-	U32,
-	I64,
-	U64,
-	I128,
-	U128,
-	F32,
-	F64,
+#[derive(Debug, Clone)]
+pub struct IntegerLayout {
+	pub width: u32,
+	pub is_signed: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct FloatLayout {
+	pub width: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -31,9 +25,16 @@ pub struct FunctionLayout {
 }
 
 #[derive(Debug, Clone)]
+pub struct StructLayout(Box<[Layout]>);
+
+#[derive(Debug, Clone)]
 pub enum Layout {
-	Scalar(ScalarLayout),
+	Void,
+	Bool,
+	Pointer(Box<Layout>),
+	Integer(IntegerLayout),
 	Array(ArrayLayout),
 	RuntimeArray(RuntimeArrayLayout),
 	Function(FunctionLayout),
+	Struct(StructLayout),
 }
