@@ -5,6 +5,8 @@ mod func;
 mod spec;
 mod stmt;
 
+use std::collections::HashSet;
+
 use crate::analysis::syn;
 use crate::cli;
 use crate::data_type::DataType;
@@ -29,6 +31,7 @@ pub struct SemanticParser {
 	tag_table: sym::SymbolTable,
 	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
+	data_types: HashSet<DataType>,
 	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
@@ -43,6 +46,7 @@ impl SemanticParser {
 			tag_table: sym::SymbolTable::new(),
 			member_table: sym::SymbolTable::new(),
 			ordinary_table: sym::SymbolTable::new(),
+			data_types: HashSet::new(),
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,
@@ -91,6 +95,11 @@ impl SemanticParser {
 			}
 		}
 		// TODO: check if any types are incomplete
+		// for (tag, entry) in self.tag_table.iter_current_scope().unwrap() {
+		// 	if !entry.data_type.is_incomplete() {
+		// 		self.data_types.insert()
+		// 	}
+		// }
 		self.tag_table.decrease_scope();
 		self.member_table.decrease_scope();
 		self.ordinary_table.decrease_scope();

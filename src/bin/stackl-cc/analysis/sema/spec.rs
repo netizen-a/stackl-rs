@@ -599,26 +599,18 @@ impl super::SemanticParser {
 
 		let tmp_type_kind: TypeKind;
 		match spec.struct_or_union.kind {
-			syn::StructOrUnionKind::Struct => match (&spec.ident, is_incomplete) {
-				(Some(ident), false) => {
-					tmp_type_kind = TypeKind::Tag(TagKind::DeclStruct(ident.name.clone(), members))
-				}
-				(Some(ident), true) => {
-					tmp_type_kind = TypeKind::Tag(TagKind::StubStruct(ident.name.clone()))
-				}
-				(None, false) => tmp_type_kind = TypeKind::Tag(TagKind::AnonStruct(members)),
-				(None, true) => unreachable!("syntactically impossible struct"),
-			},
-			syn::StructOrUnionKind::Union => match (&spec.ident, is_incomplete) {
-				(Some(ident), false) => {
-					tmp_type_kind = TypeKind::Tag(TagKind::DeclUnion(ident.name.clone(), members))
-				}
-				(Some(ident), true) => {
-					tmp_type_kind = TypeKind::Tag(TagKind::StubUnion(ident.name.clone()))
-				}
-				(None, false) => tmp_type_kind = TypeKind::Tag(TagKind::AnonUnion(members)),
-				(None, true) => unreachable!("syntactically impossible union"),
-			},
+			syn::StructOrUnionKind::Struct => {
+				tmp_type_kind = TypeKind::Tag(TagKind::Struct(
+					spec.ident.as_ref().map(|id| id.name.clone()),
+					members,
+				))
+			}
+			syn::StructOrUnionKind::Union => {
+				tmp_type_kind = TypeKind::Tag(TagKind::Union(
+					spec.ident.as_ref().map(|id| id.name.clone()),
+					members,
+				))
+			}
 		}
 
 		if let Some(ident) = &spec.ident {
@@ -628,10 +620,16 @@ impl super::SemanticParser {
 						(&entry.data_type.kind, tmp_type_kind)
 					{
 						match (entry_tag, decl_tag) {
-							(TagKind::DeclStruct(_, _), TagKind::StubStruct(_)) => {
+							(
+								TagKind::Struct(Some(_), decl_body),
+								TagKind::Struct(Some(_), stub_body),
+							) if stub_body.is_empty() && !decl_body.is_empty() => {
 								*type_kind = Some(entry.data_type.kind.clone());
 							}
-							(TagKind::DeclUnion(_, _), TagKind::StubUnion(_)) => {
+							(
+								TagKind::Union(Some(_), decl_body),
+								TagKind::Union(Some(_), stub_body),
+							) if stub_body.is_empty() && !decl_body.is_empty() => {
 								*type_kind = Some(entry.data_type.kind.clone());
 							}
 							_ => {
@@ -746,17 +744,10 @@ impl super::SemanticParser {
 			index += 1;
 		}
 		let tmp_type_kind: TypeKind;
-		match (&spec.identifier, is_incomplete) {
-			(Some(ident), false) => {
-				tmp_type_kind =
-					TypeKind::Tag(TagKind::DeclEnum(ident.name.clone(), enumerator_list))
-			}
-			(Some(ident), true) => {
-				tmp_type_kind = TypeKind::Tag(TagKind::StubEnum(ident.name.clone()))
-			}
-			(None, false) => tmp_type_kind = TypeKind::Tag(TagKind::AnonEnum(enumerator_list)),
-			(None, true) => unreachable!("syntactically impossible struct"),
-		}
+		tmp_type_kind = TypeKind::Tag(TagKind::Enum(
+			spec.identifier.as_ref().map(|id| id.name.clone()),
+			enumerator_list,
+		));
 		*type_kind = Some(tmp_type_kind);
 	}
 }

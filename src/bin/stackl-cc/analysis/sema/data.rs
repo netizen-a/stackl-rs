@@ -9,9 +9,9 @@ type CastScore = usize;
 impl super::SemanticParser {
 	pub(super) fn declare_tag(&mut self, data_type: &DataType, span: Span) {
 		let name = match &data_type.kind {
-			TypeKind::Tag(TagKind::DeclStruct(name, _)) => name,
-			TypeKind::Tag(TagKind::DeclUnion(name, _)) => name,
-			TypeKind::Tag(TagKind::DeclEnum(name, enumerator_list)) => {
+			TypeKind::Tag(TagKind::Struct(Some(name), _)) => name,
+			TypeKind::Tag(TagKind::Union(Some(name), _)) => name,
+			TypeKind::Tag(TagKind::Enum(Some(name), enumerator_list)) => {
 				for (const_ident, const_val) in enumerator_list.iter() {
 					let const_type = DataType {
 						kind: TypeKind::EnumConst(EnumConst {
@@ -91,10 +91,8 @@ impl super::SemanticParser {
 	pub fn declare_members(&mut self, decl_ident: Vec<syn::Identifier>, decl_type: &DataType) {
 		if let TypeKind::Tag(tag_kind) = &decl_type.kind {
 			let member_type_list: &Vec<MemberType> = match tag_kind {
-				TagKind::AnonStruct(inner) => inner,
-				TagKind::AnonUnion(inner) => inner,
-				TagKind::DeclStruct(_, inner) => inner,
-				TagKind::DeclUnion(_, inner) => inner,
+				TagKind::Struct(_, inner) => inner,
+				TagKind::Union(_, inner) => inner,
 				_ => {
 					// don't care
 					return;

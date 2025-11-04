@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::analysis::syn;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ScalarType {
 	Bool,
 	I8,
@@ -108,7 +108,7 @@ pub struct ArrayType {
 	pub has_static: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct TypeQual {
 	pub is_const: bool,
 	pub is_volatile: bool,
@@ -148,15 +148,9 @@ pub struct EnumConst {
 
 #[derive(Debug, Clone)]
 pub enum TagKind {
-	StubStruct(String),
-	StubUnion(String),
-	StubEnum(String),
-	AnonStruct(Vec<MemberType>),
-	AnonUnion(Vec<MemberType>),
-	AnonEnum(Vec<(syn::Identifier, i32)>),
-	DeclStruct(String, Vec<MemberType>),
-	DeclUnion(String, Vec<MemberType>),
-	DeclEnum(String, Vec<(syn::Identifier, i32)>),
+	Struct(Option<String>, Vec<MemberType>),
+	Union(Option<String>, Vec<MemberType>),
+	Enum(Option<String>, Vec<(syn::Identifier, i32)>),
 }
 
 #[derive(Debug, Clone)]
@@ -173,10 +167,12 @@ pub enum TypeKind {
 
 impl TypeKind {
 	pub fn is_incomplete(&self) -> bool {
-		matches!(
-			self,
-			Self::Tag(TagKind::StubEnum(_) | TagKind::StubStruct(_) | TagKind::StubUnion(_))
-		)
+		match self {
+			Self::Tag(TagKind::Enum(Some(_), body)) if body.is_empty() => true,
+			Self::Tag(TagKind::Struct(Some(_), body)) if body.is_empty() => true,
+			Self::Tag(TagKind::Union(Some(_), body)) if body.is_empty() => true,
+			_ => false
+		}
 	}
 	pub const fn is_integral(&self) -> bool {
 		if let TypeKind::Scalar(scalar) = self {
@@ -280,15 +276,12 @@ impl TypeKind {
 			}
 			Self::Tag(kind) => {
 				let stub = match kind {
-					TagKind::StubStruct(tag_name) => format!("struct {tag_name}"),
-					TagKind::StubUnion(tag_name) => format!("union {tag_name}"),
-					TagKind::StubEnum(tag_name) => format!("enum {tag_name}"),
-					TagKind::AnonStruct(_) => String::from("struct <anonymous>"),
-					TagKind::AnonUnion(_) => String::from("union <anonymous>"),
-					TagKind::AnonEnum(_) => String::from("enum <anonymous>"),
-					TagKind::DeclStruct(tag_name, _) => format!("struct {tag_name}"),
-					TagKind::DeclUnion(tag_name, _) => format!("union {tag_name}"),
-					TagKind::DeclEnum(tag_name, _) => format!("enum {tag_name}"),
+					TagKind::Struct(None, _) => String::from("struct <anonymous>"),
+					TagKind::Union(None, _) => String::from("union <anonymous>"),
+					TagKind::Enum(None, _) => String::from("enum <anonymous>"),
+					TagKind::Struct(Some(tag_name), _) => format!("struct {tag_name}"),
+					TagKind::Union(Some(tag_name), _) => format!("union {tag_name}"),
+					TagKind::Enum(Some(tag_name), _) => format!("enum {tag_name}"),
 				};
 				format!("{qual_str}{space}{stub}")
 			}
@@ -324,6 +317,10 @@ impl DataType {
 	#[inline]
 	pub const fn is_poisoned(&self) -> bool {
 		matches!(self.kind, TypeKind::Poison)
+	}
+	#[inline]
+	pub fn is_incomplete(&self) -> bool {
+		self.kind.is_incomplete()
 	}
 }
 
