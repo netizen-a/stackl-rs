@@ -1,7 +1,9 @@
 use crate::data_type::{
 	ArrayLength,
 	ArrayType,
+	FuncType,
 	ScalarType,
+	TagKind,
 	TypeKind,
 };
 
@@ -46,9 +48,10 @@ pub enum DataLayout {
 	Struct(StructLayout),
 }
 
-impl From<TypeKind> for DataLayout {
-	fn from(value: TypeKind) -> Self {
-		match value {
+impl TryFrom<TypeKind> for DataLayout {
+	type Error = ();
+	fn try_from(value: TypeKind) -> Result<Self, Self::Error> {
+		let result = match value {
 			TypeKind::Void => Self::Void,
 			TypeKind::Scalar(ScalarType::Bool) => Self::Bool,
 			TypeKind::Scalar(ScalarType::U8) => Self::Integer(IntegerLayout {
@@ -97,7 +100,7 @@ impl From<TypeKind> for DataLayout {
 				is_decayed: false,
 				..
 			}) => Self::Array(ArrayLayout {
-				component: Box::new(Self::from(component.kind)),
+				component: Box::new(Self::try_from(component.kind)?),
 				length,
 			}),
 			TypeKind::Array(ArrayType {
@@ -105,14 +108,35 @@ impl From<TypeKind> for DataLayout {
 				length: ArrayLength::VLA(_),
 				is_decayed: false,
 				..
-			}) => Self::RuntimeArray(RuntimeArrayLayout(Box::new(Self::from(component.kind)))),
+			}) => Self::RuntimeArray(RuntimeArrayLayout(Box::new(Self::try_from(
+				component.kind,
+			)?))),
 			TypeKind::Array(ArrayType {
 				component,
 				is_decayed: true,
 				..
-			}) => Self::Pointer(Box::new(Self::from(component.kind))),
-			TypeKind::Pointer(component) => Self::Pointer(Box::new(Self::from(component.kind))),
+			}) => Self::Pointer(Box::new(Self::try_from(component.kind)?)),
+			TypeKind::Pointer(component) => {
+				Self::Pointer(Box::new(Self::try_from(component.kind)?))
+			}
+			TypeKind::Function(FuncType {
+				params,
+				ret,
+				is_variadic: false,
+				..
+			}) => {
+				let params_result: Result<Vec<DataLayout>, ()> = params
+					.into_iter()
+					.map(|param| Self::try_from(param.kind))
+					.collect();
+				Self::Function(FunctionLayout {
+					params: params_result?,
+					ret: Box::new(Self::try_from(ret.kind)?),
+				})
+			}
+			TypeKind::Poison => return Err(()),
 			_ => todo!(),
-		}
+		};
+		Ok(result)
 	}
 }
