@@ -171,7 +171,7 @@ impl TypeKind {
 			Self::Tag(TagKind::Enum(Some(_), body)) if body.is_empty() => true,
 			Self::Tag(TagKind::Struct(Some(_), body)) if body.is_empty() => true,
 			Self::Tag(TagKind::Union(Some(_), body)) if body.is_empty() => true,
-			_ => false
+			_ => false,
 		}
 	}
 	pub const fn is_integral(&self) -> bool {
