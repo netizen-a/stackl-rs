@@ -12,6 +12,7 @@ use crate::cli;
 use crate::data_type::DataType;
 use crate::diagnostics::*;
 use crate::symbol_table as sym;
+use crate::synthesis::icg;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DeclType {
@@ -31,7 +32,7 @@ pub struct SemanticParser {
 	tag_table: sym::SymbolTable,
 	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
-	data_types: HashSet<DataType>,
+	pub data_layouts: HashSet<icg::DataLayout>,
 	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
@@ -46,7 +47,7 @@ impl SemanticParser {
 			tag_table: sym::SymbolTable::new(),
 			member_table: sym::SymbolTable::new(),
 			ordinary_table: sym::SymbolTable::new(),
-			data_types: HashSet::new(),
+			data_layouts: HashSet::new(),
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,

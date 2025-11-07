@@ -8,6 +8,7 @@ use crate::cli::WarnLevel;
 use crate::data_type::*;
 use crate::diagnostics::*;
 use crate::symbol_table as sym;
+use crate::synthesis::icg;
 
 impl super::SemanticParser {
 	pub(super) fn declaration(
@@ -108,6 +109,8 @@ impl super::SemanticParser {
 					&format!("`{}` redefined here", ident.name.clone()),
 				);
 				self.diagnostics.push(error);
+			} else if let Ok(layout) = icg::DataLayout::try_from(new_entry.data_type.kind) {
+				self.data_layouts.insert(layout);
 			}
 			self.tree_builder.end_child();
 		}

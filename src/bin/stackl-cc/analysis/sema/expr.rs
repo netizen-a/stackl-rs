@@ -219,7 +219,6 @@ impl super::SemanticParser {
 				));
 			}
 			if context.enabled_diag && !context.in_func && !entry.is_constant() {
-				eprintln!("expr-ident: {}, {}", context.in_func, context.is_mut);
 				let error = Diagnostic::error(DiagKind::InitializerNotConst, span);
 				self.diagnostics.push(error);
 			}

@@ -4,6 +4,8 @@ mod decl;
 mod func;
 mod layout;
 
+use std::collections::{HashSet};
+
 use crate::analysis::syn;
 use crate::diagnostics::{
 	DiagKind,
@@ -11,15 +13,21 @@ use crate::diagnostics::{
 };
 use stackl::ssa::build::Builder;
 use stackl::ssa::data::Module;
+pub use layout::*;
 
 pub struct SSACodeGen {
 	builder: Builder,
+	data_layouts: HashSet<DataLayout>
 }
 
 impl SSACodeGen {
-	pub fn new() -> Self {
+	pub fn new(data_layouts: HashSet<DataLayout>) -> Self {
+		for data in data_layouts {
+			println!("{data:?}");
+		}
 		Self {
 			builder: Builder::new(),
+			data_layouts: HashSet::new(),
 		}
 	}
 	pub fn build(mut self, unit: &[syn::ExternalDeclaration]) -> Result<Module, Diagnostic> {

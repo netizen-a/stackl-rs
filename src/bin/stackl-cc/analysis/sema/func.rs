@@ -5,6 +5,7 @@ use crate::data_type::*;
 use crate::diagnostics::*;
 use crate::symbol_table as sym;
 use crate::symbol_table::StorageClass;
+use crate::synthesis::icg;
 
 impl super::SemanticParser {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
@@ -60,7 +61,7 @@ impl super::SemanticParser {
 					.begin_child("identifier-list ( )".to_string());
 				let func_type = FuncType {
 					params: vec![],
-					ret: Box::new(data_type),
+					ret: Box::new(data_type.clone()),
 					is_variadic: false,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
@@ -111,7 +112,7 @@ impl super::SemanticParser {
 
 				let func_type = FuncType {
 					params: declaration_list.iter().map(|s| s.1.clone()).collect(),
-					ret: Box::new(data_type),
+					ret: Box::new(data_type.clone()),
 					is_variadic: param_list.is_variadic,
 					is_inline: !decl.specifiers.inline_list.is_empty(),
 				};
@@ -179,7 +180,7 @@ impl super::SemanticParser {
 
 		self.increase_scope();
 		self.label_table.increase_scope();
-		{
+		
 			for (decl_maybe, decl_type, type_span) in declaration_list.iter() {
 				let Some(decl_ident) = decl_maybe else {
 					// missing parameter name
@@ -232,7 +233,11 @@ impl super::SemanticParser {
 				self.block_item(item);
 			}
 			self.tree_builder.end_child();
+
+		if let Ok(layout) = icg::DataLayout::try_from(data_type.kind) {
+			self.data_layouts.insert(layout);
 		}
+
 		self.label_table.decrease_scope();
 		self.decrease_scope();
 		self.tree_builder.end_child();
@@ -360,6 +365,9 @@ impl super::SemanticParser {
 				name_opt.clone(),
 				vec![],
 			);
+			if let Ok(layout) = icg::DataLayout::try_from(param_type.kind.clone()) {
+				self.data_layouts.insert(layout);
+			}
 			result.push((param.ident.clone(), param_type, param.specifiers.to_span()))
 		}
 		self.tree_builder.end_child();

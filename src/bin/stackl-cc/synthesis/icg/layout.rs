@@ -7,41 +7,42 @@ use crate::data_type::{
 	TypeKind,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IntegerLayout {
 	pub width: u32,
 	pub is_signed: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FloatLayout {
 	pub width: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ArrayLayout {
 	pub component: Box<DataLayout>,
 	pub length: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RuntimeArrayLayout(Box<DataLayout>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionLayout {
 	pub params: Vec<DataLayout>,
 	pub ret: Box<DataLayout>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructLayout(Box<[DataLayout]>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataLayout {
 	Void,
 	Bool,
 	Pointer(Box<DataLayout>),
 	Integer(IntegerLayout),
+	Float(FloatLayout),
 	Array(ArrayLayout),
 	RuntimeArray(RuntimeArrayLayout),
 	Function(FunctionLayout),
@@ -94,6 +95,8 @@ impl TryFrom<TypeKind> for DataLayout {
 				width: 128,
 				is_signed: true,
 			}),
+			TypeKind::Scalar(ScalarType::Float) => Self::Float(FloatLayout{width: 32}),
+			TypeKind::Scalar(ScalarType::Double | ScalarType::LongDouble) => Self::Float(FloatLayout{width: 64}),
 			TypeKind::Array(ArrayType {
 				component,
 				length: ArrayLength::Fixed(length),
@@ -134,8 +137,15 @@ impl TryFrom<TypeKind> for DataLayout {
 					ret: Box::new(Self::try_from(ret.kind)?),
 				})
 			}
+			TypeKind::Tag(TagKind::Struct(_, members)) => {
+				let struct_result: Result<Vec<DataLayout>, ()> = members
+					.into_iter()
+					.map(|mem| Self::try_from(mem.dtype.kind))
+					.collect();
+				Self::Struct(StructLayout(struct_result?.into_boxed_slice()))
+			}
 			TypeKind::Poison => return Err(()),
-			_ => todo!(),
+			other => todo!("{other}"),
 		};
 		Ok(result)
 	}

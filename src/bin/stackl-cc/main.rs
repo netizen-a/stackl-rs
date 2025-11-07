@@ -119,7 +119,7 @@ fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 
-	let _ssa_module = icg::SSACodeGen::new().build(&unit);
+	let _ssa_module = icg::SSACodeGen::new(semantic_parser.data_layouts.clone()).build(&unit);
 	ExitCode::SUCCESS
 }
 

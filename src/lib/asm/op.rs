@@ -56,3 +56,7 @@ pub const SET_INT_DIS: i32 = 54;
 pub const ROTATE_LEFT: i32 = 55;
 pub const ROTATE_RIGHT: i32 = 56;
 pub const ILLEGAL: i32 = 57;
+
+// TODO: new opcodes
+// add with carry: a + b + in-carry => c, out-carry
+// pub const ADC: i32;
