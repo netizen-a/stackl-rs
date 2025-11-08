@@ -1,6 +1,6 @@
 use crate::analysis::syn::Constant;
 use crate::diagnostics::*;
-use crate::symbol_table as sym;
+use crate::symtab as sym;
 use crate::{
 	analysis::syn,
 	data_type::*,

@@ -7,7 +7,7 @@ use crate::analysis::tok;
 use crate::cli::WarnLevel;
 use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symbol_table as sym;
+use crate::symtab as sym;
 use crate::synthesis::icg;
 
 impl super::SemanticParser {
@@ -109,8 +109,11 @@ impl super::SemanticParser {
 					&format!("`{}` redefined here", ident.name.clone()),
 				);
 				self.diagnostics.push(error);
-			} else if let Ok(layout) = icg::DataLayout::try_from(new_entry.data_type.kind) {
-				self.data_layouts.insert(layout);
+			} else if let (Ok(sc), Ok(layout)) = (
+				icg::StorageClass::try_from(storage),
+				icg::DataLayout::try_from(new_entry.data_type.kind),
+			) {
+				self.data_layouts.insert((sc, layout));
 			}
 			self.tree_builder.end_child();
 		}

@@ -11,7 +11,7 @@ use crate::analysis::syn;
 use crate::cli;
 use crate::data_type::DataType;
 use crate::diagnostics::*;
-use crate::symbol_table as sym;
+use crate::symtab as sym;
 use crate::synthesis::icg;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -32,7 +32,7 @@ pub struct SemanticParser {
 	tag_table: sym::SymbolTable,
 	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
-	pub data_layouts: HashSet<icg::DataLayout>,
+	pub data_layouts: HashSet<(icg::StorageClass, icg::DataLayout)>,
 	diagnostics: DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,

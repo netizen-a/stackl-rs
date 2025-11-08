@@ -5,7 +5,7 @@ mod analysis;
 mod cli;
 mod data_type;
 mod diagnostics;
-mod symbol_table;
+mod symtab;
 mod synthesis;
 
 use clap::Parser;

@@ -6,6 +6,27 @@ use crate::data_type::{
 	TagKind,
 	TypeKind,
 };
+use crate::symtab;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum StorageClass {
+	Function,
+	Static,
+}
+
+impl TryFrom<symtab::StorageClass> for StorageClass {
+	type Error = ();
+	fn try_from(value: symtab::StorageClass) -> Result<Self, Self::Error> {
+		match value {
+			symtab::StorageClass::Automatic => Ok(StorageClass::Function),
+			symtab::StorageClass::Register => Ok(StorageClass::Function),
+			symtab::StorageClass::Static => Ok(StorageClass::Static),
+			symtab::StorageClass::Constant
+			| symtab::StorageClass::Typename
+			| symtab::StorageClass::Constant => Err(()),
+		}
+	}
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IntegerLayout {
@@ -95,8 +116,10 @@ impl TryFrom<TypeKind> for DataLayout {
 				width: 128,
 				is_signed: true,
 			}),
-			TypeKind::Scalar(ScalarType::Float) => Self::Float(FloatLayout{width: 32}),
-			TypeKind::Scalar(ScalarType::Double | ScalarType::LongDouble) => Self::Float(FloatLayout{width: 64}),
+			TypeKind::Scalar(ScalarType::Float) => Self::Float(FloatLayout { width: 32 }),
+			TypeKind::Scalar(ScalarType::Double | ScalarType::LongDouble) => {
+				Self::Float(FloatLayout { width: 64 })
+			}
 			TypeKind::Array(ArrayType {
 				component,
 				length: ArrayLength::Fixed(length),

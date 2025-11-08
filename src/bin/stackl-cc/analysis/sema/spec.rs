@@ -6,7 +6,7 @@ use crate::diagnostics::{
 	DiagKind,
 	Diagnostic,
 };
-use crate::symbol_table as sym;
+use crate::symtab as sym;
 
 const SIGNED_STR: &str = "signed";
 const UNSIGNED_STR: &str = "unsigned";

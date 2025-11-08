@@ -30,9 +30,8 @@ pub enum Linkage {
 	Internal,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum StorageClass {
-	Function,
 	Automatic,
 	Static,
 	Typename,

@@ -5,24 +5,24 @@ mod decl;
 mod func;
 mod layout;
 
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 use crate::analysis::syn;
 use crate::diagnostics::{
 	DiagKind,
 	Diagnostic,
 };
+pub use layout::*;
 use stackl::ssa::build::Builder;
 use stackl::ssa::data::Module;
-pub use layout::*;
 
 pub struct SSACodeGen {
 	builder: Builder,
-	data_layouts: HashSet<DataLayout>
+	data_layouts: HashSet<DataLayout>,
 }
 
 impl SSACodeGen {
-	pub fn new(data_layouts: HashSet<DataLayout>) -> Self {
+	pub fn new(data_layouts: HashSet<(StorageClass, DataLayout)>) -> Self {
 		for data in data_layouts {
 			println!("{data:?}");
 		}

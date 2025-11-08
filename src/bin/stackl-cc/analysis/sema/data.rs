@@ -2,7 +2,7 @@ use crate::analysis::syn;
 use crate::analysis::tok::Const;
 use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symbol_table as sym;
+use crate::symtab as sym;
 
 type CastScore = usize;
 

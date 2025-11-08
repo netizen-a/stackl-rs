@@ -3,8 +3,8 @@ use crate::analysis::syn;
 use crate::cli::WarnLevel;
 use crate::data_type::*;
 use crate::diagnostics::*;
-use crate::symbol_table as sym;
-use crate::symbol_table::StorageClass;
+use crate::symtab as sym;
+use crate::symtab::StorageClass;
 use crate::synthesis::icg;
 
 impl super::SemanticParser {
@@ -20,11 +20,11 @@ impl super::SemanticParser {
 			| Some(syn::StorageClassSpecifier {
 				kind: syn::StorageClass::Extern,
 				..
-			}) => (StorageClass::Function, sym::Linkage::External),
+			}) => (StorageClass::Automatic, sym::Linkage::External),
 			Some(syn::StorageClassSpecifier {
 				kind: syn::StorageClass::Static,
 				..
-			}) => (StorageClass::Function, sym::Linkage::Internal),
+			}) => (StorageClass::Automatic, sym::Linkage::Internal),
 			Some(storage) => {
 				let kind = DiagKind::IllegalStorage(storage.kind);
 				let diag = Diagnostic::error(kind, storage.to_span());
@@ -180,62 +180,65 @@ impl super::SemanticParser {
 
 		self.increase_scope();
 		self.label_table.increase_scope();
-		
-			for (decl_maybe, decl_type, type_span) in declaration_list.iter() {
-				let Some(decl_ident) = decl_maybe else {
-					// missing parameter name
-					continue;
-				};
-				let new_entry = sym::SymbolTableEntry {
-					data_type: decl_type.clone(),
-					linkage: sym::Linkage::Internal,
-					storage: sym::StorageClass::Automatic,
-					span: decl_ident.to_span(),
-					is_decl: false,
-				};
-				let key = decl_ident.name.clone();
-				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.ordinary_table.insert(key.clone(), new_entry.clone())
-				{
-					let kind = DiagKind::SymbolAlreadyExists(
-						decl_ident.name.clone(),
-						prev_entry.data_type.clone(),
-					);
-					let mut error = Diagnostic::error(kind, prev_entry.to_span());
-					error.push_span(
-						new_entry.span,
-						&format!("`{}` redefined here", decl_ident.name.clone()),
-					);
-					if prev_entry.is_decl == false && new_entry.is_decl == false {
-						// redefinition. don't even need to check types
-						self.diagnostics.push(error);
-					} else {
-						// TODO: further type checking is required.
-					}
+
+		for (decl_maybe, decl_type, type_span) in declaration_list.iter() {
+			let Some(decl_ident) = decl_maybe else {
+				// missing parameter name
+				continue;
+			};
+			let new_entry = sym::SymbolTableEntry {
+				data_type: decl_type.clone(),
+				linkage: sym::Linkage::Internal,
+				storage: sym::StorageClass::Automatic,
+				span: decl_ident.to_span(),
+				is_decl: false,
+			};
+			let key = decl_ident.name.clone();
+			if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
+				self.ordinary_table.insert(key.clone(), new_entry.clone())
+			{
+				let kind = DiagKind::SymbolAlreadyExists(
+					decl_ident.name.clone(),
+					prev_entry.data_type.clone(),
+				);
+				let mut error = Diagnostic::error(kind, prev_entry.to_span());
+				error.push_span(
+					new_entry.span,
+					&format!("`{}` redefined here", decl_ident.name.clone()),
+				);
+				if prev_entry.is_decl == false && new_entry.is_decl == false {
+					// redefinition. don't even need to check types
+					self.diagnostics.push(error);
+				} else {
+					// TODO: further type checking is required.
 				}
-
-				self.declare_tag(decl_type, type_span.clone());
 			}
 
-			if decl.declaration_list.len() > 0 {
-				self.tree_builder
-					.begin_child("declaration-list".to_string());
-			}
-			for declaration in decl.declaration_list.iter_mut() {
-				self.declaration(declaration, syn::StorageClass::Auto, true);
-			}
-			if decl.declaration_list.len() > 0 {
-				self.tree_builder.end_child();
-			}
+			self.declare_tag(decl_type, type_span.clone());
+		}
+
+		if decl.declaration_list.len() > 0 {
 			self.tree_builder
-				.begin_child("compound-stmt { }".to_string());
-			for item in decl.compound_stmt.blocks.iter_mut() {
-				self.block_item(item);
-			}
+				.begin_child("declaration-list".to_string());
+		}
+		for declaration in decl.declaration_list.iter_mut() {
+			self.declaration(declaration, syn::StorageClass::Auto, true);
+		}
+		if decl.declaration_list.len() > 0 {
 			self.tree_builder.end_child();
+		}
+		self.tree_builder
+			.begin_child("compound-stmt { }".to_string());
+		for item in decl.compound_stmt.blocks.iter_mut() {
+			self.block_item(item);
+		}
+		self.tree_builder.end_child();
 
-		if let Ok(layout) = icg::DataLayout::try_from(data_type.kind) {
-			self.data_layouts.insert(layout);
+		if let (Ok(sc), Ok(layout)) = (
+			icg::StorageClass::try_from(storage),
+			icg::DataLayout::try_from(data_type.kind),
+		) {
+			self.data_layouts.insert((sc, layout));
 		}
 
 		self.label_table.decrease_scope();
@@ -366,7 +369,8 @@ impl super::SemanticParser {
 				vec![],
 			);
 			if let Ok(layout) = icg::DataLayout::try_from(param_type.kind.clone()) {
-				self.data_layouts.insert(layout);
+				self.data_layouts
+					.insert((icg::StorageClass::Function, layout));
 			}
 			result.push((param.ident.clone(), param_type, param.specifiers.to_span()))
 		}
