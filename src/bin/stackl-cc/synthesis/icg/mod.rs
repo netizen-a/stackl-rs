@@ -1,5 +1,6 @@
 //! Intermediate Code Generation
 
+mod data;
 mod decl;
 mod func;
 mod layout;

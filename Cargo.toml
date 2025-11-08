@@ -37,8 +37,8 @@ name="stackl-as"
 path="src/bin/stackl-as/main.rs"
 
 [[bin]]
-name="stackl-ln"
-path="src/bin/stackl-ln/main.rs"
+name="stackl-ld"
+path="src/bin/stackl-ld/main.rs"
 
 [[bin]]
 name="stackl-im"
