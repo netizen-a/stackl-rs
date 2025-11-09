@@ -152,7 +152,7 @@ impl Builder {
 		Ok(())
 	}
 	pub fn build(self) -> data::Module {
-		todo!()
+		data::Module{}
 	}
 	pub fn type_void(&mut self) -> u32 {
 		let id = self.id();

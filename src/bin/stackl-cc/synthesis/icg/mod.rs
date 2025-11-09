@@ -4,6 +4,7 @@ mod data;
 mod decl;
 mod func;
 mod layout;
+mod stmt;
 
 use std::collections::{
 	HashMap,
