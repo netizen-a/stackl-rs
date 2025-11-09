@@ -95,28 +95,20 @@ fn main() -> ExitCode {
 
 	let has_error = semantic_parser.contains_error();
 	semantic_parser.print_errors();
-	if has_error || args.check {
-		if args.is_timed {
-			print_time(since_array);
-		}
-		if args.ast {
-			ptree::print_tree(&semantic_parser.build_tree());
-		}
-		return match has_error {
-			true => ExitCode::FAILURE,
-			false => ExitCode::SUCCESS,
-		};
-	}
-
-	if args.is_timed {
-		print_time(since_array);
-	}
 	if args.ast {
 		ptree::print_tree(&semantic_parser.build_tree());
 	}
-
 	let layouts = semantic_parser.data_layouts.take().unwrap();
 	drop(semantic_parser);
+	if args.is_timed {
+		print_time(since_array);
+	}
+	if args.check {
+		return ExitCode::SUCCESS;
+	}
+	if has_error{
+		return ExitCode::FAILURE;
+	}
 
 	let Some(unit) = maybe_unit else {
 		return ExitCode::FAILURE;
