@@ -27,27 +27,27 @@ struct LabelContext {
 	pub gotos: Vec<Span>,
 }
 
-pub struct SemanticParser {
+pub struct SemanticParser<'a> {
 	label_table: sym::SymbolTable<String, LabelContext>,
 	tag_table: sym::SymbolTable,
 	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
-	pub data_layouts: HashSet<(icg::StorageClass, icg::DataLayout)>,
-	diagnostics: DiagnosticEngine,
+	pub data_layouts: Option<HashSet<icg::DataLayout>>,
+	diagnostics: &'a mut DiagnosticEngine,
 	is_traced: bool,
 	warn_lvl: cli::WarnLevel,
 	print_ast: bool,
 	tree_builder: ptree::TreeBuilder,
 }
 
-impl SemanticParser {
-	pub fn new(diagnostics: DiagnosticEngine, args: &cli::Args) -> Self {
+impl<'a> SemanticParser<'a> {
+	pub fn new(diagnostics: &'a mut DiagnosticEngine, args: &cli::Args) -> Self {
 		Self {
 			label_table: sym::SymbolTable::new(),
 			tag_table: sym::SymbolTable::new(),
 			member_table: sym::SymbolTable::new(),
 			ordinary_table: sym::SymbolTable::new(),
-			data_layouts: HashSet::new(),
+			data_layouts: Some(HashSet::new()),
 			diagnostics,
 			is_traced: args.is_traced,
 			warn_lvl: args.warn_lvl,
@@ -88,13 +88,6 @@ impl SemanticParser {
 		self.ordinary_table.increase_scope();
 	}
 	pub(self) fn decrease_scope(&mut self) {
-		if self.is_traced {
-			let iter = self.ordinary_table.iter_current_scope().unwrap();
-			let layer = self.ordinary_table.scope_count();
-			for (name, symbol) in iter {
-				eprintln!("[TRACE] ordinary table({layer}): {name:?} => {symbol:#?}");
-			}
-		}
 		// TODO: check if any types are incomplete
 		// for (tag, entry) in self.tag_table.iter_current_scope().unwrap() {
 		// 	if !entry.data_type.is_incomplete() {
@@ -113,7 +106,7 @@ impl SemanticParser {
 	}
 }
 
-impl Drop for SemanticParser {
+impl Drop for SemanticParser<'_> {
 	fn drop(&mut self) {
 		self.decrease_scope();
 	}

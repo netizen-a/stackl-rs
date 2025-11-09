@@ -7,7 +7,7 @@ use crate::symtab as sym;
 use crate::symtab::StorageClass;
 use crate::synthesis::icg;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
 		let func_ident = &decl.ident;
 		self.tree_builder
@@ -238,7 +238,7 @@ impl super::SemanticParser {
 			icg::StorageClass::try_from(storage),
 			icg::DataLayout::try_from(data_type.kind),
 		) {
-			self.data_layouts.insert((sc, layout));
+			self.data_layouts.as_mut().map(|h| h.insert(layout));
 		}
 
 		self.label_table.decrease_scope();
@@ -369,8 +369,7 @@ impl super::SemanticParser {
 				vec![],
 			);
 			if let Ok(layout) = icg::DataLayout::try_from(param_type.kind.clone()) {
-				self.data_layouts
-					.insert((icg::StorageClass::Function, layout));
+				self.data_layouts.as_mut().map(|h| h.insert(layout));
 			}
 			result.push((param.ident.clone(), param_type, param.specifiers.to_span()))
 		}

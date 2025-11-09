@@ -13,6 +13,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub enum DiagKind {
 	Internal(&'static str),
+	Trace(String),
 	FileNotFound(path::PathBuf),
 	ErrorDirective(String),
 	UnexpectedEof,

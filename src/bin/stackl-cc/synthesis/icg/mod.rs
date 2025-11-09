@@ -5,34 +5,46 @@ mod decl;
 mod func;
 mod layout;
 
-use std::collections::HashSet;
+use std::collections::{
+	HashMap,
+	HashSet,
+};
 
 use crate::analysis::syn;
 use crate::diagnostics::{
 	DiagKind,
 	Diagnostic,
+	DiagnosticEngine,
 };
 pub use layout::*;
 use stackl::ssa::build::Builder;
 use stackl::ssa::data::Module;
 
-pub struct SSACodeGen {
-	builder: Builder,
-	data_layouts: HashSet<DataLayout>,
+#[derive(Debug)]
+pub struct IrContext {
+	pub layouts: HashSet<DataLayout>,
+	pub unit: Box<[syn::ExternalDeclaration]>,
 }
 
-impl SSACodeGen {
-	pub fn new(data_layouts: HashSet<(StorageClass, DataLayout)>) -> Self {
-		for data in data_layouts {
-			println!("{data:?}");
-		}
+pub struct SSACodeGen<'a> {
+	builder: Builder,
+	type_map: HashMap<DataLayout, u32>,
+	diag_engine: &'a mut DiagnosticEngine,
+	is_traced: bool,
+}
+
+impl<'a> SSACodeGen<'a> {
+	pub fn new(diag_engine: &'a mut DiagnosticEngine, is_traced: bool) -> Self {
 		Self {
 			builder: Builder::new(),
-			data_layouts: HashSet::new(),
+			type_map: HashMap::new(),
+			diag_engine,
+			is_traced,
 		}
 	}
-	pub fn build(mut self, unit: &[syn::ExternalDeclaration]) -> Result<Module, Diagnostic> {
-		for external_decl in unit {
+	pub fn build(mut self, input: IrContext) -> Result<Module, Diagnostic> {
+		self.parse_types(input.layouts);
+		for external_decl in input.unit.iter() {
 			match external_decl {
 				syn::ExternalDeclaration::FunctionDefinition(inner) => {
 					self.function_definition(inner)?;

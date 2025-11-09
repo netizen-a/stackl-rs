@@ -154,7 +154,17 @@ impl Builder {
 	pub fn build(self) -> data::Module {
 		todo!()
 	}
-	pub fn type_int(&mut self, width: u32, is_signed: bool) -> Result<u32, Error> {
+	pub fn type_void(&mut self) -> u32 {
+		let id = self.id();
+		self.type_list.push(data::Instruction {
+			opcode: data::Opcode::TypeVoid,
+			result_id: Some(id),
+			result_type: None,
+			operands: [].into(),
+		});
+		id
+	}
+	pub fn type_int(&mut self, width: u32, is_signed: bool) -> u32 {
 		let id = self.id();
 		self.type_list.push(data::Instruction {
 			opcode: data::Opcode::TypeInt,
@@ -162,7 +172,7 @@ impl Builder {
 			result_type: None,
 			operands: [width, is_signed as u32].into(),
 		});
-		Ok(id)
+		id
 	}
 	pub fn type_float(&mut self, width: u32) -> Result<u32, Error> {
 		let id = self.id();

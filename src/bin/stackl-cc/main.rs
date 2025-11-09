@@ -87,7 +87,7 @@ fn main() -> ExitCode {
 	since_array.push((duration, "syntax parser time"));
 
 	let timer = time::Instant::now();
-	let mut semantic_parser = sema::SemanticParser::new(diag_engine, &args);
+	let mut semantic_parser = sema::SemanticParser::new(&mut diag_engine, &args);
 	let maybe_unit = semantic_parser.parse(unit);
 
 	let duration = time::Instant::now().duration_since(timer);
@@ -115,11 +115,14 @@ fn main() -> ExitCode {
 		ptree::print_tree(&semantic_parser.build_tree());
 	}
 
+	let layouts = semantic_parser.data_layouts.take().unwrap();
+	drop(semantic_parser);
+
 	let Some(unit) = maybe_unit else {
 		return ExitCode::FAILURE;
 	};
-
-	let _ssa_module = icg::SSACodeGen::new(semantic_parser.data_layouts.clone()).build(&unit);
+	let codegen_context = icg::IrContext { layouts, unit };
+	let _ssa_module = icg::SSACodeGen::new(&mut diag_engine, args.is_traced).build(codegen_context);
 	ExitCode::SUCCESS
 }
 

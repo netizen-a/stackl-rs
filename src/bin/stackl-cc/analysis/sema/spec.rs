@@ -20,7 +20,7 @@ const BOOL_STR: &str = "_Bool";
 const LONG_LONG_STR: &str = "long long";
 const STRUCT_STR: &str = "struct";
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn specifiers_storage(
 		&mut self,
 		specifiers: &mut syn::Specifiers,

@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiagLevel {
+	Info,
 	Warning,
 	Error,
 	Fatal,
@@ -43,6 +44,17 @@ impl Diagnostic {
 			kind,
 			notes: vec![],
 			span_list: vec![(span, String::new())],
+		}
+	}
+	#[inline]
+	pub fn info(kind: kind::DiagKind, span: Option<Span>) -> Self {
+		Self {
+			level: DiagLevel::Info,
+			kind,
+			notes: vec![],
+			span_list: span
+				.map(|span| vec![(span, String::new())])
+				.unwrap_or_default(),
 		}
 	}
 	#[inline]

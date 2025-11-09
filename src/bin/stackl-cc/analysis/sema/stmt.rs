@@ -2,7 +2,7 @@ use super::expr::ExprContext;
 use crate::analysis::syn::*;
 use crate::diagnostics as diag;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn compound_stmt(&mut self, stmt: &mut CompoundStmt) {
 		self.tree_builder
 			.begin_child("compund-statement { }".to_string());

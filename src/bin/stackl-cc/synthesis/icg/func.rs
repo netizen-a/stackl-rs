@@ -3,11 +3,11 @@ use super::{
 	Diagnostic,
 };
 
-impl super::SSACodeGen {
+impl super::SSACodeGen<'_> {
 	pub(super) fn function_definition(
 		&mut self,
 		decl: &syn::FunctionDefinition,
 	) -> Result<u32, Diagnostic> {
-		todo!()
+		Ok(0)
 	}
 }

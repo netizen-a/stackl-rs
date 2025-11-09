@@ -3,8 +3,8 @@ use super::{
 	Diagnostic,
 };
 
-impl super::SSACodeGen {
+impl super::SSACodeGen<'_> {
 	pub(super) fn declaration(&mut self, decl: &syn::Declaration) -> Result<u32, Diagnostic> {
-		todo!()
+		Ok(0)
 	}
 }

@@ -494,6 +494,7 @@ impl DiagnosticEngine {
 				let msg0 = "cast error";
 				self.format_diagnostic(&diag, msg0)
 			}
+			DiagKind::Trace(trace) => self.format_diagnostic(&diag, trace),
 			kind => unimplemented!("{kind:?}"),
 		};
 		eprint!("{str_diag}");
@@ -502,11 +503,12 @@ impl DiagnosticEngine {
 	where
 		S: AsRef<str>,
 	{
-		let color_blue: &str = if self.enable_color { "\x1b[1;34m" } else { "" };
 		let color_default: &str = if self.enable_color { "\x1b[0m" } else { "" };
+		let color_blue: &str = if self.enable_color { "\x1b[1;34m" } else { "" };
 		let color_bold_red: &str = if self.enable_color { "\x1b[1;31m" } else { "" };
 		let color_bold_yellow: &str = if self.enable_color { "\x1b[1;33m" } else { "" };
 		let color_bold_white: &str = if self.enable_color { "\x1b[1;97m" } else { "" };
+		let color_bold_cyan: &str = if self.enable_color { "\x1b[1;36m" } else { "" };
 
 		let mut result = String::new();
 
@@ -522,6 +524,10 @@ impl DiagnosticEngine {
 			DiagLevel::Warning => {
 				result.push_str(&format!("{color_bold_yellow}warning:{color_default} "));
 				color_bold_yellow
+			}
+			DiagLevel::Info => {
+				result.push_str(&format!("{color_bold_cyan}info:{color_default} "));
+				color_bold_cyan
 			}
 		};
 

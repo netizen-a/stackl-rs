@@ -10,7 +10,7 @@ use crate::diagnostics::*;
 use crate::symtab as sym;
 use crate::synthesis::icg;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn declaration(
 		&mut self,
 		decl: &mut syn::Declaration,
@@ -113,7 +113,7 @@ impl super::SemanticParser {
 				icg::StorageClass::try_from(storage),
 				icg::DataLayout::try_from(new_entry.data_type.kind),
 			) {
-				self.data_layouts.insert((sc, layout));
+				self.data_layouts.as_mut().map(|h| h.insert(layout));
 			}
 			self.tree_builder.end_child();
 		}

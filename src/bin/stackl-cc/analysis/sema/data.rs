@@ -6,7 +6,7 @@ use crate::symtab as sym;
 
 type CastScore = usize;
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn declare_tag(&mut self, data_type: &DataType, span: Span) {
 		let name = match &data_type.kind {
 			TypeKind::Tag(TagKind::Struct(Some(name), _)) => name,

@@ -12,18 +12,18 @@ use crate::symtab;
 pub enum StorageClass {
 	Function,
 	Static,
+	Constant,
 }
 
 impl TryFrom<symtab::StorageClass> for StorageClass {
 	type Error = ();
 	fn try_from(value: symtab::StorageClass) -> Result<Self, Self::Error> {
 		match value {
-			symtab::StorageClass::Automatic => Ok(StorageClass::Function),
-			symtab::StorageClass::Register => Ok(StorageClass::Function),
-			symtab::StorageClass::Static => Ok(StorageClass::Static),
-			symtab::StorageClass::Constant
-			| symtab::StorageClass::Typename
-			| symtab::StorageClass::Constant => Err(()),
+			symtab::StorageClass::Automatic => Ok(Self::Function),
+			symtab::StorageClass::Register => Ok(Self::Function),
+			symtab::StorageClass::Static => Ok(Self::Static),
+			symtab::StorageClass::Constant => Ok(Self::Constant),
+			symtab::StorageClass::Typename | symtab::StorageClass::Constant => Err(()),
 		}
 	}
 }

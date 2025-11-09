@@ -12,7 +12,7 @@ pub struct ExprContext {
 	pub enabled_diag: bool,
 }
 
-impl super::SemanticParser {
+impl super::SemanticParser<'_> {
 	pub(super) fn expr(&mut self, expr: &mut syn::Expr, context: &ExprContext) -> DataType {
 		match expr {
 			syn::Expr::Paren(inner) => {
