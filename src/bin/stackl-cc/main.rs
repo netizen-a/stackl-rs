@@ -95,19 +95,18 @@ fn main() -> ExitCode {
 
 	let has_error = semantic_parser.contains_error();
 	semantic_parser.print_errors();
-	if args.ast {
-		ptree::print_tree(&semantic_parser.build_tree());
-	}
+	let tree = semantic_parser.build_tree();
 	let layouts = semantic_parser.data_layouts.take().unwrap();
 	drop(semantic_parser);
-	if args.is_timed {
-		print_time(since_array);
-	}
-	if args.check {
-		return ExitCode::SUCCESS;
-	}
-	if has_error{
-		return ExitCode::FAILURE;
+
+	if args.check || has_error {
+		if args.ast {
+			ptree::print_tree(&tree);
+		}
+		if args.is_timed {
+			print_time(since_array);
+		}
+		return if has_error {ExitCode::FAILURE} else {ExitCode::SUCCESS};
 	}
 
 	let Some(unit) = maybe_unit else {
@@ -115,6 +114,13 @@ fn main() -> ExitCode {
 	};
 	let codegen_context = icg::IrContext { layouts, unit };
 	let _ssa_module = icg::SSACodeGen::new(&mut diag_engine, args.is_traced).build(codegen_context);
+	diag_engine.print_once();
+	if args.ast {
+		ptree::print_tree(&tree);
+	}
+	if args.is_timed {
+		print_time(since_array);
+	}
 	ExitCode::SUCCESS
 }
 

@@ -987,7 +987,7 @@ extern {
 		"<<" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LessLess), ..},
 		">>" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::GreatGreat), ..},
 		"<" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Less), ..},
-		">" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Amp), ..},
+		">" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::Great), ..},
 		"<=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::LessEqual), ..},
 		">=" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::GreatEqual), ..},
 		"==" => tok::Token{kind: tok::TokenKind::Punct(tok::Punct::EqualEqual), ..},

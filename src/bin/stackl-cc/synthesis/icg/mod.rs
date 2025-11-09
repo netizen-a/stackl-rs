@@ -43,25 +43,28 @@ impl<'a> SSACodeGen<'a> {
 			is_traced,
 		}
 	}
-	pub fn build(mut self, input: IrContext) -> Result<Module, Diagnostic> {
+	pub fn build(mut self, input: IrContext) -> Module {
 		self.parse_types(input.layouts);
 		for external_decl in input.unit.iter() {
-			match external_decl {
+			let result = match external_decl {
 				syn::ExternalDeclaration::FunctionDefinition(inner) => {
-					self.function_definition(inner)?;
+					self.function_definition(inner)
 				}
 				syn::ExternalDeclaration::Declaration(inner) => {
-					self.declaration(inner)?;
+					self.declaration(inner)
 				}
 				syn::ExternalDeclaration::Pragma(_) => {
 					todo!()
 				}
 				&syn::ExternalDeclaration::Error => {
 					const kind: DiagKind = DiagKind::Internal("external declaration error");
-					return Err(Diagnostic::fatal(kind, None));
+					Err(Diagnostic::fatal(kind, None))
 				}
+			};
+			if let Err(fatal) = result {
+				self.diag_engine.push_and_exit(fatal)
 			}
 		}
-		Ok(self.builder.build())
+		self.builder.build()
 	}
 }
