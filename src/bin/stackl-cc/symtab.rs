@@ -39,6 +39,18 @@ pub enum StorageClass {
 	Register,
 }
 
+impl TryFrom<StorageClass> for stackl::ssa::data::StorageClass {
+	type Error = ();
+	fn try_from(value: StorageClass) -> Result<Self, Self::Error> {
+		match value {
+			StorageClass::Automatic => Ok(Self::Automatic),
+			StorageClass::Register => Ok(Self::Automatic),
+			StorageClass::Static => Ok(Self::Static),
+			StorageClass::Constant | StorageClass::Typename | StorageClass::Constant => Err(()),
+		}
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct SymbolTableEntry {
 	pub data_type: DataType,

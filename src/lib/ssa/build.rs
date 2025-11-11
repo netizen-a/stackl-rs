@@ -194,15 +194,15 @@ impl Builder {
 		});
 		Ok(id)
 	}
-	pub fn type_pointer(&mut self, storage_class: u32, type_id: u32) -> Result<u32, Error> {
+	pub fn type_pointer(&mut self, type_id: u32) -> u32 {
 		let id = self.id();
 		self.type_list.push(data::Instruction {
 			opcode: data::Opcode::TypePointer,
 			result_id: Some(id),
 			result_type: None,
-			operands: [storage_class, type_id].into(),
+			operands: [type_id].into(),
 		});
-		Ok(id)
+		id
 	}
 	pub fn type_function(
 		&mut self,

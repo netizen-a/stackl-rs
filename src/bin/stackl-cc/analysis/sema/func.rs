@@ -6,6 +6,7 @@ use crate::diagnostics::*;
 use crate::symtab as sym;
 use crate::symtab::StorageClass;
 use crate::synthesis::icg;
+use stackl::ssa::data as ssa;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn function_definition(&mut self, decl: &mut syn::FunctionDefinition) -> bool {
@@ -235,7 +236,7 @@ impl super::SemanticParser<'_> {
 		self.tree_builder.end_child();
 
 		if let (Ok(sc), Ok(layout)) = (
-			icg::StorageClass::try_from(storage),
+			ssa::StorageClass::try_from(storage),
 			icg::DataLayout::try_from(data_type.kind),
 		) {
 			self.data_layouts.as_mut().map(|h| h.insert(layout));

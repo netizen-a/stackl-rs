@@ -6,27 +6,6 @@ use crate::data_type::{
 	TagKind,
 	TypeKind,
 };
-use crate::symtab;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum StorageClass {
-	Function,
-	Static,
-	Constant,
-}
-
-impl TryFrom<symtab::StorageClass> for StorageClass {
-	type Error = ();
-	fn try_from(value: symtab::StorageClass) -> Result<Self, Self::Error> {
-		match value {
-			symtab::StorageClass::Automatic => Ok(Self::Function),
-			symtab::StorageClass::Register => Ok(Self::Function),
-			symtab::StorageClass::Static => Ok(Self::Static),
-			symtab::StorageClass::Constant => Ok(Self::Constant),
-			symtab::StorageClass::Typename | symtab::StorageClass::Constant => Err(()),
-		}
-	}
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IntegerLayout {
@@ -55,13 +34,16 @@ pub struct FunctionLayout {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct StructLayout(Box<[DataLayout]>);
+pub struct StructLayout(pub Box<[DataLayout]>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PtrLayout(pub Box<DataLayout>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataLayout {
 	Void,
 	Bool,
-	Pointer(Box<DataLayout>),
+	Pointer(PtrLayout),
 	Integer(IntegerLayout),
 	Float(FloatLayout),
 	Array(ArrayLayout),
@@ -141,9 +123,9 @@ impl TryFrom<TypeKind> for DataLayout {
 				component,
 				is_decayed: true,
 				..
-			}) => Self::Pointer(Box::new(Self::try_from(component.kind)?)),
+			}) => Self::Pointer(PtrLayout(Box::new(Self::try_from(component.kind)?))),
 			TypeKind::Pointer(component) => {
-				Self::Pointer(Box::new(Self::try_from(component.kind)?))
+				Self::Pointer(PtrLayout(Box::new(Self::try_from(component.kind)?)))
 			}
 			TypeKind::Function(FuncType {
 				params,

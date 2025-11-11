@@ -54,6 +54,13 @@ pub enum Opcode {
 	Variable,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[repr(u32)]
+pub enum StorageClass {
+	Automatic,
+	Static,
+}
+
 pub struct Instruction {
 	pub opcode: Opcode,
 	pub result_type: Option<u32>,

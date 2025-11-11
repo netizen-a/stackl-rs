@@ -9,6 +9,7 @@ use crate::data_type::*;
 use crate::diagnostics::*;
 use crate::symtab as sym;
 use crate::synthesis::icg;
+use stackl::ssa::data as ssa;
 
 impl super::SemanticParser<'_> {
 	pub(super) fn declaration(
@@ -110,7 +111,7 @@ impl super::SemanticParser<'_> {
 				);
 				self.diagnostics.push(error);
 			} else if let (Ok(sc), Ok(layout)) = (
-				icg::StorageClass::try_from(storage),
+				ssa::StorageClass::try_from(storage),
 				icg::DataLayout::try_from(new_entry.data_type.kind),
 			) {
 				self.data_layouts.as_mut().map(|h| h.insert(layout));

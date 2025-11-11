@@ -17,6 +17,7 @@ use crate::{
 		ToSpan,
 	},
 };
+use stackl::ssa::data as ssa;
 
 /// (6.9.1) declaration-list
 pub struct DeclarationList(Vec<Declaration>);
@@ -39,7 +40,7 @@ pub struct Specifiers {
 	pub is_volatile: bool,
 	pub restrict_list: Vec<diag::Span>,
 	pub inline_list: Vec<diag::Span>,
-	pub storage: Option<icg::StorageClass>,
+	pub storage: Option<ssa::StorageClass>,
 	pub layout: Option<icg::DataLayout>,
 }
 

@@ -53,4 +53,22 @@ impl SSACodeGen<'_> {
 			id
 		}
 	}
+	pub(super) fn type_ptr(&mut self, layout: &PtrLayout) -> u32 {
+		if let Some(id) = self.type_map.get(&DataLayout::Pointer(layout.clone())) {
+			*id
+		} else {
+			let inner_id = self.resolve_type(&layout.0);
+			let id = self.builder.type_pointer(inner_id);
+			if let Some(value) = self.type_map.insert(DataLayout::Void, id) {
+				let info = Diagnostic::info(
+					DiagKind::Trace(format!("type_ptr id {id} already exists")),
+					None,
+				);
+				if self.is_traced {
+					self.diag_engine.push(info);
+				}
+			}
+			id
+		}
+	}
 }
