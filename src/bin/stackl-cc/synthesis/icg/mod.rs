@@ -50,9 +50,7 @@ impl<'a> SSACodeGen<'a> {
 				syn::ExternalDeclaration::FunctionDefinition(inner) => {
 					self.function_definition(inner)
 				}
-				syn::ExternalDeclaration::Declaration(inner) => {
-					self.declaration(inner)
-				}
+				syn::ExternalDeclaration::Declaration(inner) => self.declaration(inner),
 				syn::ExternalDeclaration::Pragma(_) => {
 					todo!()
 				}

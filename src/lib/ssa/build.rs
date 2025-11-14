@@ -1,3 +1,5 @@
+use crate::ssa::data::StorageClass;
+
 use super::data;
 use super::Error;
 
@@ -152,7 +154,7 @@ impl Builder {
 		Ok(())
 	}
 	pub fn build(self) -> data::Module {
-		data::Module{}
+		data::Module {}
 	}
 	pub fn type_void(&mut self) -> u32 {
 		let id = self.id();
@@ -223,11 +225,11 @@ impl Builder {
 	pub fn variable(
 		&mut self,
 		result_type: u32,
-		storage_class: u32,
+		storage_class: StorageClass,
 		initializer: Option<u32>,
-	) -> Result<u32, Error> {
+	) -> u32 {
 		let id = self.id();
-		let mut operands = vec![storage_class];
+		let mut operands = vec![storage_class as u32];
 		if let Some(initializer) = initializer {
 			operands.push(initializer);
 		}
@@ -241,7 +243,7 @@ impl Builder {
 			true => self.func_list.push(instruction),
 			false => self.decl_list.push(instruction),
 		}
-		Ok(id)
+		id
 	}
 	pub fn function_begin(&mut self, result_type: u32, mask: u32) -> Result<u32, Error> {
 		let id = self.id();

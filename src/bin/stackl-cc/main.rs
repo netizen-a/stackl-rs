@@ -106,7 +106,11 @@ fn main() -> ExitCode {
 		if args.is_timed {
 			print_time(since_array);
 		}
-		return if has_error {ExitCode::FAILURE} else {ExitCode::SUCCESS};
+		return if has_error {
+			ExitCode::FAILURE
+		} else {
+			ExitCode::SUCCESS
+		};
 	}
 
 	let Some(unit) = maybe_unit else {
