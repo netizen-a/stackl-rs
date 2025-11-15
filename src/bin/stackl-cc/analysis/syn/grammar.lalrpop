@@ -327,7 +327,7 @@ Declaration: Declaration = {
 	<kind_list:DeclarationSpecifier+> <init_list:InitDeclaratorList?> ";" => {
 		Declaration {
 			specifiers: Specifiers::from(kind_list),
-			init_declarator_list: init_list.unwrap_or_default(),
+			init_declarator_list: init_list.unwrap_or_default().into_boxed_slice(),
 		}
 	},
 };
@@ -463,13 +463,13 @@ EnumSpecifier: EnumSpecifier = {
 		EnumSpecifier {
 			tag_span: kw.to_span(),
 			identifier: id,
-			enumerator_list: list,
+			enumerator_list: list.into_boxed_slice(),
 		}
 	},
 	<lo:@L> <kw:"enum"> <hi:@R> <id:Identifier> => EnumSpecifier{
 		tag_span: kw.to_span(),
 		identifier: Some(id),
-		enumerator_list: vec![],
+		enumerator_list: Box::new([]),
 	},
 };
 
@@ -908,7 +908,7 @@ FunctionDefinition: FunctionDefinition = {
 			specifiers: Specifiers::from(kind_list),
 			ident: decl.0,
 			declarators: decl.1.into(),
-			declaration_list: list,
+			declaration_list: list.into_boxed_slice(),
 			compound_stmt: compound,
 		}
 	},

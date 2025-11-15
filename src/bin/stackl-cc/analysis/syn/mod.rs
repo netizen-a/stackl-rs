@@ -191,7 +191,8 @@ pub struct FunctionDefinition {
 	pub specifiers: Specifiers,
 	pub ident: Identifier,
 	pub declarators: Vec<Declarator>,
-	pub declaration_list: Vec<Declaration>,
+	/// (6.9.1) declaration-list
+	pub declaration_list: Box<[Declaration]>,
 	pub compound_stmt: CompoundStmt,
 }
 

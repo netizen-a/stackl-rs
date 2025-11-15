@@ -19,27 +19,24 @@ use crate::{
 };
 use stackl::ssa::data as ssa;
 
-/// (6.9.1) declaration-list
-pub struct DeclarationList(Vec<Declaration>);
-
 /// (6.7) declaration
 #[derive(Debug, Default)]
 pub struct Declaration {
 	/// (6.7) declaration-specifiers
 	pub specifiers: Specifiers,
 	/// (6.7) init-declarator-list
-	pub init_declarator_list: Vec<InitDeclarator>,
+	pub init_declarator_list: Box<[InitDeclarator]>,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct Specifiers {
 	first_span: diag::Span,
-	pub storage_classes: Vec<StorageClassSpecifier>,
-	pub type_specifiers: Vec<TypeSpecifier>,
+	pub storage_classes: Box<[StorageClassSpecifier]>,
+	pub type_specifiers: Box<[TypeSpecifier]>,
 	pub is_const: bool,
 	pub is_volatile: bool,
-	pub restrict_list: Vec<diag::Span>,
-	pub inline_list: Vec<diag::Span>,
+	pub restrict_list: Box<[diag::Span]>,
+	pub inline_list: Box<[diag::Span]>,
 	pub storage: Option<ssa::StorageClass>,
 	pub layout: Option<icg::DataLayout>,
 }
@@ -49,19 +46,23 @@ impl From<Vec<SpecifierKind>> for Specifiers {
 		// grammar should gaurentee that vector is not empty
 		assert!(!value.is_empty());
 		let mut specifiers = Specifiers::default();
+		let mut storage_class_list = vec![];
+		let mut type_specifier_list = vec![];
+		let mut restrict_list = vec![];
+		let mut inline_list = vec![];
 		for (i, kind) in value.iter().enumerate() {
 			match kind {
 				SpecifierKind::StorageClassSpecifier(inner) => {
 					if i == 0 {
 						specifiers.first_span = inner.span.clone();
 					}
-					specifiers.storage_classes.push(inner.clone())
+					storage_class_list.push(inner.clone())
 				}
 				SpecifierKind::TypeSpecifier(inner) => {
 					if i == 0 {
 						specifiers.first_span = inner.span();
 					}
-					specifiers.type_specifiers.push(inner.clone())
+					type_specifier_list.push(inner.clone())
 				}
 				SpecifierKind::TypeQualifier(inner) => {
 					if i == 0 {
@@ -70,19 +71,21 @@ impl From<Vec<SpecifierKind>> for Specifiers {
 					match inner.kind {
 						TypeQualifierKind::Const => specifiers.is_const = true,
 						TypeQualifierKind::Volatile => specifiers.is_volatile = true,
-						TypeQualifierKind::Restrict => {
-							specifiers.restrict_list.push(inner.span.clone())
-						}
+						TypeQualifierKind::Restrict => restrict_list.push(inner.span.clone()),
 					}
 				}
 				SpecifierKind::Inline(span) => {
 					if i == 0 {
 						specifiers.first_span = span.clone();
 					}
-					specifiers.inline_list.push(span.clone())
+					inline_list.push(span.clone())
 				}
 			}
 		}
+		specifiers.storage_classes = storage_class_list.into_boxed_slice();
+		specifiers.type_specifiers = type_specifier_list.into_boxed_slice();
+		specifiers.inline_list = inline_list.into_boxed_slice();
+		specifiers.restrict_list = restrict_list.into_boxed_slice();
 		specifiers
 	}
 }
@@ -198,7 +201,7 @@ pub struct EnumSpecifier {
 	pub tag_span: diag::Span,
 	pub identifier: Option<Identifier>,
 	/// (6.7.2.2) enumerator-list
-	pub enumerator_list: Vec<Enumerator>,
+	pub enumerator_list: Box<[Enumerator]>,
 }
 
 /// (6.7.2.2) enumerator
