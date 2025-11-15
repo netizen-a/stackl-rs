@@ -186,7 +186,7 @@ impl Builder {
 		});
 		Ok(id)
 	}
-	pub fn type_array(&mut self, element_type: u32, length: u32) -> Result<u32, Error> {
+	pub fn type_array(&mut self, element_type: u32, length: u32) -> u32 {
 		let id = self.id();
 		self.type_list.push(data::Instruction {
 			opcode: data::Opcode::TypeArray,
@@ -194,7 +194,7 @@ impl Builder {
 			result_type: None,
 			operands: [element_type, length].into(),
 		});
-		Ok(id)
+		id
 	}
 	pub fn type_pointer(&mut self, type_id: u32) -> u32 {
 		let id = self.id();

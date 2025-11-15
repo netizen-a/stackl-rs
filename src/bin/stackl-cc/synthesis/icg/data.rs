@@ -13,6 +13,7 @@ impl SSACodeGen<'_> {
 			DataLayout::Bool => self.type_bool(),
 			DataLayout::Void => self.type_void(),
 			DataLayout::Integer(inner) => self.type_int(inner),
+			// DataLayout::Array(inner) => 
 			other => todo!("[resolve_type]: `{other:?}`"),
 		}
 	}
@@ -62,6 +63,24 @@ impl SSACodeGen<'_> {
 			if let Some(value) = self.type_map.insert(DataLayout::Void, id) {
 				let info = Diagnostic::info(
 					DiagKind::Trace(format!("type_ptr id {id} already exists")),
+					None,
+				);
+				if self.is_traced {
+					self.diag_engine.push(info);
+				}
+			}
+			id
+		}
+	}
+	pub(super) fn type_array(&mut self, layout: &ArrayLayout) -> u32 {
+		if let Some(id) = self.type_map.get(&DataLayout::Array(layout.clone())) {
+			*id
+		} else {
+			let inner_id = self.resolve_type(&layout.component);
+			let id = self.builder.type_array(inner_id, layout.length);
+			if let Some(value) = self.type_map.insert(DataLayout::Void, id) {
+				let info = Diagnostic::info(
+					DiagKind::Trace(format!("type_array id {id} already exists")),
 					None,
 				);
 				if self.is_traced {
