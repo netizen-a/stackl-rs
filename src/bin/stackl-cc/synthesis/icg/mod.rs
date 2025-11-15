@@ -52,13 +52,13 @@ impl<'a> SSACodeGen<'a> {
 				}
 				syn::ExternalDeclaration::Declaration(inner) => {
 					self.declaration(inner)?;
-				},
+				}
 				syn::ExternalDeclaration::Pragma(_) => {
 					todo!()
 				}
 				&syn::ExternalDeclaration::Error => {
 					const kind: DiagKind = DiagKind::Internal("external declaration error");
-					return Err(Diagnostic::fatal(kind, None))
+					return Err(Diagnostic::fatal(kind, None));
 				}
 			}
 		}

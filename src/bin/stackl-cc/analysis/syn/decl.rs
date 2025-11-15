@@ -108,7 +108,7 @@ pub enum SpecifierKind {
 #[derive(Debug)]
 pub struct InitDeclarator {
 	pub identifier: Identifier,
-	pub declarator: Vec<Declarator>,
+	pub declarator: Box<[Declarator]>,
 	pub initializer: Option<Initializer>,
 }
 

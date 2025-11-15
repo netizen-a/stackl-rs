@@ -117,12 +117,11 @@ fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 	let codegen_context = icg::IrContext { layouts, unit };
-	let _ssa_module = match icg::SSACodeGen::new(&mut diag_engine, args.is_traced).build(codegen_context) {
-		Ok(inner) => inner,
-		Err(fatal) => {
-			diag_engine.push_and_exit(fatal)
-		}
-	};
+	let _ssa_module =
+		match icg::SSACodeGen::new(&mut diag_engine, args.is_traced).build(codegen_context) {
+			Ok(inner) => inner,
+			Err(fatal) => diag_engine.push_and_exit(fatal),
+		};
 	diag_engine.print_once();
 	if args.ast {
 		ptree::print_tree(&tree);

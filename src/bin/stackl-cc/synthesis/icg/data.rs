@@ -13,7 +13,7 @@ impl SSACodeGen<'_> {
 			DataLayout::Bool => self.type_bool(),
 			DataLayout::Void => self.type_void(),
 			DataLayout::Integer(inner) => self.type_int(inner),
-			// DataLayout::Array(inner) => 
+			DataLayout::Array(inner) => self.type_array(inner),
 			other => todo!("[resolve_type]: `{other:?}`"),
 		}
 	}

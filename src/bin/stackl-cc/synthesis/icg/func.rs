@@ -15,10 +15,10 @@ impl super::SSACodeGen<'_> {
 			match block_item {
 				syn::BlockItem::Declaration(decl) => {
 					self.declaration(decl);
-				},
+				}
 				syn::BlockItem::Statement(stmt) => {
 					self.statement(stmt);
-				},
+				}
 				_ => todo!(),
 			}
 		}

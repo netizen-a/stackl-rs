@@ -350,12 +350,12 @@ InitDeclaratorList: Vec<InitDeclarator> = {
 InitDeclarator: InitDeclarator = {
 	<decl:Declarator> => InitDeclarator {
 		identifier: decl.0,
-		declarator: decl.1,
+		declarator: decl.1.into_boxed_slice(),
 		initializer: None,
 	},
 	<decl:Declarator> "=" <init:Initializer> => InitDeclarator {
 		identifier: decl.0,
-		declarator: decl.1,
+		declarator: decl.1.into_boxed_slice(),
 		initializer: Some(init)
 	},
 };

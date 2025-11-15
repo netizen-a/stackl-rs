@@ -252,7 +252,12 @@ impl TypeKind {
 					.kind
 					.get_render(context, Some(component.qual.clone()))
 			}
-			Self::Function(FuncType { params, ret, .. }) => {
+			Self::Function(FuncType {
+				params,
+				ret,
+				is_variadic,
+				..
+			}) => {
 				let mut new_context = String::new();
 				new_context.push_str(&ret.kind.get_render(String::new(), Some(ret.qual.clone())));
 				if !context.is_empty() {
@@ -271,6 +276,7 @@ impl TypeKind {
 							.get_render(String::new(), Some(param.qual.clone())),
 					);
 				}
+				new_context.push_str(",...");
 				new_context.push(')');
 				new_context
 			}
