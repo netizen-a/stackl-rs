@@ -67,7 +67,10 @@ PostfixExpr: Expr = {
 		Postfix{ kind: PostfixKind::Dec, span: dec.to_span() },
 		expr
 	),
-	"(" <ty:TypeName> ")" "{" <list:InitializerList> ","? "}" => Expr::CompoundLiteral(ty, list),
+	"(" <ty:TypeName> ")" "{" <list:InitializerList> ","? "}" => Expr::CompoundLiteral(
+		ty,
+		InitializerList(list.into_boxed_slice())
+	),
 };
 
 ArgumentExprList: Vec<Expr> = {
@@ -403,12 +406,12 @@ StructOrUnionSpecifier: StructOrUnionSpecifier = {
 	<prefix:StructOrUnion> <ident:Identifier?> "{" <list:StructDeclaration+> "}" => StructOrUnionSpecifier {
 		struct_or_union: prefix,
 		ident,
-		struct_declaration_list: list,
+		struct_declaration_list: list.into_boxed_slice(),
 	},
 	<prefix:StructOrUnion> <ident:Identifier> => StructOrUnionSpecifier {
 		struct_or_union: prefix,
 		ident: Some(ident),
-		struct_declaration_list: vec![],
+		struct_declaration_list: Box::new([]),
 	},
 };
 
@@ -426,7 +429,7 @@ StructOrUnion: StructOrUnion = {
 StructDeclaration: StructDeclaration = {
 	<list0:SpecifierQualifierList> <list1:StructDeclaratorList> ";" => StructDeclaration {
 		specifiers: Specifiers::from(list0),
-		struct_declarator_list: list1,
+		struct_declarator_list: list1.into_boxed_slice(),
 	}
 };
 
@@ -448,12 +451,12 @@ StructDeclaratorList: Vec<StructDeclarator> = {
 StructDeclarator: StructDeclarator = {
 	<decl:Declarator> => StructDeclarator {
 		ident: Some(decl.0),
-		declarators: decl.1,
+		declarators: decl.1.into_boxed_slice(),
 		const_expr: None,
 	},
 	<decl:Declarator?> ":" <expr:ConstantExpr> => StructDeclarator {
 		ident: decl.clone().map(|inner| inner.0),
-		declarators: decl.map(|inner| inner.1).unwrap_or_default(),
+		declarators: decl.map(|inner| inner.1).unwrap_or_default().into_boxed_slice(),
 		const_expr: Some(expr),
 	},
 };
@@ -742,15 +745,18 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 
 Initializer: Initializer = {
 	AssignmentExpr => Initializer::Expr(<>),
-	<lsqr:"{"> <init_list:InitializerList> ","? "}" => Initializer::InitializerList(lsqr.to_span(), init_list),
+	<lsqr:"{"> <init_list:InitializerList> ","? "}" => Initializer::InitializerList(
+		lsqr.to_span(),
+		InitializerList(init_list.into_boxed_slice())
+	),
 };
 
-InitializerList: InitializerList = {
+InitializerList: Vec<(Box<[Designator]>, Initializer)> = {
 	<desig:Designation?> <init:Initializer> => {
-		InitializerList(vec![(desig.unwrap_or_default(), init)])
+		vec![(desig.unwrap_or_default().into_boxed_slice(), init)]
 	},
 	<mut init_list:InitializerList> "," <desig:Designation?> <init:Initializer> => {
-		init_list.0.push((desig.unwrap_or_default(), init));
+		init_list.push((desig.unwrap_or_default().into_boxed_slice(), init));
 		init_list
 	},
 };

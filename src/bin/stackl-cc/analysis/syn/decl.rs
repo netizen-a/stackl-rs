@@ -219,7 +219,7 @@ pub struct StructOrUnionSpecifier {
 	pub struct_or_union: StructOrUnion,
 	pub ident: Option<Identifier>,
 	/// (6.7.2.1) struct-declaration-list
-	pub struct_declaration_list: Vec<StructDeclaration>,
+	pub struct_declaration_list: Box<[StructDeclaration]>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -249,14 +249,14 @@ pub struct StructOrUnion {
 #[derive(Debug, Clone)]
 pub struct StructDeclaration {
 	pub specifiers: Specifiers,
-	pub struct_declarator_list: Vec<StructDeclarator>,
+	pub struct_declarator_list: Box<[StructDeclarator]>,
 }
 
 /// (6.7.2.1) struct-declarator
 #[derive(Debug, Clone)]
 pub struct StructDeclarator {
 	pub ident: Option<Identifier>,
-	pub declarators: Vec<Declarator>,
+	pub declarators: Box<[Declarator]>,
 	pub const_expr: Option<expr::Expr>,
 }
 
@@ -367,7 +367,7 @@ impl ToSpan for TypeName {
 
 /// (6.7.8) initializer-list
 #[derive(Debug, Clone)]
-pub struct InitializerList(pub Vec<(Vec<Designator>, Initializer)>);
+pub struct InitializerList(pub Box<[(Box<[Designator]>, Initializer)]>);
 
 /// (6.7.8) designator
 #[derive(Debug, Clone)]
