@@ -15,7 +15,7 @@ impl super::SSACodeGen<'_> {
 			let init_id = init_decl
 				.initializer
 				.as_ref()
-				.and_then(|i| self.initializer(i));
+				.map(|i| self.initializer(i));
 			let var_id = self
 				.builder
 				.variable(type_id, storage_class.clone(), init_id);
@@ -23,10 +23,10 @@ impl super::SSACodeGen<'_> {
 		}
 		Ok(var_id_list.into_boxed_slice())
 	}
-	fn initializer(&mut self, initializer: &syn::Initializer) -> Option<u32> {
+	fn initializer(&mut self, initializer: &syn::Initializer) -> u32 {
 		match initializer {
-			syn::Initializer::Expr(_) => None,
-			syn::Initializer::InitializerList(_, _) => None,
+			syn::Initializer::Expr(inner) => self.expr(inner),
+			syn::Initializer::InitializerList(_, _) => todo!(),
 		}
 	}
 }

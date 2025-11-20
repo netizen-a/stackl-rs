@@ -2,6 +2,7 @@
 
 mod data;
 mod decl;
+mod expr;
 mod func;
 mod layout;
 mod stmt;
@@ -18,8 +19,10 @@ use crate::diagnostics::{
 	DiagnosticEngine,
 };
 pub use layout::*;
-use stackl::ssa::build::Builder;
-use stackl::ssa::data::Module;
+use stackl::ssa::{
+	build::Builder,
+	data::Module,
+};
 
 #[derive(Debug)]
 pub struct IrContext {
