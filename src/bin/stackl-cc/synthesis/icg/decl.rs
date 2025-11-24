@@ -12,10 +12,7 @@ impl super::SSACodeGen<'_> {
 		let storage_class = decl.specifiers.storage.as_ref().unwrap();
 		let mut var_id_list = vec![];
 		for init_decl in &decl.init_declarator_list {
-			let init_id = init_decl
-				.initializer
-				.as_ref()
-				.map(|i| self.initializer(i));
+			let init_id = init_decl.initializer.as_ref().map(|i| self.initializer(i));
 			let var_id = self
 				.builder
 				.variable(type_id, storage_class.clone(), init_id);
@@ -26,7 +23,12 @@ impl super::SSACodeGen<'_> {
 	fn initializer(&mut self, initializer: &syn::Initializer) -> u32 {
 		match initializer {
 			syn::Initializer::Expr(inner) => self.expr(inner),
-			syn::Initializer::InitializerList(_, _) => todo!(),
+			syn::Initializer::InitializerList(syn::InitializerList { list, .. }) => {
+				for (_designator, _initializer) in list.iter() {
+					//
+				}
+				todo!()
+			}
 		}
 	}
 }

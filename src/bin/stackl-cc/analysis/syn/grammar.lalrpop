@@ -67,9 +67,12 @@ PostfixExpr: Expr = {
 		Postfix{ kind: PostfixKind::Dec, span: dec.to_span() },
 		expr
 	),
-	"(" <ty:TypeName> ")" "{" <list:InitializerList> ","? "}" => Expr::CompoundLiteral(
+	"(" <ty:TypeName> ")" <lsqr:"{"> <list:InitializerList> ","? "}" => Expr::CompoundLiteral(
 		ty,
-		InitializerList(list.into_boxed_slice())
+		InitializerList{
+			span: lsqr.to_span(),
+			list: list.into_boxed_slice(),
+		}
 	),
 };
 
@@ -746,8 +749,10 @@ DirectAbstractDeclarator: Vec<Declarator> = {
 Initializer: Initializer = {
 	AssignmentExpr => Initializer::Expr(<>),
 	<lsqr:"{"> <init_list:InitializerList> ","? "}" => Initializer::InitializerList(
-		lsqr.to_span(),
-		InitializerList(init_list.into_boxed_slice())
+		InitializerList{
+			span: lsqr.to_span(),
+			list: init_list.into_boxed_slice()
+		}
 	),
 };
 

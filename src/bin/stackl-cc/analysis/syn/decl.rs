@@ -264,7 +264,7 @@ pub struct StructDeclarator {
 #[derive(Debug, Clone)]
 pub enum Initializer {
 	Expr(expr::Expr),
-	InitializerList(Span, InitializerList),
+	InitializerList(InitializerList),
 }
 
 #[derive(Debug, Clone)]
@@ -367,7 +367,10 @@ impl ToSpan for TypeName {
 
 /// (6.7.8) initializer-list
 #[derive(Debug, Clone)]
-pub struct InitializerList(pub Box<[(Box<[Designator]>, Initializer)]>);
+pub struct InitializerList {
+	pub span: Span,
+	pub list: Box<[(Box<[Designator]>, Initializer)]>,
+}
 
 /// (6.7.8) designator
 #[derive(Debug, Clone)]

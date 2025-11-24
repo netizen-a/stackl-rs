@@ -250,7 +250,7 @@ impl super::SemanticParser<'_> {
 				};
 				vec![(expr.clone(), self.expr_no_print(expr, &expr_context), 0)]
 			}
-			syn::Initializer::InitializerList(span, syn::InitializerList(list)) => {
+			syn::Initializer::InitializerList(syn::InitializerList { span, list }) => {
 				self.tree_builder
 					.begin_child("initializer-list".to_string());
 				let mut result: Vec<(syn::Expr, DataType, u32)> = vec![];
