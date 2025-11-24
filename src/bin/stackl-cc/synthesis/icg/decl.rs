@@ -24,8 +24,8 @@ impl super::SSACodeGen<'_> {
 		match initializer {
 			syn::Initializer::Expr(inner) => self.expr(inner),
 			syn::Initializer::InitializerList(syn::InitializerList { list, .. }) => {
-				for (_designator, _initializer) in list.iter() {
-					//
+				for (_designator, initializer) in list.iter() {
+					self.initializer(initializer);
 				}
 				todo!()
 			}
