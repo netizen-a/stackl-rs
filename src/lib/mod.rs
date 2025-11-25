@@ -104,7 +104,7 @@ impl StacklFormatV1 {
 		// default value
 		Ok(1000)
 	}
-	fn iter_header(&self) -> SplitTerminator<&[char]> {
+	fn iter_header(&self) -> SplitTerminator<'_, &[char]> {
 		self.header.split_terminator(&['\n', ' '][..])
 	}
 }

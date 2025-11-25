@@ -129,7 +129,7 @@ impl super::SemanticParser<'_> {
 			}
 		}
 
-		if let Some(TypeKind::Scalar(ref mut scalar)) = &mut type_kind {
+		if let Some(TypeKind::Scalar(scalar)) = &mut type_kind {
 			if let ScalarType::I32 = scalar {
 				match long_count {
 					1 => *scalar = ScalarType::I64,
