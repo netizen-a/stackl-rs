@@ -1,7 +1,7 @@
 use crate::ssa::data::StorageClass;
 
-use super::data;
 use super::Error;
+use super::data;
 
 macro_rules! return_if_detached {
 	($in_func:expr, $instruction:ident) => {
@@ -283,5 +283,46 @@ impl Builder {
 		self.func_list.push(instruction);
 		self.in_func = false;
 		Ok(())
+	}
+	pub fn constant_bit32(&mut self, result_type: u32, value: u32) -> u32 {
+		let bytes = value.to_be_bytes();
+		let id = self.id();
+		self.type_list.push(data::Instruction {
+			opcode: data::Opcode::Constant,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [u32::from_be_bytes(bytes)].into(),
+		});
+		id
+	}
+	pub fn constant_bit64(&mut self, result_type: u32, value: u64) -> u32 {
+		let bytes = value.to_be_bytes();
+		let data = unsafe { bytes.as_chunks_unchecked::<4>() };
+		let id = self.id();
+		self.type_list.push(data::Instruction {
+			opcode: data::Opcode::Constant,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [u32::from_be_bytes(data[0]), u32::from_be_bytes(data[1])].into(),
+		});
+		id
+	}
+	pub fn constant_bit128(&mut self, result_type: u32, value: u128) -> u32 {
+		let bytes = value.to_be_bytes();
+		let data = unsafe { bytes.as_chunks_unchecked::<4>() };
+		let id = self.id();
+		self.type_list.push(data::Instruction {
+			opcode: data::Opcode::Constant,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [
+				u32::from_be_bytes(data[0]),
+				u32::from_be_bytes(data[1]),
+				u32::from_be_bytes(data[2]),
+				u32::from_be_bytes(data[3]),
+			]
+			.into(),
+		});
+		id
 	}
 }

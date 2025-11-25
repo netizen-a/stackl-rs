@@ -1,9 +1,9 @@
 use std::process::ExitCode;
-use std::sync::mpsc::{
-	channel,
-	Sender,
-};
 use std::sync::RwLock;
+use std::sync::mpsc::{
+	Sender,
+	channel,
+};
 use std::{
 	fs,
 	path,
@@ -12,11 +12,11 @@ use std::{
 };
 
 use clap::Parser;
+use machine::MachineState;
 use machine::flag::{
 	IntVec,
 	Status,
 };
-use machine::MachineState;
 use stackl::{
 	StacklFlags,
 	StacklFormatV1,

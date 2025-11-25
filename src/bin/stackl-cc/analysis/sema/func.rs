@@ -141,7 +141,10 @@ impl super::SemanticParser<'_> {
 						&format!("`{}` redefined here", func_ident.name.clone()),
 					);
 					if prev_entry.is_decl == false {
-						error.push_note(&format!("`{}` must be defined only once in the ordinary namespace of this translation unit", func_ident.name.clone()));
+						error.push_note(&format!(
+							"`{}` must be defined only once in the ordinary namespace of this translation unit",
+							func_ident.name.clone()
+						));
 						// redefinition. don't even need to check types
 						self.diagnostics.push(error);
 					} else {

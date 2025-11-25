@@ -1,6 +1,6 @@
 use super::{
-	syn,
 	Diagnostic,
+	syn,
 };
 
 impl super::SSACodeGen<'_> {

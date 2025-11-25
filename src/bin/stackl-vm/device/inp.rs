@@ -6,8 +6,8 @@ use stackl::{
 };
 use std::fs;
 use std::str::FromStr;
-use std::sync::mpsc::Receiver;
 use std::sync::RwLock;
+use std::sync::mpsc::Receiver;
 
 const INP_PRINTS_CALL: i32 = 3;
 const INP_GETS_CALL: i32 = 5;

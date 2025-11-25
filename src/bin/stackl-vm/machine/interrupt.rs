@@ -1,5 +1,5 @@
-use super::flag::*;
 use super::MachineState;
+use super::flag::*;
 
 impl MachineState {
 	pub fn interrupt(&mut self, is_trap: bool) -> Result<(), MachineCheck> {

@@ -335,11 +335,7 @@ impl super::SemanticParser<'_> {
 				self.convert_type(&mut binary.left, &l_type, &r_type, binary.op.to_span());
 			let r_score =
 				self.convert_type(&mut binary.right, &r_type, &l_type, binary.op.to_span());
-			if l_score <= r_score {
-				l_type
-			} else {
-				r_type
-			}
+			if l_score <= r_score { l_type } else { r_type }
 		} else {
 			DataType::POISON
 		};

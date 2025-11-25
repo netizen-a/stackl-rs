@@ -469,7 +469,9 @@ impl DiagnosticEngine {
 				};
 				let msg0 = format!("'{name}' undeclared ({context})");
 				if *in_func {
-					diag.push_note("each undeclared identifier is reported only once for each function it appears in");
+					diag.push_note(
+						"each undeclared identifier is reported only once for each function it appears in",
+					);
 				}
 				self.format_diagnostic(&diag, msg0)
 			}

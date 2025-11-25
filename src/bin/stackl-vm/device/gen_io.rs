@@ -1,6 +1,6 @@
 use crate::io;
-use crate::machine::flag;
 use crate::machine::MachineState;
+use crate::machine::flag;
 use std::sync;
 use std::sync::RwLock;
 use std::thread;

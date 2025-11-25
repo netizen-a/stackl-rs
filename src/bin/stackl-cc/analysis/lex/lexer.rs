@@ -8,8 +8,8 @@ use std::vec::IntoIter;
 use crate::analysis::tok;
 use crate::diagnostics::{
 	self as diag,
-	lex,
 	ToSpan,
+	lex,
 };
 
 #[derive(Debug)]

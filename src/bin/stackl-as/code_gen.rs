@@ -5,10 +5,10 @@ use std::{
 
 use crate::sym;
 use stackl::{
-	asm::ast::*,
-	asm::op,
 	StacklFlags,
 	StacklFormatV2,
+	asm::ast::*,
+	asm::op,
 };
 
 pub fn ast_to_fmt2(ast: Vec<Stmt>) -> Result<StacklFormatV2, Box<dyn Error>> {

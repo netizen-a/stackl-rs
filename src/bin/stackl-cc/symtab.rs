@@ -1,7 +1,7 @@
 use std::{
 	collections::{
-		hash_map,
 		HashMap,
+		hash_map,
 	},
 	hash::Hash,
 };

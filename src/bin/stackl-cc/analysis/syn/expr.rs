@@ -1,7 +1,7 @@
 use std::f32;
 
-use super::decl;
 use super::Identifier;
+use super::decl;
 use crate::analysis::syn::Constant;
 use crate::analysis::syn::ConstantKind;
 use crate::analysis::syn::FloatingKind;
@@ -611,7 +611,7 @@ impl BinOp {
 						kind: Integer(rhs.0.clone()),
 						span: rhs.1,
 					})),
-				})
+				});
 			}
 		};
 		// default span to left-most
@@ -697,7 +697,7 @@ impl Prefix {
 						kind: Integer(rhs.clone()),
 						span,
 					})),
-				})
+				});
 			}
 		};
 		Expr::Const(Constant {

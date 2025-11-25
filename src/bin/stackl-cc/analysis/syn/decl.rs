@@ -5,8 +5,8 @@ use std::{
 	fmt,
 };
 
-use super::expr;
 use super::Identifier;
+use super::expr;
 use crate::data_type::DataType;
 use crate::diagnostics::Span;
 use crate::synthesis::icg;

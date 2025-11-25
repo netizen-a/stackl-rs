@@ -1,6 +1,6 @@
 use clap::Parser;
-use lalrpop_util::lalrpop_mod;
 use lalrpop_util::ErrorRecovery;
+use lalrpop_util::lalrpop_mod;
 use stackl::asm::ast::*;
 use std::fs;
 use std::path;

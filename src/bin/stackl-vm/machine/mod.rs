@@ -9,9 +9,9 @@ use flag::{
 };
 use memory::MachineMemory;
 use stackl::{
-	asm::op,
 	StacklFlags,
 	StacklFormatV2,
+	asm::op,
 };
 
 pub mod flag;

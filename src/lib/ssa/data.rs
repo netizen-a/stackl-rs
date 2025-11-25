@@ -52,6 +52,7 @@ pub enum Opcode {
 	DecorateString,
 	MemberDecorateString,
 	Variable,
+	Constant,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
