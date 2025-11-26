@@ -1,0 +1,5 @@
+[separator=::]
+= STACKL Architecture:: Volume 1: Basic Architecture
+Jonathan Thomason <jonathan.a.thomason@gmail.com>
+:doctype: book
+:pdf-page-layout: cover
