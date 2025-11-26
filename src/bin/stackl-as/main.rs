@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use clap::Parser;
 use lalrpop_util::ErrorRecovery;
 use lalrpop_util::lalrpop_mod;

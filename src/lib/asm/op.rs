@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 pub const NOP: i32 = 0;
 pub const ADD: i32 = 1;
 pub const SUB: i32 = 2;

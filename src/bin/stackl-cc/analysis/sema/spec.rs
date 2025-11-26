@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use crate::analysis::syn;
 use crate::data_type::*;
 use crate::diagnostics as diag;

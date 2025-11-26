@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use crate::device::inp::Request;
 use crate::io;
 

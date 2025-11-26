@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 mod diag;
 mod kind;
 pub mod lex;

@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 // use crate::data_types::DataType;
 
 use std::path;

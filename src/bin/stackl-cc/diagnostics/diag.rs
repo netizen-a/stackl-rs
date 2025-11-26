@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

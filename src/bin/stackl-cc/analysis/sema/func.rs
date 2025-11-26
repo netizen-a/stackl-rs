@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use crate::analysis::sema::DeclType;
 use crate::analysis::syn;
 use crate::cli::WarnLevel;

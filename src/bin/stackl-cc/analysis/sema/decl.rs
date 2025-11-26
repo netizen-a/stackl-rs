@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use std::cell::OnceCell;
 
 use super::expr::ExprContext;

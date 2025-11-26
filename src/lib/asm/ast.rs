@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Stmt {
 	pub labels: Vec<String>,

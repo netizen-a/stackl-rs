@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use crate::machine::MachineState;
 use std::sync::{
 	Once,

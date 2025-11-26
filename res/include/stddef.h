@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 #ifndef _STDDEF_H_
 #define _STDDEF_H_
 

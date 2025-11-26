@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::analysis::syn::*;

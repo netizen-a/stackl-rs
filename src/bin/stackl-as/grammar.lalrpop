@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use stackl::asm::ast::*;
 use crate::tok::*;
 use lalrpop_util::ParseError;

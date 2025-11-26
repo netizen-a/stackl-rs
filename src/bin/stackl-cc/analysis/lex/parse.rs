@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use std::fs;
 use std::io;
 use std::io::Read;

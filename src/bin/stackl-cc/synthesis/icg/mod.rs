@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 //! Intermediate Code Generation
 
 mod data;

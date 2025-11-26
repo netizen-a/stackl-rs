@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 use crate::analysis::syn::Constant;
 use crate::diagnostics::*;
 use crate::symtab as sym;

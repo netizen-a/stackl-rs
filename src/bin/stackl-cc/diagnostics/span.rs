@@ -1,3 +1,5 @@
+// Copyright (c) 2024-2025 Jonathan Thomason
+
 pub trait ToSpan {
 	fn to_span(&self) -> Span;
 }
