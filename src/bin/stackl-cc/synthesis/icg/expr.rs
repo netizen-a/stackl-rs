@@ -27,6 +27,15 @@ impl super::SSACodeGen<'_> {
 				self.builder.constant_bit32(result_type, *num as u32);
 				todo!()
 			}
+			syn::ConstantKind::Integer(IntegerKind::U32(num)) => {
+				let layout = &DataLayout::Integer(IntegerLayout {
+					width: 32,
+					is_signed: false,
+				});
+				let result_type = self.resolve_type(layout);
+				self.builder.constant_bit32(result_type, *num as u32);
+				todo!()
+			}
 			other => todo!("{other:?}"),
 		}
 	}

@@ -62,11 +62,20 @@ pub enum StorageClass {
 	Static,
 }
 
+#[derive(Debug, Clone)]
+pub enum Operand {
+	IdRef(u32),
+	LiteralString,
+	LiteralBit32(u32),
+	StorageClass(StorageClass),
+	FunctionControl(u32),
+}
+
 pub struct Instruction {
 	pub opcode: Opcode,
 	pub result_type: Option<u32>,
 	pub result_id: Option<u32>,
-	pub operands: Box<[u32]>,
+	pub operands: Box<[Operand]>,
 }
 pub struct Module {}
 pub struct Function {}

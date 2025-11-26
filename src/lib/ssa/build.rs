@@ -1,3 +1,4 @@
+use crate::ssa::data::Operand;
 use crate::ssa::data::StorageClass;
 
 use super::Error;
@@ -48,61 +49,61 @@ impl Builder {
 		self.func_list.push(instruction);
 		Ok(())
 	}
-	pub fn i_add(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+	pub fn i_add(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::IAdd,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: operands.into(),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
-	pub fn i_sub(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+	pub fn i_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::ISub,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: operands.into(),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.decl_list.push(instruction);
 		Ok(id)
 	}
-	pub fn i_mul(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+	pub fn i_mul(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::IMul,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: operands.into(),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
-	pub fn s_div(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+	pub fn s_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::SDiv,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: operands.into(),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
 		Ok(id)
 	}
-	pub fn s_mod(&mut self, result_type: u32, operands: [u32; 2]) -> Result<u32, Error> {
+	pub fn s_mod(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::SMod,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: operands.into(),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
@@ -114,7 +115,7 @@ impl Builder {
 			opcode: data::Opcode::Load,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: [pointer].into(),
+			operands: [Operand::IdRef(pointer)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
@@ -125,7 +126,7 @@ impl Builder {
 			opcode: data::Opcode::Store,
 			result_id: None,
 			result_type: None,
-			operands: [pointer, object].into(),
+			operands: [Operand::IdRef(pointer), Operand::IdRef(object)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
@@ -147,7 +148,7 @@ impl Builder {
 			opcode: data::Opcode::RetValue,
 			result_id: None,
 			result_type: None,
-			operands: [operand].into(),
+			operands: [Operand::IdRef(operand)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.func_list.push(instruction);
@@ -172,7 +173,11 @@ impl Builder {
 			opcode: data::Opcode::TypeInt,
 			result_id: Some(id),
 			result_type: None,
-			operands: [width, is_signed as u32].into(),
+			operands: [
+				Operand::IdRef(width),
+				Operand::LiteralBit32(is_signed as u32),
+			]
+			.into(),
 		});
 		id
 	}
@@ -182,7 +187,7 @@ impl Builder {
 			opcode: data::Opcode::TypeFloat,
 			result_id: Some(id),
 			result_type: None,
-			operands: [width].into(),
+			operands: [Operand::IdRef(width)].into(),
 		});
 		Ok(id)
 	}
@@ -192,7 +197,7 @@ impl Builder {
 			opcode: data::Opcode::TypeArray,
 			result_id: Some(id),
 			result_type: None,
-			operands: [element_type, length].into(),
+			operands: [Operand::IdRef(element_type), Operand::LiteralBit32(length)].into(),
 		});
 		id
 	}
@@ -202,7 +207,7 @@ impl Builder {
 			opcode: data::Opcode::TypePointer,
 			result_id: Some(id),
 			result_type: None,
-			operands: [type_id].into(),
+			operands: [Operand::IdRef(type_id)].into(),
 		});
 		id
 	}
@@ -212,8 +217,12 @@ impl Builder {
 		parameter_types: &[u32],
 	) -> Result<u32, Error> {
 		let id = self.id();
-		let mut operands = vec![return_type];
-		operands.extend_from_slice(parameter_types);
+		let mut operands = vec![Operand::IdRef(return_type)];
+		let param_ids: Box<[Operand]> = parameter_types
+			.iter()
+			.map(|param| Operand::IdRef(*param))
+			.collect();
+		operands.extend_from_slice(&param_ids);
 		self.type_list.push(data::Instruction {
 			opcode: data::Opcode::TypePointer,
 			result_id: Some(id),
@@ -229,9 +238,9 @@ impl Builder {
 		initializer: Option<u32>,
 	) -> u32 {
 		let id = self.id();
-		let mut operands = vec![storage_class as u32];
+		let mut operands = vec![Operand::StorageClass(storage_class)];
 		if let Some(initializer) = initializer {
-			operands.push(initializer);
+			operands.push(Operand::IdRef(initializer));
 		}
 		let instruction = data::Instruction {
 			opcode: data::Opcode::Variable,
@@ -245,13 +254,17 @@ impl Builder {
 		}
 		id
 	}
-	pub fn function_begin(&mut self, result_type: u32, mask: u32) -> Result<u32, Error> {
+	pub fn function_begin(
+		&mut self,
+		result_type: u32,
+		function_control: u32,
+	) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::Function,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: [mask].into(),
+			operands: [Operand::FunctionControl(function_control)].into(),
 		};
 		if self.in_func {
 			return Err(Error::NestedFunction);
@@ -285,43 +298,12 @@ impl Builder {
 		Ok(())
 	}
 	pub fn constant_bit32(&mut self, result_type: u32, value: u32) -> u32 {
-		let bytes = value.to_be_bytes();
 		let id = self.id();
 		self.type_list.push(data::Instruction {
 			opcode: data::Opcode::Constant,
 			result_id: Some(id),
 			result_type: Some(result_type),
-			operands: [u32::from_be_bytes(bytes)].into(),
-		});
-		id
-	}
-	pub fn constant_bit64(&mut self, result_type: u32, value: u64) -> u32 {
-		let bytes = value.to_be_bytes();
-		let data = unsafe { bytes.as_chunks_unchecked::<4>() };
-		let id = self.id();
-		self.type_list.push(data::Instruction {
-			opcode: data::Opcode::Constant,
-			result_id: Some(id),
-			result_type: Some(result_type),
-			operands: [u32::from_be_bytes(data[0]), u32::from_be_bytes(data[1])].into(),
-		});
-		id
-	}
-	pub fn constant_bit128(&mut self, result_type: u32, value: u128) -> u32 {
-		let bytes = value.to_be_bytes();
-		let data = unsafe { bytes.as_chunks_unchecked::<4>() };
-		let id = self.id();
-		self.type_list.push(data::Instruction {
-			opcode: data::Opcode::Constant,
-			result_id: Some(id),
-			result_type: Some(result_type),
-			operands: [
-				u32::from_be_bytes(data[0]),
-				u32::from_be_bytes(data[1]),
-				u32::from_be_bytes(data[2]),
-				u32::from_be_bytes(data[3]),
-			]
-			.into(),
+			operands: [Operand::LiteralBit32(value)].into(),
 		});
 		id
 	}
