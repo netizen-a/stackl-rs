@@ -11,7 +11,7 @@ Jonathan Thomason <jonathan.a.thomason@gmail.com>
 This book is part of a multivolume work entitled the *STACKL Architecture*.
 This table lists each volume in the series.
 
-[grid=rows,width=75%,align=center]
+[width=75%,align=center]
 |===
 ^|Title
 
