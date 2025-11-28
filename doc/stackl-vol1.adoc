@@ -279,7 +279,7 @@ must preserve stack structure.
 
 Interrupt mode is exited via the `RTI` instruction.
 
-=== 2.4 Special-Purpose Registers
+=== 2.4 Registers
 
 The STACKL architecture defines eight special-purpose registers that
 control execution flow, memory addressing, processor state, and
@@ -336,7 +336,7 @@ virtual addresses to physical addresses.
 
 |===
 
-=== 2.4.1 FLAGS Register Layout
+==== 2.4.1 Flags Register
 
 The FLAGS register contains bits controlling processor modes and status.
 Bit numbering starts at 0 (LSB). Undefined bits are reserved and must be
@@ -345,6 +345,7 @@ zero.
 [cols="7%,16%,77%"]
 |===
 | Bit   | Name         | Description
+
 | 0     | HALTED       | When set, halts the CPU. The interpreter or simulator will exit.
 | 1     | USER_MODE    | Set when CPU executes in user mode; clear means privileged mode.
 | 2     | INT_MODE     | Set when CPU is servicing an interrupt.
@@ -356,11 +357,12 @@ zero.
 |===
 
 [[machine_check_flags]]
-==== Machine Check Flags (MCHK_FLAGS, bits 6-15)
+===== Machine Check Flags (MCHK_FLAGS, bits 6-15)
 
 [cols="25%,75%"]
 |===
 | Flag Name       | Description
+
 | ILLEGAL_INST    | Illegal instruction encountered.
 | ILLEGAL_ADDR    | Illegal memory address access.
 | HW_FAILURE      | Hardware failure detected.
@@ -372,7 +374,7 @@ zero.
 |===
 
 [[interrupt_flags]]
-==== Interrupt Pending Flags (IRQ_PENDING, bits 16-31)
+===== Interrupt Pending Flags (IRQ_PENDING, bits 16-31)
 
 [cols="10%,25%,65%",options="header"]
 |===
@@ -402,7 +404,7 @@ Example bit layout diagram:
 
 ```
 
-=== 2.4.2 Instruction Pointer (IP)
+==== 2.4.2 Instruction Pointer Register
 
 The IP holds the 32-bit address of the next instruction to be executed.
 
@@ -420,7 +422,7 @@ execute(instruction)
 
 Control flow instructions modify IP explicitly.
 
-=== 2.4.3 Stack Pointer (SP)
+==== 2.4.3 Stack Pointer (SP)
 
 SP points to the first free word on the stack, which grows upward.
 
@@ -444,7 +446,7 @@ value := MEM[SP]
 
 All stack operations are 32-bit aligned.
 
-=== 2.4.4 Frame Pointer (FP)
+==== 2.4.4 Frame Pointer (FP)
 
 FP points to the base of the current function’s stack frame.
 
@@ -458,7 +460,7 @@ During a function call:
 
 On return, FP is restored.
 
-=== 2.4.5 Interrupt Vector Base Register (IVEC)
+==== 2.4.5 Interrupt Vector Base Register (IVEC)
 
 IVEC holds the 32-bit base address of the interrupt vector table.
 
@@ -467,7 +469,7 @@ interrupt handler.
 
 At reset, IVEC is zero.
 
-=== 2.4.6 Base Pointer (BP) and Limit Pointer (LP)
+==== 2.4.6 Base Pointer (BP) and Limit Pointer (LP)
 
 BP and LP define the user-mode address space bounds.
 
@@ -483,7 +485,7 @@ BP ≤ address < LP
 
 Access outside this range triggers a machine check.
 
-=== 2.4.7 Page Table Base Register (PTBR)
+==== 2.4.7 Page Table Base Register (PTBR)
 
 PTBR holds the root address of the page table structures used for
 virtual memory translation when `VMEM_MODE` is set.
