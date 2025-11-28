@@ -1,5 +1,23 @@
-[separator=::]
 = STACKL Architecture:: Volume 1: Basic Architecture
 Jonathan Thomason <jonathan.a.thomason@gmail.com>
+:title-separator: ::
 :doctype: book
 :pdf-page-layout: cover
+:outline-title: STACKL Architecture Volume 1: Basic Architecture
+:toc:
+
+== Preface
+=== About This Book
+This book is part of a multivolume work entitled the *STACKL Architecture*.
+This table lists each volume in the series.
+
+[grid=rows,width=75%,align=center]
+|===
+^|Title
+
+|STACKL Architecture Volume 1: Basic Architecture
+
+|STACKL Architecture Volume 2: Instruction Set Reference
+
+|STACKL Architecture Volume 3: System Programming Guide
+|===
