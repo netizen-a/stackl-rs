@@ -4,6 +4,7 @@ Jonathan Thomason <jonathan.a.thomason@gmail.com>
 :doctype: book
 :pdf-page-layout: cover
 :outline-title: STACKL Architecture Volume 1: Basic Architecture
+:outlinelevels: 3:1
 :toc:
 
 == Preface
@@ -288,47 +289,47 @@ operates on the stack.
 This section describes each register’s function, size, and operational
 details.
 
-[cols="15%,85%",options="header"]
+[cols="10%,90%",options="header"]
 |===
 | Register | Description
 
-| Instruction Pointer (IP)
+| IP
 | A 32-bit register containing the address of the next instruction to execute.
 Execution proceeds sequentially by default. Branches, calls, and
 interrupts update the IP to transfer control.
 
-| Stack Pointer (SP)
+| SP
 | A 32-bit register pointing to the first unused word at the top of the
 stack. The stack grows toward increasing addresses. Push operations
 store data at `MEM[SP]` and increment `SP`. Pop operations decrement
 `SP` and read from `MEM[SP]`.
 
-| Frame Pointer (FP)
+| FP
 | A 32-bit register pointing to the base of the current function's stack
 frame, typically the location of the first local variable.
 Instructions that reference local variables use the FP as a base.
 
-| Flags Register (FLAGS)
+| FLAGS
 | A 32-bit register holding processor status and mode bits. See
 <<_2_4_1_flags_register_layout,FLAGS Register Layout>> for bit
 definitions.
 
-| Interrupt Vector Base Register (IVEC)
+| IVEC
 | A 32-bit register holding the absolute address of the interrupt vector
 table. The table contains sixteen 32-bit interrupt vectors. The IVEC
 register is set to zero on reset.
 
-| Base Pointer (BP)
+| BP
 | A 32-bit register used in user mode to relocate memory accesses. Effective
 addresses are computed as `BP + offset`. BP defines the start of a process’s
 memory region.
 
-| Limit Pointer (LP)
+| LP
 | A 32-bit register defining the upper bound of the user process’s
 accessible memory. Valid memory accesses must be in the range
 `[BP, LP - 1]`. Accesses outside this range cause a machine check.
 
-| Page Table Base Register (PTBR)
+| PTBR
 | A 32-bit register holding the root address of the page tables when
 virtual memory mode (`VMEM_MODE`) is enabled. Used to translate
 virtual addresses to physical addresses.
