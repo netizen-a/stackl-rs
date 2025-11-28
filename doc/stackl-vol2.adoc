@@ -1,9 +1,9 @@
-= STACKL Architecture:: Volume 1: Basic Architecture
+= STACKL Architecture:: Volume 2: Instruction Set Reference
 Jonathan Thomason <jonathan.a.thomason@gmail.com>
 :title-separator: ::
 :doctype: book
 :pdf-page-layout: cover
-:outline-title: STACKL Architecture Volume 1: Basic Architecture
+:outline-title: STACKL Architecture Volume 2: Instruction Set Reference
 :toc:
 
 == Preface
@@ -21,6 +21,3 @@ This table lists each volume in the series.
 
 |STACKL Architecture Volume 3: System Programming Guide
 |===
-
-=== Audience
-This volume is intended for programmers writing application or system software for a processor that implements the STACKL architecture.
