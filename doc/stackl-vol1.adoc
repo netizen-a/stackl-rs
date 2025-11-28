@@ -7,6 +7,22 @@ Jonathan Thomason <jonathan.a.thomason@gmail.com>
 :toc:
 
 == Preface
+This manual provides a comprehensive description of the Stackl virtual
+machine architecture and its programming model. It is intended to serve
+as the primary reference for system programmers, compiler developers,
+and students engaged in operating system and low-level programming coursework.
+
+The Stackl environment is designed as a virtual machine to facilitate the
+teaching of operating system concepts including interrupt handling, system
+calls, and privileged operations without requiring physical hardware. By
+simulating a stack-based CPU architecture, Stackl offers an accessible
+yet realistic platform for experimentation and development.
+
+Readers are encouraged to familiarize themselves with the conventions and
+terminology defined in this manual to fully leverage the capabilities of the
+Stackl environment.
+
+
 === About This Book
 This book is part of a multivolume work entitled the *STACKL Architecture*.
 
@@ -48,16 +64,6 @@ STACKL virtual machine.
 Details of instruction encoding and semantics are covered in *Volume 2:
 Instruction Set Reference*, while system-level programming conventions and
 runtime environment are described in *Volume 3: System Programming Guide*.
-
-=== Conventions
-The following typographical conventions are used throughout this document:
-
-* Architectural registers, instructions, and keywords are shown in `monospace`.
-* Reserved keywords and instruction mnemonics are written in uppercase.
-* Terms such as *UNDEFINED* or *IMPLEMENTATION-DEFINED* indicate
-  unspecified or platform-dependent behavior.
-* Numeric values appear in decimal unless preceded by `0x` for hexadecimal or
-  `0b` for binary notation.
 
 == 1 Overview
 
@@ -142,170 +148,6 @@ This section defines the conventions used throughout this manual for
 representing numerical values, bit fields, operational pseudocode, and
 instruction notation.
 
-=== 1.2.1 Numerical Representation
-
-==== Hexadecimal
-Hexadecimal values are prefixed with `0x`.
-
-Examples: `0x1F20`, `0xC000_0000`.
-
-Underscores may be used for readability.
-
-==== Binary
-Binary values are prefixed with `0b`.
-
-Examples: `0b1010_0011`, `0b1111`.
-
-==== Decimal
-Decimal constants have no prefix.
-
-Examples: `42`, `4096`.
-
-==== Addresses
-Addresses are 32-bit unsigned hexadecimal values unless otherwise noted.
-
-Example: `0x8040_1000`.
-
-=== 1.2.2 Bit Numbering and Bit Ranges
-
-==== Bit Numbering
-Bits are numbered starting from 0, where bit 0 is the least significant bit (LSB).
-
-==== Bit Ranges
-A range is written as:
-
-```
-
-bitN:bitM
-
-```
-
-with `N >= M`.
-
-Example: `31:16`.
-
-==== Single Bits
-
-```
-
-bitN
-
-```
-
-Example: `bit7`.
-
-=== 1.2.3 Register Naming Conventions
-
-The STACKL architecture exposes **only special-purpose registers**
-(e.g., `SP`, `IP`, `FLAGS`, `IVEC`, `PTBR`). There are *no*
-architecturally visible general-purpose registers.
-
-Register fields are written using the bracket notation:
-
-```
-
-FLAGS[bit3]
-FLAGS[15:8]
-
-```
-
-Examples:
-
-* `SP` — Stack Pointer
-* `IP` — Instruction Pointer
-* `FLAGS` — Processor Status and Control
-* `IVEC` — Interrupt Vector Table Base Address
-* `PTBR` — Page Table Base Register
-
-=== 1.2.4 Instruction Notation
-
-==== General Form
-
-```
-
-MNEMONIC operand1, operand2, ...
-
-```
-
-Operands may include immediates, stack operations, or memory references.
-
-==== Stack Operands
-
-STACKL instructions implicitly operate on the stack unless otherwise
-described. Examples:
-
-```
-
-PUSH 0x20
-ADD            // pops two items, pushes result
-CALL 0x1000
-
-```
-
-==== Memory Operands
-
-Memory addressing uses brackets:
-
-```
-
-[address]
-[address + imm]
-[address + [SP]]        // stack-relative form
-
-```
-
-Specific addressing modes are described in the instruction-set volume.
-
-==== Immediate Values
-Immediates use the number formats described in
-<<_1_2_1_numerical_representation,1.2.1>>.
-
-==== Assembler Directives
-Assembler pseudo-operations begin with a period:
-
-```
-
-.byte
-.word
-.align
-
-```
-
-=== 1.2.5 Pseudocode Conventions
-
-Pseudocode illustrates architectural behavior, not compiler output.
-
-Conventions:
-
-* Assignments use `:=`
-* Bitwise: `&`, `|`, `^`, `~`
-* Logical: `&&`, `||`, `!`
-* Memory accesses:
-+
-```
-
-MEM[address]        // byte
-MEM32[address]      // 32-bit
-MEM64[address]      // 64-bit
-
-```
-* Stack operations:
-+
-```
-
-push(x)        // SP := SP - 8; MEM64[SP] := x
-pop()          // x := MEM64[SP]; SP := SP + 8
-
-```
-* Register updates:
-+
-```
-
-FLAGS[bit3] := 1
-IP := target
-
-```
-
 === 1.2.6 Diagrams and Tables
 
 ==== Bit-Field Diagrams
@@ -322,17 +164,6 @@ Example:
 +----------------------+-----------------------+
 
 ```
-
-==== Instruction Documentation Structure
-
-Each instruction is documented using:
-
-* Mnemonic
-* Encoding
-* Operands
-* Description
-* Operational Details (including pseudocode)
-* Exceptions or Fault Conditions
 
 == 2 Basic Execution Environment
 
