@@ -278,22 +278,6 @@ Tables use fixed-width column alignment unless specified otherwise.
 Hexadecimal constants use the `0x` prefix, and bit positions refer to the
 bit-numbering conventions defined in <<1.2.2 Bit Numbering and Ranges>>.
 
-
-===== Bit-Field Diagrams
-
-Bit diagrams place the most significant bit on the left.
-
-Example:
-
-```
-
-31                   16 15                    0
-+----------------------+-----------------------+
-|     high[31:16]      |     low[15:0]         |
-+----------------------+-----------------------+
-
-```
-
 == 2 Basic Execution Environment
 
 This chapter describes the fundamental execution environment of the
