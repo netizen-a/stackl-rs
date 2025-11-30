@@ -143,15 +143,143 @@ model as integer instructions.
 
 Additional floating-point details appear in Volume 2.
 
-== 1.2 Notational Conventions
+=== 1.2 Notational Conventions
 
 This section defines the conventions used throughout this manual for
-representing numerical values, bit fields, operational pseudocode, and
-instruction notation.
+representing numerical values, bit fields, pseudocode, instruction
+formatting, and diagrams.
 
-=== 1.2.6 Diagrams and Tables
+Unless otherwise noted, all numeric values are *unsigned* and all memory
+addresses refer to *word*-addressed memory.
 
-==== Bit-Field Diagrams
+==== 1.2.1 Numeric Formats
+
+The following prefixes indicate literal bases:
+
+* `42` — Decimal (no prefix)
+* `0x` — Hexadecimal
+* `0b` — Binary
+* `'c'` — ASCII character literal representing the byte value of *c*
+
+Examples:
+
+```
+42         ; decimal
+0x2A       ; hexadecimal
+0b101010   ; binary
+'\n'       ; ASCII newline
+```
+
+Hexadecimal is used for all device registers, bit masks, and memory-mapped
+addresses unless stated otherwise.
+
+==== 1.2.2 Bit Numbering and Ranges
+
+Bits are numbered with *least significant bit* (LSB) = 0 and increase
+leftward toward the *most significant bit* (MSB).
+
+A range written as `X:Y` denotes bits X through Y (inclusive), with X ≥ Y.
+
+Examples:
+
+```
+bit 0           ; least significant bit
+bit 31          ; most significant bit of a 32-bit value
+bits 7:0        ; low byte
+bits 31:16      ; high halfword
+```
+
+Bit masks in tables use hexadecimal notation.
+
+==== 1.2.3 Pseudocode
+
+Execution semantics throughout this manual use a C‑like pseudocode.
+Assignments modify architectural state unless noted.
+
+General conventions:
+
+* `Memory[A]` — load/store a *word* at address `A`.
+* `Memory8[A]` — load/store a *byte* at address `A`.
+* Register names (`IP`, `SP`, `FP`, `FLAG`, etc.) refer to CPU registers.
+* Temporary symbols (`tmp`, `val`) do not represent architectural storage.
+
+Example:
+
+```
+val = Memory[SP-1]
+SP--
+IP = dest
+```
+
+Control flow changes are represented by assigning to `IP`.
+
+==== 1.2.4 Instruction Format Notation
+
+Instruction definitions use the form:
+
+```
+OPCODE <param>
+```
+
+Parameters represent *immediate* values stored in the word after the opcode.
+Multiword instructions follow these rules:
+
+* `<param>` is a 32‑bit signed word at `Memory[IP+1]`.
+* Execution increments `IP` by 2 words unless control flow overrides it.
+
+Stack effects are shown using bracket notation:
+
+```
+Before: [..., a, b]   ; b at top of stack
+After:  [..., result]
+```
+
+==== 1.2.5 Stack Diagrams
+
+Stack diagrams depict the stack growing toward *higher* addresses.
+`SP` always points to the *first unused word* above the top element.
+
+Example:
+
+```
+Higher addresses →
++---------+  ← SP (first unused)
+|    x    |
++---------+
+|    y    |
++---------+
+|    z    |
++---------+  ← bottom
+Lower addresses
+```
+
+Function-call and interrupt-frame diagrams later in this volume follow
+this same direction convention.
+
+==== 1.2.6 Diagrams and Tables
+
+===== Bit‑Field Diagrams
+
+Bit-field diagrams place the MSB on the left and the LSB on the right.
+Ranges are displayed above the fields.
+
+Example:
+
+```
+31                   16 15                    0
++----------------------+-----------------------+
+|     high[31:16]      |     low[15:0]         |
++----------------------+-----------------------+
+```
+
+===== Tables
+
+Tables use fixed-width column alignment unless specified otherwise.
+Hexadecimal constants use the `0x` prefix, and bit positions refer to the
+bit-numbering conventions defined in <<1.2.2 Bit Numbering and Ranges>>.
+
+
+===== Bit-Field Diagrams
 
 Bit diagrams place the most significant bit on the left.
 
@@ -342,41 +470,63 @@ The FLAGS register contains bits controlling processor modes and status.
 Bit numbering starts at 0 (LSB). Undefined bits are reserved and must be
 zero.
 
-[cols="7%,16%,77%"]
+[cols="7%,17%,76%"]
 |===
 | Bit   | Name         | Description
 
-| 0     | HALTED       | When set, halts the CPU. The interpreter or simulator will exit.
-| 1     | USER_MODE    | Set when CPU executes in user mode; clear means privileged mode.
-| 2     | INT_MODE     | Set when CPU is servicing an interrupt.
-| 3     | INT_DIS      | When set, interrupts are disabled.
-| 4     | VMEM_MODE    | Enables virtual memory address translation.
-| 5     | FPU_ENABLE   | Enables the floating-point unit.
-| 6-15  | MCHK_FLAGS   | Machine check flags (see <<machine_check_flags>>).
+| 0-7   | STATUS_FLAGS | Status flags (see <<status_flags>>).
+| 8-15  | MCHK_FLAGS   | Machine check flags (see <<machine_check_flags>>).
 | 16-31 | IRQ_PENDING  | Pending interrupts (see <<interrupt_flags>>).
 |===
 
-[[machine_check_flags]]
-===== Machine Check Flags (MCHK_FLAGS, bits 6-15)
+Bit layout diagram:
 
-[cols="25%,75%"]
+```
+31          16 15         9 8             0
++-------------+------------+--------------+
+| IRQ_PENDING | MCHK_FLAGS | STATUS_FLAGS |
++-------------+------------+--------------+
+
+```
+
+
+[[status_flags]]
+===== Status Flags (bits 0-7)
+
+[cols="7%,16%,77%"]
 |===
-| Flag Name       | Description
+| Bit | Flag Name      | Description
 
-| ILLEGAL_INST    | Illegal instruction encountered.
-| ILLEGAL_ADDR    | Illegal memory address access.
-| HW_FAILURE      | Hardware failure detected.
-| HW_WARNING      | Hardware warning detected.
-| PROT_INST       | Protected instruction violation.
-| DIVIDE_ZERO     | Division by zero exception.
-| OVF             | Overflow exception (TODO).
-| FPE             | Floating point arithmetic exception (TODO).
+| 0   | HALTED       | When set, halts the CPU. The interpreter or simulator will exit.
+| 1   | USER_MODE    | Set when CPU executes in user mode; clear means privileged mode.
+| 2   | INT_MODE     | Set when CPU is servicing an interrupt.
+| 3   | INT_DIS      | When set, interrupts are disabled.
+| 4   | VMEM_MODE    | Enables virtual memory address translation.
+| 5   | FPU_ENABLE   | Enables the floating-point unit.
+| 6-7 | Reserved     | Reserved for future use
+|===
+
+[[machine_check_flags]]
+===== Machine Check Flags (bits 9-15)
+
+[cols="6%,17%,77%"]
+|===
+| Bit | Flag Name       | Description
+
+| 8   | ILLEGAL_INST    | Illegal instruction encountered.
+| 9   | ILLEGAL_ADDR    | Illegal memory address access.
+| 10  | HW_FAILURE      | Hardware failure detected.
+| 11  | HW_WARNING      | Hardware warning detected.
+| 12  | PROT_INST       | Protected instruction violation.
+| 13  | DIVIDE_ZERO     | Division by zero exception.
+| 14  | OVF             | Overflow exception (TODO).
+| 15  | FPE             | Floating point arithmetic exception (TODO).
 |===
 
 [[interrupt_flags]]
-===== Interrupt Pending Flags (IRQ_PENDING, bits 16-31)
+===== Interrupt Pending Flags (bits 16-31)
 
-[cols="10%,25%,65%",options="header"]
+[cols="14%,20%,66%",options="header"]
 |===
 | Bit | Name           | Description
 
@@ -387,22 +537,10 @@ zero.
 | 20  | DMA_T          | DMA transfer interrupt pending
 | 21  | PIO_T          | Programmed I/O transfer interrupt pending
 | 24  | GEN_IO         | General I/O interrupt pending
-| 25  | BKPT           | Breakpoint interrupt pending (caused by BREAK instruction)
+| 25  | BKPT           | Breakpoint interrupt pending
 | 22-23, 26-31 | Reserved | Reserved for future use
 |===
 
-
-Example bit layout diagram:
-
-```
-
-31                 18 17    16 15        6 5        4 3      2 1      0
-+-------------------+-------+----------+----------+--------+--------+
-| IRQ_PENDING[13:0]  | I_TRAP| I_MACH   | Reserved |FPU_EN | VMEM   |
-|                   |       |          |          |       | INT_DIS|
-+-------------------+-------+----------+----------+--------+--------+
-
-```
 
 ==== 2.4.2 Instruction Pointer Register
 
@@ -413,9 +551,9 @@ Pseudocode for sequential execution:
 ```
 
 while (not halted) {
-instruction = MEM[IP]
-IP := IP + 1
-execute(instruction)
+	instruction = MEM[IP]
+	IP := IP + 1
+	execute(instruction)
 }
 
 ```
@@ -479,7 +617,7 @@ Valid addresses satisfy:
 
 ```
 
-BP ≤ address < LP
+BP <= address < LP
 
 ```
 
