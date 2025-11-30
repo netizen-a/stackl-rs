@@ -439,8 +439,7 @@ Instructions that reference local variables use the FP as a base.
 
 | FLAGS
 | A 32-bit register holding processor status and mode bits. See
-<<_2_4_1_flags_register_layout,FLAGS Register Layout>> for bit
-definitions.
+<<flags_register, Flags Register>> for bit definitions.
 
 | IVEC
 | A 32-bit register holding the absolute address of the interrupt vector
@@ -464,6 +463,7 @@ virtual addresses to physical addresses.
 
 |===
 
+[[flags_register]]
 ==== 2.4.1 Flags Register
 
 The FLAGS register contains bits controlling processor modes and status.
@@ -474,9 +474,9 @@ zero.
 |===
 | Bit   | Name         | Description
 
-| 0-7   | STATUS_FLAGS | Status flags (see <<status_flags>>).
-| 8-15  | MCHK_FLAGS   | Machine check flags (see <<machine_check_flags>>).
-| 16-31 | IRQ_PENDING  | Pending interrupts (see <<interrupt_flags>>).
+| 0-7   | STATUS_FLAGS | Status flags (see <<status_flags, Status Flags>>).
+| 8-15  | MCHK_FLAGS   | Machine check flags (see <<machine_check_flags, Machine Check Flags>>).
+| 16-31 | IRQ_PENDING  | Pending interrupts (see <<interrupt_flags, Interrupt Pending Flags>>).
 |===
 
 Bit layout diagram:
@@ -491,7 +491,7 @@ Bit layout diagram:
 
 
 [[status_flags]]
-===== Status Flags (bits 0-7)
+===== Status Flags (STATUS_FLAGS, bits 0-7)
 
 [cols="7%,16%,77%"]
 |===
@@ -507,7 +507,7 @@ Bit layout diagram:
 |===
 
 [[machine_check_flags]]
-===== Machine Check Flags (bits 9-15)
+===== Machine Check Flags (MCHK_FLAGS, bits 9-15)
 
 [cols="6%,17%,77%"]
 |===
@@ -524,7 +524,7 @@ Bit layout diagram:
 |===
 
 [[interrupt_flags]]
-===== Interrupt Pending Flags (bits 16-31)
+===== Interrupt Pending Flags (IRQ_PENDING, bits 16-31)
 
 [cols="14%,20%,66%",options="header"]
 |===
