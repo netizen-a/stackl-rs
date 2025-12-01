@@ -258,7 +258,7 @@ this same direction convention.
 
 ==== 1.2.6 Diagrams and Tables
 
-===== Bit‑Field Diagrams
+===== Bit-Field Diagrams
 
 Bit-field diagrams place the MSB on the left and the LSB on the right.
 Ranges are displayed above the fields.
