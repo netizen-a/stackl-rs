@@ -30,8 +30,7 @@ impl super::SSACodeGen<'_> {
 					is_signed: false,
 				});
 				let result_type = self.resolve_type(layout);
-				self.builder.constant_bit32(result_type, num);
-				todo!()
+				self.builder.constant_bit32(result_type, num)
 			}
 			&syn::ConstantKind::Integer(IntegerKind::I32(num)) => {
 				let layout = &DataLayout::Integer(IntegerLayout {
@@ -41,18 +40,16 @@ impl super::SSACodeGen<'_> {
 				let result_type = self.resolve_type(layout);
 				unsafe {
 					self.builder
-						.constant_bit32(result_type, mem::transmute(num));
+						.constant_bit32(result_type, mem::transmute(num))
 				}
-				todo!()
 			}
 			&syn::ConstantKind::Floating(FloatingKind::Float(num)) => {
 				let layout = &DataLayout::Float(FloatLayout { width: 32 });
 				let result_type = self.resolve_type(layout);
 				unsafe {
 					self.builder
-						.constant_bit32(result_type, mem::transmute(num));
+						.constant_bit32(result_type, mem::transmute(num))
 				}
-				todo!()
 			}
 			other => todo!("{other:?}"),
 		}
