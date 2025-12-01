@@ -9,6 +9,10 @@ Jonathan Thomason <jonathan.a.thomason@gmail.com>
 == Preface
 === About This Book
 This book is part of a multivolume work entitled the *STACKL Architecture*.
+
+STACKL defines a virtual stack-based machine environment designed for
+educational and research use in operating system and systems programming.
+
 This table lists each volume in the series.
 
 [width=75%,align=center]
