@@ -36,19 +36,26 @@ This chapter describes general purpose instructions for stackl.
 <<<
 === ADD
 
-This opcode performs an addition. This instruction has the following effect:
-```
-Memory[SP-2] = Memory[SP-2] + Memory[SP-1]
-SP--
-IP++
-```
-
+==== Format
 [frame=none,grid=none]
 |===
 |Mnemonic |Opcode |Description
 
 |ADD    |01     |
 |===
+
+==== Purpose
+This opcode performs an addition.
+
+==== Description
+None
+
+==== Operation
+```
+Memory[SP-2] := Memory[SP-2] + Memory[SP-1]
+SP--
+IP++
+```
 
 ==== Related Instructions
 SUB
@@ -63,19 +70,28 @@ None
 <<<
 === ADJSP
 
-This opcode is used to adjust the stack pointer. This opcode has the following effect:
-```
-SP += <amount>
-IP += 2
-```
-The `<amount>` can be a positive or negative number. The `<amount>` is in bytes, not words. If `<amount>` is not a multiple of the word size, the machine behavior will be undefined following this instruction.
-
-[frame=none,grid=none]
+==== Format
+[frame=all,grid=all]
 |===
 |Mnemonic |Opcode |Description
 
-|ADJSP    |2E _id_ | Add _imm32_ to SP.
+|ADJSP _imm32_   |2E _id_ | Add _imm32_ to SP.
 |===
+
+==== Purpose
+This opcode is used to adjust the stack pointer.
+
+==== Description
+The 32-bit signed immediate can be a positive or negative number. The immediate is in bytes, not words.
+
+==== Restrictions
+If the immediate is not a multiple of the word size, the machine behavior will be undefined following this instruction.
+
+==== Operation
+```
+SP += immediate
+IP += 2
+```
 
 ==== Related Instructions
 None
@@ -88,5 +104,5 @@ None
 |===
 ^|Exception ^|Real ^|Virtual ^|Protected ^|Cause of Exception
 
-| Alignment check, #AC ^| ^|X ^|X | An unaligned memory reference was performed
+| Alignment check ^| ^|X ^|X | An unaligned memory reference was performed
 |===
