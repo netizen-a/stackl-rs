@@ -4,5 +4,6 @@
         "LitiaEeloo.lalrpop-language-server",
         "tamasfe.even-better-toml",
         "EditorConfig.EditorConfig",
+        "James-Yu.latex-workshop"
     ]
 }
