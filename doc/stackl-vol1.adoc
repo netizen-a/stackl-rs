@@ -327,6 +327,44 @@ assumed by this volume.
 
 STACKL uses a flat, byte-addressable **32-bit linear address space**.
 
+=== 2.2.1 Privileged vs User Mode Addressing
+
+In privileged mode:
+
+* All load, store, and instruction fetches use absolute addresses.
+* `BP` and `LP` are ignored.
+* The entire 32-bit address space is available.
+
+In user mode:
+
+* The effective address for memory access is `BP + offset`.
+* Accesses must lie within `[BP, LP - 1]`.
+* Violations generate a machine check interrupt.
+
+=== 2.2.2 BP/LP Memory Protection
+
+Memory protection is enforced through the Base Pointer (BP) and Limit Pointer (LP):
+
+* `BP` defines the start of a process’s memory region.
+* `LP` defines the upper bound of accessible memory.
+* Valid addresses satisfy: `BP <= address < LP`
+
+=== 2.2.3 Virtual Memory Translation
+
+When `VMEM_MODE` is enabled:
+
+* Memory references use address translation.
+* The page tables are rooted at the address in `PTBR`.
+* Virtual addresses are translated to physical addresses transparently.
+
+[cols="10%,90%",options="header"]
+|===
+| Address Type        | Description
+| Absolute Address    | Used in privileged mode; direct memory access
+| Effective Address   | Calculated as `BP + offset` in user mode
+| Virtual Address     | Translated to physical address via page tables
+|===
+
 * Code and data share the same address space.
 * Instructions are fetched directly from memory.
 * Words are 32-bit aligned.
