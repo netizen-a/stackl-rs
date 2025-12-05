@@ -1,4 +1,97 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[11pt,a4paper,openany]{book}
+
+% Good margins for dense technical docs
+\usepackage[margin=1in]{geometry}
+
+% Basic math + tables
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+
+% Better PDF links
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+% Monospace for instruction names or opcodes
+\usepackage{courier}
+\renewcommand{\ttdefault}{pcr}
+
+% Fix tables drifting to bottom
+\usepackage{float}
+\restylefloat{table}
+
+% Small spacing between columns (Intel/AMD style)
+\setlength{\columnsep}{0.6cm}
+
+\title{
+	STACKL Architecture\\
+	Programmer's Manual\\
+	\large Volume 1: Basic Architecture
+}
+
+\author{Jonathan Thomason}
+
 \begin{document}
-A sentence of text.
+
+\frontmatter
+\maketitle
+\tableofcontents
+
+\chapter{Preface}
+This manual provides a comprehensive description of the Stackl virtual
+machine architecture and its programming model. It is intended to serve
+as the primary reference for system programmers, compiler developers,
+and students engaged in operating system and low-level programming coursework.
+
+The Stackl environment is designed as a virtual machine to facilitate the
+teaching of operating system concepts including interrupt handling, system
+calls, and privileged operations without requiring physical hardware. By
+simulating a stack-based CPU architecture, Stackl offers an accessible
+yet realistic platform for experimentation and development.
+
+Readers are encouraged to familiarize themselves with the conventions and
+terminology defined in this manual to fully leverage the capabilities of the
+Stackl environment.
+
+\section{About This Book}
+This book is part of a multivolume work entitled the *STACKL Architecture*.
+
+STACKL defines a virtual stack-based machine environment designed for
+educational and research use in operating system and systems programming.
+
+This volume specifies the architectural state, execution model, memory
+organization, and interrupt mechanism of the STACKL virtual machine.
+
+Subsequent volumes provide a detailed instruction set reference and a system
+programming guide covering runtime conventions, programming interfaces, and
+software development considerations.
+
+\begin{table}[H]
+\centering
+	\begin{tabular}{l}
+		STACKL Architecture Volume 1: Basic Architecture\\
+		STACKL Architecture Volume 2: Instruction Set Reference\\
+		STACKL Architecture Volume 3: System Programming Guide\\
+	\end{tabular}
+\end{table}
+
+\section{Audience}
+This volume is intended for system architects, hardware implementers,
+interpreter developers, and others requiring a precise understanding of
+the STACKL architectural model.
+
+\section{Scope of This Volume}
+This volume describes the architectural state visible to software running on
+STACKL, including the organization of its stacks, registers, program counter,
+and condition flags.
+
+It defines the execution model, memory address space, and interrupt vector
+mechanism, establishing the foundation for software development on the
+STACKL virtual machine.
+
+Details of instruction encoding and semantics are covered in *Volume 2:
+Instruction Set Reference*, while system-level programming conventions and
+runtime environment are described in *Volume 3: System Programming Guide*.
+
+\mainmatter
+% your content goes here
+
 \end{document}

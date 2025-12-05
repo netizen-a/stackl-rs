@@ -6,3 +6,5 @@ Cargo.lock
 *.fls
 *.log
 *.gz
+*.out
+*.toc
