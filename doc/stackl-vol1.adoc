@@ -77,13 +77,13 @@ computations, while instructions are fetched from the same linear memory space.
 
 Major architectural features include:
 
-* A flat linear memory model used for both code and data.
-* A stack-based execution model with no general-purpose registers.
-* Special-purpose registers for program sequencing, stack management, and system control.
-* Support for 16 interrupt vectors, including reserved vectors for machine check and trap.
-* User-mode memory protection with base and limit registers.
-* Optional virtual memory support via page tables controlled by the VMEM_MODE flag.
-* Optional hardware floating-point support controlled by the FPU_ENABLE flag.
+- A flat linear memory model used for both code and data.
+- A stack-based execution model with no general-purpose registers.
+- Special-purpose registers for program sequencing, stack management, and system control.
+- Support for 16 interrupt vectors, including reserved vectors for machine check and trap.
+- User-mode memory protection with base and limit registers.
+- Optional virtual memory support via page tables controlled by the VMEM_MODE flag.
+- Optional hardware floating-point support controlled by the FPU_ENABLE flag.
 
 ==== 1.1.2 Registers
 STACKL defines a set of special-purpose registers responsible for instruction
@@ -92,14 +92,14 @@ virtual memory.
 
 These include:
 
-* **Instruction Pointer (IP)** – Address of the next instruction to execute.
-* **Stack Pointer (SP)** – Address of the next unused stack location.
-* **Frame Pointer (FP)** – Reference point for function call frames and local variables.
-* **Flag Register (FLAG)** – Processor mode bits, interrupt status, and control flags.
-* **Interrupt Vector Base (IVEC)** – Base address of the interrupt vector table.
-* **Base Pointer (BP)** – Start of the user-mode address range.
-* **Limit Pointer (LP)** – End of the user-mode address range.
-* **Page Table Base Register (PTBR)** – Base address of page tables when virtual memory is enabled.
+- **Instruction Pointer (IP)** – Address of the next instruction to execute.
+- **Stack Pointer (SP)** – Address of the next unused stack location.
+- **Frame Pointer (FP)** – Reference point for function call frames and local variables.
+- **Flag Register (FLAG)** – Processor mode bits, interrupt status, and control flags.
+- **Interrupt Vector Base (IVEC)** – Base address of the interrupt vector table.
+- **Base Pointer (BP)** – Start of the user-mode address range.
+- **Limit Pointer (LP)** – End of the user-mode address range.
+- **Page Table Base Register (PTBR)** – Base address of page tables when virtual memory is enabled.
 
 Register definitions and behaviors are detailed in Chapter 2.
 
@@ -110,13 +110,13 @@ stack and push their results back onto it.
 
 Categories include:
 
-* Stack manipulation operations
-* Integer arithmetic and logic
-* Control flow instructions
-* Memory access operations
-* Interrupt and trap control instructions
-* System instructions affecting processor state and modes
-* Floating-point instructions when the FPU is enabled
+- Stack manipulation operations
+- Integer arithmetic and logic
+- Control flow instructions
+- Memory access operations
+- Interrupt and trap control instructions
+- System instructions affecting processor state and modes
+- Floating-point instructions when the FPU is enabled
 
 Encoding formats and instruction semantics are specified in Volume 2.
 
@@ -156,10 +156,10 @@ addresses refer to *word*-addressed memory.
 
 The following prefixes indicate literal bases:
 
-* `42` — Decimal (no prefix)
-* `0x` — Hexadecimal
-* `0b` — Binary
-* `'c'` — ASCII character literal representing the byte value of *c*
+- `42` — Decimal (no prefix)
+- `0x` — Hexadecimal
+- `0b` — Binary
+- `'c'` — ASCII character literal representing the byte value of *c*
 
 Examples:
 
@@ -298,16 +298,15 @@ The processor maintains a unified operand stack that serves as the
 evaluation structure for most instructions. The stack grows toward
 increasing memory addresses.
 
-* The **Stack Pointer (SP)** always points to the first unused word at
-the top of the stack.
-* Push operations store a word at `MEM[SP]` and increment `SP` by 1.
-* Pop operations decrement `SP` by 1 and return the word at that
+- The **Stack Pointer (SP)** always points to the first unused word at the top of the stack.
+- Push operations store a word at `MEM[SP]` and increment `SP` by 1.
+- Pop operations decrement `SP` by 1 and return the word at that
 location.
 
 Unless otherwise stated, instructions:
 
-* Pop their input operands from the stack, in right-to-left order.
-* Push their result(s) back onto the stack.
+- Pop their input operands from the stack, in right-to-left order.
+- Push their result(s) back onto the stack.
 
 ==== 2.1.2 Control Flow
 
@@ -316,9 +315,9 @@ contains the address of the next instruction to execute.
 
 Execution proceeds sequentially unless modified by:
 
-* Branch or jump instructions.
-* Call and return instructions.
-* Interrupts, traps, or machine checks.
+- Branch or jump instructions.
+- Call and return instructions.
+- Interrupts, traps, or machine checks.
 
 No architectural pipeline, delay slots, or speculation behaviors are
 assumed by this volume.
@@ -331,31 +330,31 @@ STACKL uses a flat, byte-addressable **32-bit linear address space**.
 
 In privileged mode:
 
-* All load, store, and instruction fetches use absolute addresses.
-* `BP` and `LP` are ignored.
-* The entire 32-bit address space is available.
+- All load, store, and instruction fetches use absolute addresses.
+- `BP` and `LP` are ignored.
+- The entire 32-bit address space is available.
 
 In user mode:
 
-* The effective address for memory access is `BP + offset`.
-* Accesses must lie within `[BP, LP - 1]`.
-* Violations generate a machine check interrupt.
+- The effective address for memory access is `BP + offset`.
+- Accesses must lie within `[BP, LP - 1]`.
+- Violations generate a machine check interrupt.
 
 === 2.2.2 BP/LP Memory Protection
 
 Memory protection is enforced through the Base Pointer (BP) and Limit Pointer (LP):
 
-* `BP` defines the start of a process’s memory region.
-* `LP` defines the upper bound of accessible memory.
-* Valid addresses satisfy: `BP <= address < LP`
+- `BP` defines the start of a process’s memory region.
+- `LP` defines the upper bound of accessible memory.
+- Valid addresses satisfy: `BP <= address < LP`
 
 === 2.2.3 Virtual Memory Translation
 
 When `VMEM_MODE` is enabled:
 
-* Memory references use address translation.
-* The page tables are rooted at the address in `PTBR`.
-* Virtual addresses are translated to physical addresses transparently.
+- Memory references use address translation.
+- The page tables are rooted at the address in `PTBR`.
+- Virtual addresses are translated to physical addresses transparently.
 
 [cols="10%,90%",options="header"]
 |===
@@ -365,10 +364,10 @@ When `VMEM_MODE` is enabled:
 | Virtual Address     | Translated to physical address via page tables
 |===
 
-* Code and data share the same address space.
-* Instructions are fetched directly from memory.
-* Words are 32-bit aligned.
-* All stack operations use 32-bit words.
+- Code and data share the same address space.
+- Instructions are fetched directly from memory.
+- Words are 32-bit aligned.
+- All stack operations use 32-bit words.
 
 When running in privileged mode, all memory accesses use absolute addresses.
 When running in user mode, memory accesses are relocated using the
@@ -378,17 +377,17 @@ When running in user mode, memory accesses are relocated using the
 
 In privileged mode:
 
-* All load, store, and instruction fetches use absolute addresses.
-* `BP` and `LP` are ignored.
-* The entire 32-bit address space is available.
+- All load, store, and instruction fetches use absolute addresses.
+- `BP` and `LP` are ignored.
+- The entire 32-bit address space is available.
 
 ==== 2.2.2 User Mode Addressing
 
 In user mode:
 
-* The effective address for memory access is `BP + offset`.
-* Accesses must lie within `[BP, LP - 1]`.
-* Violations generate a machine check interrupt.
+- The effective address for memory access is `BP + offset`.
+- Accesses must lie within `[BP, LP - 1]`.
+- Violations generate a machine check interrupt.
 
 This mechanism enables simple per-process memory isolation.
 
@@ -402,10 +401,10 @@ encoded in the **FLAGS** register.
 
 Privileged mode is the privileged execution mode:
 
-* Full access to memory.
-* All instructions permitted.
-* Interrupts may be enabled or disabled by software.
-* Used for operating system code, interrupt handling, and trap handling.
+- Full access to memory.
+- All instructions permitted.
+- Interrupts may be enabled or disabled by software.
+- Used for operating system code, interrupt handling, and trap handling.
 
 Privileged mode is entered at reset.
 
@@ -413,18 +412,18 @@ Privileged mode is entered at reset.
 
 User mode is the restricted execution mode:
 
-* Memory access is limited to the range specified by `BP` and `LP`.
-* Certain privileged instructions are not permitted.
-* System-mode code is invoked only through traps or interrupts.
+- Memory access is limited to the range specified by `BP` and `LP`.
+- Certain privileged instructions are not permitted.
+- System-mode code is invoked only through traps or interrupts.
 
 ==== 2.3.3 Interrupt Mode
 
 Interrupt mode is active when the processor is servicing an interrupt.
 
-* Entered automatically on interrupt dispatch.
-* Stack frames are created according to the interrupt rules.
-* Re-entry is inhibited until the handler completes.
-* Local variables are not permitted in interrupt routines; the handler
+- Entered automatically on interrupt dispatch.
+- Stack frames are created according to the interrupt rules.
+- Re-entry is inhibited until the handler completes.
+- Local variables are not permitted in interrupt routines; the handler
 must preserve stack structure.
 
 Interrupt mode is exited via the `RTI` instruction.
