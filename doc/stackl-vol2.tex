@@ -16,7 +16,7 @@
 \restylefloat{table}
 
 % ---- Fonts ----
-\usepackage{sans}
+\usepackage{palatino}
 
 % ---- Section Formatting ----
 \usepackage[explicit]{titlesec}
@@ -32,17 +32,34 @@
 % Reduce top spacing safely (no negatives)
 \titlespacing*{\chapter}{0pt}{12pt}{12pt}
 
-% ---- Hyperref (load last) ----
+% ---- Hyperref ----
 \usepackage[hidelinks]{hyperref}
 
-% Fix anchor drift + allow fine tuning of jump
+
 \makeatletter
-\let\oldchapter\chapter
-\renewcommand{\chapter}{%
-    \par % no page break
-    \phantomsection % anchor
-    \raisebox{6pt}{}% slight upward bias (empty raisebox!)
-    \oldchapter
+\renewcommand{\maketitle}{%
+  \vspace*{2cm} % Add some space from the top
+  \begin{center}
+    \begingroup
+      \hrule height 2pt % Optional: Thick line above the title
+      \vspace{0.5\baselineskip}
+      {\Huge \bfseries \@title \par}% Title is large and bold
+      \vspace{0.5\baselineskip}
+      \hrule height 1pt % Optional: Thin line below the title
+    \endgroup
+    \par
+  \end{center}
+  \vfill % Push everything below this point to the bottom of the page
+  % --- Author and Date at Bottom ---
+  \begin{center}
+    \begingroup
+      \footnotesize
+      \hrule height 0.5pt % Thin separator line
+      \vspace{0.5em}
+      \@author \quad $\cdot$ \quad \@date % Print Author and Date separated by a dot
+      \vspace{0.5em}
+    \endgroup
+  \end{center}
 }
 \makeatother
 
@@ -60,8 +77,12 @@
 \begin{document}
 
 \frontmatter
+\thispagestyle{empty}
 \maketitle
+
+\setcounter{page}{0}
 \tableofcontents
+
 
 \chapter{Preface}
 
