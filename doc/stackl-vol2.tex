@@ -16,8 +16,7 @@
 \restylefloat{table}
 
 % ---- Fonts ----
-\usepackage{courier}
-\renewcommand{\ttdefault}{pcr}
+\usepackage{sans}
 
 % ---- Section Formatting ----
 \usepackage[explicit]{titlesec}
@@ -87,8 +86,22 @@ hello
 \pagebreak
 \section[ADJSP]{\texorpdfstring{ADJSP \hfill Adjust Stack Pointer}{ADJSP -- Adjust Stack Pointer}}
 
+This opcode is used to adjust the stack pointer. This opcode has the following effect:
+\begin{verbatim}
+SP += <amount>
+IP += 2
+\end{verbatim}
+The \verb|<amount>| can be a positive or negative number. The \verb|<amount>| is in bytes, not
+words. If \verb|<amount>| is not a multiple of the word size, the machine behavior will be
+undefined following this instruction.
+
+
 \pagebreak
 \section[OUTS]{\texorpdfstring{OUTS \hfill Output String}{OUTS -- Output String}}
+
+This opcode sends output to the console. The value at the top of the stack is assumed to be the
+address of a NULL terminated string. The string at that address will be sent to the console. This is
+a blocking operation. The CPU will not execute another instruction until after the IO is complete.
 
 \chapter{System Instruction Reference}
 
