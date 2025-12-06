@@ -1,55 +1,59 @@
 \documentclass[11pt,a4paper,oneside]{book}
 
+% ---- Page Layout ----
 \usepackage[margin=1in]{geometry}
+
+% ---- Math & Symbols ----
 \usepackage{amsmath}
 \usepackage{amssymb}
+
+% ---- Graphics ----
 \usepackage{graphicx}
+
+% ---- Tables ----
 \usepackage{booktabs}
-\usepackage{hyperref}
-\usepackage{courier}
-\usepackage[explicit]{titlesec}
-
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    urlcolor=blue,
-    % Add any other desired options here
-}
-
-\titleformat{\chapter}[hang]
-    {\normalfont\huge\bfseries}
-    {\thechapter}
-    {1em}
-    {#1} % ← no extra vspace
-    [\vskip 2pt \hrule height 1pt \vskip 2pt]
-
-
-\titlespacing*{\chapter}{0pt}{-20pt}{6pt}
-
-\makeatletter
-\let\oldchapter\chapter
-\renewcommand{\chapter}{%
-    \clearpage
-    \raisebox{6pt}{\phantomsection}
-    \oldchapter
-}
-\makeatletter
-
-
-% Monospace for instruction names or opcodes
-
-\renewcommand{\ttdefault}{pcr}
-
-% Fix tables drifting to bottom
 \usepackage{float}
 \restylefloat{table}
 
-\title{
-	STACKL Architecture\\
-	Programmer's Manual\\
-	\large Volume 2: Instruction Set Reference
-}
+% ---- Fonts ----
+\usepackage{courier}
+\renewcommand{\ttdefault}{pcr}
 
+% ---- Section Formatting ----
+\usepackage[explicit]{titlesec}
+
+% Clean + stable chapter formatting
+\titleformat{\chapter}[hang]
+  {\normalfont\huge\bfseries}
+  {\thechapter}
+  {1em}
+  {#1} % print title text
+  [\vskip 4pt \hrule height 1pt \vskip 4pt]
+
+% Reduce top spacing safely (no negatives)
+\titlespacing*{\chapter}{0pt}{12pt}{12pt}
+
+% ---- Hyperref (load last) ----
+\usepackage[hidelinks]{hyperref}
+
+% Fix anchor drift + allow fine tuning of jump
+\makeatletter
+\let\oldchapter\chapter
+\renewcommand{\chapter}{%
+    \par % no page break
+    \phantomsection % anchor
+    \raisebox{6pt}{}% slight upward bias (empty raisebox!)
+    \oldchapter
+}
+\makeatother
+
+
+% ---- Document Metadata ----
+\title{
+    STACKL Architecture\\
+    Programmer's Manual\\
+    \large Volume 2: Instruction Set Reference
+}
 \author{Jonathan Thomason}
 
 \pagestyle{plain}
