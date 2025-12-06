@@ -1,27 +1,43 @@
 \documentclass[11pt,a4paper,oneside]{book}
 
-% Good margins for dense technical docs
 \usepackage[margin=1in]{geometry}
-
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{courier}
+\usepackage[explicit]{titlesec}
 
-\usepackage{titlesec}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    % Add any other desired options here
+}
 
 \titleformat{\chapter}[hang]
-    {\normalfont\huge\bfseries} % Style: huge, bold font
-    {\thechapter}               % Label: Chapter Number
-    {1em}                       % Separator: 1em horizontal space
-    {\vspace{-4pt}}             % Before-code: Lift the title text slightly
-    [\vskip 4pt \hrule height 1pt \vskip 4pt] % After-code: Add line, then vertical space
-
-\titlespacing*{\chapter}{0pt}{-20pt}{6pt} % Spacing: 0pt left, -20pt before, 6pt after
+    {\normalfont\huge\bfseries}
+    {\thechapter}
+    {1em}
+    {#1} % ← no extra vspace
+    [\vskip 2pt \hrule height 1pt \vskip 2pt]
 
 
-% Better PDF links
-\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\titlespacing*{\chapter}{0pt}{-20pt}{6pt}
+
+\makeatletter
+\let\oldchapter\chapter
+\renewcommand{\chapter}{%
+    \clearpage
+    \raisebox{6pt}{\phantomsection}
+    \oldchapter
+}
+\makeatletter
+
 
 % Monospace for instruction names or opcodes
-\usepackage{courier}
+
 \renewcommand{\ttdefault}{pcr}
 
 % Fix tables drifting to bottom
