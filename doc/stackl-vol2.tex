@@ -1,11 +1,21 @@
-\documentclass[11pt,a4paper,openany]{book}
+\documentclass[11pt,a4paper,oneside]{book}
 
 % Good margins for dense technical docs
 \usepackage[margin=1in]{geometry}
 
-% Basic math + tables
-\usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+
+\usepackage{titlesec}
+
+\titleformat{\chapter}[hang]
+    {\normalfont\huge\bfseries} % Style: huge, bold font
+    {\thechapter}               % Label: Chapter Number
+    {1em}                       % Separator: 1em horizontal space
+    {\vspace{-4pt}}             % Before-code: Lift the title text slightly
+    [\vskip 4pt \hrule height 1pt \vskip 4pt] % After-code: Add line, then vertical space
+
+\titlespacing*{\chapter}{0pt}{-20pt}{6pt} % Spacing: 0pt left, -20pt before, 6pt after
+
 
 % Better PDF links
 \usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
@@ -25,6 +35,8 @@
 }
 
 \author{Jonathan Thomason}
+
+\pagestyle{plain}
 
 \begin{document}
 
@@ -48,8 +60,19 @@ Programmer's Manual}. This table lists each volume in the series.
 \end{table}
 
 \mainmatter
-\chapter{General-Purpose Instruction Reference}
 
-\section{\texorpdfstring{OUTS \hfill Output String}{OUTS -- Output String}}
+\chapter{General-Purpose Instruction Reference}
+hello
+
+\pagebreak
+\section[ADJSP]{\texorpdfstring{ADJSP \hfill Adjust Stack Pointer}{ADJSP -- Adjust Stack Pointer}}
+
+\pagebreak
+\section[OUTS]{\texorpdfstring{OUTS \hfill Output String}{OUTS -- Output String}}
+
+\chapter{System Instruction Reference}
+
+\pagebreak
+\section[TRAP]{\texorpdfstring{TRAP \hfill Software Interrupt}{TRAP -- Software Interrupt}}
 
 \end{document}
