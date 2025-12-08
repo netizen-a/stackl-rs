@@ -3,6 +3,7 @@
         "rust-lang.rust-analyzer",
         "LitiaEeloo.lalrpop-language-server",
         "tamasfe.even-better-toml",
-        "EditorConfig.EditorConfig"
+        "EditorConfig.EditorConfig",
+        "James-Yu.latex-workshop"
     ]
 }
