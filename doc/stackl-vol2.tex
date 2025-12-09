@@ -102,7 +102,6 @@ Programmer's Manual}. This table lists each volume in the series.
 \mainmatter
 
 \chapter{General-Purpose Instruction Reference}
-hello
 
 \pagebreak
 \section[ADJSP]{\texorpdfstring{ADJSP \hfill Adjust Stack Pointer}{ADJSP -- Adjust Stack Pointer}}
@@ -127,6 +126,35 @@ a blocking operation. The CPU will not execute another instruction until after t
 \chapter{System Instruction Reference}
 
 \pagebreak
+\section[CLID]{\texorpdfstring{CLID \hfill Clear Interrupt Disable}{CLID -- Clear Interrupt Disable}}
+This opcode is used to clear the interrupt disable bit in the FLAG register. The current value of
+the flag is left on the top of the stack. This opcode has the following effect:
+\begin{verbatim}
+Memory[SP] = FLAG & FL_INT_DIS
+FLAG &= ~FL_INT_DIS
+SP++
+IP++
+\end{verbatim}
+Following this instruction, interrupts will be enabled (meaning that if an interrupt occurs, the
+interrupt service routine will be called).
+
+\pagebreak
+\section[HALT]{\texorpdfstring{HALT \hfill Halt}{HALT -- Halt}}
+Causes the virtual machine to enter the HALT state. Entering the HALT state terminates
+the simulator process.
+
+\pagebreak
+\section[JMPUSER]{\texorpdfstring{JMPUSER \hfill Jump User}{JMPUSER -- Jump User}}
+
+\pagebreak
+\section[POPREG]{\texorpdfstring{POPREG \hfill Pop Register}{POPREG -- Pop Register}}
+
+\pagebreak
+\section[RTI]{\texorpdfstring{RTI \hfill Return From Interrupt}{RTI -- Return From Interrupt}}
+
+\pagebreak
 \section[TRAP]{\texorpdfstring{TRAP \hfill Software Interrupt}{TRAP -- Software Interrupt}}
+Transfers control to a fixed entry point in an operating system.
+
 
 \end{document}
