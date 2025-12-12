@@ -115,6 +115,56 @@ The \verb|<amount>| can be a positive or negative number. The \verb|<amount>| is
 words. If \verb|<amount>| is not a multiple of the word size, the machine behavior will be
 undefined following this instruction.
 
+\pagebreak
+\section[AND]{\texorpdfstring{AND \hfill Logical And}{AND -- Logical And}}
+This opcode performs a logical AND. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] && Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[BAND]{\texorpdfstring{BAND \hfill Bitwise And}{BAND -- Bitwise And}}
+This opcode performs a binary AND. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] & Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
+
+\pagebreak
+\section[BOR]{\texorpdfstring{BOR \hfill Bitwise Or}{BOR -- Bitwise Or}}
+
+\pagebreak
+\section[BXOR]{\texorpdfstring{BXOR \hfill Bitwise Exclusive Or}{BXOR -- Bitwise Exclusive Or}}
+
+\pagebreak
+\section[CALL]{\texorpdfstring{CALL \hfill Call}{CALL -- Call}}
+
+\pagebreak
+\section[COMP]{\texorpdfstring{COMP \hfill Complement}{COMP -- Complement}}
+
+\pagebreak
+\section[DIV]{\texorpdfstring{DIV \hfill Divide}{DIV -- Divide}}
+
+\pagebreak
+\section[DUP]{\texorpdfstring{DUP \hfill Duplicate}{DUP -- Duplicate}}
+
+\pagebreak
+\section[EQ]{\texorpdfstring{EQ \hfill Equivalence}{EQ -- Equivalence}}
+
+\pagebreak
+\section[GE]{\texorpdfstring{GE \hfill Greater or Equal}{GE -- Greater or Equal}}
+
+\pagebreak
+\section[GT]{\texorpdfstring{GT \hfill Greater Than}{GT -- Greater Than}}
+
+\pagebreak
+\section[JMP]{\texorpdfstring{JMP \hfill Unconditional Jump}{JMP -- Unconditional Jump}}
+
+\pagebreak
+\section[JZ]{\texorpdfstring{JZ \hfill Conditional Jump}{JZ -- Conditional Jump}}
 
 \pagebreak
 \section[OUTS]{\texorpdfstring{OUTS \hfill Output String}{OUTS -- Output String}}
