@@ -135,40 +135,120 @@ IP++
 
 \pagebreak
 \section[BOR]{\texorpdfstring{BOR \hfill Bitwise Or}{BOR -- Bitwise Or}}
+This opcode performs a binary OR. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] | Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[BXOR]{\texorpdfstring{BXOR \hfill Bitwise Exclusive Or}{BXOR -- Bitwise Exclusive Or}}
+This opcode performs a binary XOR. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] ^ Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[CALL]{\texorpdfstring{CALL \hfill Call}{CALL -- Call}}
+This opcode is used for making function calls. This opcode has the following effect:
+\begin{verbatim}
+Memory[SP] = IP+1    // return address
+Memory[SP+1] = FP
+SP += 2
+FP = SP
+IP = <addr>
+\end{verbatim}
+
+\pagebreak
+\section[CALLI]{\texorpdfstring{CALLI \hfill Call Indirect}{CALLI -- Call Indirect}}
+This opcode is used for making function calls. The address of the called function is taken off the stack. This opcode has the following effect:
+\begin{verbatim}
+temp = Memory[SP-1]
+SP -= 1
+Memory[SP] = IP+1    // return address
+Memory[SP+1] = FP
+SP += 2
+FP = SP
+IP = temp
+\end{verbatim}
 
 \pagebreak
 \section[COMP]{\texorpdfstring{COMP \hfill Complement}{COMP -- Complement}}
+This opcode complements the value at the top of the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-1] = ~Memory[SP-1]
+IP++
+\end{verbatim}
 
 \pagebreak
-\section[DIV]{\texorpdfstring{DIV \hfill Divide}{DIV -- Divide}}
+\section[DIVIDE]{\texorpdfstring{DIVIDE \hfill Divide}{DIVIDE -- Divide}}
+This opcode performs a divide. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = Memory[SP-2] / Memory[SP-1]
+SP--
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[DUP]{\texorpdfstring{DUP \hfill Duplicate}{DUP -- Duplicate}}
+This opcode duplicates the value at the top of the stack. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP] = Memory[SP-1]
+SP++
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[EQ]{\texorpdfstring{EQ \hfill Equivalence}{EQ -- Equivalence}}
+This opcode performs an equivalence check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] == Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[GE]{\texorpdfstring{GE \hfill Greater or Equal}{GE -- Greater or Equal}}
+This opcode performs a greater than or equal to check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] >= Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[GT]{\texorpdfstring{GT \hfill Greater Than}{GT -- Greater Than}}
+This opcode performs a greater than check. This instruction has the following effect:
+\begin{verbatim}
+Memory[SP-2] = (Memory[SP-2] > Memory[SP-1])
+SP--
+IP++
+\end{verbatim}
 
 \pagebreak
 \section[JMP]{\texorpdfstring{JMP \hfill Unconditional Jump}{JMP -- Unconditional Jump}}
+This is the jump instruction. It has the following effect:
+\begin{verbatim}
+IP = <dest>
+\end{verbatim}
 
 \pagebreak
 \section[JZ]{\texorpdfstring{JZ \hfill Conditional Jump}{JZ -- Conditional Jump}}
+This is the conditional jump instruction. It will jump if the value on the top of the stack is equal to zero. It has the following effect:
+\begin{verbatim}
+SP--
+val = Memory[SP]
+if (val == 0)
+   IP = <dest>
+else
+   IP += 2
+\end{verbatim}
 
 \pagebreak
 \section[OUTS]{\texorpdfstring{OUTS \hfill Output String}{OUTS -- Output String}}
-
 This opcode sends output to the console. The value at the top of the stack is assumed to be the
 address of a NULL terminated string. The string at that address will be sent to the console. This is
 a blocking operation. The CPU will not execute another instruction until after the IO is complete.
@@ -195,16 +275,33 @@ the simulator process.
 
 \pagebreak
 \section[JMPUSER]{\texorpdfstring{JMPUSER \hfill Jump User}{JMPUSER -- Jump User}}
+This opcode causes the processor state to switch to user mode and then jump to an address in the user mode address space (defined by the BP and LP registers). This instruction has the following effect:
+\begin{verbatim}
+FL_USER_MODE bit is set in FLAG register
+IP = <dest>
+\end{verbatim}
 
 \pagebreak
 \section[POPREG]{\texorpdfstring{POPREG \hfill Pop Register}{POPREG -- Pop Register}}
+This opcode pops the value from the top of the stack into the specified register. The registers are numbered as follows:
+0 BP register
+1 LP register
+2 IP register
+3 SP register
+4 FP register
+5 FLAG register
+\begin{verbatim}
+<register> = Memory[SP]
+SP--
+IP += 2
+\end{verbatim}
 
 \pagebreak
 \section[RTI]{\texorpdfstring{RTI \hfill Return From Interrupt}{RTI -- Return From Interrupt}}
+This opcode is used to return from interrupt mode. Both the interrupt and systrap functions should use this opcode to return. See the Interrupt section for more details.
 
 \pagebreak
 \section[TRAP]{\texorpdfstring{TRAP \hfill Software Interrupt}{TRAP -- Software Interrupt}}
 Transfers control to a fixed entry point in an operating system.
-
 
 \end{document}

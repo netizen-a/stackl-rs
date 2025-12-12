@@ -8,3 +8,4 @@ Cargo.lock
 *.gz
 *.out
 *.toc
+machine_reference.docx
