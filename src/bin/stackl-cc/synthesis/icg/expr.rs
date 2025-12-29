@@ -19,6 +19,7 @@ impl super::SSACodeGen<'_> {
 	pub(super) fn expr(&mut self, expr: &syn::Expr) -> u32 {
 		match expr {
 			syn::Expr::Const(inner) => self.constant(inner),
+			syn::Expr::Binary(inner) => self.binary(inner),
 			_ => todo!(),
 		}
 	}
@@ -53,5 +54,8 @@ impl super::SSACodeGen<'_> {
 			}
 			other => todo!("{other:?}"),
 		}
+	}
+	pub(super) fn binary(&mut self, expr: &syn::ExprBinary) -> u32 {
+		todo!()
 	}
 }
