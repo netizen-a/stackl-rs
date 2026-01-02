@@ -56,6 +56,13 @@ impl super::SSACodeGen<'_> {
 		}
 	}
 	pub(super) fn binary(&mut self, expr: &syn::ExprBinary) -> u32 {
-		todo!()
+		match &expr.op.kind {
+			&syn::expr::BinOpKind::Add => {
+				let lhs = self.expr(&expr.left);
+				let rhs = self.expr(&expr.right);
+				todo!()
+			}
+			_ => {todo!()}
+		}
 	}
 }

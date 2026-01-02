@@ -39,8 +39,7 @@ pub enum WarnLevel {
 pub enum OptLevel {
 	#[default]
 	None,
-	Speed,
-	Size,
+	Standard,
 }
 
 impl OptLevel {
@@ -54,8 +53,7 @@ impl fmt::Display for OptLevel {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let s = match self {
 			Self::None => "0",
-			Self::Speed => "1",
-			Self::Size => "s",
+			Self::Standard => "1",
 		};
 		write!(f, "{s}")
 	}
@@ -63,14 +61,13 @@ impl fmt::Display for OptLevel {
 
 impl clap::ValueEnum for OptLevel {
 	fn value_variants<'a>() -> &'a [Self] {
-		static OPTIONS: [OptLevel; 3] = [OptLevel::None, OptLevel::Speed, OptLevel::Size];
+		static OPTIONS: [OptLevel; 2] = [OptLevel::None, OptLevel::Standard];
 		&OPTIONS
 	}
 	fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
 		match self {
 			Self::None => Some(clap::builder::PossibleValue::new("0")),
-			Self::Speed => Some(clap::builder::PossibleValue::new("1")),
-			Self::Size => Some(clap::builder::PossibleValue::new("s")),
+			Self::Standard => Some(clap::builder::PossibleValue::new("1")),
 		}
 	}
 }

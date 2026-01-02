@@ -244,7 +244,9 @@ impl super::SemanticParser<'_> {
 			ssa::StorageClass::try_from(storage),
 			icg::DataLayout::try_from(data_type.kind),
 		) {
-			self.data_layouts.as_mut().map(|h| h.insert(layout));
+			self.data_layouts.as_mut().map(|h| h.insert(layout.clone()));
+			decl.specifiers.storage = Some(sc);
+			decl.specifiers.layout = Some(layout);
 		}
 
 		self.label_table.decrease_scope();
@@ -363,8 +365,6 @@ impl super::SemanticParser<'_> {
 				}
 				(Some(ident), _) => {}
 			}
-			// let param_type = self.specifiers_dtype(&mut param.specifiers, true);
-			// let mut param_type = param_type.unwrap();
 			self.declarator_list(
 				param_span.to_span(),
 				param.declarators.make_contiguous(),
@@ -375,7 +375,9 @@ impl super::SemanticParser<'_> {
 				vec![],
 			);
 			if let Ok(layout) = icg::DataLayout::try_from(param_type.kind.clone()) {
-				self.data_layouts.as_mut().map(|h| h.insert(layout));
+				self.data_layouts.as_mut().map(|h| h.insert(layout.clone()));
+				param.specifiers.storage = Some(ssa::StorageClass::Automatic);
+				param.specifiers.layout = Some(layout);
 			}
 			result.push((param.ident.clone(), param_type, param.specifiers.to_span()))
 		}

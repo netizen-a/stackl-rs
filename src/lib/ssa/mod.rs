@@ -3,6 +3,7 @@
 pub mod build;
 pub mod data;
 
+#[derive(Debug)]
 pub enum Error {
 	UnusedId,
 	DetachedInstruction(Option<data::Instruction>),

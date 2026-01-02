@@ -116,7 +116,9 @@ impl super::SemanticParser<'_> {
 				ssa::StorageClass::try_from(storage),
 				icg::DataLayout::try_from(new_entry.data_type.kind),
 			) {
-				self.data_layouts.as_mut().map(|h| h.insert(layout));
+				self.data_layouts.as_mut().map(|h| h.insert(layout.clone()));
+				decl.specifiers.storage = Some(sc);
+				decl.specifiers.layout = Some(layout);
 			}
 			self.tree_builder.end_child();
 		}

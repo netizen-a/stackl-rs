@@ -10,6 +10,7 @@ impl super::SSACodeGen<'_> {
 		&mut self,
 		def: &syn::FunctionDefinition,
 	) -> Result<u32, Diagnostic> {
+		let type_id = self.resolve_type(def.specifiers.layout.as_ref().unwrap());
 		for decl in def.declaration_list.iter() {
 			self.declaration(decl)?;
 		}

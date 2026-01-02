@@ -8,7 +8,7 @@ pub mod stmt;
 use std::cell;
 
 use super::tok;
-use crate::diagnostics as diag;
+use crate::{diagnostics as diag, synthesis::icg};
 pub use decl::*;
 use diag::ToSpan;
 pub use expr::*;

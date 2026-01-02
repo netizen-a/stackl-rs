@@ -1,5 +1,6 @@
 // Copyright (c) 2024-2025 Jonathan Thomason
 
+#[derive(Debug)]
 pub enum Opcode {
 	Nop,
 	Undef,
@@ -73,6 +74,7 @@ pub enum Operand {
 	FunctionControl(u32),
 }
 
+#[derive(Debug)]
 pub struct Instruction {
 	pub opcode: Opcode,
 	pub result_type: Option<u32>,
