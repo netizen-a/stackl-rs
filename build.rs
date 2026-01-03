@@ -5,6 +5,12 @@ mod cli {
 			"/src/bin/stackl-cc/cli.rs"
 		));
 	}
+	pub mod stackl_vm {
+		include!(concat!(
+			env!("CARGO_MANIFEST_DIR"),
+			"/src/bin/stackl-vm/cli.rs"
+		));
+	}
 }
 
 const MAN_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/target/man");
@@ -15,6 +21,7 @@ fn main() -> std::io::Result<()> {
 	std::fs::create_dir_all(MAN_DIR)?;
 	stackl_as(&out_dir)?;
 	stackl_cc(&out_dir)?;
+	stackl_vm()?;
 	Ok(())
 }
 
@@ -37,6 +44,12 @@ fn stackl_cc(out_dir: &str) -> std::io::Result<()> {
 		.unwrap();
 
 	let cmd = <cli::stackl_cc::Args as clap::CommandFactory>::command().name("stackl-cc");
+	clap_mangen::generate_to(cmd, MAN_DIR)?;
+	Ok(())
+}
+
+fn stackl_vm() -> std::io::Result<()> {
+	let cmd = <cli::stackl_vm::Args as clap::CommandFactory>::command().name("stackl-vm");
 	clap_mangen::generate_to(cmd, MAN_DIR)?;
 	Ok(())
 }

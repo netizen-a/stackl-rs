@@ -1,5 +1,10 @@
 // Copyright (c) 2024-2025 Jonathan Thomason
 
+mod cli;
+mod device;
+mod io;
+mod machine;
+
 use std::process::ExitCode;
 use std::sync::RwLock;
 use std::sync::mpsc::{
@@ -8,7 +13,6 @@ use std::sync::mpsc::{
 };
 use std::{
 	fs,
-	path,
 	sync,
 	thread,
 };
@@ -25,53 +29,9 @@ use stackl::{
 	StacklFormatV2,
 };
 
-mod device;
-mod io;
-mod machine;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-	file: path::PathBuf,
-	#[arg(
-		long,
-		default_value_t = false,
-		help = "Write an instruction trace to stderr"
-	)]
-	trace: bool,
-	#[arg(
-		short,
-		long,
-		default_value_t = 500000,
-		help = "Set the memory size for the virtual machine"
-	)]
-	memory: usize,
-	#[arg(
-		short,
-		long,
-		default_value_t = false,
-		help = "Enable the INP instruction"
-	)]
-	inp: bool,
-	#[arg(
-		short = 'G',
-		long,
-		default_value_t = false,
-		help = "Enable the General IO device"
-	)]
-	gen_io: bool,
-	// TODO: implement processor delay
-	#[arg(
-		long,
-		default_value_t = 33.0,
-		help = "Set the processor speed in megahertz"
-	)]
-	mhz: f32,
-	#[arg(short = 'g', long, default_value_t = false, help = "Run in debug mode")]
-	debug: bool,
-}
 fn main() -> ExitCode {
-	let args = Args::parse();
+	let args = cli::Args::parse();
 	let content = match fs::read(&args.file) {
 		Ok(v) => v,
 		Err(err) => {
