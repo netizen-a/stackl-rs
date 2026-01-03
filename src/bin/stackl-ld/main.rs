@@ -1,3 +1,3 @@
-// Copyright (c) 2024-2025 Jonathan Thomason
+// Copyright (c) 2024-2026 Jonathan Thomason
 
 fn main() {}

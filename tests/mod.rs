@@ -1,3 +1,4 @@
+// Copyright (c) 2024-2026 Jonathan Thomason
 use std::{
 	env,
 	path::PathBuf,

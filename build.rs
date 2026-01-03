@@ -1,4 +1,11 @@
+// Copyright (c) 2024-2026 Jonathan Thomason
 mod cli {
+	pub mod stackl_as {
+		include!(concat!(
+			env!("CARGO_MANIFEST_DIR"),
+			"/src/bin/stackl-as/cli.rs"
+		));
+	}
 	pub mod stackl_cc {
 		include!(concat!(
 			env!("CARGO_MANIFEST_DIR"),
@@ -32,6 +39,8 @@ fn stackl_as(out_dir: &str) -> std::io::Result<()> {
 		.emit_rerun_directives(true)
 		.process()
 		.unwrap();
+	let cmd = <cli::stackl_as::Args as clap::CommandFactory>::command().name("stackl-as");
+	clap_mangen::generate_to(cmd, MAN_DIR)?;
 	Ok(())
 }
 

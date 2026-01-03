@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2025 Jonathan Thomason
+// Copyright (c) 2024-2026 Jonathan Thomason
 
 use clap::Parser;
 use lalrpop_util::ErrorRecovery;
@@ -19,6 +19,7 @@ mod error;
 mod lex;
 mod sym;
 mod tok;
+mod cli;
 
 lalrpop_mod! {
 	#[allow(clippy::ptr_arg)]
@@ -26,15 +27,8 @@ lalrpop_mod! {
 	"/bin/stackl-as/grammar.rs"
 }
 
-#[derive(Parser, Debug)]
-struct Args {
-	asmfile: path::PathBuf,
-	#[arg(short)]
-	outfile: Option<path::PathBuf>,
-}
-
 fn main() -> ExitCode {
-	let args = Args::parse();
+	let args = cli::Args::parse();
 	let source = match fs::read_to_string(&args.asmfile) {
 		Ok(file) => file,
 		Err(err) => {
