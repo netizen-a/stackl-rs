@@ -62,7 +62,9 @@ impl super::SSACodeGen<'_> {
 				let rhs = self.expr(&expr.right);
 				todo!()
 			}
-			_ => {todo!()}
+			_ => {
+				todo!()
+			}
 		}
 	}
 }

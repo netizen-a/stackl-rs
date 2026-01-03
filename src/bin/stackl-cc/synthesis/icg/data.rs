@@ -103,7 +103,11 @@ impl SSACodeGen<'_> {
 			*id
 		} else {
 			let ret_id = self.resolve_type(&layout.ret);
-			let param_ids: Box<[u32]> = layout.params.iter().map(|param| self.resolve_type(&param)).collect();
+			let param_ids: Box<[u32]> = layout
+				.params
+				.iter()
+				.map(|param| self.resolve_type(&param))
+				.collect();
 			let id = self.builder.type_function(ret_id, &param_ids).unwrap();
 			if let Some(value) = self.type_map.insert(key, id) {
 				let info = Diagnostic::info(

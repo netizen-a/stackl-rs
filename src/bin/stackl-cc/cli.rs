@@ -43,6 +43,7 @@ pub enum OptLevel {
 }
 
 impl OptLevel {
+	#[allow(dead_code)]
 	#[inline]
 	pub fn is_none(&self) -> bool {
 		matches!(self, Self::None)
@@ -108,4 +109,6 @@ pub struct Args {
 	pub opt_lvl: OptLevel,
 	#[arg(long, group = "stdout", help = "prints ast")]
 	pub ast: bool,
+	#[arg(short = 'g', help = "Generate debug information")]
+	pub gen_debug: bool,
 }
