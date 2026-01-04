@@ -13,7 +13,14 @@ impl super::SSACodeGen<'_> {
 		let ret_type = self.resolve_type(def.specifiers.layout.as_ref().unwrap());
 		let func_type: u32;
 		match def.declarators.first().as_ref().unwrap() {
+			syn::Declarator::IdentList(syn::IdentList{ident_list, ..}) => {
+				// for decl in def.declaration_list.iter() {
+				// 	self.declaration(decl)?;
+				// }
+				todo!("SSA ident list")
+			}
 			syn::Declarator::ParamList(syn::ParamList{param_list, is_variadic}) => {
+				debug_assert!(!is_variadic, "unhandled SSA branch: variadic");
 				let param_types: Vec<u32> = param_list.iter().map(|p| {
 					self.resolve_type(p.specifiers.layout.as_ref().unwrap())
 				}).collect();
@@ -21,10 +28,7 @@ impl super::SSACodeGen<'_> {
 			}
 			_ => todo!()
 		}
-		for decl in def.declaration_list.iter() {
-			self.declaration(decl)?;
-		}
-		self.builder.function_begin(func_type, 0);
+		let func_id = self.builder.function_begin(func_type, 0).unwrap();
 		for block_item in def.compound_stmt.blocks.iter() {
 			match block_item {
 				syn::BlockItem::Declaration(decl) => {
@@ -37,6 +41,6 @@ impl super::SSACodeGen<'_> {
 			}
 		}
 		self.builder.function_end();
-		Ok(0)
+		Ok(func_id)
 	}
 }
