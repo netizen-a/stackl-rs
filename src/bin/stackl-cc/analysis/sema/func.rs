@@ -217,6 +217,7 @@ impl super::SemanticParser<'_> {
 					self.diagnostics.push(error);
 				} else {
 					// TODO: further type checking is required.
+					todo!()
 				}
 			}
 

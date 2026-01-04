@@ -16,6 +16,7 @@ macro_rules! return_if_detached {
 	};
 }
 
+#[derive(Debug)]
 pub struct Builder {
 	type_list: Vec<data::Instruction>,
 	decl_list: Vec<data::Instruction>,
@@ -226,7 +227,7 @@ impl Builder {
 			.collect();
 		operands.extend_from_slice(&param_ids);
 		self.type_list.push(data::Instruction {
-			opcode: data::Opcode::TypePointer,
+			opcode: data::Opcode::TypeFunction,
 			result_id: Some(id),
 			result_type: None,
 			operands: operands.into(),
@@ -256,6 +257,12 @@ impl Builder {
 		}
 		id
 	}
+	/// function_control:
+	/// None = 0
+	/// Inline = 1
+	/// DontInline = 2
+	/// Pure = 4
+	/// Const = 8
 	pub fn function_begin(
 		&mut self,
 		result_type: u32,

@@ -14,7 +14,7 @@ all-features = true
 
 [build-dependencies]
 clap = { version = "^4.5", features = ["derive", "cargo"] }
-clap_mangen = "0.2.31"
+clap_mangen = "^0.2"
 lalrpop = "^0.22"
 
 [dependencies]
