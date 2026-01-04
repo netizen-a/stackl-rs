@@ -1,5 +1,7 @@
 // Copyright (c) 2024-2026 Jonathan Thomason
 
+use crate::synthesis::icg;
+
 use super::{
 	Diagnostic,
 	syn,
@@ -21,9 +23,15 @@ impl super::SSACodeGen<'_> {
 			}
 			syn::Declarator::ParamList(syn::ParamList{param_list, is_variadic}) => {
 				debug_assert!(!is_variadic, "unhandled SSA branch: variadic");
-				let param_types: Vec<u32> = param_list.iter().map(|p| {
-					self.resolve_type(p.specifiers.layout.as_ref().unwrap())
-				}).collect();
+				let mut param_types: Vec<u32> = vec![];
+				for (i, param) in param_list.iter().enumerate() {
+					let layout = param.specifiers.layout.as_ref().unwrap();
+					if *layout == icg::DataLayout::Void {
+						debug_assert!(i == 0);
+						continue;
+					}
+					param_types.push(self.resolve_type(layout))
+				}
 				func_type = self.builder.type_function(ret_type, &param_types).unwrap()
 			}
 			_ => todo!()
