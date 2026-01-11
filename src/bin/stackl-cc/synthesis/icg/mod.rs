@@ -36,7 +36,10 @@ pub struct IrContext {
 pub struct SSACodeGen<'a> {
 	builder: Builder,
 	type_map: HashMap<DataLayout, u32>,
-	table: SymbolTable<String, u32>,
+	label_table: SymbolTable<String, u32>,
+	tag_table: SymbolTable<String, u32>,
+	member_table: SymbolTable<Vec<String>, u32>,
+	ordinary_table: SymbolTable<String, u32>,
 	diag_engine: &'a mut DiagnosticEngine,
 	is_traced: bool,
 }
@@ -46,10 +49,25 @@ impl<'a> SSACodeGen<'a> {
 		Self {
 			builder: Builder::new(),
 			type_map: HashMap::new(),
-			table: SymbolTable::new(),
+			label_table: SymbolTable::new(),
+			tag_table: SymbolTable::new(),
+			member_table: SymbolTable::new(),
+			ordinary_table: SymbolTable::new(),
 			diag_engine,
 			is_traced,
 		}
+	}
+	pub(self) fn increase_scope(&mut self) {
+		self.label_table.increase_scope();
+		self.tag_table.increase_scope();
+		self.member_table.increase_scope();
+		self.ordinary_table.increase_scope();
+	}
+	pub(self) fn decrease_scope(&mut self) {
+		self.label_table.decrease_scope();
+		self.tag_table.decrease_scope();
+		self.member_table.decrease_scope();
+		self.ordinary_table.decrease_scope();
 	}
 	pub fn build(mut self, input: IrContext) -> Result<Module, Diagnostic> {
 		self.parse_types(input.layouts);

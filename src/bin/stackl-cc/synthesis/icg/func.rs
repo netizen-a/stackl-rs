@@ -25,10 +25,9 @@ impl super::SSACodeGen<'_> {
 					is_variadic: true,
 				}));
 				let func_id = self.builder.function_begin(func_type, 0).unwrap();
-				self.table.insert(def.ident.name.clone(), func_id);
-				// for decl in def.declaration_list.iter() {
-				// 	self.declaration(decl)?;
-				// }
+				self.ordinary_table.insert(def.ident.name.clone(), func_id);
+				self.increase_scope();
+				self.function_declarations(&def.declaration_list)
 			}
 			syn::Declarator::ParamList(syn::ParamList {
 				param_list,
@@ -44,7 +43,9 @@ impl super::SSACodeGen<'_> {
 					is_variadic: *is_variadic,
 				}));
 				let func_id = self.builder.function_begin(func_type, 0).unwrap();
-				self.table.insert(def.ident.name.clone(), func_id);
+				self.ordinary_table.insert(def.ident.name.clone(), func_id);
+				self.increase_scope();
+				self.function_parameters(param_list);
 			}
 			_ => unreachable!(),
 		}
@@ -60,7 +61,24 @@ impl super::SSACodeGen<'_> {
 				_ => todo!(),
 			}
 		}
+		self.decrease_scope();
 		self.builder.function_end();
 		Ok(())
+	}
+	fn function_parameters(&mut self, params: &[syn::ParameterDeclaration]) {
+		for param in params.iter() {
+			let type_id = self.resolve_type(&param.specifiers.layout.as_ref().unwrap());
+			let param_id = self.builder.function_parameter(type_id).unwrap();
+			self.ordinary_table.insert(param.ident.as_ref().unwrap().name.clone(), param_id);
+		}
+	}
+	fn function_declarations(&mut self, decls: &[syn::Declaration]) {
+		for decl in decls.iter() {
+			let type_id = self.resolve_type(&decl.specifiers.layout.as_ref().unwrap());
+			for init_decl in decl.init_declarator_list.iter() {
+				let init_decl_id = self.builder.function_parameter(type_id).unwrap();
+				self.ordinary_table.insert(init_decl.identifier.name.clone(), init_decl_id);
+			}
+		}
 	}
 }
