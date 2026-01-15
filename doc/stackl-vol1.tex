@@ -2,20 +2,19 @@
 
 % ---- Page Layout ----
 \usepackage[margin=1in]{geometry}
-
 \usepackage{booktabs}
-
 % Better PDF links
 \usepackage[hidelinks]{hyperref}
-
-% ---- Fonts ----
-\usepackage{palatino}
-
 % Fix tables drifting to bottom
 \usepackage{float}
 \restylefloat{table}
 
+% Fonts
+\usepackage{palatino}
 
+\usepackage{enumitem}
+
+% Author/title macros
 \makeatletter
 \renewcommand{\maketitle}{%
   \vspace*{2cm} % Add some space from the top
@@ -36,14 +35,12 @@
       \footnotesize
       \hrule height 0.5pt % Thin separator line
       \vspace{0.5em}
-      \@author \quad $\cdot$ \quad \@date % Print Author and Date separated by a dot
+      \@author $\cdot$ \quad $\backslash$today{} % Print Author and Date separated by a dot
       \vspace{0.5em}
     \endgroup
   \end{center}
 }
 \makeatother
-
-
 
 \title{
 	STACKL Architecture\\
@@ -66,7 +63,7 @@
 
 \section{About This Book}
 This book is part of a multivolume work entitled the \textit{STACKL Architecture
-Programmer's Manual}. This table lists each volume in the series.
+Programmer's Manual}.  The series comprises:
 
 \begin{table}[H]
 \centering
@@ -78,309 +75,298 @@ Programmer's Manual}. This table lists each volume in the series.
 \end{table}
 
 \section{Audience}
-This volume is intended for system architects, hardware implementers,
-interpreter developers, and others requiring a precise understanding of
-the STACKL architectural model.
+System architects, hardware implementers, interpreter developers, and others
+who need a precise understanding of the STACKL architectural model.
 
 \section{Scope of This Volume}
-This volume describes the architectural state visible to software running on
-STACKL, including the organization of its stacks, registers, program counter,
-and condition flags.
-
-It defines the execution model, memory address space, and interrupt vector
-mechanism, establishing the foundation for software development on the
-STACKL virtual machine.
-
-Details of instruction encoding and semantics are covered in *Volume 2:
-Instruction Set Reference*, while system-level programming conventions and
-runtime environment are described in *Volume 3: System Programming Guide*.
+The volume describes the architectural state visible to software running on
+STACKL.  It covers the organization of stacks, registers, program counter,
+condition flags, interrupt vector mechanism, memory address space rules, and
+the execution model that underpins all higher-level abstractions.
+Details of instruction encoding and semantics are reserved for *Volume-2:
+Instruction Set Reference*; system-level programming conventions are covered
+in *Volume-3: System Programming Guide*.
 
 \mainmatter
-% your content goes here
 
 \chapter{Registers}
 
 \section{Execution Registers}
 \subsection{Instruction Pointer (IP)}
-The instruction pointer (IP) contains the address of the next instruction to be executed.
+The IP holds the address of the next instruction to fetch.  It is updated by all
+control-transfer instructions.
 
 \subsection{Stack Pointer (SP)}
-The stack pointer (SP) contains the address of the first unused memory location at the top of the stack. The stack grows to increasing memory addresses.
+SP points to the first unused location on a word-aligned stack that grows toward
+higher addresses.
 
 \subsection{Frame Pointer (FP)}
-The frame pointer (FP) is used for function calls. It points to the location of the first local variable in a called function.
+FP points to the first local variable of a currently executing function.
+It is used by CALL/RETURN and by access patterns such as `PUSHVAR`, `POPVAR`,
+`POPCVAR`, etc.
 
 \section{Flag Register (FLAG)}
-The flag register (FLAG) contains bits that identify the mode the processor is in. The following bits are defined:
-\begin{itemize}
-  \item 0: HALTED - The CPU will stop and the interpreter will exit when this bit is set
-  \item 1: USER\_MODE - The CPU is in user mode when this bit is set
-  \item 2: INT\_MODE - The CPU is executing in interrupt mode when this bit is set
-  \item 3: INT\_DIS - Interrupts are disabled when this bit is set
-  \item 4: VMEM - The CPU is operating in virtual memory mode when this bit is set (not yet implemented)
-  \item 16: I\_MACH - A machine check is pending
-  \item 17: I\_TRAP - A trap instruction is pending
-\end{itemize}
+Each bit encodes a status condition:
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+Bit & Meaning \\ \midrule
+0     & HALTED - execution stops when set           \\
+1     & USER\_MODE - 1 = user mode, 0 = system mode \\
+2     & INT\_MODE - interrupt mode in progress    \\
+3     & INT\_DIS - interrupts disabled when set   \\
+4     & VMEM - virtual memory mode (not implemented) \\
+16    & I\_MACH - machine-check pending           \\
+17    & I\_TRAP - trap instruction pending        \\ \bottomrule
+\end{tabular}
+
+The flag register is manipulated implicitly by many instructions and can be
+read or cleared with `CLID`/`SEID`.
 
 \section{Interrupt Vector (IVEC)}
-The interrupt vector (IVEC) contains the absolute address of the interrupt vector table. The interrupt vector table should be large enough to contain 16 word-sized interrupt vectors.
+IVEC stores the base address of a 16-entry interrupt vector table.  Upon an
+interrupt, the processor indices this table to fetch the service routine's
+address.
 
-\section{Memory Management Registers}
-\subsection{Base Pointer (BP)}
-The base pointer (BP) contains the address of the start of memory for the current process. All memory addresses are relative to the Base Pointer (BP).
+\chapter{Stack Frames}
 
-\subsection{Limit Pointer (LP)}
-The limit pointer (LP) contains the value just above the highest memory that a process can access. Legal memory access must be within the range of BP to LP-1.
+The stack frame for a normal function call consists of:
 
-\section{Stack Frames}
-The stack frame structure is as follows:
 \begin{itemize}
-  \item The caller pushes parameters onto the stack from right to left
-  \item The CALL instruction pushes the return address and frame pointer onto the stack
-  \item Interrupt stack frames must not contain local variables (the SP is adjusted to make room)
-  \item The RTI instruction restores state based on the SP, not the FP
+   \item Return address (IP+1) pushed by CALL.
+   \item Current FP pushed by CALL.
+   \item Local variables allocated below FP using `ADJSP`.
 \end{itemize}
 
-\chapter{Program Counter}
-\section{Instruction Pointer (IP)}
-The instruction pointer (IP) contains the address of the next instruction to be executed.
-
-\chapter{Condition Flags}
-The condition flags are status indicators stored in the FLAG register that reflect the outcome of arithmetic and comparison operations. These flags are used by conditional branch instructions to determine execution flow. For example, the EQ instruction (Section 7.12) sets the zero flag (bit 0) when two values are equal, enabling conditional jumps via instructions like JUMPE (Section 7.20).
-
-\chapter{Execution Model}
-The STACKL machine operates on a stack-based architecture with no general-purpose registers. All operations manipulate the stack: operands are popped from the stack, the operation is performed, and the result is pushed back onto the stack. The instruction pointer (IP) tracks the next instruction to execute. The machine supports two execution modes:
-\begin{itemize}
-  \item User mode (bit 1 set in FLAG register)
-  \item Interrupt mode (bit 2 set in FLAG register)
-\end{itemize}
-Mode transitions occur via instructions like CALL (for function calls) and RTI (for interrupt returns). The stack pointer (SP) grows to higher memory addresses, with the stack frame structure managed by the frame pointer (FP). This model enables efficient handling of procedure calls and interrupts within the virtual machine environment.
-
-\chapter{Memory Model}
-The STACKL memory model employs a base-relative addressing scheme where all memory addresses are relative to the Base Pointer (BP). The Base Pointer (BP) defines the start of a process's memory region, and the Limit Pointer (LP) specifies the upper bound (BP to LP-1). Memory accesses are computed as physical address = BP + logical address, with the system enforcing that all accesses remain within the valid bounds.
-
-Key aspects of the memory model:
-\begin{itemize}
-  \item **Base-relative addressing**: Logical addresses are offset from BP, enabling isolated process address spaces.
-  \item **Bounds enforcement**: Accesses outside BP d address < LP trigger a machine check (bit 16 set in FLAG register).
-  \item **Process isolation**: Each process has unique BP/LP values, preventing memory interference between processes.
-  \item **Context switching**: During process transitions, BP and LP are updated to point to the new process's memory region.
-  \item **Integration with stack frames**: Stack frame operations (e.g., CALL, POP) operate within BP/LP bounds, ensuring memory safety.
-\end{itemize}
-This model is fundamental to the architecture's security and stability, preventing buffer overflows and unauthorized memory access.
-
-\chapter{Procedure Calls}
-The STACKL architecture uses a stack-based calling convention for procedure calls. Parameters are pushed onto the stack from right to left (e.g., for function call foo(a,b,c), push c, then b, then a), and the CALL instruction handles the rest.
-
-\section{CALL Instruction}
-The CALL instruction (Section 7.6) performs the following operations:
-\begin{itemize}
-  \item Pushes the return address (IP+1) onto the stack
-  \item Pushes the current frame pointer (FP) onto the stack
-  \item Sets FP = SP (new frame pointer)
-  \item Updates IP to the target address
-\end{itemize}
-This creates a new stack frame frame as follows:
-\begin{itemize}
-  \item The top two words on the stack contain the return address and the old frame pointer
-  \item The current stack pointer (SP) points to the top of this new frame
-  \item The frame pointer (FP) points to the first local variable in the called function
-\end{itemize}
-
-\section{Stack Frame Management}
-The stack frame is managed as follows:
-\begin{itemize}
-  \item The caller pushes parameters onto the stack from right to left
-  \item The CALL instruction pushes the return address and frame pointer
-  \item The called function sets FP = SP (establishing the frame)
-  \item Local variables are allocated by adjusting SP (using ADJSP)
-  \item The return address is popped from the stack when the function returns
-  \item The frame pointer (FP) is restored from the stack
-  \item The stack pointer (SP) is adjusted to remove the parameters
-\end{itemize}
+Interrupt stack frames omit the FP update; they must be returned with
+`RTI`, which restores SP and FL directly.
 
 \chapter{Interrupts}
-The STACKL architecture supports up to 16 interrupt vectors (0-15), with specific assignments:
+
+\section{Vector Assignment}
 \begin{itemize}
-  \item Vector 0: Machine check (interrupt 0)
-  \item Vector 1: TRAP instruction (system calls)
-  \item Vectors 2-15: Available for hardware devices (e.g., timer, disk)
+   \item 0 - Machine check
+   \item 1 - TRAP (system calls)
+   \item 2-15 - Available for hardware devices (timer, disk, pio\_term,
+            etc.)
 \end{itemize}
 
-\section{Interrupt Vector Table (IVT)}
-The IVT stores addresses of interrupt service routines (ISRs) for each vector. The IVEC register points to the IVT. Vectors 0-1 are reserved; unused vectors (2-15) should be initialized to 0x0001 to trigger machine checks on access.
+\section{Service Routine Registration}
+A typical startup routine populates the vector table:
 
-\section{Interrupt Handling Process}
-1. Hardware signals interrupt (sets bit 16-31 in FLAG)
-2. Processor checks if interrupts enabled (bit 3 clear) and not in interrupt mode (bit 2 clear)
-3. Highest priority interrupt (lowest bit number) is serviced
-4. Processor jumps to ISR address from IVT
-
-\section{Example ISR Setup}
 \begin{verbatim}
 #pragma interrupt machine_check_isr
-int machine_check_isr() { /* handle */ asm("RTI"); }
+int machine_check_isr() { asm("RTI"); }
 
 #pragma interrupt trap_isr
-int trap_isr() { /* handle */ asm("RTI"); }
+int trap_isr() { /* ... */ asm("RTI"); }
 
 int Interrupt_Vector[16];
 
-void startup() {
-  Interrupt_Vector[0] = machine_check_isr;
-  Interrupt_Vector[1] = trap_isr;
-  asm("POPREG", IVEC_REG, &Interrupt_Vector);
+void startup(void) {
+    Interrupt_Vector[0] = machine_check_isr;
+    Interrupt_Vector[1] = trap_isr;
+    asm2("POPREG", IVEC_REG, &Interrupt_Vector);
 }
 \end{verbatim}
 
-Note: Unused vectors (2-15) must be initialized to 0x0001 for safety.
+Unused entries (vectors 2-15) should be initialized to $0x0001$ to force a
+machine check if accessed accidentally.
 
-\chapter{Machine Checks}
-Machine checks occur when the processor detects an invalid operation, such as:
+\section{Execution Flow}
+An interrupt is taken only when the FLAG bits satisfy:
 \begin{itemize}
-  \item Memory access outside the process's address space (BP d address < LP)
-  \item Illegal instruction (e.g., ILLEGAL opcode)
-  \item Stack overflow/underflow
+   \item INT\_EN set,
+   \item USER\_MODE or not already in INT\_MODE,
+   \item No higher-priority pending interrupt.
 \end{itemize}
-The machine check is indicated by setting bit 16 (I\_MACH) in the FLAG register. When this bit is set, the processor halts execution and triggers the machine check interrupt (vector 0).
+The highest-numbered bit (lowest priority) that satisfies these conditions
+triggers the corresponding ISR.
 
-The machine check interrupt (vector 0) is handled by a dedicated interrupt service routine (ISR) that typically terminates the program. The ISR must be defined with:
+\chapter{Interrupt Vector Table Layout}
+
+\(\textbf{Note:} \)  A separate \\*Volume-2\\* contains the full instruction set reference and a more exhaustive enumeration of opcodes.
+
+\chapter{Memory Model}
+
+All logical addresses are interpreted as offsets from the Base Pointer (BP).
+Legal accesses satisfy \(BP+d < LP\).
+The loader sets BP, LP, and an initial stack size after loading a binary; see Section~\ref{sec:loader} for details.
+
+\chapter{Procedure Calls}
+
+A CALL pushes:
+
+\begin{enumerate}
+   \item Return address (IP+1)
+   \item Previous FP
+\end{enumerate}
+then jumps to the target.  The callee retrieves these values via
+`POPREG`/`RETURN`.  Arguments are passed by pushing onto the stack before the
+CALL; they are removed with `POPARGS <size>` on return.
+
+\chapter{System Trap}
+
+The TRAP instruction invokes a system-call routine supplied in the trap vector.
+It passes any parameters left on the stack to that routine, which must exit via
+`RTI`.  System traps enable privileged operations such as I/O configuration,
+memory allocation, or process creation.
+
+\chapter{Devices Overview}
+
+\section{Programmed IO Terminal (pio\_term)}
+Enabled with \(\texttt{feature pio\_term}\).  Register map:
+
+\begin{tabular}{@{}ll@{}}
+RDR   & $0x0E000000$ - read-only, receives characters      \\
+XDR   & $0x0E000000$ - write-only, sends characters    \\
+IER   & $0x0E000001$ - interrupt enable (RECV/XMIT)     \\
+IIR   & $0x0E000002$ - read-only interrupt status       \\ \hline
+\end{tabular}
+
+Bits:
+\begin{itemize}
+   \item IID\_INT  = $0x01$
+   \item IID\_RECV = $0x02$
+   \item IID\_XMIT = $0x04$
+\end{itemize}
+
+\section{Timer}
+Base address \(0x0C000000\); registers:
+
+\begin{tabular}{@{}ll@{}}
+TIMER\_CSR & Bit-0 = interrupt enable, Bit-31 = pending interrupt   \\
+TIMER\_COUNT & increments each instruction                \\
+TIMER\_LIMIT & generates interrupt when COUNT >= LIMIT            \\
+TIMER\_TIME  & monotonic instruction counter                        \\ \hline
+Timer uses vector-3.
+\end{tabular}
+
+\section{Disk}
+Base address \(0x0D000000\); registers:
+
 \begin{verbatim}
-#pragma interrupt machine_check_isr
-int machine_check_isr() {
-    /* handle machine check */
-    asm("RTI");
+DISK_STATUS    // read-only, bits: READ_BUSY, READ_DONE,
+               //      READ_ERROR, WRITE_BUSY,...ATTN
+DISK_CMD       // write only; INT_ENA, START_READ,
+              //     START_WRITE
+DISK_ADDR        // absolute address of buffer
+DISK_BLOCK       // block number to transfer                \\
+\end{verbatim}
+All accesses are word-aligned.  Disk uses vector-2.
+
+\section{Generic IO Device}
+Base $0x0B00000$ with command byte in the low byte; supported operations:
+
+\begin{tabular}{@{}ll@{}}
+GEN\_IO\_OP\_PRINTS   = 1 ; \texttt{prints(str)}\\
+GEN\_IO\_OP\_PRINTC   = 2 ; \texttt{putc(c)}\\
+GEN\_IO\_OP\_GETL     = 3 ; \texttt{gets(buf)}\\
+GEN\_IO\_OP\_GETI     = 4 ; \texttt{geti(val)}\\
+GEN\_IO\_OP\_EXEC     = 5 ; loader via INP\_EXEC\_CALL   \\
+\end{tabular}
+
+\chapter{Loader and Execution Flow}
+
+\label{sec:loader}
+Program binaries have the form:
+
+\begin{enumerate}
+   \item Series of newline-terminated text records:
+     \begin{itemize}
+        \item version line (\(\texttt{stackl}<v>\texttt{slam}\)),
+        \item optional feature lines (e.g., \(\texttt{feature pio\_term}\)),
+        \item \(\texttt{stack\_size <n>}\)
+        \item \(\texttt{begindata}\)
+     \end{itemize}
+   \item Binary data (32-bit words) following \(\texttt{begindata}\).\\
+\end{enumerate}
+
+The loader:
+
+\begin{enumerate}
+   \item Reads records until it encounters \(\texttt{begindata}\).
+   \item For each record, validates or initializes the corresponding
+        feature, stacksize, etc.
+   \item Begins loading 32-bit words into memory starting at address BP.
+   \item After loading completes, stores high water mark in the word immediately
+        after the loaded region; this value is used to set LP and later as stack size.
+\end{enumerate}
+
+After loading, user code is entered with:
+
+\begin{verbatim}
+asm2("POPREG", BP_REG, start_addr);
+io_blk.op = INP_EXEC_CALL;
+io_blk.param1 = filename;
+io_blk.param2 = 0;
+asm("INP", &io_blk);               // non-blocking
+// wait loop omitted for brevity ...
+asm2("POPREG", LP_REG, high_mem);
+asm("DUP", io_blk.param2 + 4 - start_addr);
+asm2("POPREG", FP_REG);
+asm("POPREG", SP_REG);
+asm2("JMPUSER", 8);                  // user entry at address-8 (relative)
+\end{verbatim}
+
+The newly established stack frame must be used thereafter; all subsequent
+memory accesses are interpreted relative to the updated BP/LP pair.
+
+\chapter{Instruction Reference Overview}
+% The full detailed opcode list resides in Volume-2.
+A high-level overview of functional groups is provided here:
+
+\begin{itemize}
+   \item \textbf{Arithmetic}: PLUS, MINUS, TIMES, DIVIDE, MOD .
+   \item \textbf{Logic \& Comparison}: AND, OR, NOT, EQ, GE, LT .
+   \item \textbf{Stack Manipulation}: PUSH, POP, DUP, SWAP .
+   \item \textbf{Control Flow}: JUMP, JUMPE, CALL, RETURN .
+   \item \textbf{I/O}\\
+        -- OUTS (output null-terminated string) \\
+        -- INP  (non-blocking input via io\_blk\_t)
+   \item \textbf{Register Access:} PUSHREG, POPREG, ADJSP .
+\end{itemize}
+
+Detailed semantics, encoding tables, and examples appear in the companion
+volume.
+
+\chapter{Glossary}
+\begin{description}[style=multiline,leftmargin=4.5cm]
+\item[BP] Base Pointer - start of a process's address space.
+\item[LP] Limit Pointer - upper bound of legal memory accesses.
+\item[IP] Instruction Pointer.
+\item[SP] Stack Pointer.
+\item[FP] Frame Pointer.
+\item[FLAG] Condition-status register.
+\item[IVEC] Interrupt Vector Register - base of vector table.
+\item[TRAP] System-call entry point.
+\item[INTERUPT\_VECTOR] 16-entry table of ISR addresses.
+\end{description}
+
+\appendix
+\chapter{Machine Check Mechanism}
+A machine check occurs when the processor detects an illegal operation (e.g.,
+out-of-bounds memory access).  The hardware sets bit-16 (I\_MACH) in FLAG;
+the resulting interrupt is serviced by ISR~0 (vector-0).
+
+\chapter{Example Minimal Program}
+\begin{verbatim}
+#pragma startup __startup
+int __startup(void) {
+    main();
+    asm("HALT");
 }
-\end{verbatim}
-This ISR is registered in the interrupt vector table (section 4.9), where vector 0 points to the machine\_check\_isr function.
-
-The machine check mechanism is critical for system stability, as it prevents invalid memory accesses and illegal operations from corrupting the virtual machine state. It is triggered automatically by the processor hardware when a violation occurs.
-
-\chapter{Control Transfers}
-The STACKL architecture provides several instructions for controlling program flow, including unconditional jumps, conditional jumps, and returns from procedures.
-
-\section{Unconditional Jumps}
-The JUMP instruction (Section 7.19) performs an unconditional jump to the specified address. This instruction has the following effect:
-\begin{verbatim}
-IP = <dest>
+#endif
 \end{verbatim}
 
-\section{Conditional Jumps}
-Conditional jump instructions check the top of the stack for a zero value before deciding to jump. The JUMPE instruction (Section 7.20) has the following effect:
-\begin{verbatim}
-SP--
-val = Memory[SP]
-if (val == 0)
-   IP = <dest>
-else
-   IP += 2
-\end{verbatim}
+The preceding sections constitute a complete, self-contained reference for the
+basic STACKL execution model and architecture.  All low-level opcodes,
+encoding tables, and exhaustive examples are collected in Volume-2.
 
-\section{Returns}
-The RETURN instruction (Section 7.46) is used to return from a void function. It has the following effect:
-\begin{verbatim}
-SP = FP-1
-IP = Memory[FP-2]
-FP = Memory[FP-1]
-\end{verbatim}
+\backmatter
 
-The RTI instruction (Section 7.48) is used to return from interrupt mode. It has the following effect:
-\begin{verbatim}
-FL_USER_MODE bit is set in FLAG register
-IP = Memory[SP-1]
-SP = Memory[SP-2]
-\end{verbatim}
-
-These instructions form the core control transfer mechanisms of the STACKL architecture, enabling complex program flow control.
-
-\chapter{Input/Output}
-The STACKL architecture provides two primary instructions for input/output operations: the OUTS instruction for output and the INP instruction for input.
-
-\section{Output Operations}
-The OUTS instruction (Section 7.30) outputs a null-terminated string to the console. It has the following effect:
-\begin{verbatim}
-val = Memory[SP]
-SP--
-IP++
-\end{verbatim}
-The value at the top of the stack must be the address of a null-terminated string. This is a blocking operation: the processor will not execute the next instruction until the output operation completes.
-
-\section{Input Operations}
-The INP instruction (Section 7.17) initiates an input operation using an IO block structure. The IO block has the following format:
-\begin{verbatim}
-typedef struct {
-   int op;
-   void *param1;
-   int param2;
-} io_blk_t;
-\end{verbatim}
-The 'op' field specifies the operation:
-\begin{itemize}
-  \item INP\_PRINTS\_CALL (3): Prints a string from param1
-  \item INP\_GETS\_CALL (5): Reads a string from console
-  \item INP\_GETI\_CALL (7): Reads an integer from console
-\end{itemize}
-The INP instruction is non-blocking: the processor continues execution while waiting for the operation to complete. The caller must poll the 'op' field until it becomes negative (indicating completion).
-
-\section{Device Integration}
-The architecture supports multiple I/O devices through memory-mapped registers:
-\begin{itemize}
-  \item \textbf{PIO Terminal}: Device 0x0E000000, used for console I/O (vector 5)
-  \item \item \textbf{Timer}: Device 0x0C000000, used for timing (vector 3)
-  \item \textbf{Disk}: Device 0x0D000000, used for disk access (vector 2)
-\end{itemize}
-To enable a device, use the appropriate pragma:
-\begin{verbatim}
-#pragma feature pio_term
-\end{verbatim}
-The device registers are accessed using standard memory access instructions, with the device's address space offset from the base address.
-
-The OUTS instruction is used for simple console output, while the INP instruction provides more flexible input operations. Both instructions are fundamental to the interaction between the STACKL virtual machine and the underlying hardware devices.
-
-\chapter{Overview of the CPU Instruction Set}
-The STACKL architecture features a comprehensive instruction set designed for stack-based operations. The instruction set is categorized into key functional groups:
-
-\section{Arithmetic Operations}
-Instructions such as PLUS, MINUS, TIMES, and DIVIDE perform basic arithmetic operations on stack operands. These instructions pop two values from the stack, compute the result, and push it back onto the stack.
-
-\section{Stack Management}
-Stack operations include:
-\begin{itemize}
-  \item PUSH: Pushes a value onto the stack
-  \item POP: Removes a value from the stack
-  \item DUP: Duplicates the top stack value
-  \item SWAP: Exchanges the top two stack values
-\end{itemize}
-
-\section{Control Flow}
-Control flow instructions manage program execution:
-\begin{itemize}
-  \item JUMP: Unconditional jump to a specified address
-  \item JUMPE: Conditional jump if top stack value is zero
-  \item CALL: Function call with return address
-  \item RETURN: Return from function
-\end{itemize}
-
-\section{Memory Access}
-Memory operations include:
-\begin{itemize}
-  \item PUSHVAR: Pushes a variable from the frame pointer
-  \item POPVAR: Pops a value into a variable
-  \item ADJSP: Adjusts the stack pointer
-\end{itemize}
-
-\section{Special Operations}
-System-level instructions:
-\begin{itemize}
-  \item TRAP: Triggers a system call
-  \item INP: Initiates input operations
-  \item OUTS: Outputs a null-terminated string
-\end{itemize}
-
-This overview provides the fundamental structure. Detailed instruction semantics and encoding are covered in Volume 2: Instruction Set Reference.
-
-\chapter{Overview of the FPU Instruction Set}
-
-\chapter{Instruction Bit Encodings}
+\begin{thebibliography}{9}
+% bibliography entries would be placed here.
+\end{thebibliography}
 
 \end{document}
