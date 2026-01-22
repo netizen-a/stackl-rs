@@ -377,6 +377,8 @@ pub struct InitializerList {
 /// (6.7.8) designator
 #[derive(Debug, Clone)]
 pub enum Designator {
+	// [ constant-expression ]
 	ConstExpr(expr::Expr),
+	// . identifier
 	Dot(Identifier),
 }

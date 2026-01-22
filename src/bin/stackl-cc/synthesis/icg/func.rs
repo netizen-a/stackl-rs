@@ -69,7 +69,9 @@ impl super::SSACodeGen<'_> {
 		for param in params.iter() {
 			let type_id = self.resolve_type(&param.specifiers.layout.as_ref().unwrap());
 			let param_id = self.builder.function_parameter(type_id).unwrap();
-			self.ordinary_table.insert(param.ident.as_ref().unwrap().name.clone(), param_id);
+			if let Some(param_ident) = param.ident.as_ref() {
+				self.ordinary_table.insert(param_ident.name.clone(), param_id);
+			}
 		}
 	}
 	fn function_declarations(&mut self, decls: &[syn::Declaration]) {

@@ -259,7 +259,7 @@ impl super::SemanticParser<'_> {
 					.begin_child("initializer-list".to_string());
 				let mut result: Vec<(syn::Expr, DataType, u32)> = vec![];
 				let mut once = OnceCell::new();
-				for (index, (desig_list, init)) in list.iter_mut().enumerate() {
+				for (index, (_desig_list, init)) in list.iter_mut().enumerate() {
 					let mut inner_data = self.initializer(init, in_func);
 					let mut curr_data = inner_data.first_mut().unwrap();
 					let last_data = once.get_or_init(|| curr_data.clone());

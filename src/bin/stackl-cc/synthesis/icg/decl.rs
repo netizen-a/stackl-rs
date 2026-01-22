@@ -26,8 +26,18 @@ impl super::SSACodeGen<'_> {
 		match initializer {
 			syn::Initializer::Expr(inner) => self.expr(inner),
 			syn::Initializer::InitializerList(syn::InitializerList { list, .. }) => {
-				for (_designator, initializer) in list.iter() {
-					self.initializer(initializer);
+				for (designator_list, initializer) in list.iter() {
+					let init_id = self.initializer(initializer);
+					for designator in designator_list.iter() {
+						match designator {
+							syn::Designator::ConstExpr(_) => {
+
+							}
+							syn::Designator::Dot(_) => {
+
+							}
+						}
+					}
 				}
 				todo!()
 			}

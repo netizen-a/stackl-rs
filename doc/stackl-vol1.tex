@@ -185,7 +185,7 @@ triggers the corresponding ISR.
 
 \chapter{Interrupt Vector Table Layout}
 
-\(\textbf{Note:} \)  A separate \\*Volume-2\\* contains the full instruction set reference and a more exhaustive enumeration of opcodes.
+\(\textbf{Note:} \)  A separate \textit{Volume-2} contains the full instruction set reference and a more exhaustive enumeration of opcodes.
 
 \chapter{Memory Model}
 
@@ -256,14 +256,14 @@ DISK_BLOCK       // block number to transfer                \\
 All accesses are word-aligned.  Disk uses vector-2.
 
 \section{Generic IO Device}
-Base $0x0B00000$ with command byte in the low byte; supported operations:
+Base \texttt{0x0B00000} with command byte in the low byte; supported operations:
 
 \begin{tabular}{@{}ll@{}}
 GEN\_IO\_OP\_PRINTS   = 1 ; \texttt{prints(str)}\\
 GEN\_IO\_OP\_PRINTC   = 2 ; \texttt{putc(c)}\\
 GEN\_IO\_OP\_GETL     = 3 ; \texttt{gets(buf)}\\
 GEN\_IO\_OP\_GETI     = 4 ; \texttt{geti(val)}\\
-GEN\_IO\_OP\_EXEC     = 5 ; loader via INP\_EXEC\_CALL   \\
+GEN\_IO\_OP\_EXEC     = 5 ; \texttt{loader via INP\_EXEC\_CALL}\\
 \end{tabular}
 
 \chapter{Loader and Execution Flow}
@@ -365,8 +365,8 @@ encoding tables, and exhaustive examples are collected in Volume-2.
 
 \backmatter
 
-\begin{thebibliography}{9}
-% bibliography entries would be placed here.
-\end{thebibliography}
+% \begin{thebibliography}{9}
+% % bibliography entries would be placed here.
+% \end{thebibliography}
 
 \end{document}
