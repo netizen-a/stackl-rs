@@ -18,6 +18,7 @@ impl SSACodeGen<'_> {
 			DataLayout::Pointer(inner) => self.type_ptr(inner),
 			DataLayout::Array(inner) => self.type_array(inner),
 			DataLayout::Function(inner) => self.type_function(inner),
+			DataLayout::Struct(inner) => self.type_struct(inner),
 			other => todo!("[resolve_type]: `{other:?}`"),
 		}
 	}
@@ -130,6 +131,29 @@ impl SSACodeGen<'_> {
 			} else {
 				self.builder.type_function(ret_id, &param_ids).unwrap()
 			};
+			if let Some(value) = self.type_map.insert(key, id) {
+				let info = Diagnostic::info(
+					DiagKind::Trace(format!("SSA id {id} already exists")),
+					None,
+				);
+				if self.is_traced {
+					self.diag_engine.push(info);
+				}
+			}
+			id
+		}
+	}
+
+	fn type_struct(&mut self, layout: &StructLayout) -> u32 {
+		let key = DataLayout::Struct(layout.clone());
+		if let Some(id) = self.type_map.get(&key) {
+			*id
+		} else {
+			let member_ids: Box<[u32]> = layout.0
+				.iter()
+				.map(|member| self.resolve_type(&member))
+				.collect();
+			let id = self.builder.type_struct(&member_ids);
 			if let Some(value) = self.type_map.insert(key, id) {
 				let info = Diagnostic::info(
 					DiagKind::Trace(format!("SSA id {id} already exists")),

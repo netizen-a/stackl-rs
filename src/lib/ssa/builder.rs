@@ -213,6 +213,20 @@ impl Builder {
 		});
 		id
 	}
+	pub fn type_struct(&mut self, member_types: &[u32]) -> u32 {
+		let id = self.id();
+		let member_ids: Box<[Operand]> = member_types
+			.iter()
+			.map(|param| Operand::IdRef(*param))
+			.collect();
+		self.type_list.push(data::Instruction {
+			opcode: data::Opcode::TypeStruct,
+			result_id: Some(id),
+			result_type: None,
+			operands: member_ids.into(),
+		});
+		id
+	}
 	pub fn type_function(
 		&mut self,
 		return_type: u32,

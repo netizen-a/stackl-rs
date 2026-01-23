@@ -681,7 +681,7 @@ impl super::SemanticParser<'_> {
 				*type_kind = Some(TypeKind::Poison);
 			}
 			None => {
-				// do nothing
+				// TODO: add struct to tag symbol table
 			}
 		}
 	}
