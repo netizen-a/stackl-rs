@@ -37,6 +37,7 @@ impl super::SemanticParser<'_> {
 
 		if let Some(data_type) = &maybe_ty {
 			self.declare_tag(data_type, decl.specifiers.to_span());
+			decl.specifiers.storage = ssa::StorageClass::try_from(storage).ok();
 		}
 
 		for init_decl in decl.init_declarator_list.iter_mut() {

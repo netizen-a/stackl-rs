@@ -30,12 +30,8 @@ impl super::SSACodeGen<'_> {
 					let init_id = self.initializer(initializer);
 					for designator in designator_list.iter() {
 						match designator {
-							syn::Designator::ConstExpr(_) => {
-
-							}
-							syn::Designator::Dot(_) => {
-
-							}
+							syn::Designator::ConstExpr(_) => {}
+							syn::Designator::Dot(_) => {}
 						}
 					}
 				}

@@ -28,10 +28,8 @@ impl SSACodeGen<'_> {
 		} else {
 			let id = self.builder.type_bool();
 			if let Some(value) = self.type_map.insert(DataLayout::Bool, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}
@@ -45,10 +43,8 @@ impl SSACodeGen<'_> {
 		} else {
 			let id = self.builder.type_void();
 			if let Some(value) = self.type_map.insert(DataLayout::Void, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}
@@ -63,10 +59,8 @@ impl SSACodeGen<'_> {
 		} else {
 			let id = self.builder.type_int(layout.width, layout.is_signed);
 			if let Some(value) = self.type_map.insert(key, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}
@@ -82,10 +76,8 @@ impl SSACodeGen<'_> {
 			let inner_type_id = self.resolve_type(&layout.0);
 			let id = self.builder.type_pointer(inner_type_id);
 			if let Some(value) = self.type_map.insert(key, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}
@@ -101,10 +93,8 @@ impl SSACodeGen<'_> {
 			let inner_id = self.resolve_type(&layout.component);
 			let id = self.builder.type_array(inner_id, layout.length);
 			if let Some(value) = self.type_map.insert(key, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}
@@ -132,10 +122,8 @@ impl SSACodeGen<'_> {
 				self.builder.type_function(ret_id, &param_ids).unwrap()
 			};
 			if let Some(value) = self.type_map.insert(key, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}
@@ -149,16 +137,15 @@ impl SSACodeGen<'_> {
 		if let Some(id) = self.type_map.get(&key) {
 			*id
 		} else {
-			let member_ids: Box<[u32]> = layout.0
+			let member_ids: Box<[u32]> = layout
+				.0
 				.iter()
 				.map(|member| self.resolve_type(&member))
 				.collect();
 			let id = self.builder.type_struct(&member_ids);
 			if let Some(value) = self.type_map.insert(key, id) {
-				let info = Diagnostic::info(
-					DiagKind::Trace(format!("SSA id {id} already exists")),
-					None,
-				);
+				let info =
+					Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
 				if self.is_traced {
 					self.diag_engine.push(info);
 				}

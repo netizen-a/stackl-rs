@@ -70,7 +70,8 @@ impl super::SSACodeGen<'_> {
 			let type_id = self.resolve_type(&param.specifiers.layout.as_ref().unwrap());
 			let param_id = self.builder.function_parameter(type_id).unwrap();
 			if let Some(param_ident) = param.ident.as_ref() {
-				self.ordinary_table.insert(param_ident.name.clone(), param_id);
+				self.ordinary_table
+					.insert(param_ident.name.clone(), param_id);
 			}
 		}
 	}
@@ -79,7 +80,8 @@ impl super::SSACodeGen<'_> {
 			let type_id = self.resolve_type(&decl.specifiers.layout.as_ref().unwrap());
 			for init_decl in decl.init_declarator_list.iter() {
 				let init_decl_id = self.builder.function_parameter(type_id).unwrap();
-				self.ordinary_table.insert(init_decl.identifier.name.clone(), init_decl_id);
+				self.ordinary_table
+					.insert(init_decl.identifier.name.clone(), init_decl_id);
 			}
 		}
 	}

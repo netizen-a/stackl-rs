@@ -9,6 +9,7 @@ use crate::diagnostics::{
 	Diagnostic,
 };
 use crate::symtab as sym;
+use crate::synthesis::icg;
 
 const SIGNED_STR: &str = "signed";
 const UNSIGNED_STR: &str = "unsigned";
@@ -108,14 +109,18 @@ impl super::SemanticParser<'_> {
 				syn::TypeSpecifier::Bool(span) => {
 					self.specifier_bool(span.to_span(), &mut type_kind, is_signed, long_count)
 				}
-				syn::TypeSpecifier::StructOrUnionSpecifier(specifier) => self
-					.specifier_struct_or_union(
+				syn::TypeSpecifier::StructOrUnionSpecifier(specifier) => {
+					self.specifier_struct_or_union(
 						specifier,
 						&mut type_kind,
 						is_signed,
 						long_count,
 						in_func,
-					),
+					);
+					specifiers.layout = type_kind
+						.clone()
+						.map(|kind| icg::DataLayout::try_from(kind).ok())?;
+				}
 				syn::TypeSpecifier::EnumSpecifier(specifier) => {
 					self.specifier_enum(specifier, &mut type_kind, is_signed, long_count, in_func)
 				}
@@ -681,7 +686,7 @@ impl super::SemanticParser<'_> {
 				*type_kind = Some(TypeKind::Poison);
 			}
 			None => {
-				// TODO: add struct to tag symbol table
+				// do nothing
 			}
 		}
 	}
