@@ -32,7 +32,6 @@ struct LabelContext {
 pub struct SemanticParser<'a> {
 	label_table: sym::SymbolTable<String, LabelContext>,
 	tag_table: sym::SymbolTable,
-	member_table: sym::SymbolTable<Vec<String>>,
 	ordinary_table: sym::SymbolTable,
 	pub data_layouts: Option<HashSet<icg::DataLayout>>,
 	diagnostics: &'a mut DiagnosticEngine,
@@ -47,7 +46,6 @@ impl<'a> SemanticParser<'a> {
 		Self {
 			label_table: sym::SymbolTable::new(),
 			tag_table: sym::SymbolTable::new(),
-			member_table: sym::SymbolTable::new(),
 			ordinary_table: sym::SymbolTable::new(),
 			data_layouts: Some(HashSet::new()),
 			diagnostics,
@@ -86,7 +84,6 @@ impl<'a> SemanticParser<'a> {
 	}
 	pub(self) fn increase_scope(&mut self) {
 		self.tag_table.increase_scope();
-		self.member_table.increase_scope();
 		self.ordinary_table.increase_scope();
 	}
 	pub(self) fn decrease_scope(&mut self) {
@@ -97,7 +94,6 @@ impl<'a> SemanticParser<'a> {
 		// 	}
 		// }
 		self.tag_table.decrease_scope();
-		self.member_table.decrease_scope();
 		self.ordinary_table.decrease_scope();
 	}
 	pub fn print_errors(&mut self) {

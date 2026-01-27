@@ -117,21 +117,6 @@ impl super::SemanticParser<'_> {
 					span: member_ident.to_span(),
 					storage: sym::StorageClass::Typename,
 				};
-
-				if let Err(sym::SymbolTableError::AlreadyExists(prev_entry)) =
-					self.member_table.insert(key, new_entry.clone())
-				{
-					let kind = DiagKind::SymbolAlreadyExists(
-						member_ident.name.clone(),
-						prev_entry.data_type.clone(),
-					);
-					let mut error = Diagnostic::error(kind, prev_entry.to_span());
-					error.push_span(
-						new_entry.span,
-						&format!("`{}` redefined here", member_ident.name),
-					);
-					self.diagnostics.push(error);
-				}
 				self.declare_members(ident_list, &member_type.dtype);
 			}
 		}
