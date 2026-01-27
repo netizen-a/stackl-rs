@@ -133,12 +133,19 @@ impl super::SemanticParser<'_> {
 		member_is_named: &mut bool,
 		in_func: bool,
 	) -> Option<Vec<MemberType>> {
-		self.tree_builder
-			.begin_child("struct-declarator".to_string());
+
 		let mut result = vec![];
 		let mut is_valid = true;
 		// only type-specifier and type-qualifier is syntactically allowed here.
 		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers, in_func);
+
+		if let Some(dtype) = &ty_opt {
+			self.tree_builder
+				.begin_child(format!("struct-declarator '{dtype}'"));
+		} else {
+			self.tree_builder
+				.begin_child("struct-declarator '<undefined>'".to_string());
+		}
 		for decl in struct_decl.struct_declarator_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
 			*member_is_named |= name_opt.is_some();
@@ -232,6 +239,14 @@ impl super::SemanticParser<'_> {
 				dtype: Box::new(data_type),
 				bits,
 			});
+		}
+		for member in result.iter() {
+			if let Some(ident) = &member.ident {
+				let (_, reported_line, col) = self.diagnostics.get_location(&ident.span).unwrap();
+				self.tree_builder.add_empty_child(format!("declarator <line:{reported_line}, col:{col}> `{}` '{}'", ident.name, member.dtype));
+			} else {
+				self.tree_builder.add_empty_child(format!("declarator `<anonymous>` '{}'", member.dtype));
+			}
 		}
 		self.tree_builder.end_child();
 
