@@ -93,7 +93,13 @@ impl<'a> SemanticParser<'a> {
 		// 		self.data_types.insert()
 		// 	}
 		// }
+		// for (k, v) in self.tag_table.iter_current_scope().unwrap() {
+		// 	println!("tag {k}: {v:#?}")
+		// }
 		self.tag_table.decrease_scope();
+		// for (k, v) in self.ordinary_table.iter_current_scope().unwrap() {
+		// 	println!("ordinary {k}: {v:#?}")
+		// }
 		self.ordinary_table.decrease_scope();
 	}
 	pub fn print_errors(&mut self) {

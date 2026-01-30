@@ -24,7 +24,7 @@ impl super::SSACodeGen<'_> {
 	}
 	fn initializer(&mut self, initializer: &syn::Initializer) -> u32 {
 		match initializer {
-			syn::Initializer::Expr(inner) => self.expr(inner),
+			syn::Initializer::Expr(inner) => self.expr(inner).0,
 			syn::Initializer::InitializerList(syn::InitializerList { list, .. }) => {
 				for (designator_list, initializer) in list.iter() {
 					let init_id = self.initializer(initializer);

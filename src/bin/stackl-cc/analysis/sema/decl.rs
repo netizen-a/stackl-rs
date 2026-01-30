@@ -234,19 +234,19 @@ impl super::SemanticParser<'_> {
 			} else {
 				None
 			};
+
+			if let Some(name) = &name_opt {
+				let (_, reported_line, col) = self.diagnostics.get_location(&member_span.clone()).unwrap();
+				self.tree_builder.add_empty_child(format!("declarator <line:{reported_line}, col:{col}> `{}` '{}'", name, data_type));
+			} else {
+				self.tree_builder.add_empty_child(format!("declarator `<anonymous>` '{}'", data_type));
+			}
+
 			result.push(MemberType {
 				ident: decl.ident.clone(),
 				dtype: Box::new(data_type),
 				bits,
 			});
-		}
-		for member in result.iter() {
-			if let Some(ident) = &member.ident {
-				let (_, reported_line, col) = self.diagnostics.get_location(&ident.span).unwrap();
-				self.tree_builder.add_empty_child(format!("declarator <line:{reported_line}, col:{col}> `{}` '{}'", ident.name, member.dtype));
-			} else {
-				self.tree_builder.add_empty_child(format!("declarator `<anonymous>` '{}'", member.dtype));
-			}
 		}
 		self.tree_builder.end_child();
 

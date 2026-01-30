@@ -6,7 +6,7 @@ struct Bar {
 struct Foo {
     struct Bar bar;
     struct {
-        int k;
+        int k, v;
     } foobar;
 };
 
