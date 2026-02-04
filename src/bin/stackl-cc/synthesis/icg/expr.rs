@@ -62,13 +62,15 @@ impl super::SSACodeGen<'_> {
 		let lhs = self.expr(&expr.left);
 		let rhs = self.expr(&expr.right);
 		assert!(lhs.1 == rhs.1);
-		match &expr.op.kind {
-			&syn::expr::BinOpKind::Add => {
-				todo!()
+		let result_type = self.resolve_type(&lhs.1);
+		let result_id = match (&lhs.1, &expr.op.kind) {
+			(DataLayout::Integer(IntegerLayout { width: _, is_signed: true }), syn::expr::BinOpKind::Add) => {
+				self.builder.i_add(result_type, lhs.0, rhs.0).unwrap()
 			}
 			_ => {
 				todo!()
 			}
-		}
+		};
+		(result_id, lhs.1)
 	}
 }
