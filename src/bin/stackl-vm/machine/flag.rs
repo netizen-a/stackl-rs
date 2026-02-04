@@ -35,7 +35,6 @@ bitflags! {
 		// TODO: Overflow exception
 		const OVF          = 1 << 6;
 		// TODO: Floating point arithmetic exception
-		// This flag changes the semantics for the other 7 flags
 		const FPE          = 1 << 7;
 	}
 }
