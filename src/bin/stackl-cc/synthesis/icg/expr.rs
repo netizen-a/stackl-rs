@@ -64,8 +64,41 @@ impl super::SSACodeGen<'_> {
 		assert!(lhs.1 == rhs.1);
 		let result_type = self.resolve_type(&lhs.1);
 		let result_id = match (&lhs.1, &expr.op.kind) {
-			(DataLayout::Integer(IntegerLayout { width: _, is_signed: true }), syn::expr::BinOpKind::Add) => {
+			(DataLayout::Integer(IntegerLayout { width: 32, .. }), syn::expr::BinOpKind::Add) => {
 				self.builder.i_add(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Float(FloatLayout { width: _ }), syn::expr::BinOpKind::Add) => {
+				self.builder.f_add(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Integer(IntegerLayout { width: 32, .. }), syn::expr::BinOpKind::Sub) => {
+				self.builder.i_sub(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Float(FloatLayout { width: _ }), syn::expr::BinOpKind::Sub) => {
+				self.builder.f_sub(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Integer(IntegerLayout { width: 32, .. }), syn::expr::BinOpKind::Mul) => {
+				self.builder.i_mul(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Float(_), syn::expr::BinOpKind::Mul) => {
+				self.builder.f_mul(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Integer(IntegerLayout { width: 32, is_signed: true }), syn::expr::BinOpKind::Div) => {
+				self.builder.s_div(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Integer(IntegerLayout { width: 32, is_signed: false }), syn::expr::BinOpKind::Div) => {
+				self.builder.u_div(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Float(FloatLayout { width: _ }), syn::expr::BinOpKind::Div) => {
+				self.builder.f_div(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Integer(IntegerLayout { width: 32, is_signed: true }), syn::expr::BinOpKind::Rem) => {
+				self.builder.s_rem(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Integer(IntegerLayout { width: 32, is_signed: false }), syn::expr::BinOpKind::Rem) => {
+				self.builder.u_rem(result_type, lhs.0, rhs.0).unwrap()
+			}
+			(DataLayout::Float(FloatLayout { width: _ }), syn::expr::BinOpKind::Rem) => {
+				self.builder.f_rem(result_type, lhs.0, rhs.0).unwrap()
 			}
 			_ => {
 				todo!()

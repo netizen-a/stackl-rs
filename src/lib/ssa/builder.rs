@@ -64,10 +64,34 @@ impl Builder {
 		self.func_list.push(instruction);
 		Ok(id)
 	}
+	pub fn f_add(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FAdd,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
 	pub fn i_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::ISub,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.decl_list.push(instruction);
+		Ok(id)
+	}
+	pub fn f_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FSub,
 			result_id: Some(id),
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
@@ -88,6 +112,18 @@ impl Builder {
 		self.func_list.push(instruction);
 		Ok(id)
 	}
+	pub fn f_mul(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FMul,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
 	pub fn s_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
@@ -100,10 +136,58 @@ impl Builder {
 		self.func_list.push(instruction);
 		Ok(id)
 	}
-	pub fn s_mod(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+	pub fn u_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
-			opcode: data::Opcode::SMod,
+			opcode: data::Opcode::UDiv,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
+	pub fn f_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FDiv,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
+	pub fn s_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::SRem,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
+	pub fn u_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::URem,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.func_list.push(instruction);
+		Ok(id)
+	}
+	pub fn f_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FRem,
 			result_id: Some(id),
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
