@@ -1,6 +1,6 @@
 // Copyright (c) 2024-2026 Jonathan A. Thomason
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Opcode {
 	Nop,
 	Undef,
@@ -84,12 +84,35 @@ pub enum Operand {
 	Text(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Instruction {
 	pub opcode: Opcode,
 	pub result_type: Option<u32>,
 	pub result_id: Option<u32>,
 	pub operands: Box<[Operand]>,
 }
-pub struct Module {}
-pub struct Function {}
+
+#[derive(Debug)]
+pub struct Module {
+	pub type_list: Box<[Instruction]>,
+	pub decl_list: Box<[Instruction]>,
+	pub func_list: Box<[Function]>,
+}
+#[derive(Debug)]
+pub struct Function {
+	pub begin: Instruction,
+	pub params: Vec<Instruction>,
+	pub body: Vec<Instruction>,
+	pub end: Option<Instruction>,
+}
+
+impl Function {
+	pub const fn new(instruction: Instruction) -> Self {
+		Self {
+			begin: instruction,
+			params: vec![],
+			body: vec![],
+			end: None,
+		}
+	}
+}

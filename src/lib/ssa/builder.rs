@@ -11,7 +11,7 @@ macro_rules! return_if_detached {
 		if !$in_func {
 			// type check macro here.
 			let instruction: data::Instruction = $instruction;
-			return Err(Error::DetachedInstruction(Some(instruction)));
+			return Err(Error::DetachedInstruction(instruction));
 		}
 	};
 }
@@ -20,7 +20,7 @@ macro_rules! return_if_detached {
 pub struct Builder {
 	type_list: Vec<data::Instruction>,
 	decl_list: Vec<data::Instruction>,
-	func_list: Vec<data::Instruction>,
+	func_list: Vec<data::Function>,
 	next_id: u32,
 	in_func: bool,
 }
@@ -49,7 +49,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(())
 	}
 	pub fn i_add(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -61,7 +61,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn f_add(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -73,7 +73,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn i_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -85,7 +85,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.decl_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn f_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -97,7 +97,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.decl_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn i_mul(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -109,7 +109,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn f_mul(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -121,7 +121,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn s_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -133,7 +133,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn u_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -145,7 +145,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn f_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -157,7 +157,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn s_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -169,7 +169,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn u_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -181,7 +181,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn f_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -193,7 +193,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn load(&mut self, result_type: u32, pointer: u32) -> Result<u32, Error> {
@@ -205,7 +205,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(id)
 	}
 	pub fn store(&mut self, pointer: u32, object: u32) -> Result<(), Error> {
@@ -216,7 +216,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer), Operand::IdRef(object)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(())
 	}
 	pub fn ret(&mut self) -> Result<(), Error> {
@@ -227,11 +227,15 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().body.push(instruction);
 		Ok(())
 	}
 	pub fn build(self) -> data::Module {
-		data::Module {}
+		data::Module {
+			type_list: self.type_list.into_boxed_slice(),
+			decl_list: self.decl_list.into_boxed_slice(),
+			func_list: self.func_list.into_boxed_slice(),
+		}
 	}
 	pub fn type_bool(&mut self) -> u32 {
 		let id = self.id();
@@ -356,7 +360,7 @@ impl Builder {
 		result_type: u32,
 		storage_class: StorageClass,
 		initializer: Option<u32>,
-	) -> u32 {
+	) -> Result<u32, Error> {
 		let id = self.id();
 		let mut operands = vec![Operand::StorageClass(storage_class)];
 		if let Some(initializer) = initializer {
@@ -369,10 +373,12 @@ impl Builder {
 			operands: operands.into_boxed_slice(),
 		};
 		match self.in_func {
-			true => self.func_list.push(instruction),
+			true => {
+				self.func_list.last_mut().ok_or(Error::DetachedInstruction(instruction.clone()))?.body.push(instruction)
+			},
 			false => self.decl_list.push(instruction),
 		}
-		id
+		Ok(id)
 	}
 	/// function_control:
 	/// None = 0
@@ -395,7 +401,7 @@ impl Builder {
 		if self.in_func {
 			return Err(Error::NestedFunction);
 		}
-		self.func_list.push(instruction);
+		self.func_list.push(data::Function::new(instruction));
 		self.in_func = true;
 		Ok(id)
 	}
@@ -408,7 +414,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().params.push(instruction);
 		Ok(id)
 	}
 	pub fn function_end(&mut self) -> Result<(), Error> {
@@ -419,7 +425,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		self.func_list.push(instruction);
+		self.func_list.last_mut().unwrap().end = Some(instruction);
 		self.in_func = false;
 		Ok(())
 	}

@@ -17,7 +17,8 @@ impl super::SSACodeGen<'_> {
 			let init_id = init_decl.initializer.as_ref().map(|i| self.initializer(i));
 			let var_id = self
 				.builder
-				.variable(type_id, storage_class.clone(), init_id);
+				.variable(type_id, storage_class.clone(), init_id)
+				.unwrap();
 			var_id_list.push(var_id);
 		}
 		Ok(var_id_list.into_boxed_slice())

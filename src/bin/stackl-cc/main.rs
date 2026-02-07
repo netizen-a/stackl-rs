@@ -131,6 +131,7 @@ fn main() -> ExitCode {
 	if args.is_timed {
 		print_time(since_array);
 	}
+	println!("{:#?}", _ssa_module);
 	ExitCode::SUCCESS
 }
 
