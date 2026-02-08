@@ -9,7 +9,7 @@ impl super::SSACodeGen<'_> {
 	pub(super) fn declaration(
 		&mut self,
 		decl: &syn::Declaration,
-	) -> Result<Box<[u32]>, Diagnostic> {
+	) -> Result<(), Diagnostic> {
 		let type_id = self.resolve_type(decl.specifiers.layout.as_ref().unwrap());
 		let storage_class = decl.specifiers.storage.as_ref().unwrap();
 		let mut var_id_list = vec![];
@@ -21,7 +21,7 @@ impl super::SSACodeGen<'_> {
 				.unwrap();
 			var_id_list.push(var_id);
 		}
-		Ok(var_id_list.into_boxed_slice())
+		Ok(())
 	}
 	fn initializer(&mut self, initializer: &syn::Initializer) -> u32 {
 		match initializer {

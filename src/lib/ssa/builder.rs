@@ -436,6 +436,66 @@ impl Builder {
 		}
 		Ok(id)
 	}
+	pub fn label(&mut self) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::Label,
+			result_id: Some(id),
+			result_type: None,
+			operands: [].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		match self
+			.curr_section
+			.as_ref()
+			.and_then(|section| self.sections.get_mut(section))
+		{
+			Some(section) => {
+				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
+					return Err(Error::DetachedInstruction(instruction));
+				};
+				func.body.push(instruction);
+			}
+			None => {
+				let section = self.sections.get_mut(".code").unwrap();
+				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
+					return Err(Error::DetachedInstruction(instruction));
+				};
+				func.body.push(instruction);
+			}
+		}
+		Ok(id)
+	}
+	pub fn branch(&mut self, target_label: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::Branch,
+			result_id: Some(id),
+			result_type: None,
+			operands: [Operand::IdRef(target_label)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		match self
+			.curr_section
+			.as_ref()
+			.and_then(|section| self.sections.get_mut(section))
+		{
+			Some(section) => {
+				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
+					return Err(Error::DetachedInstruction(instruction));
+				};
+				func.body.push(instruction);
+			}
+			None => {
+				let section = self.sections.get_mut(".code").unwrap();
+				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
+					return Err(Error::DetachedInstruction(instruction));
+				};
+				func.body.push(instruction);
+			}
+		}
+		Ok(id)
+	}
 	pub fn load(&mut self, result_type: u32, pointer: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
@@ -678,8 +738,8 @@ impl Builder {
 			},
 			None => {
 				let section = self.sections.get_mut(".data").unwrap();
-				match section.last_mut().unwrap() {
-					data::DataKind::Func(func) => {
+				match section.last_mut() {
+					Some(data::DataKind::Func(func)) => {
 						func.body.push(instruction);
 					}
 					_ => section.push(data::DataKind::Data(instruction)),
