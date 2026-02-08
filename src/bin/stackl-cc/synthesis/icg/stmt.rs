@@ -2,7 +2,7 @@
 
 use crate::{
 	analysis::syn,
-	diagnostics::Diagnostic,
+	diagnostics::Diagnostic, synthesis::icg::DataLayout,
 };
 
 impl super::SSACodeGen<'_> {
@@ -23,18 +23,23 @@ impl super::SSACodeGen<'_> {
 				let target_label = self.label_table.global_lookup(&label.name).unwrap();
 				self.builder.branch(*target_label).unwrap();
 			}
-			syn::Stmt::Compound(syn::CompoundStmt{blocks, ..}) => {
+			syn::Stmt::Compound(syn::CompoundStmt { blocks, .. }) => {
 				self.increase_scope();
 				for block in blocks.iter() {
 					match block {
 						syn::BlockItem::Declaration(decl) => self.declaration(decl)?,
 						syn::BlockItem::Statement(stmt) => self.statement(stmt)?,
-						_ => todo!()
+						_ => todo!(),
 					}
 				}
 				self.decrease_scope();
 			}
-			_ => todo!()
+			// syn::Stmt::Select(syn::SelectStmt::Switch { expr, stmt }) => {
+			// 	let (expr_id, layout) = self.expr(expr);
+			// 	assert!(matches!(layout, DataLayout::Integer(_)));
+			// 	let type_id = self.resolve_type(&layout);
+			// }
+			_ => todo!(),
 		}
 		Ok(())
 	}
