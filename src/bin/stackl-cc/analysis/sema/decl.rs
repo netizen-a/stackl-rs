@@ -133,7 +133,6 @@ impl super::SemanticParser<'_> {
 		member_is_named: &mut bool,
 		in_func: bool,
 	) -> Option<Vec<MemberType>> {
-
 		let mut result = vec![];
 		let mut is_valid = true;
 		// only type-specifier and type-qualifier is syntactically allowed here.
@@ -236,10 +235,15 @@ impl super::SemanticParser<'_> {
 			};
 
 			if let Some(name) = &name_opt {
-				let (_, reported_line, col) = self.diagnostics.get_location(&member_span.clone()).unwrap();
-				self.tree_builder.add_empty_child(format!("declarator <line:{reported_line}, col:{col}> `{}` '{}'", name, data_type));
+				let (_, reported_line, col) =
+					self.diagnostics.get_location(&member_span.clone()).unwrap();
+				self.tree_builder.add_empty_child(format!(
+					"declarator <line:{reported_line}, col:{col}> `{}` '{}'",
+					name, data_type
+				));
 			} else {
-				self.tree_builder.add_empty_child(format!("declarator `<anonymous>` '{}'", data_type));
+				self.tree_builder
+					.add_empty_child(format!("declarator `<anonymous>` '{}'", data_type));
 			}
 
 			result.push(MemberType {

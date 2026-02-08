@@ -1,5 +1,7 @@
 // Copyright (c) 2024-2026 Jonathan A. Thomason
 
+use std::collections::HashMap;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Opcode {
 	Nop,
@@ -95,9 +97,15 @@ pub struct Instruction {
 #[derive(Debug)]
 pub struct Module {
 	pub type_list: Box<[Instruction]>,
-	pub decl_list: Box<[Instruction]>,
-	pub func_list: Box<[Function]>,
+	pub sections: HashMap<String, Vec<DataKind>>,
 }
+
+#[derive(Debug)]
+pub enum DataKind {
+	Func(Function),
+	Data(Instruction),
+}
+
 #[derive(Debug)]
 pub struct Function {
 	pub begin: Instruction,
