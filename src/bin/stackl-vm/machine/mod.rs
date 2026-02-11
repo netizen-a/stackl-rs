@@ -68,7 +68,7 @@ impl MachineState {
 	) -> Result<(), MachineCheck> {
 		let text_len = program.text.len();
 		if boot {
-			let sp_addr = if text_len % 4 != 0 {
+			let sp_addr = if !text_len.is_multiple_of(4) {
 				text_len + 4 - (text_len % 4)
 			} else {
 				text_len

@@ -28,6 +28,12 @@ pub struct Builder {
 	curr_section: Option<String>,
 }
 
+impl Default for Builder {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 impl Builder {
 	pub fn new() -> Self {
 		let mut sections = HashMap::new();
@@ -701,7 +707,7 @@ impl Builder {
 			opcode: data::Opcode::TypeStruct,
 			result_id: Some(id),
 			result_type: None,
-			operands: member_ids.into(),
+			operands: member_ids,
 		});
 		id
 	}

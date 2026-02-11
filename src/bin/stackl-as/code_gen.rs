@@ -46,7 +46,7 @@ pub fn ast_to_fmt2(ast: Vec<Stmt>) -> Result<StacklFormatV2, Box<dyn Error>> {
 						// convert String to [u8]
 						Atom::String(s) => {
 							let mut bytes = s.as_bytes().to_vec();
-							if bytes.len() % 4 == 0 {
+							if bytes.len().is_multiple_of(4) {
 								bytes
 							} else {
 								let len = 4 - (bytes.len() % 4);
@@ -64,7 +64,7 @@ pub fn ast_to_fmt2(ast: Vec<Stmt>) -> Result<StacklFormatV2, Box<dyn Error>> {
 				panic!("binary does not support extern directive")
 			}
 			Inst::Directive(Directive::Segment, _) => {
-				if text.len() % 4 != 0 {
+				if !text.len().is_multiple_of(4) {
 					vec![0; 4 - (text.len() % 4)]
 				} else {
 					vec![]
