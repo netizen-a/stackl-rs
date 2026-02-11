@@ -81,6 +81,8 @@ pub enum Operand {
 	IdRef(u32),
 	LiteralString,
 	LiteralBit32(u32),
+	LiteralBit64(u64),
+	LiteralBit128(u128),
 	StorageClass(StorageClass),
 	FunctionControl(u32),
 	Text(String),

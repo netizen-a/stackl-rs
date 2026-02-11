@@ -496,6 +496,43 @@ impl Builder {
 		}
 		Ok(id)
 	}
+	/// Basically a switch statement
+	pub fn multi_branch(&mut self, selector: u32, default: u32, target: impl IntoIterator<Item = (Operand, u32)>) -> Result<(), Error> {
+		let mut operands: Vec<Operand> = vec![Operand::IdRef(selector), Operand::IdRef(default)];
+
+		for (case_value, target_label) in target.into_iter() {
+			operands.push(case_value);
+			operands.push(Operand::IdRef(target_label));
+		}
+
+		let instruction = data::Instruction {
+			opcode: data::Opcode::Switch,
+			result_id: None,
+			result_type: None,
+			operands: operands.into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		match self
+			.curr_section
+			.as_ref()
+			.and_then(|section| self.sections.get_mut(section))
+		{
+			Some(section) => {
+				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
+					return Err(Error::DetachedInstruction(instruction));
+				};
+				func.body.push(instruction);
+			}
+			None => {
+				let section = self.sections.get_mut(".code").unwrap();
+				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
+					return Err(Error::DetachedInstruction(instruction));
+				};
+				func.body.push(instruction);
+			}
+		}
+		Ok(())
+	}
 	pub fn load(&mut self, result_type: u32, pointer: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
@@ -866,3 +903,5 @@ impl Builder {
 		id
 	}
 }
+
+
