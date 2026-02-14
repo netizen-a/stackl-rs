@@ -39,7 +39,7 @@ impl super::SSACodeGen<'_> {
 			// 	assert!(matches!(layout, DataLayout::Integer(_)));
 			// 	let type_id = self.resolve_type(&layout);
 			// }
-			_ => todo!(),
+			other => todo!("{other:?}"),
 		}
 		Ok(())
 	}

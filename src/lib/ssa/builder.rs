@@ -53,13 +53,9 @@ impl Builder {
 		self.next_id += 1;
 		result
 	}
-	pub fn nop(&mut self) -> Result<(), Error> {
-		let instruction = data::Instruction {
-			opcode: data::Opcode::Nop,
-			result_id: None,
-			result_type: None,
-			operands: [].into(),
-		};
+
+	/// Helper method to add an instruction to the current section or default to .code
+	fn add_instruction_to_section(&mut self, instruction: data::Instruction, section_name: &str) -> Result<(), Error> {
 		return_if_detached!(self.in_func, instruction);
 		match self
 			.curr_section
@@ -73,13 +69,23 @@ impl Builder {
 				func.body.push(instruction);
 			}
 			None => {
-				let section = self.sections.get_mut(".code").unwrap();
+				let section = self.sections.get_mut(section_name).unwrap();
 				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
 					return Err(Error::DetachedInstruction(instruction));
 				};
 				func.body.push(instruction);
 			}
 		}
+		Ok(())
+	}
+	pub fn nop(&mut self) -> Result<(), Error> {
+		let instruction = data::Instruction {
+			opcode: data::Opcode::Nop,
+			result_id: None,
+			result_type: None,
+			operands: [].into(),
+		};
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn i_add(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -90,26 +96,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn f_add(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -120,26 +107,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn i_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -150,26 +118,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn f_sub(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -180,26 +129,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn i_mul(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -210,26 +140,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn f_mul(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -240,26 +151,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn s_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -270,26 +162,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn u_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -300,26 +173,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn f_div(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -330,26 +184,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn s_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -360,26 +195,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn u_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -390,26 +206,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn f_rem(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -420,26 +217,7 @@ impl Builder {
 			result_type: Some(result_type),
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
-		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn label(&mut self) -> Result<u32, Error> {
@@ -451,25 +229,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn branch(&mut self, target_label: u32) -> Result<u32, Error> {
@@ -481,25 +241,7 @@ impl Builder {
 			operands: [Operand::IdRef(target_label)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	/// Basically a switch statement
@@ -518,25 +260,7 @@ impl Builder {
 			operands: operands.into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn load(&mut self, result_type: u32, pointer: u32) -> Result<u32, Error> {
@@ -548,25 +272,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn store(&mut self, pointer: u32, object: u32) -> Result<(), Error> {
@@ -577,25 +283,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer), Operand::IdRef(object)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn ret(&mut self) -> Result<(), Error> {
@@ -606,25 +294,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn build(self) -> data::Module {
@@ -917,25 +587,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction)).unwrap();
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction)).unwrap();
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn logical_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -947,25 +599,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn logical_not_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -977,25 +611,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn logical_or(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1007,25 +623,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn logical_and(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1037,25 +635,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn logical_not(&mut self, result_type: u32, operand: u32) -> Result<u32, Error> {
@@ -1067,25 +647,7 @@ impl Builder {
 			operands: [Operand::IdRef(operand)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn i_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1097,25 +659,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn i_not_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1127,25 +671,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn u_greater_than(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1157,25 +683,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn s_greater_than(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1187,25 +695,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn ptr_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1217,25 +707,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn ptr_not_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
@@ -1247,25 +719,7 @@ impl Builder {
 			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn type_runtime_array(&mut self, element_type: u32, length: u32) -> u32 {
@@ -1286,25 +740,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn branch_conditional(
@@ -1326,25 +762,7 @@ impl Builder {
 			.into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn unreachable(&mut self) -> Result<(), Error> {
@@ -1355,25 +773,7 @@ impl Builder {
 			operands: [].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn lifetime_start(&mut self, pointer: u32) -> Result<(), Error> {
@@ -1384,25 +784,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn lifetime_end(&mut self, pointer: u32) -> Result<(), Error> {
@@ -1413,25 +795,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn function_call(&mut self, result_type: u32, function: u32, arguments: impl IntoIterator<Item = u32>) -> Result<u32, Error> {
@@ -1447,25 +811,7 @@ impl Builder {
 			operands: operands.into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn copy_memory(&mut self, pointer: u32, object: u32) -> Result<(), Error> {
@@ -1476,25 +822,7 @@ impl Builder {
 			operands: [Operand::IdRef(pointer), Operand::IdRef(object)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn copy_memory_sized(&mut self, pointer: u32, object: u32, size: u32) -> Result<(), Error> {
@@ -1510,25 +838,7 @@ impl Builder {
 			.into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
 	pub fn phi(&mut self, result_type: u32, incoming: impl IntoIterator<Item = (u32, u32)>) -> Result<u32, Error> {
@@ -1545,25 +855,7 @@ impl Builder {
 			operands: operands.into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 	pub fn loop_merge(&mut self, merge_label: u32, continue_label: u32) -> Result<u32, Error> {
@@ -1579,25 +871,7 @@ impl Builder {
 			.into(),
 		};
 		return_if_detached!(self.in_func, instruction);
-		match self
-			.curr_section
-			.as_ref()
-			.and_then(|section| self.sections.get_mut(section))
-		{
-			Some(section) => {
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-			None => {
-				let section = self.sections.get_mut(".code").unwrap();
-				let data::DataKind::Func(func) = section.last_mut().unwrap() else {
-					return Err(Error::DetachedInstruction(instruction));
-				};
-				func.body.push(instruction);
-			}
-		}
+		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 }
