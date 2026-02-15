@@ -92,9 +92,8 @@ impl super::SemanticParser<'_> {
 				TypeKind::Tag(TagKind::Union(Some(n), _)) => format!("union {}", n),
 				_ => format!("struct {}", name),
 			};
-			self.tree_builder.add_empty_child(format!(
-				"declarator <line:{reported_line}, col:{col}> '{type_name}'",
-				type_name = type_name
+			self.tree_builder.begin_child(format!(
+				"declarator <line:{reported_line}, col:{col}> '{type_name}'"
 			));
 		}
 
@@ -103,6 +102,10 @@ impl super::SemanticParser<'_> {
 			span,
 		};
 		self.declare_members(vec![identifier], data_type);
+		// End the parent declarator node
+		if self.print_ast {
+			self.tree_builder.end_child();
+		}
 	}
 
 	pub fn declare_members(&mut self, decl_ident: Vec<syn::Identifier>, decl_type: &DataType) {
@@ -166,11 +169,12 @@ impl super::SemanticParser<'_> {
 					else {
 						let member_name = ident_list.last().unwrap().name.clone();
 						let member_type_str = format!("{}", member_type.dtype);
-						self.tree_builder.add_empty_child(format!(
+						self.tree_builder.begin_child(format!(
 							"declarator <line:{reported_line}, col:{col}> `{member_name}` '{member_type_str}'",
 							member_name = member_name,
 							member_type_str = member_type_str
 						));
+						self.tree_builder.end_child();
 					}
 				}
 			}
