@@ -83,11 +83,26 @@ impl super::SemanticParser<'_> {
 				// TODO: further type checking is required.
 			}
 		}
+
+		// Add struct type as parent node
+		if self.print_ast {
+			let (_, reported_line, col) = self.diagnostics.get_location(&span).unwrap();
+			let type_name = match &data_type.kind {
+				TypeKind::Tag(TagKind::Struct(Some(n), _)) => format!("struct {}", n),
+				TypeKind::Tag(TagKind::Union(Some(n), _)) => format!("union {}", n),
+				_ => format!("struct {}", name),
+			};
+			self.tree_builder.add_empty_child(format!(
+				"declarator <line:{reported_line}, col:{col}> '{type_name}'",
+				type_name = type_name
+			));
+		}
+
 		let identifier = syn::Identifier {
 			name: name.to_string(),
 			span,
 		};
-		self.declare_members(vec![identifier.clone()], data_type);
+		self.declare_members(vec![identifier], data_type);
 	}
 
 	pub fn declare_members(&mut self, decl_ident: Vec<syn::Identifier>, decl_type: &DataType) {
@@ -100,6 +115,7 @@ impl super::SemanticParser<'_> {
 					return;
 				}
 			};
+
 			for member_type in member_type_list.iter() {
 				let Some(member_ident) = &member_type.ident else {
 					continue;
@@ -108,36 +124,72 @@ impl super::SemanticParser<'_> {
 				let mut ident_list = decl_ident.clone();
 				ident_list.push(member_ident.clone());
 
-				let key: Vec<String> = ident_list.iter().map(|ident| ident.name.clone()).collect();
-
-				let new_entry = sym::SymbolTableEntry {
-					data_type: *member_type.dtype.clone(),
-					is_decl: true,
-					linkage: sym::Linkage::Internal,
-					span: member_ident.to_span(),
-					storage: sym::StorageClass::Typename,
-				};
+				let (_, reported_line, col) = self
+					.diagnostics
+					.get_location(&member_ident.to_span())
+					.unwrap();
 
 				// Add tree node for member display
 				if self.print_ast {
-					let full_path = ident_list
-						.iter()
-						.map(|ident| ident.name.clone())
-						.collect::<Vec<_>>()
-						.join(".");
-					let (_, reported_line, col) = self
-						.diagnostics
-						.get_location(&member_ident.to_span())
-						.unwrap();
-					self.tree_builder.add_empty_child(format!(
-						"declarator <line:{reported_line}, col:{col}> `{}` '{}'",
-						full_path, member_type.dtype
-					));
+					// Handle struct member (e.g., struct Bar bar)
+					if let TypeKind::Tag(TagKind::Struct(Some(tag_name), _)) = &member_type.dtype.kind {
+						// Check if this member is already declared in the current scope
+						let parent_path: Vec<String> = ident_list.iter().map(|i| i.name.clone()).collect();
+						if !self.member_already_declared(member_ident, &parent_path) {
+							let member_name = ident_list.last().unwrap().name.clone();
+							let member_type_str = format!("struct {}", tag_name);
+							self.tree_builder.begin_child(format!(
+								"declarator <line:{reported_line}, col:{col}> `{member_name}` '{member_type_str}'",
+								member_name = member_name,
+								member_type_str = member_type_str
+							));
+							self.declare_members(ident_list.clone(), &member_type.dtype);
+							self.tree_builder.end_child();
+						}
+					}
+					// Handle anonymous struct member (e.g., struct {int k, v} foobar)
+					else if let TypeKind::Tag(TagKind::Struct(None, _)) = &member_type.dtype.kind {
+						// Check if this member is already declared in the current scope
+						let parent_path: Vec<String> = ident_list.iter().map(|i| i.name.clone()).collect();
+						if !self.member_already_declared(member_ident, &parent_path) {
+							let member_name = ident_list.last().unwrap().name.clone();
+							let member_type_name = format!("struct <anonymous>");
+							self.tree_builder.begin_child(format!(
+								"declarator <line:{reported_line}, col:{col}> `{member_name}` '{member_type_name}'",
+								member_name = member_name
+							));
+							self.declare_members(ident_list.clone(), &member_type.dtype);
+							self.tree_builder.end_child();
+						}
+					}
+					// Handle regular member (e.g., int x, int y)
+					else {
+						let member_name = ident_list.last().unwrap().name.clone();
+						let member_type_str = format!("{}", member_type.dtype);
+						self.tree_builder.add_empty_child(format!(
+							"declarator <line:{reported_line}, col:{col}> `{member_name}` '{member_type_str}'",
+							member_name = member_name,
+							member_type_str = member_type_str
+						));
+					}
 				}
-
-				self.declare_members(ident_list, &member_type.dtype);
 			}
 		}
+	}
+
+	// Helper function to check if a member has already been declared
+	fn member_already_declared(&self, ident: &syn::Identifier, parent_path: &[String]) -> bool {
+		// Get the full path for the member
+		let full_path: Vec<String> = parent_path.iter().cloned().chain(vec![ident.name.clone()]).collect();
+
+		// Check if this member has been declared in the current scope
+		for (name, entry) in self.ordinary_table.iter_current_scope().unwrap() {
+			if matches!(entry.data_type.kind, TypeKind::Tag(_)) && full_path == vec![name.clone()] {
+				return true;
+			}
+		}
+
+		false
 	}
 
 	pub(super) fn unwrap_or_poison(
