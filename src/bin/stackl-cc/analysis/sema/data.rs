@@ -117,6 +117,24 @@ impl super::SemanticParser<'_> {
 					span: member_ident.to_span(),
 					storage: sym::StorageClass::Typename,
 				};
+
+				// Add tree node for member display
+				if self.print_ast {
+					let full_path = ident_list
+						.iter()
+						.map(|ident| ident.name.clone())
+						.collect::<Vec<_>>()
+						.join(".");
+					let (_, reported_line, col) = self
+						.diagnostics
+						.get_location(&member_ident.to_span())
+						.unwrap();
+					self.tree_builder.add_empty_child(format!(
+						"declarator <line:{reported_line}, col:{col}> `{}` '{}'",
+						full_path, member_type.dtype
+					));
+				}
+
 				self.declare_members(ident_list, &member_type.dtype);
 			}
 		}

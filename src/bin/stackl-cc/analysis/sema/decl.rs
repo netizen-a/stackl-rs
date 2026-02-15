@@ -138,13 +138,6 @@ impl super::SemanticParser<'_> {
 		// only type-specifier and type-qualifier is syntactically allowed here.
 		let ty_opt = self.specifiers_dtype(&mut struct_decl.specifiers, in_func);
 
-		if let Some(dtype) = &ty_opt {
-			self.tree_builder
-				.begin_child(format!("struct-declarator '{dtype}'"));
-		} else {
-			self.tree_builder
-				.begin_child("struct-declarator '<undefined>'".to_string());
-		}
 		for decl in struct_decl.struct_declarator_list.iter_mut() {
 			let name_opt = decl.ident.as_ref().and_then(|v| Some(v.name.clone()));
 			*member_is_named |= name_opt.is_some();
@@ -234,25 +227,12 @@ impl super::SemanticParser<'_> {
 				None
 			};
 
-			if let Some(name) = &name_opt {
-				let (_, reported_line, col) =
-					self.diagnostics.get_location(&member_span.clone()).unwrap();
-				self.tree_builder.add_empty_child(format!(
-					"declarator <line:{reported_line}, col:{col}> `{}` '{}'",
-					name, data_type
-				));
-			} else {
-				self.tree_builder
-					.add_empty_child(format!("declarator `<anonymous>` '{}'", data_type));
-			}
-
 			result.push(MemberType {
 				ident: decl.ident.clone(),
 				dtype: Box::new(data_type),
 				bits,
 			});
 		}
-		self.tree_builder.end_child();
 
 		match is_valid {
 			true => Some(result),

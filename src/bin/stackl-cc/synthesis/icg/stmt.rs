@@ -2,7 +2,8 @@
 
 use crate::{
 	analysis::syn,
-	diagnostics::Diagnostic, synthesis::icg::DataLayout,
+	diagnostics::Diagnostic,
+	synthesis::icg::DataLayout,
 };
 
 impl super::SSACodeGen<'_> {

@@ -55,7 +55,11 @@ impl Builder {
 	}
 
 	/// Helper method to add an instruction to the current section or default to .code
-	fn add_instruction_to_section(&mut self, instruction: data::Instruction, section_name: &str) -> Result<(), Error> {
+	fn add_instruction_to_section(
+		&mut self,
+		instruction: data::Instruction,
+		section_name: &str,
+	) -> Result<(), Error> {
 		return_if_detached!(self.in_func, instruction);
 		match self
 			.curr_section
@@ -245,7 +249,12 @@ impl Builder {
 		Ok(id)
 	}
 	/// Basically a switch statement
-	pub fn multi_branch(&mut self, selector: u32, default: u32, target: impl IntoIterator<Item = (Operand, u32)>) -> Result<(), Error> {
+	pub fn multi_branch(
+		&mut self,
+		selector: u32,
+		default: u32,
+		target: impl IntoIterator<Item = (Operand, u32)>,
+	) -> Result<(), Error> {
 		let mut operands: Vec<Operand> = vec![Operand::IdRef(selector), Operand::IdRef(default)];
 
 		for (case_value, target_label) in target.into_iter() {
@@ -602,7 +611,12 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
-	pub fn logical_not_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+	pub fn logical_not_equal(
+		&mut self,
+		result_type: u32,
+		lhs: u32,
+		rhs: u32,
+	) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
 			opcode: data::Opcode::LogicalNotEqual,
@@ -798,7 +812,12 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
-	pub fn function_call(&mut self, result_type: u32, function: u32, arguments: impl IntoIterator<Item = u32>) -> Result<u32, Error> {
+	pub fn function_call(
+		&mut self,
+		result_type: u32,
+		function: u32,
+		arguments: impl IntoIterator<Item = u32>,
+	) -> Result<u32, Error> {
 		let id = self.id();
 		let mut operands = vec![Operand::IdRef(function)];
 		for arg in arguments.into_iter() {
@@ -841,7 +860,11 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
-	pub fn phi(&mut self, result_type: u32, incoming: impl IntoIterator<Item = (u32, u32)>) -> Result<u32, Error> {
+	pub fn phi(
+		&mut self,
+		result_type: u32,
+		incoming: impl IntoIterator<Item = (u32, u32)>,
+	) -> Result<u32, Error> {
 		let id = self.id();
 		let mut operands = vec![];
 		for (incoming_value, block_id) in incoming.into_iter() {
@@ -864,16 +887,10 @@ impl Builder {
 			opcode: data::Opcode::LoopMerge,
 			result_id: Some(id),
 			result_type: None,
-			operands: [
-				Operand::IdRef(merge_label),
-				Operand::IdRef(continue_label),
-			]
-			.into(),
+			operands: [Operand::IdRef(merge_label), Operand::IdRef(continue_label)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
 }
-
-
