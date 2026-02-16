@@ -96,7 +96,7 @@ impl super::SSACodeGen<'_> {
 				}),
 				syn::expr::BinOpKind::Div,
 			) => self.builder.u_div(result_type, lhs.0, rhs.0).unwrap(),
-			(DataLayout::Float(FloatLayout { width: _ }), syn::expr::BinOpKind::Div) => {
+			(DataLayout::Float(_), syn::expr::BinOpKind::Div) => {
 				self.builder.f_div(result_type, lhs.0, rhs.0).unwrap()
 			}
 			(
@@ -113,7 +113,7 @@ impl super::SSACodeGen<'_> {
 				}),
 				syn::expr::BinOpKind::Rem,
 			) => self.builder.u_rem(result_type, lhs.0, rhs.0).unwrap(),
-			(DataLayout::Float(FloatLayout { width: _ }), syn::expr::BinOpKind::Rem) => {
+			(DataLayout::Float(_), syn::expr::BinOpKind::Rem) => {
 				self.builder.f_rem(result_type, lhs.0, rhs.0).unwrap()
 			}
 			_ => {

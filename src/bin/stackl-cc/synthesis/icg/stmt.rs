@@ -20,10 +20,6 @@ impl super::SSACodeGen<'_> {
 			syn::Stmt::Expr(syn::ExprStmt(Some(stmt))) => {
 				self.expr(stmt);
 			}
-			syn::Stmt::Jump(syn::JumpStmt::Goto(label)) => {
-				let target_label = self.label_table.global_lookup(&label.name).unwrap();
-				self.builder.branch(*target_label).unwrap();
-			}
 			syn::Stmt::Compound(syn::CompoundStmt { blocks, .. }) => {
 				self.increase_scope();
 				for block in blocks.iter() {
@@ -35,11 +31,16 @@ impl super::SSACodeGen<'_> {
 				}
 				self.decrease_scope();
 			}
-			// syn::Stmt::Select(syn::SelectStmt::Switch { expr, stmt }) => {
-			// 	let (expr_id, layout) = self.expr(expr);
-			// 	assert!(matches!(layout, DataLayout::Integer(_)));
-			// 	let type_id = self.resolve_type(&layout);
-			// }
+			syn::Stmt::Jump(syn::JumpStmt::Goto(label)) => {
+				let target_label = self.label_table.global_lookup(&label.name).unwrap();
+				self.builder.branch(*target_label).unwrap();
+			}
+			syn::Stmt::Jump(syn::JumpStmt::Return(None)) => {
+				self.builder.ret();
+			}
+			syn::Stmt::Jump(syn::JumpStmt::Return(Some(expr))) => {
+				todo!("store return result of expr on stack");
+			}
 			other => todo!("{other:?}"),
 		}
 		Ok(())
