@@ -224,8 +224,7 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
-	pub fn label(&mut self) -> Result<u32, Error> {
-		let id = self.id();
+	pub fn label(&mut self, id: u32) -> Result<(), Error> {
 		let instruction = data::Instruction {
 			opcode: data::Opcode::Label,
 			result_id: Some(id),
@@ -234,19 +233,18 @@ impl Builder {
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.add_instruction_to_section(instruction, ".code")?;
-		Ok(id)
+		Ok(())
 	}
-	pub fn branch(&mut self, target_label: u32) -> Result<u32, Error> {
-		let id = self.id();
+	pub fn branch(&mut self, target_label: u32) -> Result<(), Error> {
 		let instruction = data::Instruction {
 			opcode: data::Opcode::Branch,
-			result_id: Some(id),
+			result_id: None,
 			result_type: None,
 			operands: [Operand::IdRef(target_label)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.add_instruction_to_section(instruction, ".code")?;
-		Ok(id)
+		Ok(())
 	}
 	/// Basically a switch statement
 	pub fn multi_branch(
@@ -301,6 +299,17 @@ impl Builder {
 			result_id: None,
 			result_type: None,
 			operands: [].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(())
+	}
+	pub fn ret_val(&mut self, value: u32) -> Result<(), Error> {
+		let instruction = data::Instruction {
+			opcode: data::Opcode::RetValue,
+			result_id: None,
+			result_type: None,
+			operands: [Operand::IdRef(value)].into(),
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.add_instruction_to_section(instruction, ".code")?;
@@ -664,6 +673,122 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
+	pub fn bitwise_not(&mut self, result_type: u32, operand: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::BitwiseNot,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(operand)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn bitwise_and(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::BitwiseAnd,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn bitwise_or(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::BitwiseOr,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn bitwise_xor(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::BitwiseXor,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn arithmetic_shift_left(
+		&mut self,
+		result_type: u32,
+		lhs: u32,
+		rhs: u32,
+	) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::ArithmeticShiftLeft,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn arithmetic_shift_right(
+		&mut self,
+		result_type: u32,
+		lhs: u32,
+		rhs: u32,
+	) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::ArithmeticShiftRight,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn logical_shift_left(
+		&mut self,
+		result_type: u32,
+		lhs: u32,
+		rhs: u32,
+	) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::LogicalShiftLeft,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn logical_shift_right(
+		&mut self,
+		result_type: u32,
+		lhs: u32,
+		rhs: u32,
+	) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::LogicalShiftRight,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(lhs), Operand::IdRef(rhs)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
 	pub fn i_equal(&mut self, result_type: u32, lhs: u32, rhs: u32) -> Result<u32, Error> {
 		let id = self.id();
 		let instruction = data::Instruction {
@@ -762,11 +887,10 @@ impl Builder {
 		condition: u32,
 		true_label: u32,
 		false_label: u32,
-	) -> Result<u32, Error> {
-		let id = self.id();
+	) -> Result<(), Error> {
 		let instruction = data::Instruction {
 			opcode: data::Opcode::BranchConditional,
-			result_id: Some(id),
+			result_id: None,
 			result_type: None,
 			operands: [
 				Operand::IdRef(condition),
@@ -777,7 +901,7 @@ impl Builder {
 		};
 		return_if_detached!(self.in_func, instruction);
 		self.add_instruction_to_section(instruction, ".code")?;
-		Ok(id)
+		Ok(())
 	}
 	pub fn unreachable(&mut self) -> Result<(), Error> {
 		let instruction = data::Instruction {
@@ -860,6 +984,7 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(())
 	}
+	#[must_use]
 	pub fn phi(
 		&mut self,
 		result_type: u32,

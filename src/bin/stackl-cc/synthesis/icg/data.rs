@@ -22,9 +22,24 @@ impl SSACodeGen<'_> {
 			DataLayout::Array(inner) => self.type_array(inner),
 			DataLayout::Function(inner) => self.type_function(inner),
 			DataLayout::Struct(inner) => self.type_struct(inner),
-			DataLayout::Float(_) => todo!("[resolve_type]: `float`"),
+			DataLayout::Float(inner) => self.type_float(inner.width),
 			DataLayout::RuntimeArray(_) => todo!("[resolve_type]: `runtime array`"),
 		}
+	}
+
+	fn type_float(&mut self, width: u32) -> u32 {
+		let id = self.builder.type_float(width).unwrap();
+		if let Some(value) = self
+			.type_map
+			.insert(DataLayout::Float(FloatLayout { width }), id)
+		{
+			let info =
+				Diagnostic::info(DiagKind::Trace(format!("SSA id {id} already exists")), None);
+			if self.is_traced {
+				self.diag_engine.push(info);
+			}
+		}
+		id
 	}
 	fn type_bool(&mut self) -> u32 {
 		let id = self.builder.type_bool();

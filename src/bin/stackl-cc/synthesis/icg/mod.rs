@@ -41,6 +41,8 @@ pub struct SSACodeGen<'a> {
 	ordinary_table: SymbolTable<String, u32>,
 	diag_engine: &'a mut DiagnosticEngine,
 	is_traced: bool,
+	// Track the current loop for continue/break statements
+	current_loop_label: Option<u32>,
 }
 
 impl<'a> SSACodeGen<'a> {
@@ -53,6 +55,7 @@ impl<'a> SSACodeGen<'a> {
 			ordinary_table: SymbolTable::new(),
 			diag_engine,
 			is_traced,
+			current_loop_label: None,
 		}
 	}
 	pub(self) fn increase_scope(&mut self) {

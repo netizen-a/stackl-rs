@@ -135,9 +135,12 @@ impl super::SemanticParser<'_> {
 				// Add tree node for member display
 				if self.print_ast {
 					// Handle struct member (e.g., struct Bar bar)
-					if let TypeKind::Tag(TagKind::Struct(Some(tag_name), _)) = &member_type.dtype.kind {
+					if let TypeKind::Tag(TagKind::Struct(Some(tag_name), _)) =
+						&member_type.dtype.kind
+					{
 						// Check if this member is already declared in the current scope
-						let parent_path: Vec<String> = ident_list.iter().map(|i| i.name.clone()).collect();
+						let parent_path: Vec<String> =
+							ident_list.iter().map(|i| i.name.clone()).collect();
 						if !self.member_already_declared(member_ident, &parent_path) {
 							let member_name = ident_list.last().unwrap().name.clone();
 							let member_type_str = format!("struct {}", tag_name);
@@ -151,9 +154,11 @@ impl super::SemanticParser<'_> {
 						}
 					}
 					// Handle anonymous struct member (e.g., struct {int k, v} foobar)
-					else if let TypeKind::Tag(TagKind::Struct(None, _)) = &member_type.dtype.kind {
+					else if let TypeKind::Tag(TagKind::Struct(None, _)) = &member_type.dtype.kind
+					{
 						// Check if this member is already declared in the current scope
-						let parent_path: Vec<String> = ident_list.iter().map(|i| i.name.clone()).collect();
+						let parent_path: Vec<String> =
+							ident_list.iter().map(|i| i.name.clone()).collect();
 						if !self.member_already_declared(member_ident, &parent_path) {
 							let member_name = ident_list.last().unwrap().name.clone();
 							let member_type_name = format!("struct <anonymous>");
@@ -184,7 +189,11 @@ impl super::SemanticParser<'_> {
 	// Helper function to check if a member has already been declared
 	fn member_already_declared(&self, ident: &syn::Identifier, parent_path: &[String]) -> bool {
 		// Get the full path for the member
-		let full_path: Vec<String> = parent_path.iter().cloned().chain(vec![ident.name.clone()]).collect();
+		let full_path: Vec<String> = parent_path
+			.iter()
+			.cloned()
+			.chain(vec![ident.name.clone()])
+			.collect();
 
 		// Check if this member has been declared in the current scope
 		for (name, entry) in self.ordinary_table.iter_current_scope().unwrap() {
