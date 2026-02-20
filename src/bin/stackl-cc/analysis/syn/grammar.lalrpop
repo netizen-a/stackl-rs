@@ -874,16 +874,36 @@ BlockItem: BlockItem = {
 ExprStatement: ExprStmt = <expr:Expr?> ";" => ExprStmt(expr);
 
 MatchedIterationStatement: IterStmt = {
-	"while" "(" Expr ")" Matched => todo!(),
-	"do" Matched "while" "(" Expr ")" ";"
-	"for" "(" Expr? ";" Expr? ";" Expr? ")" Matched => todo!(),
-	"for" "(" Declaration Expr? ";" Expr? ")" Matched => todo!(),
+	"while" "(" <cond:Expr> ")" <stmt:Matched> => IterStmt::While { cond, stmt: Box::new(stmt) },
+	"do" <stmt:Matched> "while" "(" <cond:Expr> ")" ";" => IterStmt::DoWhile { stmt: Box::new(stmt), cond },
+	"for" "(" <init_expr:Expr?> ";" <cond:Expr?> ";" <iteration:Expr?> ")" <stmt:Matched> => IterStmt::ForExpr {
+		init_expr,
+		cond,
+		iteration,
+		stmt: Box::new(stmt),
+	},
+	"for" "(" <init_decl:Declaration> <cond:Expr?> ";" <iteration:Expr?> ")" <stmt:Matched> => IterStmt::ForDecl {
+		init_decl,
+		cond,
+		iteration,
+		stmt: Box::new(stmt),
+	},
 };
 UnmatchedIterationStatement: IterStmt = {
-	"while" "(" Expr ")" Unmatched => todo!(),
-	"do" Unmatched "while" "(" Expr ")" ";"
-	"for" "(" Expr? ";" Expr? ";" Expr? ")" Unmatched => todo!(),
-	"for" "(" Declaration Expr? ";" Expr? ")" Unmatched => todo!(),
+	"while" "(" <cond:Expr> ")" <stmt:Unmatched> => IterStmt::While { cond, stmt: Box::new(stmt) },
+	"do" <stmt:Unmatched> "while" "(" <cond:Expr> ")" ";" => IterStmt::DoWhile { stmt: Box::new(stmt), cond },
+	"for" "(" <init_expr:Expr?> ";" <cond:Expr?> ";" <iteration:Expr?> ")" <stmt:Unmatched> => IterStmt::ForExpr {
+		init_expr,
+		cond,
+		iteration,
+		stmt: Box::new(stmt),
+	},
+	"for" "(" <init_decl:Declaration> <cond:Expr?> ";" <iteration:Expr?> ")" <stmt:Unmatched> => IterStmt::ForDecl {
+		init_decl,
+		cond,
+		iteration,
+		stmt: Box::new(stmt),
+	},
 };
 
 JumpStatement: JumpStmt = {
