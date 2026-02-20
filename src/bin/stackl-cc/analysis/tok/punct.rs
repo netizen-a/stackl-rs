@@ -20,13 +20,13 @@ pub enum Punct {
 	RCurly,
 	/// `.`
 	Dot,
-	/// `->
+	/// `->`
 	Arrow,
 	/// `++`
 	PlusPlus,
-	/// --
+	/// `--`
 	MinusMinus,
-	/// &
+	/// `&`
 	Amp,
 	/// `*`
 	Star,
@@ -165,6 +165,8 @@ impl TryFrom<char> for Punct {
 	type Error = lex::TryFromCharError;
 	fn try_from(value: char) -> Result<Self, Self::Error> {
 		match value {
+			'&' => Ok(Self::Amp),
+			'.' => Ok(Self::Dot),
 			'[' => Ok(Self::LSquare),
 			']' => Ok(Self::RSquare),
 			'(' => Ok(Self::LParen),
@@ -175,6 +177,18 @@ impl TryFrom<char> for Punct {
 			',' => Ok(Self::Comma),
 			'~' => Ok(Self::Tilde),
 			';' => Ok(Self::SemiColon),
+			':' => Ok(Self::Colon),
+			'%' => Ok(Self::Percent),
+			'|' => Ok(Self::VBar),
+			'!' => Ok(Self::Bang),
+			'+' => Ok(Self::Plus),
+			'-' => Ok(Self::Minus),
+			'/' => Ok(Self::FSlash),
+			'<' => Ok(Self::Less),
+			'>' => Ok(Self::Great),
+			'=' => Ok(Self::Equal),
+			'^' => Ok(Self::Caret),
+			'*' => Ok(Self::Star),
 			_ => Err(lex::TryFromCharError),
 		}
 	}
