@@ -224,6 +224,30 @@ impl Builder {
 		self.add_instruction_to_section(instruction, ".code")?;
 		Ok(id)
 	}
+	pub fn s_neg(&mut self, result_type: u32, operand: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::SNeg,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(operand)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
+	pub fn f_neg(&mut self, result_type: u32, operand: u32) -> Result<u32, Error> {
+		let id = self.id();
+		let instruction = data::Instruction {
+			opcode: data::Opcode::FNeg,
+			result_id: Some(id),
+			result_type: Some(result_type),
+			operands: [Operand::IdRef(operand)].into(),
+		};
+		return_if_detached!(self.in_func, instruction);
+		self.add_instruction_to_section(instruction, ".code")?;
+		Ok(id)
+	}
 	pub fn label(&mut self, id: u32) -> Result<(), Error> {
 		let instruction = data::Instruction {
 			opcode: data::Opcode::Label,

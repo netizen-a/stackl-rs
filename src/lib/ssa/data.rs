@@ -18,6 +18,8 @@ pub enum Opcode {
 	SRem,
 	URem,
 	FRem,
+	SNeg,
+	FNeg,
 	Ret,
 	RetValue,
 	Store,
