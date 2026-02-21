@@ -521,6 +521,10 @@ impl Iterator for Lexer {
 					// case: `<%` => `{`
 					self.set_end(pos);
 					tok::Punct::LCurly
+				} else if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
+					// case: `<=`
+					self.set_end(pos);
+					tok::Punct::LessEqual
 				} else {
 					// case: `<`
 					self.set_end(pos);
@@ -711,6 +715,38 @@ impl Iterator for Lexer {
 				} else {
 					// case: `&`
 					tok::Punct::Amp
+				};
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
+			}
+			'|' => {
+				self.include_state = 0;
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '|') {
+					// case: `||`
+					self.set_end(pos);
+					tok::Punct::AmpAmp
+				} else {
+					// case: `|`
+					tok::Punct::VBar
+				};
+				Some(Ok(tok::PPToken {
+					kind: tok::PPTokenKind::Punct(term),
+					leading_space: self.leading_space,
+					span: self.to_span(),
+				}))
+			}
+			'>' => {
+				self.include_state = 0;
+				let term = if let Some((pos, _)) = self.chars.next_if(|&(_, c)| c == '=') {
+					// case: `&&`
+					self.set_end(pos);
+					tok::Punct::GreatEqual
+				} else {
+					// case: `>`
+					tok::Punct::Great
 				};
 				Some(Ok(tok::PPToken {
 					kind: tok::PPTokenKind::Punct(term),
